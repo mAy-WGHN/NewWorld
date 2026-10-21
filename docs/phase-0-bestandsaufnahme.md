@@ -3,6 +3,8 @@
 Stand: 2026-10-21 · Grundlage: `Umsetzungsplan Mitarbeiterportal – Backend-Architektur.md`
 
 > **Nachtrag (2026-10-21, nach Freigabe durch den Projektverantwortlichen):** Der Bericht beschreibt den Stand vor den Entscheidungen. Seitdem gilt: `IRS-API` heißt jetzt `Portal` (Ordner, Projekt, Namespace); `hr-tool-API` ist intern in `Workforce/` und `Hr/` getrennt; das feingranulare ACL in Rollen-Rechte, der BC-PIN-Login (mit zusätzlichem DB-Cache), `GET /api/me/privileges` und `report.created` bleiben. Damit entfallen bzw. ändern sich u. a. die Fragen 1–6 in Abschnitt 5 und mehrere Umbauzeilen für Rollen-Rechte und Benachrichtigungen (Rechtemodell-Reduktion, Entfernen der Report-Fachlogik, „als veraltet markieren“). Die verbindliche Fassung steht in der Root-`CLAUDE.md` unter „Entscheidungen nach Phase 0“.
+>
+> **Nachtrag 2 (2026-10-21):** Die Bestandsdienste liegen jetzt unter `Archiv/` (z. B. `Archiv/Rollen-Rechte`); die Pfade in diesem Bericht meinen diese Ordner. Neue Entwicklung findet unter `src/` statt (Entscheidung 10).
 
 Es wurde **kein Code geändert**. Die Analyse ist rein lesend. Es wurde nichts gebaut und kein Test ausgeführt; Testanzahlen stammen aus dem Zählen der `[Fact]`/`[Theory]`-Attribute (Theory-Fälle nicht mitgezählt). „Portal“ im Plan = `IRS-API`.
 

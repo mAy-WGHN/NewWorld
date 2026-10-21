@@ -1,13 +1,16 @@
-# Alle Bestandsdienste lokal per Docker (macOS/Linux, POSIX-Shell). Voraussetzungen: Docker, dotnet SDK 10, dotnet-ef (Migrationen).
+# make test: neue Dienste unter src/. Alle anderen Ziele: Archiv-Dienste lokal per Docker (macOS/Linux, POSIX-Shell). Voraussetzungen: Docker, dotnet SDK 10, dotnet-ef (Migrationen).
 # Die Makefiles unter Archiv/ (Windows/PowerShell) bleiben für den Einzelbetrieb unverändert.
 
 POSTGRES_PORT ?= 5440
 COMPOSE := docker compose
 
 .DEFAULT_GOAL := help
-.PHONY: help env up down restart build db-up migrate apps-up ps logs health reset
+.PHONY: help test env up down restart build db-up migrate apps-up ps logs health reset
 
 help:
+	@echo "make test      Neue Dienste (src/): dotnet build + dotnet test der gesamten Solution"
+	@echo ""
+	@echo "Archiv-Dienste:"
 	@echo "make up        Alles starten: .env anlegen, Postgres, Migrationen, alle Dienste (baut die Images)"
 	@echo "make down      Alle Container stoppen (Daten bleiben)"
 	@echo "make reset     Container stoppen und Datenbanken/Uploads LÖSCHEN"
@@ -20,6 +23,10 @@ help:
 	@echo "make env       Lokale .env mit Dev-Schlüsseln erzeugen (nur falls sie fehlt)"
 	@echo ""
 	@echo "Ports: Portal 8000, Rollen-Rechte 8100, Benachrichtigungen 8200, hr-tool-API 8300, BC-Anbindung 8400, Postgres $(POSTGRES_PORT)"
+
+test:
+	dotnet build NewWorld.slnx
+	dotnet test NewWorld.slnx --no-build
 
 env:
 	@./scripts/dev-env.sh

@@ -2,7 +2,7 @@
 
 Quelle der Regeln: `Umsetzungsplan Mitarbeiterportal – Backend-Architektur.md` (im Root). Bei Widerspruch gilt der Plan, außer die „Entscheidungen nach Phase 0“ weiter unten legen etwas anderes fest. Lies ihn vollständig, bevor du neue Dateien anlegst.
 
-**Begriff:** „Portal“ / „Portal API“ im Plan = der Ordner `Portal` (früher `IRS-API`).
+**Begriff:** „Portal API“ im Plan = der neue Dienst `src/Portal`. Der Bestandsdienst liegt unter `Archiv/Portal` (früher `IRS-API`).
 
 ## Kontext
 
@@ -11,17 +11,24 @@ Backend eines Mitarbeiterportals, eines HR-Tools und der Integrationsdienste fü
 - BC ist alleiniger Master für Stammdaten (Filialen, Mitarbeiterkarte).
 - Dienstplanung, Nichtverfügbarkeiten, Zeiterfassung: neues System operativ führend, aber vollständig nach BC gespiegelt (Tool bleibt ersetzbar).
 
-### Bestehende Ordner (Bestandscode, wird in Phase 0 analysiert und angepasst, nicht verworfen)
+### Ordner
 
-| Ordner | Rolle im Zielbild |
+| Ordner | Inhalt |
 | --- | --- |
-| `BC-Anbindung` | BC Integration Service |
-| `Rollen-Rechte` | Access Service |
-| `Benachrichtigungen` | Notification Service |
-| `Portal` (früher `IRS-API`) | Portal API (im Plan nur minimales Gerüst) |
-| `hr-tool-API` | Workforce API (Basis, intern getrennt in `Workforce/` und `Hr/`); die HR API des Plans (Recruiting, DATEV) ist out of scope |
+| `src/`, `tests/` | Neue Dienste und Shared-Bibliotheken nach Plan (`NewWorld.slnx`). Hier wird entwickelt. |
+| `Archiv/` | Bestandsdienste, unverändert lauffähig (Entscheidung 10). Fachliche Referenz, keine Weiterentwicklung. |
+| `docker-compose.yaml`, `Makefile` | Startet die Archiv-Dienste gemeinsam (`make up`). |
+| `docs/` | Phasenberichte. |
 
-Jeder Ordner hat ggf. eine eigene `CLAUDE.md`; diese ergänzt die Regeln hier.
+| Archiv-Ordner | Entsprechung im Zielbild (`src/`) |
+| --- | --- |
+| `Archiv/BC-Anbindung` | `BcIntegration` |
+| `Archiv/Rollen-Rechte` | `Access` |
+| `Archiv/Benachrichtigungen` | `Notifications` |
+| `Archiv/Portal` (früher `IRS-API`) | `Portal` (im Plan nur minimales Gerüst) |
+| `Archiv/hr-tool-API` | `Workforce` (intern getrennt in `Workforce/` und `Hr/`); die HR API des Plans (Recruiting, DATEV) ist out of scope |
+
+Jeder Archiv-Ordner hat ggf. eine eigene `CLAUDE.md`; sie beschreibt den Bestand und gilt nur dort.
 
 ## Entscheidungen nach Phase 0 (Stand 2026-10-21)
 
@@ -34,8 +41,11 @@ Diese Entscheidungen des Projektverantwortlichen gelten **vor** dem Plan, wo sie
 5. **`GET /api/me/privileges` bleibt** (Rechte und Reichweite pro Request). Das weicht von „Access nie im Request-Pfad“ ab; die Phase-4-Aufgabe „synchrone Prüf-Endpunkte als veraltet markieren“ entfällt. Ob zusätzlich `PermissionsChanged` und ein lokaler Cache eingeführt werden, ist offen.
 6. **`report.created` bleibt** (Portal → Benachrichtigungen, inkl. Meldungsregeln, Empfängerermittlung und Einstellungen). Die Phase-5-Aufgabe, diese Fachlogik zu entfernen, entfällt. Offen bleibt der Konflikt mit der Datenschutz-Regel für Push/Mail (Meldungstext `description` im Push-Text, Klasse 2) — mit dem Datenschutzbeauftragten zu klären.
 7. **Geschachtelte `.git`-Repos bleiben vorerst erhalten** (BC-Anbindung, Benachrichtigungen, Portal, Rollen-Rechte). Die Remotes (`origin`) wurden entfernt und werden vom Projektverantwortlichen später wieder hinzugefügt.
-8. **Kein Wolverine** (keine Lizenz vorhanden). Messaging läuft über `Azure.Messaging.ServiceBus` mit eigener, schlanker Outbox/Inbox (EF Core, PostgreSQL) in `Shared.Messaging`. Der Transport steckt hinter einem Interface; ein späterer Wechsel (z. B. HTTP-Zustellung statt Broker) betrifft nur dessen Implementierung. Die Hosting-Umgebung ist noch offen. Dadurch entfällt die Wolverine-Bestätigung am Stopp-Punkt von Phase 1.
-9. **Build-Konfiguration nur unter `src/` und `tests/`.** `Directory.Build.props`/`Directory.Packages.props` liegen nicht im Root, damit die Bestandsprojekte (eigene Pakete, kein `TreatWarningsAsErrors`) unberührt bleiben. Bestandsprojekte werden in Phase 1 nicht verschoben; neue Dienste entstehen als Gerüst unter `src/`.
+8. **Kein Wolverine** (keine Lizenz vorhanden). Messaging läuft über `Azure.Messaging.ServiceBus` mit eigener, schlanker Outbox/Inbox (EF Core, PostgreSQL) in `Shared.Infrastructure` (Entscheidung 11). Der Transport steckt hinter einem Interface; ein späterer Wechsel (z. B. HTTP-Zustellung statt Broker) betrifft nur dessen Implementierung. Die Hosting-Umgebung ist noch offen. Dadurch entfällt die Wolverine-Bestätigung am Stopp-Punkt von Phase 1.
+9. **Build-Konfiguration im Root, `Archiv/` abgeschirmt.** `Directory.Build.props`/`Directory.Packages.props` liegen wie im Plan im Root. `Archiv/` hat eigene, leere Varianten, die die Vererbung stoppen; die Archiv-Dienste bauen mit ihren eigenen Paketversionen und ohne `TreatWarningsAsErrors` wie bisher.
+10. **Bestandsdienste liegen unter `Archiv/`** (2026-10-21). Neue Entwicklung nur unter `src/`; das Archiv ist fachliche Referenz (Regeln, Datenmodell, Erkenntnisse aus BC) und bleibt per `make up` lauffähig. Fachlogik wird bei Bedarf in die neuen Dienste übernommen, nicht im Archiv weiterentwickelt. Das ersetzt den „Umbau“-Gedanken aus Entscheidung 1 und 2: Basis der Workforce- bzw. Portal-API sind `src/Workforce` und `src/Portal`, `Archiv/hr-tool-API` und `Archiv/Portal` liefern die Fachlogik als Vorlage. Entscheidungen 3 bis 6 (ACL, PIN-Login, `/api/me/privileges`, `report.created`) gelten fachlich weiter und sind in den neuen Diensten umzusetzen.
+11. **Shared-Bibliotheken nach Abhängigkeiten getrennt.** `Shared.Messaging` und `Shared.Approvals` sind paketfrei (nutzbar aus `*.Contracts` bzw. `*.Core`), `Shared.Authorization` hat keine EF-/Service-Bus-Abhängigkeit. Alles Technische (Outbox/Inbox, Transport, EF-Mappings für Genehmigungen und Berechtigungs-Cache, Datenbank-Migration beim Start in Development/Testing) liegt in `Shared.Infrastructure`, das nur von `*.Infrastructure` referenziert wird. Architekturtests sichern das ab. Das ergänzt die Zielstruktur des Plans um eine fünfte Shared-Bibliothek.
+12. **Filialleiter-Policy:** `RequireStoreManager` erfüllen `StoreManager` und `Executive`; HR bekommt eigene Policies. **Service-Bus-Emulator:** Die Lizenz (EULA) wird in AppHost und Test-Fixture akzeptiert.
 
 ## Arbeitsregeln
 
@@ -135,18 +145,20 @@ Tests: xUnit (Bestandswahl übernehmen), FluentAssertions oder Shouldly, `Micros
 ```
 /src
   /AppHost, /ServiceDefaults
-  /Shared  (Shared.Authorization | Shared.Approvals | Shared.Messaging | Shared.Testing)
+  /Shared  (Shared.Authorization | Shared.Approvals | Shared.Messaging | Shared.Infrastructure | Shared.Testing)
   /BcIntegration, /Access, /Notifications, /Workforce, /Portal
      jeweils: <Dienst>.Api | .Core | .Infrastructure | .Contracts
 /tests
   /<Dienst>.Core.Tests, .Api.Tests, .Contracts.Tests, /Architecture.Tests, /Fixtures
 /infra   Bicep (nur Service-Bus-Topologie)
+/Archiv  Bestandsdienste (Referenz, Entscheidung 10)
 ```
 
 ### Projektabhängigkeiten
 
 - `*.Core`: keine Infrastruktur (kein EF Core, Service Bus, HTTP-Client); intern nach Features gegliedert (`Absences/`, `ShiftPlanning/`), nicht nach technischen Schichten.
 - `*.Contracts`: keine Abhängigkeiten außer `Shared.Messaging` (Sensitivity-Attribut).
+- `*.Core` darf `Shared.Messaging` und `Shared.Approvals` nutzen, nie `Shared.Infrastructure`; das ist `*.Infrastructure` vorbehalten.
 - Ein Dienst darf einen anderen Dienst ausschließlich über dessen `*.Contracts` referenzieren.
 
 ## Nachrichtenkatalog (nur diese; neue erst nach Rückfrage)
