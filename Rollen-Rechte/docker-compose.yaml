@@ -1,0 +1,35 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: rollen-rechte-postgres
+    environment:
+      POSTGRES_DB: access
+      POSTGRES_USER: access
+      POSTGRES_PASSWORD: access_dev_only
+    ports:
+      # 5433, damit es nicht mit der Portal-Datenbank (5432) kollidiert.
+      - "5433:5432"
+    volumes:
+      - rollen-rechte-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U access -d access"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Nur mit "docker compose --profile app up" (make api-up). Port 8100. Dev-Werte, keine Secrets.
+  api:
+    profiles: ["app"]
+    build: .
+    container_name: rollen-rechte
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__Default: Host=postgres;Port=5432;Database=access;Username=access;Password=access_dev_only
+    ports:
+      - "8100:8080"
+
+volumes:
+  rollen-rechte-postgres-data:

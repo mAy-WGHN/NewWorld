@@ -1,0 +1,43 @@
+# --- Secrets / lokale Konfiguration (Vorlagen als .env.example bleiben versioniert) ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.pfx
+*.p12
+secrets.json
+appsettings.*.local.json
+*.local.json
+.claude/settings.local.json
+
+# --- Build-Ausgaben ---
+bin/
+obj/
+publish/
+app.zip
+TestResults/
+*.nupkg
+
+# --- IDE / OS ---
+.vs/
+.idea/
+.vscode/
+*.user
+*.suo
+*.DotSettings.user
+Thumbs.db
+.DS_Store
+
+# --- Daten, die nicht ins Repo gehören (echte Personaldaten, Exporte, Uploads) ---
+*.xlsx
+*.xls
+*.csv
+**/docs/spreadsheets/
+tmp/
+var/
+uploads/
+
+# --- Docker / lokale Laufzeitdaten ---
+pgdata/
+.aspire/

@@ -1,0 +1,380 @@
+[
+  {
+    "code": "AB",
+    "name": "Augsburg Bahnhofstraße",
+    "storeCode": "0076",
+    "costCenterCode": "76",
+    "regionCode": "REGION_4",
+    "timeAccountActive": true,
+    "vacationThreshold": 1
+  },
+  {
+    "code": "AH",
+    "name": "Augsburg Hauptbahnhof",
+    "storeCode": "0012",
+    "costCenterCode": "12",
+    "regionCode": "REGION_4",
+    "timeAccountActive": true,
+    "vacationThreshold": 1
+  },
+  {
+    "code": "AO",
+    "name": "Augsburg Oberhausen",
+    "storeCode": "0010",
+    "costCenterCode": "10",
+    "regionCode": "REGION_4",
+    "timeAccountActive": true,
+    "vacationThreshold": 1
+  },
+  {
+    "code": "BA",
+    "name": "Bamberg",
+    "storeCode": "0077",
+    "costCenterCode": "77",
+    "regionCode": "REGION_1",
+    "timeAccountActive": true,
+    "vacationThreshold": 1
+  },
+  {
+    "code": "BS",
+    "name": "Berufsschule",
+    "storeCode": null,
+    "costCenterCode": null,
+    "regionCode": null,
+    "timeAccountActive": true,
+    "vacationThreshold": 1
+  },
+  {
+    "code": "BW",
+    "name": "Bad Wörishofen",
+    "storeCode": "0026",
+    "costCenterCode": "26",
+    "regionCode": null,
+    "timeAccountActive": true,
+    "vacationThreshold": 1
+  },
+  {
+    "code": "DON",
+    "name": "Donauwörth BaBu",
+    "storeCode": "0070",
+    "costCenterCode": "70",
+    "regionCode": "REGION_2",
+    "timeAccountActive": true,
+    "vacationThreshold": 1
+  },
+  {
+    "code": "FFB",
+    "name": "BaBu Fürstenfeldbruck",
+    "storeCode": "0073",
+    "costCenterCode": "73",
+    "regionCode": "REGION_5",
+    "timeAccountActive": true,
+    "vacationThreshold": 1
+  },
+  {
+    "code": "FÜ",
+    "name": "Fürth",
+    "storeCode": "0079",
+    "costCenterCode": "79",
+    "regionCode": "REGION_1",
+    "timeAccountActive": true,
+    "vacationThreshold": 1
+  },
+  {
+    "code": "FÜS",
+    "name": "Füssen",
+    "storeCode": "0020",
+    "costCenterCode": "20",
+    "regionCode": null,
+    "timeAccountActive": true,
+    "vacationThreshold": 1
+  },
+  {
+    "code": "GU",
+    "name": "Gunzenhausen",
+    "storeCode": "0072",
+    "costCenterCode": "72",
+    "regionCode": "REGION_2",
+    "timeAccountActive": true,
+    "vacationThreshold": 1
+  },
+  {
+    "code": "GZ",
+    "name": "Günzburg BaBu",
+    "storeCode": "0018",
+    "costCenterCode": "18",
+    "regionCode": "REGION_3",
+    "timeAccountActive": true,
+    "vacationThreshold": 1
+  },
+  {
+    "code": "HO",
+    "name": "Head Office",
+    "storeCode": "95",
+    "costCenterCode": "95",
+    "regionCode": null,
+    "timeAccountActive": true,
+    "vacationThreshold": 4
+  },
+  {
+    "code": "ILL",
+    "name": "Illertissen",
+    "storeCode": "0071",
+    "costCenterCode": "71",
+    "regionCode": "REGION_3",
+    "timeAccountActive": true,
+    "vacationThreshold": 1
+  },
+  {
+    "code": "IM",
+    "name": "Immenstadt",
+    "storeCode": "0019",
+    "costCenterCode": "19",
+    "regionCode": null,
+    "timeAccountActive": true,
+    "vacationThreshold": 1
+  },
+  {
+    "code": "KE",
+    "name": "BaBu Kempten",
+    "storeCode": "0011",
+    "costCenterCode": "11",
+    "regionCode": null,
+    "timeAccountActive": true,
+    "vacationThreshold": 1
+  },
+  {
+    "code": "KF",
+    "name": "Kaufbeuren",
+    "storeCode": "0027",
+    "costCenterCode": "27",
+    "regionCode": null,
+    "timeAccountActive": true,
+    "vacationThreshold": 1
+  },
+  {
+    "code": "MM",
+    "name": "Memmingen",
+    "storeCode": "0013",
+    "costCenterCode": "13",
+    "regionCode": null,
+    "timeAccountActive": true,
+    "vacationThreshold": 1
+  },
+  {
+    "code": "MMO",
+    "name": "Hagebau. München Moosach",
+    "storeCode": "0075",
+    "costCenterCode": "75",
+    "regionCode": "REGION_5",
+    "timeAccountActive": true,
+    "vacationThreshold": 1
+  },
+  {
+    "code": "MRP",
+    "name": "München Rosenheimer Platz",
+    "storeCode": "0078",
+    "costCenterCode": "78",
+    "regionCode": "REGION_5",
+    "timeAccountActive": true,
+    "vacationThreshold": 1
+  },
+  {
+    "code": "OB",
+    "name": "Oberstdorf",
+    "storeCode": "0014",
+    "costCenterCode": "14",
+    "regionCode": null,
+    "timeAccountActive": true,
+    "vacationThreshold": 1
+  },
+  {
+    "code": "PF",
+    "name": "Pfuhl",
+    "storeCode": "0074",
+    "costCenterCode": "74",
+    "regionCode": "REGION_3",
+    "timeAccountActive": true,
+    "vacationThreshold": 1
+  },
+  {
+    "code": "SAA",
+    "name": "Samurai Augsburg",
+    "storeCode": "0022",
+    "costCenterCode": "22",
+    "regionCode": "REGION_4",
+    "timeAccountActive": true,
+    "vacationThreshold": 1
+  },
+  {
+    "code": "SAAN",
+    "name": "Samurai Ansbach",
+    "storeCode": "0032",
+    "costCenterCode": "32",
+    "regionCode": "REGION_1",
+    "timeAccountActive": true,
+    "vacationThreshold": 1
+  },
+  {
+    "code": "SABA",
+    "name": "Samurai Bar",
+    "storeCode": null,
+    "costCenterCode": null,
+    "regionCode": null,
+    "timeAccountActive": true,
+    "vacationThreshold": 1
+  },
+  {
+    "code": "SADC",
+    "name": "Samurai Dachau",
+    "storeCode": "0025",
+    "costCenterCode": "25",
+    "regionCode": "REGION_5",
+    "timeAccountActive": true,
+    "vacationThreshold": 1
+  },
+  {
+    "code": "SADL",
+    "name": "Samurai Dillingen",
+    "storeCode": "0031",
+    "costCenterCode": "31",
+    "regionCode": "REGION_2",
+    "timeAccountActive": true,
+    "vacationThreshold": 1
+  },
+  {
+    "code": "SADON",
+    "name": "Samurai Donauwörth",
+    "storeCode": "0039",
+    "costCenterCode": "39",
+    "regionCode": "REGION_2",
+    "timeAccountActive": true,
+    "vacationThreshold": 1
+  },
+  {
+    "code": "SAELL",
+    "name": "Samurai Ellwangen",
+    "storeCode": "0042",
+    "costCenterCode": "42",
+    "regionCode": "REGION_2",
+    "timeAccountActive": true,
+    "vacationThreshold": 1
+  },
+  {
+    "code": "SAFEU",
+    "name": "Samurai Feuchtwangen",
+    "storeCode": "0034",
+    "costCenterCode": "34",
+    "regionCode": "REGION_2",
+    "timeAccountActive": true,
+    "vacationThreshold": 1
+  },
+  {
+    "code": "SAFRI",
+    "name": "Samurai Freilassing",
+    "storeCode": "0037",
+    "costCenterCode": "37",
+    "regionCode": null,
+    "timeAccountActive": true,
+    "vacationThreshold": 1
+  },
+  {
+    "code": "SAGZ",
+    "name": "Samurai Günzburg",
+    "storeCode": "0028",
+    "costCenterCode": "28",
+    "regionCode": "REGION_3",
+    "timeAccountActive": true,
+    "vacationThreshold": 1
+  },
+  {
+    "code": "SAIM",
+    "name": "Samurai Immenstadt",
+    "storeCode": "0029",
+    "costCenterCode": "29",
+    "regionCode": null,
+    "timeAccountActive": true,
+    "vacationThreshold": 1
+  },
+  {
+    "code": "SAKE",
+    "name": "Samurai Kempten",
+    "storeCode": "0023",
+    "costCenterCode": "23",
+    "regionCode": null,
+    "timeAccountActive": true,
+    "vacationThreshold": 1
+  },
+  {
+    "code": "SAKR",
+    "name": "Samurai Krumbach",
+    "storeCode": "0030",
+    "costCenterCode": "30",
+    "regionCode": "REGION_3",
+    "timeAccountActive": true,
+    "vacationThreshold": 1
+  },
+  {
+    "code": "SAMUC",
+    "name": "Samurai München Ost-BHF",
+    "storeCode": "0035",
+    "costCenterCode": "35",
+    "regionCode": "REGION_5",
+    "timeAccountActive": true,
+    "vacationThreshold": 1
+  },
+  {
+    "code": "SANU",
+    "name": "Samurai Neu Ulm",
+    "storeCode": "0024",
+    "costCenterCode": "24",
+    "regionCode": "REGION_3",
+    "timeAccountActive": true,
+    "vacationThreshold": 1
+  },
+  {
+    "code": "SARE",
+    "name": "Samurai Regensburg",
+    "storeCode": "0036",
+    "costCenterCode": "36",
+    "regionCode": "REGION_1",
+    "timeAccountActive": true,
+    "vacationThreshold": 1
+  },
+  {
+    "code": "SAROT",
+    "name": "Samurai Rothenburg",
+    "storeCode": "0038",
+    "costCenterCode": "38",
+    "regionCode": "REGION_1",
+    "timeAccountActive": true,
+    "vacationThreshold": 1
+  },
+  {
+    "code": "SARV",
+    "name": "Samurai Ravensburg",
+    "storeCode": "0041",
+    "costCenterCode": "41",
+    "regionCode": null,
+    "timeAccountActive": true,
+    "vacationThreshold": 1
+  },
+  {
+    "code": "SAWEN",
+    "name": "Samurai Wendelstein",
+    "storeCode": "0040",
+    "costCenterCode": "40",
+    "regionCode": "REGION_1",
+    "timeAccountActive": true,
+    "vacationThreshold": 1
+  },
+  {
+    "code": "SF",
+    "name": "Sonthofen",
+    "storeCode": "0015",
+    "costCenterCode": "15",
+    "regionCode": null,
+    "timeAccountActive": true,
+    "vacationThreshold": 1
+  }
+]

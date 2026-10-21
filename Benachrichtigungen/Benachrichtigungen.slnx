@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="Benachrichtigungen.csproj" />
+  <Project Path="Benachrichtigungen.Tests/Benachrichtigungen.Tests.csproj" />
+</Solution>

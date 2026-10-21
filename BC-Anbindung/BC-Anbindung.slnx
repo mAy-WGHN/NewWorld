@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="BC-Anbindung.csproj" />
+  <Project Path="BC-Anbindung.Tests/BC-Anbindung.Tests.csproj" />
+</Solution>

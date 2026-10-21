@@ -1,0 +1,8 @@
+@Portal_HostAddress = http://localhost:5159
+
+GET {{Portal_HostAddress}}/api/ping
+Accept: application/json
+
+###
+
+GET {{Portal_HostAddress}}/health

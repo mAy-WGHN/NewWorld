@@ -1,0 +1,10 @@
+**/bin/
+**/obj/
+.git/
+.vs/
+.claude/
+publish/
+app.zip
+.env
+Benachrichtigungen.Tests/
+*.md

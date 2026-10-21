@@ -1,0 +1,199 @@
+# CLAUDE.md – NewWorld (Monorepo)
+
+Quelle der Regeln: `Umsetzungsplan Mitarbeiterportal – Backend-Architektur.md` (im Root). Bei Widerspruch gilt der Plan, außer die „Entscheidungen nach Phase 0“ weiter unten legen etwas anderes fest. Lies ihn vollständig, bevor du neue Dateien anlegst.
+
+**Begriff:** „Portal“ / „Portal API“ im Plan = der Ordner `Portal` (früher `IRS-API`).
+
+## Kontext
+
+Backend eines Mitarbeiterportals, eines HR-Tools und der Integrationsdienste für einen Filialbetrieb. Ziel des Plans: vertikaler Durchstich — Abwesenheit (Krankmeldung/Urlaub) erfassen → nach Business Central (BC) synchronisieren → Filialleitung benachrichtigen. Muster muss für weitere Fachbereiche wiederverwendbar sein.
+
+- BC ist alleiniger Master für Stammdaten (Filialen, Mitarbeiterkarte).
+- Dienstplanung, Nichtverfügbarkeiten, Zeiterfassung: neues System operativ führend, aber vollständig nach BC gespiegelt (Tool bleibt ersetzbar).
+
+### Bestehende Ordner (Bestandscode, wird in Phase 0 analysiert und angepasst, nicht verworfen)
+
+| Ordner | Rolle im Zielbild |
+| --- | --- |
+| `BC-Anbindung` | BC Integration Service |
+| `Rollen-Rechte` | Access Service |
+| `Benachrichtigungen` | Notification Service |
+| `Portal` (früher `IRS-API`) | Portal API (im Plan nur minimales Gerüst) |
+| `hr-tool-API` | Workforce API (Basis, intern getrennt in `Workforce/` und `Hr/`); die HR API des Plans (Recruiting, DATEV) ist out of scope |
+
+Jeder Ordner hat ggf. eine eigene `CLAUDE.md`; diese ergänzt die Regeln hier.
+
+## Entscheidungen nach Phase 0 (Stand 2026-10-21)
+
+Diese Entscheidungen des Projektverantwortlichen gelten **vor** dem Plan, wo sie ihm widersprechen. Der Plan selbst bleibt unverändert; Abweichungen stehen nur hier und im Phase-0-Bericht.
+
+1. **`hr-tool-API` ist die Basis der Workforce API**, nicht der HR API. Der Ordner bleibt ein Dienst, ist aber intern in `Workforce/` und `Hr/` getrennt (Namespaces `HrTool_API.Workforce` / `HrTool_API.Hr`, siehe `hr-tool-API/CLAUDE.md`). Die HR API im Sinne des Plans (Recruiting, DATEV) bleibt out of scope. Eine spätere Aufteilung in zwei Dienste ist möglich, aber nicht beschlossen.
+2. **`IRS-API` ist in `Portal` umbenannt** (Ordner, Projekt, Solution, Namespace `Portal`). Unverändert bleiben bewusst Deployment- und Datenbank-Namen (z. B. `APP_NAME` im Makefile, `IrsDbContext`, Datenbank), da sie produktiv sind. Die Fachlogik (Meldungen, FAQ, Statistik) bleibt unangetastet.
+3. **Rollen-Rechte behält das extrem feingranulare ACL** (Rollen mit beliebigen Privilegien, Katalog, Custom Privileges, Scopes). Es wird **nicht** auf 4 grobe Entra-App-Roles reduziert. Das weicht vom Plan ab (Abschnitt „Autorisierung“, Phase 4); wie das ACL mit Entra/`Shared.Authorization` zusammenspielt, ist noch zu entwerfen.
+4. **Der BC-PIN-Login bleibt.** Zur Entlastung der BC-Anbindung soll das Ergebnis zusätzlich in den Datenbanken zwischengespeichert werden. Das Sicherheits-/Cache-Design (was genau, wie lange, wo) ist noch nicht spezifiziert und wird vor der Umsetzung abgestimmt; die PIN darf weiterhin nie im Klartext gespeichert oder geloggt werden.
+5. **`GET /api/me/privileges` bleibt** (Rechte und Reichweite pro Request). Das weicht von „Access nie im Request-Pfad“ ab; die Phase-4-Aufgabe „synchrone Prüf-Endpunkte als veraltet markieren“ entfällt. Ob zusätzlich `PermissionsChanged` und ein lokaler Cache eingeführt werden, ist offen.
+6. **`report.created` bleibt** (Portal → Benachrichtigungen, inkl. Meldungsregeln, Empfängerermittlung und Einstellungen). Die Phase-5-Aufgabe, diese Fachlogik zu entfernen, entfällt. Offen bleibt der Konflikt mit der Datenschutz-Regel für Push/Mail (Meldungstext `description` im Push-Text, Klasse 2) — mit dem Datenschutzbeauftragten zu klären.
+7. **Geschachtelte `.git`-Repos bleiben vorerst erhalten** (BC-Anbindung, Benachrichtigungen, Portal, Rollen-Rechte). Die Remotes (`origin`) wurden entfernt und werden vom Projektverantwortlichen später wieder hinzugefügt.
+
+## Arbeitsregeln
+
+- Phasen strikt der Reihenfolge nach (0 Bestandsaufnahme → 1 Grundgerüst/Shared → 2 Contracts → 3 BC Integration → 4 Access → 5 Notification → 6 Workforce-Abwesenheiten → 7 Durchstich). Jede Phase endet an einem **Stopp-Punkt**: zusammenfassen (gebaut, Tests grün, offene Fragen) und auf Freigabe warten.
+- Vorgehen je Phase: Aufgaben/Abnahmekriterien lesen → betroffenen Bestandscode prüfen → **Tests zuerst** für die Fachlogik → Implementierung → `dotnet build` und `dotnet test` für die gesamte Solution fehlerfrei → erledigte Aufgaben abhaken, am Stopp-Punkt berichten.
+- Phase 0 ändert keinen Code; Ergebnis ist `docs/phase-0-bestandsaufnahme.md` (pro Dienst Tabelle Ist / Soll / Umbauaufwand klein-mittel-groß, Änderungen begründet, offene BC-Fragen gesammelt).
+- Kleine, nachvollziehbare Commits pro Aufgabe.
+- Bei Unsicherheit nachfragen, keine stillschweigenden Annahmen.
+
+### Nie ohne Rückfrage
+
+- Vorhandenen Code löschen oder grundlegend umschreiben (Änderung vorschlagen, Zustimmung abwarten).
+- Von den Architekturentscheidungen oder Datenschutz-Regeln abweichen, auch wenn es einfacher wäre.
+- Neue NuGet-Pakete außerhalb des Stacks unten aufnehmen.
+- Felder/Tabellen für BC erfinden. Bei unklarem BC-Modell: Platzhalter `// TODO(BC-Modell): ...`, am Stopp-Punkt auflisten.
+- Irgendetwas an der bestehenden Inventur-Anwendung ändern.
+- Neue Nachrichten oder neue Konsumenten über den Katalog hinaus ergänzen.
+- Entfernen veralteter synchroner Prüf-Endpunkte (Access) oder von Fachevent-Logik im Notification Service.
+
+## Konventionen
+
+- Code, Bezeichner, Commit-Messages: Englisch. Fachbegriffe dürfen deutsch kommentiert werden.
+- Kein `DateTime.Now` / `DateTime.UtcNow` / `DateTimeOffset.UtcNow` — ausschließlich `TimeProvider`.
+- Nullable Reference Types aktiv, `TreatWarningsAsErrors`.
+- Keine Secrets, Connection Strings oder Keys im Code oder in `appsettings*.json`. Lokal Aspire bzw. User Secrets, später Key Vault.
+- Weiterentwicklung von Nachrichten nur additiv; brechende Änderung = neue Nachricht `...V2`, alte läuft parallel.
+
+## Verbindliche Architekturentscheidungen
+
+APIs nach Fachlichkeit geschnitten. **Jede Datenart hat genau einen Besitzer, nur dieser schreibt.** Andere halten höchstens eine schreibgeschützte Kopie.
+
+| Dienst | Besitzt (schreibt) | Hält als Kopie | Genutzt von |
+| --- | --- | --- | --- |
+| BC Integration | Sync-Status, ID-Mapping (BC-SystemId ↔ interne ID), Outbox, Fehlerprotokoll | – | allen anderen Diensten, nie von Frontends |
+| Access | Filial-Scopes, Hierarchie, Vertretungen, Sonderrechte | Mitarbeitende, Filialen | allen APIs (Events + lokaler Cache) |
+| Notification | Vorlagen, Zustellstatus, Präferenzen, Push-Gerätetokens | – | allen Fach-APIs per Command |
+| Workforce API | Dienstpläne, Schichten, Schichttausch, Stempelungen, Zeitkorrekturen, Abwesenheiten, Urlaubskonten, Monatsabschlüsse | Mitarbeitende, Filialen | Portal-Frontend, HR-Frontend, HR API |
+| Portal API (`Portal`) | News, FAQ, Glossar, Filialordner, Schulungen, Quiz, On-/Offboarding, Berichtshefte, Aufgaben, Incidents, Kassen-/Losbestände | Mitarbeitende, Filialen, aggregierte Verkaufsstatistiken | Portal-Frontend |
+| HR API | Recruiting, Lohnarten-Mapping, DATEV-Exportläufe | Mitarbeitende | HR-Frontend |
+
+Umgesetzt werden in diesem Plan nur: BC Integration, Access, Notification, Workforce (nur Abwesenheiten) + minimales Portal-API-Gerüst.
+
+### Kommunikation
+
+1. **Events** (Service Bus Topics): Zustandsänderungen, minimaler Inhalt. Jede Subscription ist eine explizite, dokumentierte Freigabe.
+2. **Commands** (Service Bus Queues): beauftragen genau einen Empfänger.
+3. **Synchrones HTTP zwischen APIs** nur, wenn sofortige Antwort nötig und Kopie unpassend ist, oder für autorisierten Abruf sensibler Details. Jeder solche Endpunkt hat eine eigene App Role.
+4. **Frontends** sprechen direkt mit der besitzenden API, nie über eine andere API als Durchreiche; kein Service-Bus-Zugang.
+5. **BC** nur über den BC Integration Service. Keine andere API hat BC-Zugangsdaten oder BC-Client-Code.
+
+### Zuverlässigkeit
+
+- Zustandsänderung + ausgehende Nachricht in **derselben DB-Transaktion** (Outbox).
+- Empfänger idempotent (Inbox / gespeicherte Nachrichten-IDs); Service Bus ist „at least once“.
+- BC-Schreibvorgänge sind Upserts über externe ID (interne GUID).
+- Der Besitzer einer Entität speichert deren BC-Sync-Status (`Pending`, `Synced`, `Failed`) und aktualisiert ihn über `BcSyncSucceeded`/`BcSyncFailed`.
+
+### Autorisierung
+
+- Entra ID (`Microsoft.Identity.Web`); grobe Rollen (Mitarbeiter, Filialleitung, HR, Geschäftsführung) als App Roles im Token.
+- Feingranulare Scopes (Filialen, Mitarbeitende) verwaltet der Access Service, veröffentlicht `PermissionsChanged`; jede API hält lokalen Cache.
+- Prüfung lokal in jeder API über `Shared.Authorization`. Access Service nie im Request-Pfad; bei Ausfall letzter bekannter Stand.
+- Service-zu-Service: Client Credentials mit Managed Identity, App Role pro Fähigkeit (z. B. `Workforce.AbsenceDetails.Read`).
+
+### Genehmigungen
+
+Über Bibliothek `Shared.Approvals`, Daten in der DB der einbindenden API. Kein eigener Approval-Service.
+
+## Datenschutz-Regeln
+
+Jede Nachricht und jeder Endpunkt hat eine Sensibilitätsklasse. Im Zweifel die strengere.
+
+| Klasse | Beispiele | Auf dem Bus | Details abrufen |
+| --- | --- | --- | --- |
+| 1 – Organisationsdaten | Filiale, Personalnummer, Name, Hauptfiliale, Position, Arbeitsverhältnis-Typ, Sollstunden | voller Zustand | – |
+| 2 – Sensible Fakten | Abwesenheitsgrund, Zeitkorrekturen, Quizergebnisse, Incident-Inhalte | nur neutralisiert („nicht verfügbar“, ohne Grund) oder dünnes Event (nur IDs) | autorisierter HTTP-Abruf beim Besitzer mit eigener App Role |
+| 3 – Hochsensibel | Gehalt, Bankverbindung, Steuer-/SV-Daten, Bewerbungsunterlagen, Diagnosen | **nie** | nur HR API, direkt über BC Integration bzw. DATEV |
+
+- Keine Diagnosen/medizinischen Details speichern. Krankmeldung = Zeitraum, Art „Krank“, optional „AU liegt vor“.
+- Jede Nachrichten-Klasse trägt `[Sensitivity(SensitivityClass.X)]` (Contracts). Architekturtest: jede Nachricht klassifiziert, keine Nachricht der Klasse 3. Klassenänderung geschieht an genau einer Stelle.
+- **Logging:** nie Nachrichteninhalte oder Request-Bodies. Erlaubt: Nachrichtentyp, Nachrichten-ID, Korrelations-ID, Entitäts-IDs — auch in Messaging-Bibliothek und OpenTelemetry-Konfiguration.
+- **Push/Mail:** nie Klasse-2-Inhalte in Push-Texten oder Mail-Betreffs. Push-Text generisch („Neue Mitteilung im Portal“), Inhalt wird nach Öffnen per API geladen.
+- **Outbox/Inbox:** verarbeitete Einträge nach 7 Tagen löschen (konfigurierbar).
+- **Dead-Letter-Queues:** in der Infrastrukturdefinition mit gleicher Zugriffsbeschränkung wie die Fachdaten.
+- **Löschung:** Jede API mit Mitarbeiterkopien reagiert auf `EmployeeDataErasureRequested` mit Löschen/Anonymisieren; pro API ein Integrationstest.
+- **Service Bus:** kein Shared Access Key. Managed Identity, nur Senderechte auf eigene Topics/Queues, Leserechte nur auf freigegebene Subscriptions. Jede Subscription trägt in der Infra-Definition einen Zweck-Kommentar.
+- Die Klassifizierung ist ein Entwurf (Abstimmung mit Datenschutzbeauftragten steht aus).
+
+## Technischer Stack
+
+.NET 10, ASP.NET Core Minimal APIs (Controller nur, wo Bestandscode sie nutzt), PostgreSQL + EF Core/Npgsql (**ein Schema pro Dienst, keine Cross-Schema-Joins**), Azure Service Bus + Wolverine (Outbox/Inbox mit EF Core; **vor Einführung Lizenz und aktuelle Version prüfen und am Stopp-Punkt bestätigen lassen**), .NET Aspire AppHost + ServiceDefaults (Service-Bus-Emulator, PostgreSQL, WireMock als Container), Entra ID, OpenTelemetry über ServiceDefaults.
+
+Tests: xUnit (Bestandswahl übernehmen), FluentAssertions oder Shouldly, `Microsoft.Extensions.TimeProvider.Testing` (`FakeTimeProvider`), `WebApplicationFactory` + Testcontainers (PostgreSQL, Service-Bus-Emulator; **kein EF-In-Memory-Provider**), WireMock.Net (Antworten als Dateien unter `tests/Fixtures/Bc`), Verify (Snapshots), NetArchTest.Rules oder ArchUnitNET, `Aspire.Hosting.Testing` für E2E.
+
+### Zielstruktur
+
+```
+/src
+  /AppHost, /ServiceDefaults
+  /Shared  (Shared.Authorization | Shared.Approvals | Shared.Messaging | Shared.Testing)
+  /BcIntegration, /Access, /Notifications, /Workforce, /Portal
+     jeweils: <Dienst>.Api | .Core | .Infrastructure | .Contracts
+/tests
+  /<Dienst>.Core.Tests, .Api.Tests, .Contracts.Tests, /Architecture.Tests, /Fixtures
+/infra   Bicep (nur Service-Bus-Topologie)
+```
+
+### Projektabhängigkeiten
+
+- `*.Core`: keine Infrastruktur (kein EF Core, Service Bus, HTTP-Client); intern nach Features gegliedert (`Absences/`, `ShiftPlanning/`), nicht nach technischen Schichten.
+- `*.Contracts`: keine Abhängigkeiten außer `Shared.Messaging` (Sensitivity-Attribut).
+- Ein Dienst darf einen anderen Dienst ausschließlich über dessen `*.Contracts` referenzieren.
+
+## Nachrichtenkatalog (nur diese; neue erst nach Rückfrage)
+
+| Nachricht | Art | Herausgeber | Konsumenten | Klasse |
+| --- | --- | --- | --- | --- |
+| `EmployeeChanged` | Event | BC Integration | Workforce, Portal, Access | 1 |
+| `EmployeeHired` | Event | BC Integration | Portal, Access | 1 |
+| `EmployeeLeft` | Event | BC Integration | Workforce, Portal, Access | 1 |
+| `EmployeeDataErasureRequested` | Event | BC Integration | alle Dienste mit Kopien | 1 |
+| `StoreChanged` | Event | BC Integration | Workforce, Portal, Access | 1 |
+| `PermissionsChanged` | Event | Access | alle APIs | 1 |
+| `EmployeeAvailabilityChanged` | Event | Workforce | Portal (vorbereitet) | 2, neutralisiert (kein Grund) |
+| `ShiftUncovered` | Event | Workforce | – (vorbereitet) | 2, neutralisiert |
+| `SyncAbsenceToBc` | Command | Workforce | BC Integration | 2 (darf Grund enthalten; Queue nur von BC Integration lesbar) |
+| `BcSyncSucceeded` / `BcSyncFailed` | Event | BC Integration | Absender (gefilterte Subscription auf `SourceService`) | 1 (Fehlercode ohne Inhalte) |
+| `SendNotification` | Command | alle Fach-APIs | Notifications | je nach Daten |
+
+- Jede Nachricht: eindeutige ID (Idempotenz), Korrelations-ID, Zeitstempel aus `TimeProvider` (`IMessage`: `MessageId`, `CorrelationId`, `OccurredAt`).
+- Contracts: `sealed record`, unveränderlich, nur primitive Typen/`DateOnly`/`DateTimeOffset`/Enums/Records; XML-Doku (Zweck, Herausgeber, erlaubte Konsumenten); Enums mit `Unknown = 0`, explizite Werte, String-Serialisierung; Verify-Snapshot pro Nachricht; je Konsument Test, dass unbekannte JSON-Felder ignoriert werden.
+- `SendNotification.Data` darf Klasse-2-Inhalte nur enthalten, wenn `Channels` ausschließlich `InApp` ist; der Notification Service lehnt Verstöße ab.
+
+## Dienstspezifische Kernregeln
+
+- **BC Integration:** einziger BC-Zugang; typisierter HttpClient mit Entra-Token, ein zentraler Rate Limiter, Retry mit `Retry-After` bei 429, Timeouts, Circuit Breaker; Domänenordner `MasterData/`, `Workforce/`, leerer `Inventory/` (nur README). Stammdaten-Abgleich über `lastModifiedDateTime`, nur echte Änderungen erzeugen Events. Mapping-Tabelle vergibt die systemweite interne GUID. `SyncAbsenceToBc`: Upsert über externe ID, ältere Versionen verwerfen. Fehlerklassen: vorübergehend (Retry) / fachlich dauerhaft (`BcSyncFailed`, kein Retry) / technisch dauerhaft (Dead Letter); Fehlercodes ohne personenbezogene Inhalte. **Keine öffentlichen Endpunkte für Frontends**, intern nur Service-zu-Service-Auth. Echte-BC-Sandbox-Tests: `[Trait("Category", "BcSandbox")]`, standardmäßig nicht ausgeführt.
+- **Access:** Kopien aus `EmployeeChanged`/`StoreChanged`; abgeleitete Scopes (Filialleitung → Hauptfiliale, Mitarbeitende → sich selbst) in eigener getesteter Klasse; manuelle Zusätze (Bezirksleitung, befristete Vertretungen, Sonderrechte) nur für HR/Geschäftsführung; Vorgesetztenbeziehung; `PermissionsChanged` mit streng monoton steigender Version pro Person; Vertretungsablauf zeitgesteuert über `TimeProvider`; Austritt entzieht Rechte erst zum Austrittsdatum; Endpunkt für vollständigen Cache-Neuaufbau (nur Service-zu-Service). Alte synchrone Prüf-Endpunkte als veraltet markieren, Entfernung nur nach Rückfrage.
+- **Notification:** verarbeitet nur `SendNotification` (idempotent über `NotificationId`), kein Fachwissen anderer Bereiche; Vorlagen per `TemplateKey` (`<dienst>.<anlass>.<empfängerrolle>`, zunächst Dateien); Kanäle `InApp` (echt), `Push`/`Email` als Adapter-Interface mit Fake; Pflichtbenachrichtigungen nicht abschaltbar; InApp-Aufbewahrung 90 Tage (konfigurierbar).
+- **Workforce (Abwesenheiten):** Krankmeldung ohne Freitext und ohne Genehmigung; Urlaub mit Genehmigungskette (direkte Vorgesetzte laut Access); Urlaubskonto, Antrag über Rest → fachlicher Fehler; keine überlappenden Abwesenheiten (Ausnahme Krankheit im genehmigten Urlaub → Urlaub für betroffene Tage storniert und gutgeschrieben); Arbeitstage Mo–Sa konfigurierbar, Feiertage als austauschbarer Dienst; jede Änderung erhöht die Version (geht an BC). Grund der Abwesenheit sehen nur die Person selbst, Vorgesetzte und HR — durch Autorisierung erzwungen, nicht im Frontend. Interner Detail-Endpunkt mit App Role `Workforce.AbsenceDetails.Read`.
+- **Portal API (`Portal`):** in diesem Plan nur Gerüst (Struktur, Auth, Kopien, `/health`), keine Fachfunktionen.
+
+## Tests und Definition of Done
+
+Dichteste Tests bei Zeit-/Abwesenheitslogik, BC-Sync, Berechtigungen, Datenschutz. Ebenen: Unit, Integration, Vertrag (Verify), Architektur, E2E (Aspire + WireMock, lokal < 5 min), BC-Sandbox (nur manuell).
+
+Pflichtfälle für jede Regel mit Datums-/Zeitbezug: Monats- und Jahreswechsel, Sommer-/Winterzeitumstellung, Schaltjahr (29. Feb.), gesetzlicher Feiertag, Zeitraum über Mitternacht.
+
+Definition of Done pro Aufgabe:
+
+- [ ] Tests zuerst geschrieben, alle grün.
+- [ ] `dotnet build` ohne Warnungen, `dotnet test` für die gesamte Solution grün.
+- [ ] Keine Nachrichteninhalte oder personenbezogenen Daten in Logs.
+- [ ] Jede neue Nachricht im Katalog, klassifiziert, mit Snapshot-Test.
+- [ ] Jeder neue Endpunkt mit mindestens einem positiven und einem negativen Berechtigungstest.
+- [ ] Offene Annahmen als `TODO(...)` markiert und am Stopp-Punkt gemeldet.
+
+## Offene Entscheidungen (nicht selbst entscheiden — Platzhalter nutzen, an jedem Stopp-Punkt melden)
+
+BC-Stammdaten-Feldliste (Phase 2, 3) · BC-Datenmodell Workforce / Upsert über externe ID (3, 6) · BC-Änderungserkennung Webhooks vs. Polling, Intervall (3) · BC-Positionen für Filialleitung/Bezirksleitung/HR (4) · Herkunft Urlaubsanspruch (6) · Standard-Arbeitstage und Bundesländer (6) · Datenklassifizierung und Aufbewahrungsfristen (alle) · Betriebsrat-Einbindung (vor Go-live) · Wolverine-Version und Lizenz (1).
+
+## Außerhalb des Scopes
+
+Inventur-Anwendung (nur leerer `Inventory/`-Ordner), Deployment/CI/CD und Azure-Ressourcen außer Service-Bus-Bicep, Frontends, HR API, Dienstplanung/Zeiterfassung/Schichttausch, alle Portal-API-Fachfunktionen, echte Push-/Mail-Zustellung, automatische Löschfristen. Wird so etwas berührt, nur Schnittstelle oder Platzhalter vorbereiten.

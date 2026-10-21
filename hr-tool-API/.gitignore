@@ -1,0 +1,14 @@
+.vs/
+bin/
+obj/
+
+*.user
+*.suo
+
+.env
+
+publish/
+app.zip
+
+*.xlsx
+*.csv

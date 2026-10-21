@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>HrTool_API</RootNamespace>
+  </PropertyGroup>
+
+  <!-- Bereichs-Namespaces: Workforce (Abwesenheiten, Dienstplanung, Arbeitsorte) und Hr (Mitarbeiterstamm), siehe CLAUDE.md. -->
+  <ItemGroup>
+    <Using Include="HrTool_API.Workforce" />
+    <Using Include="HrTool_API.Hr" />
+  </ItemGroup>
+
+  <!-- Das Testprojekt liegt im Unterordner und darf nicht in den Haupt-Build einkompiliert werden. -->
+  <ItemGroup>
+    <Compile Remove="HrTool-API.Tests/**" />
+    <Content Remove="HrTool-API.Tests/**" />
+    <EmbeddedResource Remove="HrTool-API.Tests/**" />
+    <None Remove="HrTool-API.Tests/**" />
+  </ItemGroup>
+
+  <!-- Stammdaten aus BC-Exporten (Arbeitsorte, Nichtverfügbarkeitsarten), siehe Services/WorkplaceMaintenance. -->
+  <ItemGroup>
+    <EmbeddedResource Include="Data/Seed/workplaces.json" />
+    <EmbeddedResource Include="Data/Seed/absence-types.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="EFCore.NamingConventions" Version="10.0.1" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.12" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.12" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.12">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
+  </ItemGroup>
+
+</Project>

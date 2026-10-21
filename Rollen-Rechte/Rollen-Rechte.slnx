@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="Rollen-Rechte.csproj" />
+  <Project Path="Rollen-Rechte.Tests/Rollen-Rechte.Tests.csproj" />
+</Solution>

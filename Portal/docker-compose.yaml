@@ -1,0 +1,38 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: irs-api-postgres
+    environment:
+      POSTGRES_DB: irs
+      POSTGRES_USER: irs
+      POSTGRES_PASSWORD: irs_dev_only
+    ports:
+      - "5432:5432"
+    volumes:
+      - irs-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U irs -d irs"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Nur mit "docker compose --profile app up" (make api-up). Port 8000, damit die Angular-Dev-Umgebung
+  # (environment.development.ts → http://localhost:8000) unverändert bleibt. Dev-Werte, keine Secrets.
+  api:
+    profiles: ["app"]
+    build: .
+    container_name: irs-api
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__Default: Host=postgres;Port=5432;Database=irs;Username=irs;Password=irs_dev_only
+    ports:
+      - "8000:8080"
+    volumes:
+      - irs-uploads:/app/var/uploads
+
+volumes:
+  irs-postgres-data:
+  irs-uploads:

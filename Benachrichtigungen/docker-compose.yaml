@@ -1,0 +1,35 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: benachrichtigungen-postgres
+    environment:
+      POSTGRES_DB: notifications
+      POSTGRES_USER: notifications
+      POSTGRES_PASSWORD: notifications_dev_only
+    ports:
+      # 5434, damit es nicht mit Portal (5432) und Rollen-Rechte (5433) kollidiert.
+      - "5434:5432"
+    volumes:
+      - benachrichtigungen-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U notifications -d notifications"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Nur mit "docker compose --profile app up" (make api-up). Port 8200. Dev-Werte, keine Secrets.
+  api:
+    profiles: ["app"]
+    build: .
+    container_name: benachrichtigungen
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__Default: Host=postgres;Port=5432;Database=notifications;Username=notifications;Password=notifications_dev_only
+    ports:
+      - "8200:8080"
+
+volumes:
+  benachrichtigungen-postgres-data:

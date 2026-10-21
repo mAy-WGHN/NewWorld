@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="HrTool-API.csproj" />
+  <Project Path="HrTool-API.Tests/HrTool-API.Tests.csproj" />
+</Solution>

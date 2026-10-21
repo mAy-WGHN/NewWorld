@@ -1,0 +1,170 @@
+[
+  {
+    "code": "BESCHÄFTIGUNGSVERBOT",
+    "description": "Beschäftigungsverbot",
+    "paidTime": false,
+    "scheduleSymbol": "BV",
+    "requiresApproval": false
+  },
+  {
+    "code": "ELTERNZEIT",
+    "description": "Elternzeit",
+    "paidTime": false,
+    "scheduleSymbol": "EZ",
+    "requiresApproval": false
+  },
+  {
+    "code": "FORTBILDUNG",
+    "description": "Fortbildung",
+    "paidTime": false,
+    "scheduleSymbol": "FB",
+    "requiresApproval": false
+  },
+  {
+    "code": "FREI",
+    "description": "Freier Tag",
+    "paidTime": false,
+    "scheduleSymbol": "FT",
+    "requiresApproval": false
+  },
+  {
+    "code": "KINDKRANK",
+    "description": "krank Kind mit Bescheinig",
+    "paidTime": false,
+    "scheduleSymbol": "KK",
+    "requiresApproval": false
+  },
+  {
+    "code": "KLASSENFAHRT",
+    "description": "unbezahlt Info Klassenfahrt",
+    "paidTime": false,
+    "scheduleSymbol": null,
+    "requiresApproval": false
+  },
+  {
+    "code": "KRANK",
+    "description": "Krank",
+    "paidTime": false,
+    "scheduleSymbol": "K",
+    "requiresApproval": false
+  },
+  {
+    "code": "KRANK I URLAUB",
+    "description": "Krank im urlaub",
+    "paidTime": false,
+    "scheduleSymbol": "KU",
+    "requiresApproval": false
+  },
+  {
+    "code": "MEHRARBEITSABBAU",
+    "description": "Abbau von Mehrarbeit",
+    "paidTime": false,
+    "scheduleSymbol": "MA",
+    "requiresApproval": false
+  },
+  {
+    "code": "MUTTERSCHUTZ",
+    "description": "Mutterschutz",
+    "paidTime": true,
+    "scheduleSymbol": "MS",
+    "requiresApproval": false
+  },
+  {
+    "code": "PFLEGE ANGEHÖRIGE",
+    "description": "Pflege od. Betreuung von Ang.",
+    "paidTime": false,
+    "scheduleSymbol": "PA",
+    "requiresApproval": false
+  },
+  {
+    "code": "PRÜFUNG",
+    "description": "Prüfung",
+    "paidTime": true,
+    "scheduleSymbol": "P",
+    "requiresApproval": false
+  },
+  {
+    "code": "PRÜFUNGSVORBEREITUNG",
+    "description": "PRÜFUNGSVORBEREITUNG",
+    "paidTime": true,
+    "scheduleSymbol": "PV",
+    "requiresApproval": false
+  },
+  {
+    "code": "QUARANTÄNE",
+    "description": "Quarantäne",
+    "paidTime": false,
+    "scheduleSymbol": "Q",
+    "requiresApproval": false
+  },
+  {
+    "code": "REHA",
+    "description": "Reha-Maßnahme",
+    "paidTime": false,
+    "scheduleSymbol": "Reh",
+    "requiresApproval": false
+  },
+  {
+    "code": "ROTATIONSFREI",
+    "description": "Feiertag Rotation",
+    "paidTime": false,
+    "scheduleSymbol": "RF",
+    "requiresApproval": false
+  },
+  {
+    "code": "SONDERURLAUB",
+    "description": "Sonder-Urlaub",
+    "paidTime": false,
+    "scheduleSymbol": "SU",
+    "requiresApproval": false
+  },
+  {
+    "code": "TOD",
+    "description": "Tod",
+    "paidTime": true,
+    "scheduleSymbol": "Tod",
+    "requiresApproval": false
+  },
+  {
+    "code": "UB",
+    "description": "unwiderr. bezahlt Freistellung",
+    "paidTime": true,
+    "scheduleSymbol": "UB",
+    "requiresApproval": false
+  },
+  {
+    "code": "UNBEZ. U",
+    "description": "Unbezahlter Urlaub",
+    "paidTime": false,
+    "scheduleSymbol": "UBE",
+    "requiresApproval": false
+  },
+  {
+    "code": "UNENTSCHULDIGT",
+    "description": "Unentschuldigt gefehlt",
+    "paidTime": false,
+    "scheduleSymbol": "UE",
+    "requiresApproval": false
+  },
+  {
+    "code": "URLAUB",
+    "description": "Urlaub",
+    "paidTime": false,
+    "scheduleSymbol": "U",
+    "requiresApproval": true
+  },
+  {
+    "code": "URLAUBSANTRAGSZEITR",
+    "description": "Urlaubsantrags Zeitraum",
+    "paidTime": false,
+    "scheduleSymbol": "UZ",
+    "requiresApproval": false
+  },
+  {
+    "code": "WIEDEREINGLIEDERUNG",
+    "description": "Wiedereingliederung",
+    "paidTime": false,
+    "scheduleSymbol": "WG",
+    "requiresApproval": false
+  }
+]

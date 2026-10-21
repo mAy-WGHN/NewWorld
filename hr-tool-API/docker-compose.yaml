@@ -1,0 +1,35 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: hr-tool-api-postgres
+    environment:
+      POSTGRES_DB: hrtool
+      POSTGRES_USER: hrtool
+      POSTGRES_PASSWORD: hrtool_dev_only
+    ports:
+      - "5435:5432"
+    volumes:
+      - hr-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hrtool -d hrtool"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Nur mit "docker compose --profile app up" (make api-up). Port 8300 (Rollen-Rechte 8100, Benachrichtigungen 8200). Dev-Werte, keine Secrets.
+  # Rollen-Rechte muss erreichbar sein (Access__BaseUrl, Access__ApiKey, Jwt__*), sonst antworten geschützte Routen mit 503.
+  api:
+    profiles: ["app"]
+    build: .
+    container_name: hr-tool-api
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__Default: Host=postgres;Port=5432;Database=hrtool;Username=hrtool;Password=hrtool_dev_only
+    ports:
+      - "8300:8080"
+
+volumes:
+  hr-postgres-data:

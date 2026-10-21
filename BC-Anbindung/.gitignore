@@ -1,0 +1,10 @@
+.vs/
+bin/
+obj/
+
+.env
+
+publish/
+app.zip
+
+*.user
