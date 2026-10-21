@@ -1,4 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- Helper library for tests, not a test project itself. -->
+    <IsTestProject>false</IsTestProject>
+  </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="xunit.core" />
     <PackageReference Include="Testcontainers.PostgreSql" />
