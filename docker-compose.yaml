@@ -1,0 +1,134 @@
+# Alle Bestandsdienste lokal mit einem Befehl (make up). Nur Dev-Werte, keine Secrets:
+# zufällige Schlüssel erzeugt scripts/dev-env.sh in die gitignorierte .env. Echte BC-Zugangsdaten bleiben in BC-Anbindung/.env.
+# Die Einzel-Compose-Dateien der Dienste bleiben unverändert (Einzelbetrieb).
+name: newworld
+
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_dev_only
+    ports:
+      # 5440 statt 5432..5435, damit es nicht mit den Einzel-Compose-Dateien kollidiert; per POSTGRES_PORT änderbar.
+      - "${POSTGRES_PORT:-5440}:5432"
+    volumes:
+      - newworld-postgres-data:/var/lib/postgresql/data
+      - ./docker/postgres/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Business Central: einziger BC-Zugang. Ohne BusinessCentral__* in BC-Anbindung/.env antworten die BC-Endpunkte mit 503.
+  bc-anbindung:
+    build: ./BC-Anbindung
+    env_file:
+      - path: ./BC-Anbindung/.env
+        required: false
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      Gateway__ApiKeys__Identity: ${BC_KEY_IDENTITY:?make env ausführen}
+      Gateway__ApiKeys__Portal: ${BC_KEY_PORTAL:?make env ausführen}
+      Gateway__ApiKeys__Hr: ${BC_KEY_HR:?make env ausführen}
+    ports:
+      - "8400:8080"
+
+  rollen-rechte:
+    build: ./Rollen-Rechte
+    depends_on:
+      postgres:
+        condition: service_healthy
+      bc-anbindung:
+        condition: service_started
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__Default: Host=postgres;Port=5432;Database=access;Username=access;Password=access_dev_only
+      Jwt__Key: ${JWT_KEY:?make env ausführen}
+      BcGateway__BaseUrl: http://bc-anbindung:8080
+      BcGateway__ApiKey: ${BC_KEY_IDENTITY:?make env ausführen}
+      Auth__PinEncryptionKey: ${PIN_ENCRYPTION_KEY:?make env ausführen}
+      Locations__SyncOnStartup: "false"
+      Apps__Keys__portal: ${APPS_KEY_PORTAL:?make env ausführen}
+      Apps__Keys__hr: ${APPS_KEY_HR:?make env ausführen}
+      Apps__Keys__notifications: ${APPS_KEY_NOTIFICATIONS:?make env ausführen}
+      Seed__AdminUsername: ${SEED_ADMIN_USERNAME:-admin}
+      Seed__AdminPassword: ${SEED_ADMIN_PASSWORD:?make env ausführen}
+      Cors__AllowedOriginPattern: ^https?://(localhost|127\.0\.0\.1)(:[0-9]+)?$$
+    ports:
+      - "8100:8080"
+
+  benachrichtigungen:
+    build: ./Benachrichtigungen
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rollen-rechte:
+        condition: service_started
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__Default: Host=postgres;Port=5432;Database=notifications;Username=notifications;Password=notifications_dev_only
+      Jwt__Key: ${JWT_KEY:?make env ausführen}
+      Vapid__PublicKey: ${VAPID_PUBLIC_KEY:?make env ausführen}
+      Vapid__PrivateKey: ${VAPID_PRIVATE_KEY:?make env ausführen}
+      Vapid__Subject: mailto:dev@example.invalid
+      Frontend__BaseUrl: http://localhost:4200
+      Access__BaseUrl: http://rollen-rechte:8080
+      Access__AppKey: notifications
+      Access__ApiKey: ${APPS_KEY_NOTIFICATIONS:?make env ausführen}
+      Sources__Keys__portal: ${SRC_KEY_PORTAL:?make env ausführen}
+      Sources__Keys__hr: ${SRC_KEY_HR:?make env ausführen}
+      Cors__AllowedOriginPattern: ^https?://(localhost|127\.0\.0\.1)(:[0-9]+)?$$
+    ports:
+      - "8200:8080"
+
+  portal:
+    build: ./Portal
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rollen-rechte:
+        condition: service_started
+      benachrichtigungen:
+        condition: service_started
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__Default: Host=postgres;Port=5432;Database=irs;Username=irs;Password=irs_dev_only
+      Jwt__Key: ${JWT_KEY:?make env ausführen}
+      Access__BaseUrl: http://rollen-rechte:8080
+      Access__AppKey: portal
+      Access__ApiKey: ${APPS_KEY_PORTAL:?make env ausführen}
+      Access__CacheSeconds: "10"
+      Notifications__BaseUrl: http://benachrichtigungen:8080
+      Notifications__ApiKey: ${SRC_KEY_PORTAL:?make env ausführen}
+      Cors__AllowedOriginPattern: ^https?://(localhost|127\.0\.0\.1)(:[0-9]+)?$$
+    ports:
+      # 8000, damit die Angular-Dev-Umgebung (http://localhost:8000) unverändert bleibt.
+      - "8000:8080"
+    volumes:
+      - newworld-portal-uploads:/app/var/uploads
+
+  hr-tool-api:
+    build: ./hr-tool-API
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rollen-rechte:
+        condition: service_started
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__Default: Host=postgres;Port=5432;Database=hrtool;Username=hrtool;Password=hrtool_dev_only
+      Jwt__Key: ${JWT_KEY:?make env ausführen}
+      Access__BaseUrl: http://rollen-rechte:8080
+      Access__AppKey: hr
+      Access__ApiKey: ${APPS_KEY_HR:?make env ausführen}
+      Access__CacheSeconds: "10"
+      Cors__AllowedOrigins__0: http://localhost:5173
+      Cors__AllowedOrigins__1: http://127.0.0.1:5173
+    ports:
+      - "8300:8080"
+
+volumes:
+  newworld-postgres-data:
+  newworld-portal-uploads:
