@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/Shared/">
+    <Project Path="src/Shared/Shared.Messaging/Shared.Messaging.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Shared.Messaging.Tests/Shared.Messaging.Tests.csproj" />
+  </Folder>
+</Solution>
