@@ -2,12 +2,12 @@
   <ItemGroup>
     <ProjectReference Include="..\Notifications.Core\Notifications.Core.csproj" />
     <ProjectReference Include="..\Notifications.Contracts\Notifications.Contracts.csproj" />
-    <ProjectReference Include="..\..\Shared\Shared.Messaging\Shared.Messaging.csproj" />
-    <ProjectReference Include="..\..\Shared\Shared.Authorization\Shared.Authorization.csproj" />
+    <ProjectReference Include="..\..\Shared\Shared.Infrastructure\Shared.Infrastructure.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
     <PackageReference Include="EFCore.NamingConventions" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
   </ItemGroup>
 </Project>

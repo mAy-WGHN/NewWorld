@@ -2,8 +2,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Shared.Authorization;
-using Shared.Messaging;
+using Shared.Infrastructure.Authorization;
+using Shared.Infrastructure.Messaging;
+using Shared.Infrastructure.Persistence;
 
 namespace Portal.Infrastructure;
 
@@ -20,9 +21,7 @@ public static class InfrastructureServiceCollectionExtensions
         var connectionString = configuration.GetConnectionString(ConnectionName)
             ?? throw new InvalidOperationException($"ConnectionStrings:{ConnectionName} is not configured.");
 
-        services.AddDbContext<PortalDbContext>(options => options
-            .UseNpgsql(connectionString, npgsql => npgsql.MigrationsHistoryTable("__ef_migrations_history", PortalDbContext.Schema))
-            .UseSnakeCaseNamingConvention());
+        services.AddDbContext<PortalDbContext>(options => PortalDbContext.Configure(options, connectionString));
         services.AddHealthChecks().AddDbContextCheck<PortalDbContext>("database");
 
         services.AddMessaging<PortalDbContext>(configuration, environment);
@@ -30,7 +29,7 @@ public static class InfrastructureServiceCollectionExtensions
         return services;
     }
 
-    /// <summary>Creates the schema in Development/Testing (see <see cref="DevelopmentDatabase"/>).</summary>
-    public static Task InitializePortalDatabaseAsync(this IServiceProvider services, IHostEnvironment environment) =>
-        DevelopmentDatabase.EnsureCreatedAsync<PortalDbContext>(services, environment);
+    /// <summary>Applies the migrations in Development/Testing (see <see cref="DatabaseInitializer"/>).</summary>
+    public static Task MigratePortalDatabaseAsync(this IServiceProvider services, IHostEnvironment environment) =>
+        DatabaseInitializer.MigrateInDevelopmentAsync<PortalDbContext>(services, environment);
 }

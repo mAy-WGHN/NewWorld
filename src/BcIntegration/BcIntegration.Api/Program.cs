@@ -20,7 +20,7 @@ else
 
 var app = builder.Build();
 
-await app.Services.InitializeBcIntegrationDatabaseAsync(app.Environment);
+await app.Services.MigrateBcIntegrationDatabaseAsync(app.Environment);
 
 app.UseAuthentication();
 app.UseAuthorization();

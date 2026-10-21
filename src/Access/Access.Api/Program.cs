@@ -20,7 +20,7 @@ else
 
 var app = builder.Build();
 
-await app.Services.InitializeAccessDatabaseAsync(app.Environment);
+await app.Services.MigrateAccessDatabaseAsync(app.Environment);
 
 app.UseAuthentication();
 app.UseAuthorization();

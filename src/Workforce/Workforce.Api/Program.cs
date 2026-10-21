@@ -20,7 +20,7 @@ else
 
 var app = builder.Build();
 
-await app.Services.InitializeWorkforceDatabaseAsync(app.Environment);
+await app.Services.MigrateWorkforceDatabaseAsync(app.Environment);
 
 app.UseAuthentication();
 app.UseAuthorization();

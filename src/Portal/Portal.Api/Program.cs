@@ -20,7 +20,7 @@ else
 
 var app = builder.Build();
 
-await app.Services.InitializePortalDatabaseAsync(app.Environment);
+await app.Services.MigratePortalDatabaseAsync(app.Environment);
 
 app.UseAuthentication();
 app.UseAuthorization();

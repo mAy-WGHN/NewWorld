@@ -3,7 +3,7 @@ namespace Shared.Approvals;
 /// <summary>
 /// Approval of one subject (e.g. a vacation request) by a sequential chain of approvers. Pure state machine:
 /// time is passed in (from <see cref="TimeProvider"/>), nothing is persisted here. The including API stores it
-/// in its own database via <see cref="ApprovalModelBuilderExtensions.ConfigureApprovals"/>.
+/// in its own database via <c>ConfigureApprovals</c> (Shared.Infrastructure).
 /// </summary>
 public sealed class ApprovalRequest
 {

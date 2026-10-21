@@ -1,5 +1,3 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <ItemGroup>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
-  </ItemGroup>
+  <!-- Pure state machine, usable from *.Core. The EF mapping lives in Shared.Infrastructure. -->
 </Project>

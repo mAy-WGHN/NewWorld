@@ -9,7 +9,6 @@
     <PackageReference Include="Shouldly" />
     <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
     <PackageReference Include="Microsoft.AspNetCore.TestHost" />
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
   </ItemGroup>
   <ItemGroup>
     <Using Include="Xunit" />

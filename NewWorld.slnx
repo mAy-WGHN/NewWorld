@@ -5,6 +5,7 @@
     <Project Path="src/Shared/Shared.Messaging/Shared.Messaging.csproj" />
     <Project Path="src/Shared/Shared.Approvals/Shared.Approvals.csproj" />
     <Project Path="src/Shared/Shared.Authorization/Shared.Authorization.csproj" />
+    <Project Path="src/Shared/Shared.Infrastructure/Shared.Infrastructure.csproj" />
     <Project Path="src/Shared/Shared.Testing/Shared.Testing.csproj" />
   </Folder>
   <Folder Name="/src/BcIntegration/">
@@ -43,6 +44,7 @@
     <Project Path="tests/Services.Health.Tests/Services.Health.Tests.csproj" />
     <Project Path="tests/Shared.Approvals.Tests/Shared.Approvals.Tests.csproj" />
     <Project Path="tests/Shared.Authorization.Tests/Shared.Authorization.Tests.csproj" />
+    <Project Path="tests/Shared.Infrastructure.Tests/Shared.Infrastructure.Tests.csproj" />
     <Project Path="tests/Shared.Messaging.Tests/Shared.Messaging.Tests.csproj" />
   </Folder>
 </Solution>

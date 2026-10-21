@@ -66,11 +66,46 @@ public class DependencyRulesTests
     [Fact]
     public void Shared_libraries_do_not_depend_on_any_service()
     {
-        foreach (var shared in new[] { typeof(Shared.Messaging.IMessage).Assembly, typeof(Shared.Authorization.AppRoles).Assembly, typeof(Shared.Approvals.ApprovalRequest).Assembly })
+        foreach (var shared in new[] { PureMessaging, typeof(Shared.Authorization.AppRoles).Assembly, PureApprovals, SharedInfrastructure })
         {
             shared.GetReferencedAssemblies().Select(a => a.Name!)
                 .Where(n => Solution.Services.Any(s => n.StartsWith(s + ".", StringComparison.Ordinal)))
                 .ShouldBeEmpty($"{shared.GetName().Name} must not depend on a service");
+        }
+    }
+
+    private static readonly System.Reflection.Assembly PureMessaging = typeof(Shared.Messaging.IMessage).Assembly;
+    private static readonly System.Reflection.Assembly PureApprovals = typeof(Shared.Approvals.ApprovalRequest).Assembly;
+    private static readonly System.Reflection.Assembly SharedInfrastructure = typeof(Shared.Infrastructure.Messaging.OutboxMessage).Assembly;
+
+    [Fact]
+    public void Shared_messaging_and_approvals_reference_only_the_base_class_library()
+    {
+        foreach (var pure in new[] { PureMessaging, PureApprovals })
+        {
+            pure.GetReferencedAssemblies().Select(a => a.Name!)
+                .Where(n => !n.StartsWith("System", StringComparison.Ordinal) && n != "netstandard")
+                .ShouldBeEmpty($"{pure.GetName().Name} must stay free of packages (Contracts and Core depend on it)");
+        }
+    }
+
+    [Fact]
+    public void Shared_authorization_has_no_persistence_or_messaging_dependencies()
+    {
+        var result = Types.InAssembly(typeof(Shared.Authorization.AppRoles).Assembly)
+            .ShouldNot().HaveDependencyOnAny("Microsoft.EntityFrameworkCore", "Npgsql", "Azure.Messaging")
+            .GetResult();
+
+        result.IsSuccessful.ShouldBeTrue(string.Join(", ", result.FailingTypeNames ?? []));
+    }
+
+    [Fact]
+    public void Core_and_contracts_never_reference_shared_infrastructure()
+    {
+        foreach (var assembly in Solution.All("Core").Concat(Solution.All("Contracts")))
+        {
+            assembly.GetReferencedAssemblies().Select(a => a.Name)
+                .ShouldNotContain("Shared.Infrastructure", $"{assembly.GetName().Name} must not reference Shared.Infrastructure");
         }
     }
 }

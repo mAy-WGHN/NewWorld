@@ -2,8 +2,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Shared.Authorization;
-using Shared.Messaging;
+using Shared.Infrastructure.Authorization;
+using Shared.Infrastructure.Messaging;
+using Shared.Infrastructure.Persistence;
 
 namespace BcIntegration.Infrastructure;
 
@@ -20,9 +21,7 @@ public static class InfrastructureServiceCollectionExtensions
         var connectionString = configuration.GetConnectionString(ConnectionName)
             ?? throw new InvalidOperationException($"ConnectionStrings:{ConnectionName} is not configured.");
 
-        services.AddDbContext<BcIntegrationDbContext>(options => options
-            .UseNpgsql(connectionString, npgsql => npgsql.MigrationsHistoryTable("__ef_migrations_history", BcIntegrationDbContext.Schema))
-            .UseSnakeCaseNamingConvention());
+        services.AddDbContext<BcIntegrationDbContext>(options => BcIntegrationDbContext.Configure(options, connectionString));
         services.AddHealthChecks().AddDbContextCheck<BcIntegrationDbContext>("database");
 
         services.AddMessaging<BcIntegrationDbContext>(configuration, environment);
@@ -30,7 +29,7 @@ public static class InfrastructureServiceCollectionExtensions
         return services;
     }
 
-    /// <summary>Creates the schema in Development/Testing (see <see cref="DevelopmentDatabase"/>).</summary>
-    public static Task InitializeBcIntegrationDatabaseAsync(this IServiceProvider services, IHostEnvironment environment) =>
-        DevelopmentDatabase.EnsureCreatedAsync<BcIntegrationDbContext>(services, environment);
+    /// <summary>Applies the migrations in Development/Testing (see <see cref="DatabaseInitializer"/>).</summary>
+    public static Task MigrateBcIntegrationDatabaseAsync(this IServiceProvider services, IHostEnvironment environment) =>
+        DatabaseInitializer.MigrateInDevelopmentAsync<BcIntegrationDbContext>(services, environment);
 }

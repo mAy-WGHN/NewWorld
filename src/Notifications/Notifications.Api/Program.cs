@@ -20,7 +20,7 @@ else
 
 var app = builder.Build();
 
-await app.Services.InitializeNotificationsDatabaseAsync(app.Environment);
+await app.Services.MigrateNotificationsDatabaseAsync(app.Environment);
 
 app.UseAuthentication();
 app.UseAuthorization();

@@ -5,6 +5,5 @@
     <ProjectReference Include="..\BcIntegration.Contracts\BcIntegration.Contracts.csproj" />
     <ProjectReference Include="..\BcIntegration.Infrastructure\BcIntegration.Infrastructure.csproj" />
     <ProjectReference Include="..\..\Shared\Shared.Authorization\Shared.Authorization.csproj" />
-    <ProjectReference Include="..\..\Shared\Shared.Messaging\Shared.Messaging.csproj" />
   </ItemGroup>
 </Project>

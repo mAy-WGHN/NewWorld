@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Technical building blocks shared by the services' *.Infrastructure projects: outbox/inbox and transport,
+    EF mappings for approvals and the permission cache, database initialization. Never referenced by *.Core or *.Contracts.
+  -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Azure.Messaging.ServiceBus" />
+    <PackageReference Include="Azure.Identity" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Shared.Messaging\Shared.Messaging.csproj" />
+    <ProjectReference Include="..\Shared.Authorization\Shared.Authorization.csproj" />
+    <ProjectReference Include="..\Shared.Approvals\Shared.Approvals.csproj" />
+  </ItemGroup>
+</Project>

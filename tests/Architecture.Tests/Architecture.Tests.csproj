@@ -34,5 +34,6 @@
     <ProjectReference Include="..\..\src\Shared\Shared.Messaging\Shared.Messaging.csproj" />
     <ProjectReference Include="..\..\src\Shared\Shared.Authorization\Shared.Authorization.csproj" />
     <ProjectReference Include="..\..\src\Shared\Shared.Approvals\Shared.Approvals.csproj" />
+    <ProjectReference Include="..\..\src\Shared\Shared.Infrastructure\Shared.Infrastructure.csproj" />
   </ItemGroup>
 </Project>

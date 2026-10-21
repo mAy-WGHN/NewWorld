@@ -5,6 +5,5 @@
     <ProjectReference Include="..\Workforce.Contracts\Workforce.Contracts.csproj" />
     <ProjectReference Include="..\Workforce.Infrastructure\Workforce.Infrastructure.csproj" />
     <ProjectReference Include="..\..\Shared\Shared.Authorization\Shared.Authorization.csproj" />
-    <ProjectReference Include="..\..\Shared\Shared.Messaging\Shared.Messaging.csproj" />
   </ItemGroup>
 </Project>
