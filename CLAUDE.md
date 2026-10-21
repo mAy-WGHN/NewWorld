@@ -180,6 +180,7 @@ Tests: xUnit (Bestandswahl übernehmen), FluentAssertions oder Shouldly, `Micros
 - Jede Nachricht: eindeutige ID (Idempotenz), Korrelations-ID, Zeitstempel aus `TimeProvider` (`IMessage`: `MessageId`, `CorrelationId`, `OccurredAt`).
 - Contracts: `sealed record`, unveränderlich, nur primitive Typen/`DateOnly`/`DateTimeOffset`/Enums/Records; XML-Doku (Zweck, Herausgeber, erlaubte Konsumenten); Enums mit `Unknown = 0`, explizite Werte, String-Serialisierung; Verify-Snapshot pro Nachricht; je Konsument Test, dass unbekannte JSON-Felder ignoriert werden.
 - `SendNotification.Data` darf Klasse-2-Inhalte nur enthalten, wenn `Channels` ausschließlich `InApp` ist; der Notification Service lehnt Verstöße ab.
+- **Umsetzung (Phase 2):** Klassen im Code: `OrganizationData` (1), `SensitiveNeutralized` (2, neutralisiert/dünn, darf auf Topics), `SensitiveFacts` (2 mit Inhalt, nur Commands an zugriffsbeschränkte Empfänger), `HighlySensitive` (3, nie). Events sind höchstens `SensitiveNeutralized` (Architekturtest). Einziges Wire-Format: `MessageJson` (`Shared.Messaging`). Commands mehrerer Absender liegen in den Contracts des Empfängers (`SendNotification` → `Notifications.Contracts`). Neben `DateOnly`/`DateTimeOffset` ist `TimeOnly` (Uhrzeit, z. B. Öffnungszeiten) erlaubt. Der Katalog steht zusätzlich als Liste in `tests/Architecture.Tests/ContractRulesTests.cs`; eine neue Nachricht erfordert dort einen bewussten Eintrag.
 
 ## Dienstspezifische Kernregeln
 
