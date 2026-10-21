@@ -52,30 +52,35 @@ public class AppHostHealthTests(AppHostFixture fixture) : IClassFixture<AppHostF
         }
         catch (DistributedApplicationException)
         {
-            var logger = fixture.App.Services.GetRequiredService<ResourceLoggerService>();
-            var lines = new List<string>();
-            using var logCts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
-            try
-            {
-                foreach (var l in (await logger.GetAllAsync(service).ToListAsync(logCts.Token)).SelectMany(b => b))
-                {
-                    lines.Add(l.Content);
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                // collected what was available
-            }
-
-            var snapshot = fixture.App.Services.GetRequiredService<ResourceNotificationService>().TryGetCurrentState(service, out var ev)
-                ? $"state={ev!.Snapshot.State?.Text}; exit={ev.Snapshot.ExitCode}; envNames={string.Join(",", ev.Snapshot.EnvironmentVariables.Select(v => v.Name).Where(n => n.StartsWith("ConnectionStrings", StringComparison.Ordinal) || n.StartsWith("OTEL_", StringComparison.Ordinal) || n.StartsWith("ASPNETCORE", StringComparison.Ordinal) || n.StartsWith("DOTNET", StringComparison.Ordinal)))}"
-                : "no state";
-            throw new InvalidOperationException($"{service} failed to start. {snapshot}. Resource log:{Environment.NewLine}{string.Join(Environment.NewLine, lines)}");
+            throw new InvalidOperationException(await DescribeStartFailureAsync(service));
         }
 
         using var client = fixture.App.CreateHttpClient(service);
         using var response = await client.GetAsync(new Uri("/health/ready", UriKind.Relative), cts.Token);
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
+    }
+
+    /// <summary>State, exit code and the resource's own log, so a failed start is diagnosable from the test output.</summary>
+    private async Task<string> DescribeStartFailureAsync(string service)
+    {
+        var state = fixture.App.Services.GetRequiredService<ResourceNotificationService>().TryGetCurrentState(service, out var ev)
+            ? $"state={ev!.Snapshot.State?.Text}; exit={ev.Snapshot.ExitCode}"
+            : "no state";
+
+        var lines = new List<string>();
+        using var logTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+        try
+        {
+            var batches = await fixture.App.Services.GetRequiredService<ResourceLoggerService>()
+                .GetAllAsync(service).ToListAsync(logTimeout.Token);
+            lines.AddRange(batches.SelectMany(b => b).Select(l => l.Content));
+        }
+        catch (OperationCanceledException)
+        {
+            // keep what was collected
+        }
+
+        return $"{service} failed to start ({state}). Resource log:{Environment.NewLine}{string.Join(Environment.NewLine, lines)}";
     }
 }
