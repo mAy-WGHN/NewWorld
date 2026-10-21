@@ -1,5 +1,3 @@
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using Shared.Messaging;
 
@@ -11,11 +9,6 @@ namespace Shared.Infrastructure.Messaging;
 /// </summary>
 public sealed class Outbox<TContext>(TContext db) where TContext : DbContext
 {
-    internal static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
-    {
-        Converters = { new JsonStringEnumConverter() },
-    };
-
     public void Publish<T>(T message) where T : IEvent => Add(message, MessageKind.Event);
 
     public void Send<T>(T message) where T : ICommand => Add(message, MessageKind.Command);
@@ -29,7 +22,7 @@ public sealed class Outbox<TContext>(TContext db) where TContext : DbContext
             MessageType = type.Name,
             Destination = MessagingNames.For(type),
             Kind = kind,
-            Payload = JsonSerializer.Serialize(message, type, Json),
+            Payload = MessageJson.Serialize(message),
             CorrelationId = message.CorrelationId,
             OccurredAt = message.OccurredAt,
         });

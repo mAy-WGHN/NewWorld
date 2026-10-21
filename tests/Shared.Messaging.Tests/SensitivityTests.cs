@@ -14,8 +14,25 @@ public class SensitivityTests
     {
         ((int)SensitivityClass.Unknown).ShouldBe(0);
         ((int)SensitivityClass.OrganizationData).ShouldBe(1);
-        ((int)SensitivityClass.SensitiveFacts).ShouldBe(2);
-        ((int)SensitivityClass.HighlySensitive).ShouldBe(3);
+        ((int)SensitivityClass.SensitiveNeutralized).ShouldBe(2);
+        ((int)SensitivityClass.SensitiveFacts).ShouldBe(3);
+        ((int)SensitivityClass.HighlySensitive).ShouldBe(4);
+    }
+
+    [Theory]
+    [InlineData(SensitivityClass.OrganizationData, 1)]
+    [InlineData(SensitivityClass.SensitiveNeutralized, 2)]
+    [InlineData(SensitivityClass.SensitiveFacts, 2)]
+    [InlineData(SensitivityClass.HighlySensitive, 3)]
+    public void Maps_to_the_class_number_of_the_privacy_rules(SensitivityClass sensitivity, int expected)
+    {
+        sensitivity.PrivacyClass().ShouldBe(expected);
+    }
+
+    [Fact]
+    public void Unknown_has_no_privacy_class()
+    {
+        Should.Throw<ArgumentOutOfRangeException>(() => SensitivityClass.Unknown.PrivacyClass());
     }
 
     [Fact]

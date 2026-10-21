@@ -12,8 +12,10 @@
     <PackageReference Include="Testcontainers.ServiceBus" />
     <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
     <PackageReference Include="Npgsql" />
+    <PackageReference Include="Verify.Xunit" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Shared.Authorization\Shared.Authorization.csproj" />
+    <ProjectReference Include="..\Shared.Messaging\Shared.Messaging.csproj" />
   </ItemGroup>
 </Project>

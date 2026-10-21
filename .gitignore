@@ -41,3 +41,6 @@ uploads/
 # --- Docker / lokale Laufzeitdaten ---
 pgdata/
 .aspire/
+
+# Verify: snapshots that did not match (never commit)
+*.received.*

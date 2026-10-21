@@ -8,7 +8,12 @@
     <AnalysisLevel>latest-recommended</AnalysisLevel>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <!-- CS1591: XML docs are required for Contracts only (checked by tests). CA1716: VB keyword rule, irrelevant; plan prescribes Shared.* names. -->
-    <NoWarn>$(NoWarn);CS1591;CA1716</NoWarn>
+    <!-- CA1716: VB keyword rule, irrelevant; plan prescribes Shared.* names. -->
+    <NoWarn>$(NoWarn);CA1716</NoWarn>
+    <!-- CS1591: missing XML docs are allowed everywhere except in *.Contracts, where every public member must be documented. -->
+    <NoWarn Condition="!$(MSBuildProjectName.EndsWith('.Contracts'))">$(NoWarn);CS1591</NoWarn>
+    <!-- Lets tools (e.g. Verify) find the solution when a single project is built. -->
+    <SolutionDir Condition="'$(SolutionDir)' == ''">$(MSBuildThisFileDirectory)</SolutionDir>
+    <SolutionName Condition="'$(SolutionName)' == ''">NewWorld</SolutionName>
   </PropertyGroup>
 </Project>

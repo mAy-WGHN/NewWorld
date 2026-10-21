@@ -39,6 +39,11 @@
     <Project Path="src/Portal/Portal.Contracts/Portal.Contracts.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Access.Contracts.Tests/Access.Contracts.Tests.csproj" />
+    <Project Path="tests/BcIntegration.Contracts.Tests/BcIntegration.Contracts.Tests.csproj" />
+    <Project Path="tests/Notifications.Contracts.Tests/Notifications.Contracts.Tests.csproj" />
+    <Project Path="tests/Portal.Contracts.Tests/Portal.Contracts.Tests.csproj" />
+    <Project Path="tests/Workforce.Contracts.Tests/Workforce.Contracts.Tests.csproj" />
     <Project Path="tests/AppHost.Tests/AppHost.Tests.csproj" />
     <Project Path="tests/Architecture.Tests/Architecture.Tests.csproj" />
     <Project Path="tests/Services.Health.Tests/Services.Health.Tests.csproj" />
