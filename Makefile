@@ -1,5 +1,5 @@
 # Alle Bestandsdienste lokal per Docker (macOS/Linux, POSIX-Shell). Voraussetzungen: Docker, dotnet SDK 10, dotnet-ef (Migrationen).
-# Die Makefiles in den Dienst-Ordnern (Windows/PowerShell) bleiben für den Einzelbetrieb unverändert.
+# Die Makefiles unter Archiv/ (Windows/PowerShell) bleiben für den Einzelbetrieb unverändert.
 
 POSTGRES_PORT ?= 5440
 COMPOSE := docker compose
@@ -27,15 +27,15 @@ env:
 db-up: env
 	$(COMPOSE) up -d --wait postgres
 
-# dotnet ef läuft auf dem Host gegen den veröffentlichten Postgres-Port (wie "make migrate" in den Dienst-Ordnern).
+# dotnet ef läuft auf dem Host gegen den veröffentlichten Postgres-Port (wie "make migrate" in den Archiv-Ordnern).
 # Der Host der Dienste wird dabei gebaut und verlangt Pflicht-Konfiguration (z. B. JWT-Schlüssel): sie kommt aus der .env.
 EF = set -a && . ./.env && set +a && Jwt__Key="$$JWT_KEY" Auth__PinEncryptionKey="$$PIN_ENCRYPTION_KEY" dotnet ef database update
 
 migrate: db-up
-	$(EF) --project Portal/Portal.csproj --connection "Host=localhost;Port=$(POSTGRES_PORT);Database=irs;Username=irs;Password=irs_dev_only"
-	$(EF) --project Rollen-Rechte/Rollen-Rechte.csproj --connection "Host=localhost;Port=$(POSTGRES_PORT);Database=access;Username=access;Password=access_dev_only"
-	$(EF) --project Benachrichtigungen/Benachrichtigungen.csproj --connection "Host=localhost;Port=$(POSTGRES_PORT);Database=notifications;Username=notifications;Password=notifications_dev_only"
-	$(EF) --project hr-tool-API/HrTool-API.csproj --connection "Host=localhost;Port=$(POSTGRES_PORT);Database=hrtool;Username=hrtool;Password=hrtool_dev_only"
+	$(EF) --project Archiv/Portal/Portal.csproj --connection "Host=localhost;Port=$(POSTGRES_PORT);Database=irs;Username=irs;Password=irs_dev_only"
+	$(EF) --project Archiv/Rollen-Rechte/Rollen-Rechte.csproj --connection "Host=localhost;Port=$(POSTGRES_PORT);Database=access;Username=access;Password=access_dev_only"
+	$(EF) --project Archiv/Benachrichtigungen/Benachrichtigungen.csproj --connection "Host=localhost;Port=$(POSTGRES_PORT);Database=notifications;Username=notifications;Password=notifications_dev_only"
+	$(EF) --project Archiv/hr-tool-API/HrTool-API.csproj --connection "Host=localhost;Port=$(POSTGRES_PORT);Database=hrtool;Username=hrtool;Password=hrtool_dev_only"
 
 apps-up: env
 	$(COMPOSE) up -d --build

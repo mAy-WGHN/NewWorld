@@ -1,6 +1,6 @@
 #!/bin/sh
 # Erzeugt die lokale .env im Repo-Root (gitignored) mit zufälligen Dev-Schlüsseln, falls sie noch fehlt.
-# Nur für lokale Tests mit docker compose. Echte BC-Zugangsdaten stehen weiterhin in BC-Anbindung/.env.
+# Nur für lokale Tests mit docker compose. Echte BC-Zugangsdaten stehen weiterhin in Archiv/BC-Anbindung/.env.
 set -eu
 cd "$(dirname "$0")/.."
 

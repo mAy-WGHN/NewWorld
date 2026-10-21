@@ -1,0 +1,6 @@
+<Project>
+  <!--
+    Stops inheritance of the root Directory.Build.props: the archived services build exactly as before
+    (own package versions, no TreatWarningsAsErrors). Do not import anything here.
+  -->
+</Project>

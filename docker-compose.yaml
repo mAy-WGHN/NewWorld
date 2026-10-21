@@ -1,6 +1,6 @@
-# Alle Bestandsdienste lokal mit einem Befehl (make up). Nur Dev-Werte, keine Secrets:
-# zufällige Schlüssel erzeugt scripts/dev-env.sh in die gitignorierte .env. Echte BC-Zugangsdaten bleiben in BC-Anbindung/.env.
-# Die Einzel-Compose-Dateien der Dienste bleiben unverändert (Einzelbetrieb).
+# Alle Bestandsdienste (Archiv/) lokal mit einem Befehl (make up). Nur Dev-Werte, keine Secrets:
+# zufällige Schlüssel erzeugt scripts/dev-env.sh in die gitignorierte .env. Echte BC-Zugangsdaten bleiben in Archiv/BC-Anbindung/.env.
+# Die Einzel-Compose-Dateien unter Archiv/ bleiben unverändert (Einzelbetrieb).
 name: newworld
 
 services:
@@ -21,11 +21,11 @@ services:
       timeout: 5s
       retries: 10
 
-  # Business Central: einziger BC-Zugang. Ohne BusinessCentral__* in BC-Anbindung/.env antworten die BC-Endpunkte mit 503.
+  # Business Central: einziger BC-Zugang. Ohne BusinessCentral__* in Archiv/BC-Anbindung/.env antworten die BC-Endpunkte mit 503.
   bc-anbindung:
-    build: ./BC-Anbindung
+    build: ./Archiv/BC-Anbindung
     env_file:
-      - path: ./BC-Anbindung/.env
+      - path: ./Archiv/BC-Anbindung/.env
         required: false
     environment:
       ASPNETCORE_ENVIRONMENT: Development
@@ -36,7 +36,7 @@ services:
       - "8400:8080"
 
   rollen-rechte:
-    build: ./Rollen-Rechte
+    build: ./Archiv/Rollen-Rechte
     depends_on:
       postgres:
         condition: service_healthy
@@ -60,7 +60,7 @@ services:
       - "8100:8080"
 
   benachrichtigungen:
-    build: ./Benachrichtigungen
+    build: ./Archiv/Benachrichtigungen
     depends_on:
       postgres:
         condition: service_healthy
@@ -84,7 +84,7 @@ services:
       - "8200:8080"
 
   portal:
-    build: ./Portal
+    build: ./Archiv/Portal
     depends_on:
       postgres:
         condition: service_healthy
@@ -110,7 +110,7 @@ services:
       - newworld-portal-uploads:/app/var/uploads
 
   hr-tool-api:
-    build: ./hr-tool-API
+    build: ./Archiv/hr-tool-API
     depends_on:
       postgres:
         condition: service_healthy

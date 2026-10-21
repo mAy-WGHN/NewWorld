@@ -1,0 +1,6 @@
+<Project>
+  <!-- The archived services keep their own package versions (no central package management). -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+</Project>
