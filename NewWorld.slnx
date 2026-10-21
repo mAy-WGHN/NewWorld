@@ -37,6 +37,7 @@
     <Project Path="src/Portal/Portal.Contracts/Portal.Contracts.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Architecture.Tests/Architecture.Tests.csproj" />
     <Project Path="tests/Services.Health.Tests/Services.Health.Tests.csproj" />
     <Project Path="tests/Shared.Approvals.Tests/Shared.Approvals.Tests.csproj" />
     <Project Path="tests/Shared.Authorization.Tests/Shared.Authorization.Tests.csproj" />

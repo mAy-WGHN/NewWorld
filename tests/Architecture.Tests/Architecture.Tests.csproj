@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="Shouldly" />
+    <PackageReference Include="NetArchTest.Rules" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Xunit" />
+    <Using Include="Shouldly" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\BcIntegration\BcIntegration.Core\BcIntegration.Core.csproj" />
+    <ProjectReference Include="..\..\src\BcIntegration\BcIntegration.Infrastructure\BcIntegration.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\BcIntegration\BcIntegration.Contracts\BcIntegration.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\BcIntegration\BcIntegration.Api\BcIntegration.Api.csproj" />
+    <ProjectReference Include="..\..\src\Access\Access.Core\Access.Core.csproj" />
+    <ProjectReference Include="..\..\src\Access\Access.Infrastructure\Access.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Access\Access.Contracts\Access.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Access\Access.Api\Access.Api.csproj" />
+    <ProjectReference Include="..\..\src\Notifications\Notifications.Core\Notifications.Core.csproj" />
+    <ProjectReference Include="..\..\src\Notifications\Notifications.Infrastructure\Notifications.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Notifications\Notifications.Contracts\Notifications.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Notifications\Notifications.Api\Notifications.Api.csproj" />
+    <ProjectReference Include="..\..\src\Workforce\Workforce.Core\Workforce.Core.csproj" />
+    <ProjectReference Include="..\..\src\Workforce\Workforce.Infrastructure\Workforce.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Workforce\Workforce.Contracts\Workforce.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Workforce\Workforce.Api\Workforce.Api.csproj" />
+    <ProjectReference Include="..\..\src\Portal\Portal.Core\Portal.Core.csproj" />
+    <ProjectReference Include="..\..\src\Portal\Portal.Infrastructure\Portal.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Portal\Portal.Contracts\Portal.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Portal\Portal.Api\Portal.Api.csproj" />
+    <ProjectReference Include="..\..\src\Shared\Shared.Messaging\Shared.Messaging.csproj" />
+    <ProjectReference Include="..\..\src\Shared\Shared.Authorization\Shared.Authorization.csproj" />
+    <ProjectReference Include="..\..\src\Shared\Shared.Approvals\Shared.Approvals.csproj" />
+  </ItemGroup>
+</Project>
