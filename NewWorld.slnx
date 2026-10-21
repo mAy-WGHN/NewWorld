@@ -1,4 +1,5 @@
 <Solution>
+  <Project Path="src/AppHost/AppHost.csproj" />
   <Project Path="src/ServiceDefaults/ServiceDefaults.csproj" />
   <Folder Name="/src/Shared/">
     <Project Path="src/Shared/Shared.Messaging/Shared.Messaging.csproj" />
@@ -37,6 +38,7 @@
     <Project Path="src/Portal/Portal.Contracts/Portal.Contracts.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/AppHost.Tests/AppHost.Tests.csproj" />
     <Project Path="tests/Architecture.Tests/Architecture.Tests.csproj" />
     <Project Path="tests/Services.Health.Tests/Services.Health.Tests.csproj" />
     <Project Path="tests/Shared.Approvals.Tests/Shared.Approvals.Tests.csproj" />

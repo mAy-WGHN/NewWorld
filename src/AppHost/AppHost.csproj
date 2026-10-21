@@ -1,0 +1,18 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.6.2">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsAspireHost>true</IsAspireHost>
+    <AspireUseCliBundle>true</AspireUseCliBundle>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.PostgreSQL" />
+    <PackageReference Include="Aspire.Hosting.Azure.ServiceBus" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\BcIntegration\BcIntegration.Api\BcIntegration.Api.csproj" />
+    <ProjectReference Include="..\Access\Access.Api\Access.Api.csproj" />
+    <ProjectReference Include="..\Notifications\Notifications.Api\Notifications.Api.csproj" />
+    <ProjectReference Include="..\Workforce\Workforce.Api\Workforce.Api.csproj" />
+    <ProjectReference Include="..\Portal\Portal.Api\Portal.Api.csproj" />
+  </ItemGroup>
+</Project>
