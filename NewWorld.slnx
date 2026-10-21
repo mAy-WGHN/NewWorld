@@ -1,11 +1,43 @@
 <Solution>
+  <Project Path="src/ServiceDefaults/ServiceDefaults.csproj" />
   <Folder Name="/src/Shared/">
     <Project Path="src/Shared/Shared.Messaging/Shared.Messaging.csproj" />
     <Project Path="src/Shared/Shared.Approvals/Shared.Approvals.csproj" />
     <Project Path="src/Shared/Shared.Authorization/Shared.Authorization.csproj" />
     <Project Path="src/Shared/Shared.Testing/Shared.Testing.csproj" />
   </Folder>
+  <Folder Name="/src/BcIntegration/">
+    <Project Path="src/BcIntegration/BcIntegration.Api/BcIntegration.Api.csproj" />
+    <Project Path="src/BcIntegration/BcIntegration.Core/BcIntegration.Core.csproj" />
+    <Project Path="src/BcIntegration/BcIntegration.Infrastructure/BcIntegration.Infrastructure.csproj" />
+    <Project Path="src/BcIntegration/BcIntegration.Contracts/BcIntegration.Contracts.csproj" />
+  </Folder>
+  <Folder Name="/src/Access/">
+    <Project Path="src/Access/Access.Api/Access.Api.csproj" />
+    <Project Path="src/Access/Access.Core/Access.Core.csproj" />
+    <Project Path="src/Access/Access.Infrastructure/Access.Infrastructure.csproj" />
+    <Project Path="src/Access/Access.Contracts/Access.Contracts.csproj" />
+  </Folder>
+  <Folder Name="/src/Notifications/">
+    <Project Path="src/Notifications/Notifications.Api/Notifications.Api.csproj" />
+    <Project Path="src/Notifications/Notifications.Core/Notifications.Core.csproj" />
+    <Project Path="src/Notifications/Notifications.Infrastructure/Notifications.Infrastructure.csproj" />
+    <Project Path="src/Notifications/Notifications.Contracts/Notifications.Contracts.csproj" />
+  </Folder>
+  <Folder Name="/src/Workforce/">
+    <Project Path="src/Workforce/Workforce.Api/Workforce.Api.csproj" />
+    <Project Path="src/Workforce/Workforce.Core/Workforce.Core.csproj" />
+    <Project Path="src/Workforce/Workforce.Infrastructure/Workforce.Infrastructure.csproj" />
+    <Project Path="src/Workforce/Workforce.Contracts/Workforce.Contracts.csproj" />
+  </Folder>
+  <Folder Name="/src/Portal/">
+    <Project Path="src/Portal/Portal.Api/Portal.Api.csproj" />
+    <Project Path="src/Portal/Portal.Core/Portal.Core.csproj" />
+    <Project Path="src/Portal/Portal.Infrastructure/Portal.Infrastructure.csproj" />
+    <Project Path="src/Portal/Portal.Contracts/Portal.Contracts.csproj" />
+  </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Services.Health.Tests/Services.Health.Tests.csproj" />
     <Project Path="tests/Shared.Approvals.Tests/Shared.Approvals.Tests.csproj" />
     <Project Path="tests/Shared.Authorization.Tests/Shared.Authorization.Tests.csproj" />
     <Project Path="tests/Shared.Messaging.Tests/Shared.Messaging.Tests.csproj" />
