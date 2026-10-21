@@ -9,7 +9,11 @@
   <ItemGroup>
     <PackageReference Include="xunit.core" />
     <PackageReference Include="Testcontainers.PostgreSql" />
+    <PackageReference Include="Testcontainers.ServiceBus" />
     <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
     <PackageReference Include="Npgsql" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Shared.Authorization\Shared.Authorization.csproj" />
   </ItemGroup>
 </Project>

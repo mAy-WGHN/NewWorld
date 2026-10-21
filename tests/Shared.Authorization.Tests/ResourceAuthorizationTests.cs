@@ -24,13 +24,13 @@ public sealed class ResourceAuthorizationTests : IAsyncLifetime
     public async Task InitializeAsync()
     {
         // Anna: manages store 1, may access herself and Ben. Ben: only himself, no store.
-        _cache.Apply(new PermissionSnapshot(Anna, 1, "oid-anna", new HashSet<Guid> { Store1 }, new HashSet<Guid> { Anna, Ben }));
-        _cache.Apply(new PermissionSnapshot(Ben, 1, "oid-ben", new HashSet<Guid>(), new HashSet<Guid> { Ben }));
+        _cache.Grant(Anna, "oid-anna", storeIds: [Store1], employeeIds: [Ben]);
+        _cache.Grant(Ben, "oid-ben");
 
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseTestServer();
         builder.Services.AddSingleton<IPermissionCache>(_cache);
-        builder.Services.AddAuthentication(TestAuthHandler.SchemeName).AddScheme<TestAuthOptions, TestAuthHandler>(TestAuthHandler.SchemeName, _ => { });
+        builder.Services.AddTestAuthentication();
         builder.Services.AddSharedAuthorization();
         _app = builder.Build();
         _app.UseAuthentication();
@@ -59,12 +59,7 @@ public sealed class ResourceAuthorizationTests : IAsyncLifetime
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
         if (oid is not null)
         {
-            request.Headers.Add(TestAuthHandler.ObjectIdHeader, oid);
-        }
-
-        if (roles.Length > 0)
-        {
-            request.Headers.Add(TestAuthHandler.RolesHeader, string.Join(',', roles));
+            request.AsUser(oid, roles);
         }
 
         using var response = await _client.SendAsync(request);

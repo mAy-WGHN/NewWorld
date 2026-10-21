@@ -15,7 +15,7 @@ public static class AuthorizationServiceCollectionExtensions
         services.AddSingleton<IAuthorizationHandler, StoreAccessHandler>();
         services.AddSingleton<IAuthorizationHandler, EmployeeAccessHandler>();
 
-        // TODO(Entscheidung): Soll Hr bzw. Executive die Filialleiter-Policy erfüllen? Bisher: StoreManager oder Executive.
+        // Store-manager policy: StoreManager or Executive; Hr gets its own policies (decided 2026-10-21).
         services.AddAuthorizationBuilder()
             .AddPolicy(AppPolicies.RequireEmployee, p => p.RequireAuthenticatedUser().RequireClaim(AppClaimTypes.Role, AppRoles.All))
             .AddPolicy(AppPolicies.RequireStoreManager, p => p.RequireAuthenticatedUser().RequireClaim(AppClaimTypes.Role, AppRoles.StoreManager, AppRoles.Executive))

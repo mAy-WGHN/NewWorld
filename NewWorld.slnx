@@ -46,5 +46,6 @@
     <Project Path="tests/Shared.Authorization.Tests/Shared.Authorization.Tests.csproj" />
     <Project Path="tests/Shared.Infrastructure.Tests/Shared.Infrastructure.Tests.csproj" />
     <Project Path="tests/Shared.Messaging.Tests/Shared.Messaging.Tests.csproj" />
+    <Project Path="tests/Shared.Testing.Tests/Shared.Testing.Tests.csproj" />
   </Folder>
 </Solution>
