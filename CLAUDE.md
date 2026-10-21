@@ -34,6 +34,8 @@ Diese Entscheidungen des Projektverantwortlichen gelten **vor** dem Plan, wo sie
 5. **`GET /api/me/privileges` bleibt** (Rechte und Reichweite pro Request). Das weicht von „Access nie im Request-Pfad“ ab; die Phase-4-Aufgabe „synchrone Prüf-Endpunkte als veraltet markieren“ entfällt. Ob zusätzlich `PermissionsChanged` und ein lokaler Cache eingeführt werden, ist offen.
 6. **`report.created` bleibt** (Portal → Benachrichtigungen, inkl. Meldungsregeln, Empfängerermittlung und Einstellungen). Die Phase-5-Aufgabe, diese Fachlogik zu entfernen, entfällt. Offen bleibt der Konflikt mit der Datenschutz-Regel für Push/Mail (Meldungstext `description` im Push-Text, Klasse 2) — mit dem Datenschutzbeauftragten zu klären.
 7. **Geschachtelte `.git`-Repos bleiben vorerst erhalten** (BC-Anbindung, Benachrichtigungen, Portal, Rollen-Rechte). Die Remotes (`origin`) wurden entfernt und werden vom Projektverantwortlichen später wieder hinzugefügt.
+8. **Kein Wolverine** (keine Lizenz vorhanden). Messaging läuft über `Azure.Messaging.ServiceBus` mit eigener, schlanker Outbox/Inbox (EF Core, PostgreSQL) in `Shared.Messaging`. Der Transport steckt hinter einem Interface; ein späterer Wechsel (z. B. HTTP-Zustellung statt Broker) betrifft nur dessen Implementierung. Die Hosting-Umgebung ist noch offen. Dadurch entfällt die Wolverine-Bestätigung am Stopp-Punkt von Phase 1.
+9. **Build-Konfiguration nur unter `src/` und `tests/`.** `Directory.Build.props`/`Directory.Packages.props` liegen nicht im Root, damit die Bestandsprojekte (eigene Pakete, kein `TreatWarningsAsErrors`) unberührt bleiben. Bestandsprojekte werden in Phase 1 nicht verschoben; neue Dienste entstehen als Gerüst unter `src/`.
 
 ## Arbeitsregeln
 
@@ -124,7 +126,7 @@ Jede Nachricht und jeder Endpunkt hat eine Sensibilitätsklasse. Im Zweifel die 
 
 ## Technischer Stack
 
-.NET 10, ASP.NET Core Minimal APIs (Controller nur, wo Bestandscode sie nutzt), PostgreSQL + EF Core/Npgsql (**ein Schema pro Dienst, keine Cross-Schema-Joins**), Azure Service Bus + Wolverine (Outbox/Inbox mit EF Core; **vor Einführung Lizenz und aktuelle Version prüfen und am Stopp-Punkt bestätigen lassen**), .NET Aspire AppHost + ServiceDefaults (Service-Bus-Emulator, PostgreSQL, WireMock als Container), Entra ID, OpenTelemetry über ServiceDefaults.
+.NET 10, ASP.NET Core Minimal APIs (Controller nur, wo Bestandscode sie nutzt), PostgreSQL + EF Core/Npgsql (**ein Schema pro Dienst, keine Cross-Schema-Joins**), Azure Service Bus über `Azure.Messaging.ServiceBus` mit eigener Outbox/Inbox (EF Core) in `Shared.Messaging` hinter einem Transport-Interface (kein Wolverine, siehe Entscheidung 8), .NET Aspire AppHost + ServiceDefaults (Service-Bus-Emulator, PostgreSQL, WireMock als Container), Entra ID, OpenTelemetry über ServiceDefaults.
 
 Tests: xUnit (Bestandswahl übernehmen), FluentAssertions oder Shouldly, `Microsoft.Extensions.TimeProvider.Testing` (`FakeTimeProvider`), `WebApplicationFactory` + Testcontainers (PostgreSQL, Service-Bus-Emulator; **kein EF-In-Memory-Provider**), WireMock.Net (Antworten als Dateien unter `tests/Fixtures/Bc`), Verify (Snapshots), NetArchTest.Rules oder ArchUnitNET, `Aspire.Hosting.Testing` für E2E.
 
@@ -192,7 +194,7 @@ Definition of Done pro Aufgabe:
 
 ## Offene Entscheidungen (nicht selbst entscheiden — Platzhalter nutzen, an jedem Stopp-Punkt melden)
 
-BC-Stammdaten-Feldliste (Phase 2, 3) · BC-Datenmodell Workforce / Upsert über externe ID (3, 6) · BC-Änderungserkennung Webhooks vs. Polling, Intervall (3) · BC-Positionen für Filialleitung/Bezirksleitung/HR (4) · Herkunft Urlaubsanspruch (6) · Standard-Arbeitstage und Bundesländer (6) · Datenklassifizierung und Aufbewahrungsfristen (alle) · Betriebsrat-Einbindung (vor Go-live) · Wolverine-Version und Lizenz (1).
+BC-Stammdaten-Feldliste (Phase 2, 3) · BC-Datenmodell Workforce / Upsert über externe ID (3, 6) · BC-Änderungserkennung Webhooks vs. Polling, Intervall (3) · BC-Positionen für Filialleitung/Bezirksleitung/HR (4) · Herkunft Urlaubsanspruch (6) · Standard-Arbeitstage und Bundesländer (6) · Datenklassifizierung und Aufbewahrungsfristen (alle) · Betriebsrat-Einbindung (vor Go-live) · Hosting-Umgebung (offen; Transport ist deshalb austauschbar, Entscheidung 8).
 
 ## Außerhalb des Scopes
 
