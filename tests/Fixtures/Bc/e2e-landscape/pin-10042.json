@@ -1,0 +1,35 @@
+{
+  "Request": {
+    "Path": {
+      "Matchers": [
+        {
+          "Name": "ExactMatcher",
+          "Pattern": "/test/employeeauth/v1.0/companies(test-company)/verifyPin"
+        }
+      ]
+    },
+    "Methods": [
+      "POST"
+    ],
+    "Body": {
+      "Matcher": {
+        "Name": "JsonPartialWildcardMatcher",
+        "Pattern": {
+          "employeeNumber": "10042",
+          "pin": "4711"
+        }
+      }
+    }
+  },
+  "Priority": 1,
+  "Response": {
+    "StatusCode": 200,
+    "Headers": {
+      "Content-Type": "application/json"
+    },
+    "BodyAsJson": {
+      "authenticated": true,
+      "employeeName": "Erika Mustermann"
+    }
+  }
+}

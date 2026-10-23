@@ -1,0 +1,35 @@
+{
+  "Request": {
+    "Path": {
+      "Matchers": [
+        {
+          "Name": "ExactMatcher",
+          "Pattern": "/test/stores/v1.0/companies(test-company)/stores"
+        }
+      ]
+    },
+    "Methods": [
+      "GET"
+    ]
+  },
+  "Response": {
+    "StatusCode": 200,
+    "Headers": {
+      "Content-Type": "application/json"
+    },
+    "BodyAsJson": {
+      "value": [
+        {
+          "id": "aaaaaaaa-0000-0000-0000-000000000017",
+          "number": "F017",
+          "name": "Filiale Musterstadt",
+          "address": "Hauptstra\u00dfe 1",
+          "postalCode": "12345",
+          "city": "Musterstadt",
+          "closed": false,
+          "lastModifiedDateTime": "2026-10-01T08:00:00Z"
+        }
+      ]
+    }
+  }
+}

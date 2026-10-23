@@ -1,0 +1,97 @@
+{
+  "Request": {
+    "Path": {
+      "Matchers": [
+        {
+          "Name": "ExactMatcher",
+          "Pattern": "/v2.0/companies(test-company)/employees"
+        }
+      ]
+    },
+    "Methods": [
+      "GET"
+    ]
+  },
+  "Response": {
+    "StatusCode": 200,
+    "Headers": {
+      "Content-Type": "application/json"
+    },
+    "BodyAsJson": {
+      "value": [
+        {
+          "id": "bbbbbbbb-0000-0000-0000-000000000099",
+          "number": "10099",
+          "displayName": "Anna Admin",
+          "employmentDate": "2024-01-01",
+          "terminationDate": "0001-01-01",
+          "lastModifiedDateTime": "2026-10-01T08:00:00Z",
+          "storeNumber": "",
+          "positionCode": "ADMIN",
+          "employmentType": "VOLLZEIT",
+          "contractedHoursPerWeek": 40
+        },
+        {
+          "id": "bbbbbbbb-0000-0000-0000-000000000043",
+          "number": "10043",
+          "displayName": "Max Filialleiter",
+          "employmentDate": "2024-01-01",
+          "terminationDate": "0001-01-01",
+          "lastModifiedDateTime": "2026-10-01T08:00:00Z",
+          "storeNumber": "F017",
+          "positionCode": "FILIALLEITUNG",
+          "employmentType": "VOLLZEIT",
+          "contractedHoursPerWeek": 40
+        },
+        {
+          "id": "bbbbbbbb-0000-0000-0000-000000000042",
+          "number": "10042",
+          "displayName": "Erika Mustermann",
+          "employmentDate": "2024-01-01",
+          "terminationDate": "0001-01-01",
+          "lastModifiedDateTime": "2026-10-01T08:00:00Z",
+          "storeNumber": "F017",
+          "positionCode": "VERKAUF",
+          "employmentType": "VOLLZEIT",
+          "contractedHoursPerWeek": 40
+        },
+        {
+          "id": "bbbbbbbb-0000-0000-0000-000000000044",
+          "number": "10044",
+          "displayName": "Ben Kollege",
+          "employmentDate": "2024-01-01",
+          "terminationDate": "0001-01-01",
+          "lastModifiedDateTime": "2026-10-01T08:00:00Z",
+          "storeNumber": "F017",
+          "positionCode": "VERKAUF",
+          "employmentType": "VOLLZEIT",
+          "contractedHoursPerWeek": 40
+        },
+        {
+          "id": "bbbbbbbb-0000-0000-0000-000000000045",
+          "number": "10045",
+          "displayName": "Clara Drossel",
+          "employmentDate": "2024-01-01",
+          "terminationDate": "0001-01-01",
+          "lastModifiedDateTime": "2026-10-01T08:00:00Z",
+          "storeNumber": "F017",
+          "positionCode": "VERKAUF",
+          "employmentType": "VOLLZEIT",
+          "contractedHoursPerWeek": 40
+        },
+        {
+          "id": "bbbbbbbb-0000-0000-0000-000000000046",
+          "number": "10046",
+          "displayName": "Dora Fehler",
+          "employmentDate": "2024-01-01",
+          "terminationDate": "0001-01-01",
+          "lastModifiedDateTime": "2026-10-01T08:00:00Z",
+          "storeNumber": "F017",
+          "positionCode": "VERKAUF",
+          "employmentType": "VOLLZEIT",
+          "contractedHoursPerWeek": 40
+        }
+      ]
+    }
+  }
+}

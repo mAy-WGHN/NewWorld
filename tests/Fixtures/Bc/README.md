@@ -22,6 +22,8 @@ Die Tests in `tests/BcIntegration.Infrastructure.Tests` laden je Test genau ein 
 | `absence-validation-error` | BC-Validierungsfehler (400) |
 | `absence-throttled-write` | 429 auf POST, danach Erfolg |
 | `absence-server-error` | 500 auf POST |
+| `e2e-landscape` | Basis des AppHost (E2E): eine Filiale (F017), sechs Mitarbeitende (10099 Admin, 10043 Filialleiter, 10042/10044/10045/10046) und PIN-Prüfung (PIN 4711 für alle) |
+| `absence-throttled-write-e2e` | wie `absence-throttled-write`, aber `Retry-After: 3` (Zwischenzustand im E2E sichtbar) |
 
 Alle Endpunkte, Felder und Fehlercodes sind Annahmen (`TODO(BC-Modell)`): Mitarbeitende nach Standard-API v2.0, Filialen
 und Abwesenheiten über angenommene eigene API-Seiten. Die Fehlertexte enthalten absichtlich personenbezogene Inhalte, damit

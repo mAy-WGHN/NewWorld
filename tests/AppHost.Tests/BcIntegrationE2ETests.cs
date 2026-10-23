@@ -4,7 +4,7 @@ namespace AppHost.Tests;
 
 /// <summary>
 /// E2E: after the start, BC Integration compares master data with the WireMock BC and records the events in its outbox.
-/// (Delivery to topics follows with the Service Bus topology in phase 7.)
+/// (The distribution to the other services is covered by AbsenceE2ETests.)
 /// </summary>
 [Trait("Category", "E2E")]
 [Collection(AppHostGroup.Name)]
@@ -18,7 +18,7 @@ public class BcIntegrationE2ETests(AppHostFixture fixture)
         var connectionString = await fixture.App.GetConnectionStringAsync("bcintegration", cts.Token);
 
         var types = new List<string>();
-        while (types.Count < 3 && !cts.IsCancellationRequested)
+        while (types.Count < 7 && !cts.IsCancellationRequested)
         {
             await using var connection = new NpgsqlConnection(connectionString);
             await connection.OpenAsync(cts.Token);
@@ -30,12 +30,12 @@ public class BcIntegrationE2ETests(AppHostFixture fixture)
                 types.Add(reader.GetString(0));
             }
 
-            if (types.Count < 3)
+            if (types.Count < 7)
             {
                 await Task.Delay(TimeSpan.FromSeconds(1), cts.Token);
             }
         }
 
-        types.ShouldBe(["EmployeeChanged", "EmployeeChanged", "StoreChanged"]);
+        types.ShouldBe(["EmployeeChanged", "EmployeeChanged", "EmployeeChanged", "EmployeeChanged", "EmployeeChanged", "EmployeeChanged", "StoreChanged"]);
     }
 }

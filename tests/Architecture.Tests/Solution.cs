@@ -26,6 +26,8 @@ internal static class Solution
         return dir?.FullName ?? throw new InvalidOperationException("NewWorld.slnx not found above the test directory.");
     });
 
+    public static string Root => RootPath.Value;
+
     public static string SrcPath => Path.Combine(RootPath.Value, "src");
 
     /// <summary>Hand-written C# files under src/ (without bin/obj and generated EF migrations), path relative to src/.</summary>
