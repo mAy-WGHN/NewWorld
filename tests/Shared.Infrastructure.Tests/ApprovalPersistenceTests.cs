@@ -34,9 +34,9 @@ public sealed class ApprovalPersistenceTests(PostgresFixture postgres) : IClassF
         var loaded = await check.Set<ApprovalRequest>().Include(r => r.Steps).SingleAsync();
         loaded.Status.ShouldBe(ApprovalStatus.InReview);
         loaded.SubjectType.ShouldBe("Vacation");
-        loaded.Steps.Select(s => s.ApproverId).ShouldBe([manager, director]);
+        loaded.Steps.Select(s => s.ApproverIds.Single()).ShouldBe([manager, director]);
         loaded.Steps[0].Decision.ShouldBe(ApprovalDecision.Approved);
-        loaded.CurrentApproverId.ShouldBe(director);
+        loaded.CurrentApproverIds.ShouldBe([director]);
         loaded.CreatedAt.ShouldBe(now);
     }
 }

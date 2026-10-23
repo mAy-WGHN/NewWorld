@@ -1,17 +1,20 @@
 namespace Shared.Approvals;
 
-/// <summary>One link of the approval chain.</summary>
+/// <summary>
+/// One link of the approval chain. Several people can be alternatives (e.g. the store manager and a substitute): the first
+/// decision of any of them decides the step.
+/// </summary>
 public sealed class ApprovalStep
 {
     private ApprovalStep()
     {
     }
 
-    internal ApprovalStep(int order, Guid approverId)
+    internal ApprovalStep(int order, IReadOnlyList<Guid> approverIds)
     {
         Id = Guid.NewGuid();
         Order = order;
-        ApproverId = approverId;
+        ApproverIds = [.. approverIds];
     }
 
     public Guid Id { get; private set; }
@@ -19,16 +22,20 @@ public sealed class ApprovalStep
     /// <summary>1-based position in the chain.</summary>
     public int Order { get; private set; }
 
-    /// <summary>EmployeeId of the approver.</summary>
-    public Guid ApproverId { get; private set; }
+    /// <summary>EmployeeIds of the alternatives; any one of them may decide.</summary>
+    public List<Guid> ApproverIds { get; private set; } = [];
 
     public ApprovalDecision? Decision { get; private set; }
 
+    /// <summary>Who decided (one of <see cref="ApproverIds"/>).</summary>
+    public Guid? DecidedBy { get; private set; }
+
     public DateTimeOffset? DecidedAt { get; private set; }
 
-    internal void Decide(ApprovalDecision decision, DateTimeOffset at)
+    internal void Decide(Guid approverId, ApprovalDecision decision, DateTimeOffset at)
     {
         Decision = decision;
+        DecidedBy = approverId;
         DecidedAt = at;
     }
 }

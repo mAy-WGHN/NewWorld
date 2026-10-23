@@ -33,32 +33,38 @@ public sealed class ApprovalRequest
     /// <summary>Chain in order; sorted here because the database does not guarantee load order.</summary>
     public IReadOnlyList<ApprovalStep> Steps => _steps.OrderBy(s => s.Order).ToList();
 
-    /// <summary>The approver whose decision is awaited, <c>null</c> once the request is closed.</summary>
-    public Guid? CurrentApproverId => IsClosed ? null : CurrentStep?.ApproverId;
+    /// <summary>The alternatives whose decision is awaited (any one decides); empty once the request is closed.</summary>
+    public IReadOnlyList<Guid> CurrentApproverIds => IsClosed ? [] : CurrentStep?.ApproverIds ?? [];
 
     private bool IsClosed => Status is ApprovalStatus.Approved or ApprovalStatus.Rejected or ApprovalStatus.Withdrawn;
 
     private ApprovalStep? CurrentStep => _steps.OrderBy(s => s.Order).FirstOrDefault(s => s.Decision is null);
 
-    public static ApprovalRequest Create(
+    /// <summary>A chain of single approvers: every one of them must approve, in this order.</summary>
+    public static ApprovalRequest Create(string subjectType, Guid subjectId, Guid requesterId, IReadOnlyList<Guid> approverIds, DateTimeOffset now) =>
+        CreateWithAlternatives(subjectType, subjectId, requesterId, [.. approverIds.Select(a => (IReadOnlyList<Guid>)[a])], now);
+
+    /// <summary>A chain where each step lists alternatives (e.g. store manager and substitute): one of them decides the step.</summary>
+    public static ApprovalRequest CreateWithAlternatives(
         string subjectType,
         Guid subjectId,
         Guid requesterId,
-        IReadOnlyList<Guid> approverIds,
+        IReadOnlyList<IReadOnlyList<Guid>> steps,
         DateTimeOffset now)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(subjectType);
-        if (approverIds.Count == 0)
+        if (steps.Count == 0 || steps.Any(step => step.Count == 0))
         {
             throw new ApprovalException(ApprovalError.NoApprovers);
         }
 
-        if (approverIds.Contains(requesterId))
+        var all = steps.SelectMany(step => step).ToList();
+        if (all.Contains(requesterId))
         {
             throw new ApprovalException(ApprovalError.RequesterIsApprover);
         }
 
-        if (approverIds.Distinct().Count() != approverIds.Count)
+        if (all.Distinct().Count() != all.Count)
         {
             throw new ApprovalException(ApprovalError.DuplicateApprover);
         }
@@ -72,9 +78,9 @@ public sealed class ApprovalRequest
             Status = ApprovalStatus.Requested,
             CreatedAt = now,
         };
-        for (var i = 0; i < approverIds.Count; i++)
+        for (var i = 0; i < steps.Count; i++)
         {
-            request._steps.Add(new ApprovalStep(i + 1, approverIds[i]));
+            request._steps.Add(new ApprovalStep(i + 1, steps[i]));
         }
 
         return request;
@@ -129,7 +135,7 @@ public sealed class ApprovalRequest
         EnsureOpen();
         EnsureCurrentApprover(approverId);
         var step = CurrentStep!;
-        step.Decide(decision, now);
+        step.Decide(approverId, decision, now);
         return step;
     }
 
@@ -143,7 +149,7 @@ public sealed class ApprovalRequest
 
     private void EnsureCurrentApprover(Guid approverId)
     {
-        if (CurrentApproverId != approverId)
+        if (!CurrentApproverIds.Contains(approverId))
         {
             throw new ApprovalException(ApprovalError.NotCurrentApprover);
         }

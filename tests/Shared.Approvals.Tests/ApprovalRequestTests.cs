@@ -21,9 +21,9 @@ public class ApprovalRequestTests
 
         request.Status.ShouldBe(ApprovalStatus.Requested);
         request.CreatedAt.ShouldBe(T0);
-        request.Steps.Select(s => s.ApproverId).ShouldBe([Manager, Director]);
+        request.Steps.Select(s => s.ApproverIds.Single()).ShouldBe([Manager, Director]);
         request.Steps.Select(s => s.Order).ShouldBe([1, 2]);
-        request.CurrentApproverId.ShouldBe(Manager);
+        request.CurrentApproverIds.ShouldBe([Manager]);
     }
 
     [Fact]
@@ -58,7 +58,7 @@ public class ApprovalRequestTests
         request.Approve(Manager, T1);
 
         request.Status.ShouldBe(ApprovalStatus.Approved);
-        request.CurrentApproverId.ShouldBeNull();
+        request.CurrentApproverIds.ShouldBeEmpty();
         request.Steps.Single().DecidedAt.ShouldBe(T1);
         request.Steps.Single().Decision.ShouldBe(ApprovalDecision.Approved);
         request.DecidedAt.ShouldBe(T1);
@@ -72,7 +72,7 @@ public class ApprovalRequestTests
         request.Approve(Manager, T1);
 
         request.Status.ShouldBe(ApprovalStatus.InReview);
-        request.CurrentApproverId.ShouldBe(Director);
+        request.CurrentApproverIds.ShouldBe([Director]);
         request.DecidedAt.ShouldBeNull();
 
         request.Approve(Director, T1.AddDays(1));
@@ -87,7 +87,7 @@ public class ApprovalRequestTests
         request.Reject(Manager, T1);
 
         request.Status.ShouldBe(ApprovalStatus.Rejected);
-        request.CurrentApproverId.ShouldBeNull();
+        request.CurrentApproverIds.ShouldBeEmpty();
         request.Steps[1].Decision.ShouldBeNull();
     }
 
@@ -113,7 +113,7 @@ public class ApprovalRequestTests
         inReview.Approve(Manager, T1);
         inReview.Withdraw(Requester, T1.AddHours(1));
         inReview.Status.ShouldBe(ApprovalStatus.Withdrawn);
-        inReview.CurrentApproverId.ShouldBeNull();
+        inReview.CurrentApproverIds.ShouldBeEmpty();
     }
 
     [Fact]
@@ -159,5 +159,38 @@ public class ApprovalRequestTests
     public void Same_person_may_not_appear_twice_in_the_chain()
     {
         Should.Throw<ApprovalException>(() => NewRequest(Manager, Manager)).Error.ShouldBe(ApprovalError.DuplicateApprover);
+    }
+
+    [Fact]
+    public void Alternatives_of_a_step_any_one_of_them_decides()
+    {
+        var request = ApprovalRequest.CreateWithAlternatives("Vacation", Guid.NewGuid(), Requester, [[Manager, Outsider], [Director]], T0);
+
+        request.CurrentApproverIds.ShouldBe([Manager, Outsider], ignoreOrder: true);
+        request.Approve(Outsider, T1); // the substitute decides the first step
+
+        request.Steps[0].DecidedBy.ShouldBe(Outsider);
+        request.CurrentApproverIds.ShouldBe([Director]);
+        Should.Throw<ApprovalException>(() => request.Approve(Manager, T1)).Error.ShouldBe(ApprovalError.NotCurrentApprover); // step already decided
+    }
+
+    [Fact]
+    public void Any_alternative_may_reject_or_begin_review()
+    {
+        var rejected = ApprovalRequest.CreateWithAlternatives("Vacation", Guid.NewGuid(), Requester, [[Manager, Outsider]], T0);
+        rejected.Reject(Manager, T1);
+        rejected.Status.ShouldBe(ApprovalStatus.Rejected);
+
+        var review = ApprovalRequest.CreateWithAlternatives("Vacation", Guid.NewGuid(), Requester, [[Manager, Outsider]], T0);
+        review.BeginReview(Outsider, T1);
+        review.Status.ShouldBe(ApprovalStatus.InReview);
+    }
+
+    [Fact]
+    public void Alternatives_follow_the_same_integrity_rules()
+    {
+        Should.Throw<ApprovalException>(() => ApprovalRequest.CreateWithAlternatives("V", Guid.NewGuid(), Requester, [[]], T0)).Error.ShouldBe(ApprovalError.NoApprovers);
+        Should.Throw<ApprovalException>(() => ApprovalRequest.CreateWithAlternatives("V", Guid.NewGuid(), Requester, [[Manager, Requester]], T0)).Error.ShouldBe(ApprovalError.RequesterIsApprover);
+        Should.Throw<ApprovalException>(() => ApprovalRequest.CreateWithAlternatives("V", Guid.NewGuid(), Requester, [[Manager], [Manager, Director]], T0)).Error.ShouldBe(ApprovalError.DuplicateApprover);
     }
 }

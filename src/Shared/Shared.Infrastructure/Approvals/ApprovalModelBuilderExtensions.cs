@@ -25,6 +25,7 @@ public static class ApprovalModelBuilderExtensions
             b.ToTable("approval_steps");
             b.HasKey(s => s.Id);
             b.Property(s => s.Decision).HasConversion<string>().HasMaxLength(20);
+            b.Property(s => s.ApproverIds).HasColumnType("uuid[]");
             b.HasIndex("ApprovalRequestId", nameof(ApprovalStep.Order)).IsUnique();
         });
 
