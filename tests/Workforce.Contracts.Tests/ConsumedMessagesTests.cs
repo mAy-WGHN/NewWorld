@@ -27,4 +27,7 @@ public class ConsumedMessagesTests
 
     [Fact]
     public void PermissionsChanged_tolerates_unknown_fields() => ContractSnapshot.AssertToleratesUnknownFields<PermissionsChanged>("Access");
+
+    [Fact]
+    public void ResponsibilitiesChanged_tolerates_unknown_fields() => ContractSnapshot.AssertToleratesUnknownFields<ResponsibilitiesChanged>("Access");
 }

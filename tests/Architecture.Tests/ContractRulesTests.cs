@@ -23,6 +23,7 @@ public class ContractRulesTests
         ("BcIntegration", "BcSyncSucceeded", true, SensitivityClass.OrganizationData),
         ("BcIntegration", "BcSyncFailed", true, SensitivityClass.OrganizationData),
         ("Access", "PermissionsChanged", true, SensitivityClass.OrganizationData),
+        ("Access", "ResponsibilitiesChanged", true, SensitivityClass.OrganizationData), // decision 13
         ("Workforce", "EmployeeAvailabilityChanged", true, SensitivityClass.SensitiveNeutralized),
         ("Workforce", "ShiftUncovered", true, SensitivityClass.SensitiveNeutralized),
         ("Workforce", "SyncAbsenceToBc", false, SensitivityClass.SensitiveFacts),

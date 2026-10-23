@@ -7,4 +7,7 @@ public class SnapshotTests
 {
     [Fact]
     public Task PermissionsChanged() => ContractSnapshot.Verify(Samples.PermissionsChanged);
+
+    [Fact]
+    public Task ResponsibilitiesChanged() => ContractSnapshot.Verify(Samples.ResponsibilitiesChanged);
 }

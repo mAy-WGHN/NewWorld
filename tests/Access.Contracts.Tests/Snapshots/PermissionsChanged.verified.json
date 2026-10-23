@@ -4,18 +4,37 @@
   "occurredAt": "2026-10-25T02:30:00+01:00",
   "employeeId": "0197a000-0000-7000-8000-000000000001",
   "version": 7,
-  "externalIdentities": [
-    {
-      "provider": "entra",
-      "subject": "6f1c2b9e-0000-4000-8000-00000000abcd"
-    }
-  ],
+  "externalIdentities": [],
   "storeIds": [
     "0197a000-0000-7000-8000-000000000101",
     "0197a000-0000-7000-8000-000000000102"
   ],
   "employeeIds": [
-    "0197a000-0000-7000-8000-000000000001"
+    "0197a000-0000-7000-8000-000000000001",
+    "0197a000-0000-7000-8000-000000000002"
   ],
-  "roleAdditions": []
+  "roleAdditions": [
+    "Public User",
+    "Filialleitung"
+  ],
+  "privileges": [
+    {
+      "key": "absence:read",
+      "unrestricted": false,
+      "storeIds": [
+        "0197a000-0000-7000-8000-000000000101",
+        "0197a000-0000-7000-8000-000000000102"
+      ],
+      "employeeIds": [
+        "0197a000-0000-7000-8000-000000000001",
+        "0197a000-0000-7000-8000-000000000002"
+      ]
+    },
+    {
+      "key": "faq:read",
+      "unrestricted": true,
+      "storeIds": [],
+      "employeeIds": []
+    }
+  ]
 }
