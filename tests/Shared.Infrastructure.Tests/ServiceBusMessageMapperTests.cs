@@ -5,6 +5,20 @@ namespace Shared.Infrastructure.Tests;
 
 public class ServiceBusMessageMapperTests
 {
+    [Theory]
+    [InlineData("""{"sourceService":"Workforce","entityId":"x"}""", "Workforce")]
+    [InlineData("""{"entityId":"x"}""", null)]
+    [InlineData("""{"sourceService":5}""", null)]
+    [InlineData("""["sourceService"]""", null)]
+    public void Copies_the_source_service_as_routing_property_for_filtered_subscriptions(string payload, string? expected)
+    {
+        var message = ServiceBusMessageMapper.ToServiceBusMessage(
+            new OutboundMessage(Guid.NewGuid(), Guid.NewGuid(), "BcSyncSucceeded", MessageKind.Event, "bc-sync-succeeded", payload, DateTimeOffset.UnixEpoch));
+
+        message.ApplicationProperties.TryGetValue(ServiceBusMessageMapper.SourceServiceProperty, out var actual).ShouldBe(expected is not null);
+        actual.ShouldBe(expected);
+    }
+
     [Fact]
     public void Maps_ids_type_and_body_without_losing_correlation()
     {
