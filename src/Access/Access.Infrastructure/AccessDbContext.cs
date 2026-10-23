@@ -1,4 +1,5 @@
 using Access.Infrastructure.Acl;
+using Access.Infrastructure.Login;
 using Access.Infrastructure.People;
 using Access.Infrastructure.Publishing;
 using Microsoft.EntityFrameworkCore;
@@ -20,6 +21,8 @@ public sealed class AccessDbContext(DbContextOptions<AccessDbContext> options) :
     public DbSet<AssignmentRecord> Assignments => Set<AssignmentRecord>();
     public DbSet<ResponsibilityRecord> Responsibilities => Set<ResponsibilityRecord>();
     public DbSet<PublicationRecord> Publications => Set<PublicationRecord>();
+    public DbSet<CredentialRecord> Credentials => Set<CredentialRecord>();
+    public DbSet<RefreshTokenRecord> RefreshTokens => Set<RefreshTokenRecord>();
 
     /// <summary>Provider settings shared by runtime and design time (migrations).</summary>
     public static DbContextOptionsBuilder Configure(DbContextOptionsBuilder options, string connectionString) => options
@@ -75,6 +78,19 @@ public sealed class AccessDbContext(DbContextOptions<AccessDbContext> options) :
             b.HasKey(r => r.Id);
             b.HasIndex(r => new { r.TargetKind, r.TargetId });
             b.HasIndex(r => r.ResponsibleEmployeeId);
+        });
+        modelBuilder.Entity<CredentialRecord>(b =>
+        {
+            b.ToTable("credentials");
+            b.HasKey(c => c.EmployeeId);
+        });
+        modelBuilder.Entity<RefreshTokenRecord>(b =>
+        {
+            b.ToTable("refresh_tokens");
+            b.HasKey(t => t.Id);
+            b.HasIndex(t => t.TokenHash).IsUnique();
+            b.HasIndex(t => t.EmployeeId);
+            b.HasIndex(t => t.ExpiresAt);
         });
         modelBuilder.Entity<PublicationRecord>(b =>
         {

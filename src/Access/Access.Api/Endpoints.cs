@@ -18,6 +18,7 @@ public static class Endpoints
 {
     public static WebApplication MapAccessEndpoints(this WebApplication app)
     {
+        app.MapAuthEndpoints();
         var api = app.MapGroup("/api");
 
         // Decision 5: privileges and reach of the signed-in person, computed fresh.

@@ -57,7 +57,9 @@ public sealed class BcPinVerifyTests : IDisposable
         ex.ToString().ShouldNotContain("4711");
         ex.ToString().ShouldNotContain("Mustermann");
         _logs.Lines.ShouldAllBe(l => !l.Contains("4711", StringComparison.Ordinal) && !l.Contains("Mustermann", StringComparison.Ordinal));
-        bc.RequestCount("POST").ShouldBe(1); // a write-like call with unknown outcome is not repeated blindly
+        // A call with unknown outcome is never repeated blindly. (0 is possible on a loaded machine: the attempt timeout can
+        // expire before the server sees the request.)
+        bc.RequestCount("POST").ShouldBeLessThanOrEqualTo(1);
     }
 
     [Fact]

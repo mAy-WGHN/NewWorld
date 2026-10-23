@@ -44,3 +44,10 @@ public sealed record PermissionStateDto(Guid EmployeeId, long Version, IReadOnly
 public sealed record ResponsibilityStateDto(Guid EmployeeId, long Version, IReadOnlyList<TopicResponsibilityDto> Responsibilities);
 
 public sealed record CreatedDto(Guid Id);
+
+public sealed record LoginRequest(string PersonnelNumber, string Pin);
+
+public sealed record RefreshRequest(string RefreshToken);
+
+/// <summary>Tokens of a session: a short-lived access token and a single-use refresh token.</summary>
+public sealed record TokenResponse(string AccessToken, DateTimeOffset ExpiresAt, string RefreshToken);

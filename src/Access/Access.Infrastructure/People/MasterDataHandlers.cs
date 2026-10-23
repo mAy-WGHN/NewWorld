@@ -71,7 +71,7 @@ public sealed class StoreChangedHandler(AccessDbContext db) : IMessageHandler<St
 }
 
 /// <summary>
-/// Deletes everything about the person: copy, assignments, responsibilities held or targeting them, publication state and the
+/// Deletes everything about the person: copy, stored PIN, sessions, assignments, responsibilities held or targeting them, publication state and the
 /// own permission copy. Other people's reach and responsibilities are recalculated.
 /// </summary>
 public sealed class EmployeeDataErasureRequestedHandler(AccessDbContext db, RecalculationRunner runner, PermissionsChangedHandler permissions)
@@ -85,6 +85,8 @@ public sealed class EmployeeDataErasureRequestedHandler(AccessDbContext db, Reca
             await db.Assignments.Where(a => a.EmployeeId == id).ExecuteDeleteAsync(ct);
             await db.Responsibilities.Where(r => r.ResponsibleEmployeeId == id || (r.TargetKind == nameof(ResponsibilityTarget.Employee) && r.TargetId == id)).ExecuteDeleteAsync(ct);
             await db.Publications.Where(p => p.EmployeeId == id).ExecuteDeleteAsync(ct);
+            await db.Credentials.Where(c => c.EmployeeId == id).ExecuteDeleteAsync(ct);
+            await db.RefreshTokens.Where(t => t.EmployeeId == id).ExecuteDeleteAsync(ct);
             await db.People.Where(p => p.EmployeeId == id).ExecuteDeleteAsync(ct);
         }, cancellationToken);
         await permissions.EraseAsync(id, cancellationToken);

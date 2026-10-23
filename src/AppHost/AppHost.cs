@@ -21,7 +21,7 @@ var notificationsDb = postgres.AddDatabase("notifications");
 var workforceDb = postgres.AddDatabase("workforce");
 var portalDb = postgres.AddDatabase("portal");
 
-builder.AddProject<Projects.BcIntegration_Api>("bc-integration-api")
+var bcIntegration = builder.AddProject<Projects.BcIntegration_Api>("bc-integration-api")
     .WithReference(bcIntegrationDb).WaitFor(bcIntegrationDb)
     .WithReference(serviceBus).WaitFor(serviceBus)
     // BC fake: paths of the assumed custom API pages (TODO(BC-Modell)) and a dummy token (allowed in Development only).
@@ -35,6 +35,9 @@ builder.AddProject<Projects.BcIntegration_Api>("bc-integration-api")
 
 builder.AddProject<Projects.Access_Api>("access-api")
     .WithReference(accessDb).WaitFor(accessDb)
+    // Login: PIN check through BC Integration (dummy token locally, allowed in Development only).
+    .WithEnvironment("BcIntegration__BaseUrl", bcIntegration.GetEndpoint("http"))
+    .WithEnvironment("BcIntegration__Credential", "LocalFake")
     .WithReference(serviceBus).WaitFor(serviceBus)
     .WithHttpHealthCheck("/health/ready");
 

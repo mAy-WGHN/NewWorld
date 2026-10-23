@@ -204,6 +204,72 @@ namespace Access.Infrastructure.Migrations
                     b.ToTable("scopes", "access");
                 });
 
+            modelBuilder.Entity("Access.Infrastructure.Login.CredentialRecord", b =>
+                {
+                    b.Property<Guid>("EmployeeId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("employee_id");
+
+                    b.Property<string>("EncryptedPin")
+                        .HasColumnType("text")
+                        .HasColumnName("encrypted_pin");
+
+                    b.Property<string>("PinHash")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("pin_hash");
+
+                    b.Property<DateTimeOffset>("VerifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("verified_at");
+
+                    b.HasKey("EmployeeId")
+                        .HasName("pk_credentials");
+
+                    b.ToTable("credentials", "access");
+                });
+
+            modelBuilder.Entity("Access.Infrastructure.Login.RefreshTokenRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("employee_id");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("token_hash");
+
+                    b.Property<bool>("Used")
+                        .HasColumnType("boolean")
+                        .HasColumnName("used");
+
+                    b.HasKey("Id")
+                        .HasName("pk_refresh_tokens");
+
+                    b.HasIndex("EmployeeId")
+                        .HasDatabaseName("ix_refresh_tokens_employee_id");
+
+                    b.HasIndex("ExpiresAt")
+                        .HasDatabaseName("ix_refresh_tokens_expires_at");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique()
+                        .HasDatabaseName("ix_refresh_tokens_token_hash");
+
+                    b.ToTable("refresh_tokens", "access");
+                });
+
             modelBuilder.Entity("Access.Infrastructure.People.PersonRecord", b =>
                 {
                     b.Property<Guid>("EmployeeId")

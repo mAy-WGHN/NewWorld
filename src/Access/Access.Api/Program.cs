@@ -1,5 +1,6 @@
 using Access.Api;
 using Access.Infrastructure;
+using Access.Infrastructure.Login;
 using Shared.Authorization;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -15,16 +16,8 @@ builder.Services.AddSharedAuthorization(options =>
 });
 builder.Services.AddScoped<IAuthorizationServiceAdapter, AuthorizationServiceAdapter>();
 
-// Authority/audience/tenant come from configuration only. Without them (local runs, tests) no JWT scheme is added;
-// tests register the test auth handler instead.
-if (builder.Configuration.GetSection(SharedJwtAuthentication.ConfigurationSection).Exists())
-{
-    builder.Services.AddSharedJwtAuthentication(builder.Configuration);
-}
-else
-{
-    builder.Services.AddAuthentication();
-}
+// People sign in through Access (own tokens, own key); services use Entra tokens (Authentication section, optional).
+builder.Services.AddAccessAuthentication(builder.Configuration);
 
 var app = builder.Build();
 
