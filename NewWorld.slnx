@@ -39,6 +39,7 @@
     <Project Path="src/Portal/Portal.Contracts/Portal.Contracts.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Notifications.Api.Tests/Notifications.Api.Tests.csproj" />
     <Project Path="tests/Notifications.Core.Tests/Notifications.Core.Tests.csproj" />
     <Project Path="tests/Workforce.Api.Tests/Workforce.Api.Tests.csproj" />
     <Project Path="tests/Access.Api.Tests/Access.Api.Tests.csproj" />

@@ -1,0 +1,8 @@
+{
+  "key": "workforce.sick-note.store-manager",
+  "mandatory": true,
+  "placeholders": { "employeeName": "sensitive", "from": "sensitive", "to": "sensitive" },
+  "inApp": { "title": "Krankmeldung", "body": "{employeeName} hat sich ab {from} krank gemeldet." },
+  "push": { "title": "Neue Mitteilung im Portal", "body": "Öffnen, um die Mitteilung zu lesen." },
+  "email": { "title": "Neue Mitteilung im Portal", "body": "Es liegt eine neue Mitteilung für Sie im Portal bereit." }
+}

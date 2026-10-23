@@ -1,3 +1,4 @@
+using Notifications.Api;
 using Notifications.Infrastructure;
 using Shared.Authorization;
 
@@ -25,5 +26,6 @@ await app.Services.MigrateNotificationsDatabaseAsync(app.Environment);
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapDefaultEndpoints();
+app.MapNotificationEndpoints();
 
 app.Run();

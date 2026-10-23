@@ -4,6 +4,11 @@
     <ProjectReference Include="..\Notifications.Contracts\Notifications.Contracts.csproj" />
     <ProjectReference Include="..\..\Shared\Shared.Infrastructure\Shared.Infrastructure.csproj" />
     <ProjectReference Include="..\..\Access\Access.Contracts\Access.Contracts.csproj" />
+    <ProjectReference Include="..\..\BcIntegration\BcIntegration.Contracts\BcIntegration.Contracts.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Template files (owned by Notifications) are copied next to the application; see NotificationOptions.TemplatesPath. -->
+    <Content Include="Templates\*.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />

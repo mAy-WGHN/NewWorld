@@ -1,0 +1,8 @@
+{
+  "key": "workforce.vacation-decision.requester",
+  "mandatory": false,
+  "placeholders": { "decision": "sensitive", "from": "sensitive", "to": "sensitive" },
+  "inApp": { "title": "Entscheidung zu Ihrem Urlaubsantrag", "body": "Ihr Urlaubsantrag vom {from} bis {to} wurde {decision}." },
+  "push": { "title": "Neue Mitteilung im Portal", "body": "Öffnen, um die Mitteilung zu lesen." },
+  "email": { "title": "Neue Mitteilung im Portal", "body": "Es liegt eine neue Mitteilung für Sie im Portal bereit." }
+}
