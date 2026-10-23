@@ -8,8 +8,12 @@ namespace Shared.Authorization;
 public static class AuthorizationServiceCollectionExtensions
 {
     /// <summary>Policies for the coarse roles, resource handlers for stores/employees, claims mapping, local cache.</summary>
-    public static IServiceCollection AddSharedAuthorization(this IServiceCollection services)
+    public static IServiceCollection AddSharedAuthorization(this IServiceCollection services, Action<SharedAuthorizationOptions>? configure = null)
     {
+        var options = new SharedAuthorizationOptions();
+        configure?.Invoke(options);
+        services.AddSingleton(options);
+
         services.TryAddSingleton<IPermissionCache, InMemoryPermissionCache>();
         services.AddSingleton<IClaimsTransformation, AppClaimsTransformation>();
         services.AddSingleton<IAuthorizationHandler, StoreAccessHandler>();
@@ -23,6 +27,13 @@ public static class AuthorizationServiceCollectionExtensions
             .AddPolicy(AppPolicies.RequireExecutive, p => p.RequireAuthenticatedUser().RequireClaim(AppClaimTypes.Role, AppRoles.Executive))
             .AddPolicy(AppPolicies.CanAccessStore, p => p.RequireAuthenticatedUser().AddRequirements(new StoreAccessRequirement()))
             .AddPolicy(AppPolicies.CanAccessEmployee, p => p.RequireAuthenticatedUser().AddRequirements(new EmployeeAccessRequirement()));
+
+        var policies = services.AddAuthorizationBuilder();
+        foreach (var role in options.ServiceRoles)
+        {
+            policies.AddPolicy(AppPolicies.ServiceRole(role), p => p.RequireAuthenticatedUser().RequireClaim(AppClaimTypes.ServiceRole, role));
+        }
+
         return services;
     }
 }

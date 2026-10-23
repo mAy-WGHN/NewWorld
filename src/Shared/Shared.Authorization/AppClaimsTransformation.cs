@@ -4,11 +4,12 @@ using Microsoft.AspNetCore.Authentication;
 namespace Shared.Authorization;
 
 /// <summary>
-/// The only place that reads provider claims. Maps <c>roles</c> to <see cref="AppClaimTypes.Role"/> (known roles only)
+/// The only place that reads provider claims. Maps <c>roles</c> to <see cref="AppClaimTypes.Role"/> (known user roles) or
+/// <see cref="AppClaimTypes.ServiceRole"/> (configured service roles); other roles are dropped,
 /// and the object ID <c>oid</c> to <see cref="AppClaimTypes.EmployeeId"/> via the local cache. Replacing the identity
 /// provider changes this class and the configuration, nothing else.
 /// </summary>
-public sealed class AppClaimsTransformation(IPermissionCache cache) : IClaimsTransformation
+public sealed class AppClaimsTransformation(IPermissionCache cache, SharedAuthorizationOptions options) : IClaimsTransformation
 {
     private const string ProviderRoleClaim = "roles";
     private const string ProviderObjectIdClaim = "oid";
@@ -23,9 +24,16 @@ public sealed class AppClaimsTransformation(IPermissionCache cache) : IClaimsTra
         }
 
         var mapped = new ClaimsIdentity(MarkerAuthenticationType);
-        foreach (var role in principal.FindAll(ProviderRoleClaim).Select(c => c.Value).Where(AppRoles.All.Contains).Distinct())
+        foreach (var role in principal.FindAll(ProviderRoleClaim).Select(c => c.Value).Distinct())
         {
-            mapped.AddClaim(new Claim(AppClaimTypes.Role, role));
+            if (AppRoles.All.Contains(role))
+            {
+                mapped.AddClaim(new Claim(AppClaimTypes.Role, role));
+            }
+            else if (options.ServiceRoles.Contains(role))
+            {
+                mapped.AddClaim(new Claim(AppClaimTypes.ServiceRole, role));
+            }
         }
 
         var objectId = principal.FindFirst(ProviderObjectIdClaim)?.Value;

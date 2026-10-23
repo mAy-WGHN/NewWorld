@@ -8,4 +8,7 @@ public static class AppClaimTypes
 {
     public const string Role = "app:role";
     public const string EmployeeId = "app:employee_id";
+
+    /// <summary>App role of a calling service (service-to-service), see <see cref="SharedAuthorizationOptions.ServiceRoles"/>.</summary>
+    public const string ServiceRole = "app:service_role";
 }

@@ -12,4 +12,7 @@ public static class AppPolicies
 
     /// <summary>Resource policy for <see cref="EmployeeResource"/>.</summary>
     public const string CanAccessEmployee = "App.CanAccessEmployee";
+
+    /// <summary>Policy name for a service app role registered in <see cref="SharedAuthorizationOptions.ServiceRoles"/>.</summary>
+    public static string ServiceRole(string role) => "App.Service." + role;
 }

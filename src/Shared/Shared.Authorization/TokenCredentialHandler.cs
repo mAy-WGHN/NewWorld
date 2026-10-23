@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Headers;
 using Azure.Core;
 
@@ -5,7 +6,8 @@ namespace Shared.Authorization;
 
 /// <summary>
 /// Adds a bearer token to outgoing service-to-service calls (client credentials / managed identity).
-/// Tokens are cached until five minutes before expiry. The credential is chosen by configuration.
+/// Tokens are cached until five minutes before expiry; a 401 answer forces one refresh and one repeat.
+/// The credential is chosen by configuration.
 /// </summary>
 public sealed class TokenCredentialHandler(TokenCredential credential, string scope, TimeProvider time) : DelegatingHandler
 {
@@ -16,8 +18,16 @@ public sealed class TokenCredentialHandler(TokenCredential credential, string sc
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
-        var token = await GetTokenAsync(cancellationToken);
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await GetTokenAsync(forceRefresh: false, cancellationToken));
+        var response = await base.SendAsync(request, cancellationToken);
+        if (response.StatusCode != HttpStatusCode.Unauthorized)
+        {
+            return response;
+        }
+
+        // The token may have been revoked or expired early: fetch a new one and repeat once.
+        response.Dispose();
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await GetTokenAsync(forceRefresh: true, cancellationToken));
         return await base.SendAsync(request, cancellationToken);
     }
 
@@ -31,12 +41,12 @@ public sealed class TokenCredentialHandler(TokenCredential credential, string sc
         base.Dispose(disposing);
     }
 
-    private async Task<string> GetTokenAsync(CancellationToken cancellationToken)
+    private async Task<string> GetTokenAsync(bool forceRefresh, CancellationToken cancellationToken)
     {
         await _gate.WaitAsync(cancellationToken);
         try
         {
-            if (_cached is { } cached && cached.ExpiresOn - RefreshMargin > time.GetUtcNow())
+            if (!forceRefresh && _cached is { } cached && cached.ExpiresOn - RefreshMargin > time.GetUtcNow())
             {
                 return cached.Token;
             }

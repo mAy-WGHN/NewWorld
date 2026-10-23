@@ -17,6 +17,8 @@ public sealed class ResourceAuthorizationTests : IAsyncLifetime
     private static readonly Guid Store1 = Guid.Parse("00000000-0000-0000-0000-0000000000a1");
     private static readonly Guid Store2 = Guid.Parse("00000000-0000-0000-0000-0000000000a2");
 
+    private const string ErasureRole = "BcIntegration.EmployeeErasure.Request";
+
     private readonly InMemoryPermissionCache _cache = new();
     private WebApplication _app = null!;
     private HttpClient _client = null!;
@@ -31,7 +33,7 @@ public sealed class ResourceAuthorizationTests : IAsyncLifetime
         builder.WebHost.UseTestServer();
         builder.Services.AddSingleton<IPermissionCache>(_cache);
         builder.Services.AddTestAuthentication();
-        builder.Services.AddSharedAuthorization();
+        builder.Services.AddSharedAuthorization(o => o.ServiceRoles.Add(ErasureRole));
         _app = builder.Build();
         _app.UseAuthentication();
         _app.UseAuthorization();
@@ -44,6 +46,7 @@ public sealed class ResourceAuthorizationTests : IAsyncLifetime
                 ? Results.Ok() : Results.Forbid()).RequireAuthorization();
         _app.MapGet("/hr-only", () => "ok").RequireAuthorization(AppPolicies.RequireHr);
         _app.MapGet("/managers", () => "ok").RequireAuthorization(AppPolicies.RequireStoreManager);
+        _app.MapPost("/internal/erasure", () => "ok").RequireAuthorization(AppPolicies.ServiceRole(ErasureRole));
         await _app.StartAsync();
         _client = _app.GetTestClient();
     }
@@ -54,9 +57,11 @@ public sealed class ResourceAuthorizationTests : IAsyncLifetime
         await _app.DisposeAsync();
     }
 
-    private async Task<HttpStatusCode> Get(string url, string? oid, params string[] roles)
+    private Task<HttpStatusCode> Get(string url, string? oid, params string[] roles) => Send(HttpMethod.Get, url, oid, roles);
+
+    private async Task<HttpStatusCode> Send(HttpMethod method, string url, string? oid, params string[] roles)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        using var request = new HttpRequestMessage(method, url);
         if (oid is not null)
         {
             request.AsUser(oid, roles);
@@ -113,4 +118,12 @@ public sealed class ResourceAuthorizationTests : IAsyncLifetime
     [Fact]
     public async Task Employee_does_not_satisfy_the_store_manager_policy() =>
         (await Get("/managers", "oid-ben", "Employee")).ShouldBe(HttpStatusCode.Forbidden);
+
+    [Fact]
+    public async Task Service_role_policy_allows_a_caller_with_that_app_role() =>
+        (await Send(HttpMethod.Post, "/internal/erasure", "oid-some-service", ErasureRole)).ShouldBe(HttpStatusCode.OK);
+
+    [Fact]
+    public async Task Service_role_policy_denies_users_even_with_strong_roles() =>
+        (await Send(HttpMethod.Post, "/internal/erasure", "oid-anna", "Executive", "Hr")).ShouldBe(HttpStatusCode.Forbidden);
 }

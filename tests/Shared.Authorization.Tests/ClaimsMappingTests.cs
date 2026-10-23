@@ -7,9 +7,12 @@ public class ClaimsMappingTests
 {
     private static readonly Guid Anna = Guid.Parse("00000000-0000-0000-0000-00000000000a");
 
-    private static async Task<ClaimsPrincipal> Transform(InMemoryPermissionCache cache, params Claim[] claims)
+    private static async Task<ClaimsPrincipal> Transform(InMemoryPermissionCache cache, params Claim[] claims) =>
+        await Transform(cache, new SharedAuthorizationOptions(), claims);
+
+    private static async Task<ClaimsPrincipal> Transform(InMemoryPermissionCache cache, SharedAuthorizationOptions options, params Claim[] claims)
     {
-        var transformation = new AppClaimsTransformation(cache);
+        var transformation = new AppClaimsTransformation(cache, options);
         var principal = new ClaimsPrincipal(new ClaimsIdentity(claims, "test"));
         return await transformation.TransformAsync(principal);
     }
@@ -56,7 +59,7 @@ public class ClaimsMappingTests
     {
         var cache = new InMemoryPermissionCache();
         cache.Apply(new PermissionSnapshot(Anna, 1, "oid-anna", new HashSet<Guid>(), new HashSet<Guid>()));
-        var transformation = new AppClaimsTransformation(cache);
+        var transformation = new AppClaimsTransformation(cache, new SharedAuthorizationOptions());
         var principal = new ClaimsPrincipal(new ClaimsIdentity([new Claim("oid", "oid-anna"), new Claim("roles", "Hr")], "test"));
 
         var once = await transformation.TransformAsync(principal);
@@ -64,5 +67,18 @@ public class ClaimsMappingTests
 
         twice.FindAll(AppClaimTypes.Role).Count().ShouldBe(1);
         twice.FindAll(AppClaimTypes.EmployeeId).Count().ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task Configured_service_roles_are_mapped_to_internal_service_role_claims()
+    {
+        var options = new SharedAuthorizationOptions();
+        options.ServiceRoles.Add("BcIntegration.EmployeeErasure.Request");
+
+        var principal = await Transform(new InMemoryPermissionCache(), options,
+            new Claim("roles", "BcIntegration.EmployeeErasure.Request"), new Claim("roles", "Other.Service.Role"));
+
+        principal.FindAll(AppClaimTypes.ServiceRole).Select(c => c.Value).ShouldBe(["BcIntegration.EmployeeErasure.Request"]);
+        principal.FindAll(AppClaimTypes.Role).ShouldBeEmpty();
     }
 }

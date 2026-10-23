@@ -29,10 +29,14 @@ public class TokenCredentialHandlerTests
     {
         public List<string?> AuthorizationHeaders { get; } = [];
 
+        /// <summary>Status codes to answer with, in order; afterwards 200.</summary>
+        public Queue<System.Net.HttpStatusCode> Responses { get; } = new();
+
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             AuthorizationHeaders.Add(request.Headers.Authorization?.ToString());
-            return Task.FromResult(new HttpResponseMessage());
+            var status = Responses.TryDequeue(out var next) ? next : System.Net.HttpStatusCode.OK;
+            return Task.FromResult(new HttpResponseMessage(status));
         }
     }
 
@@ -72,5 +76,34 @@ public class TokenCredentialHandlerTests
 
         credential.Calls.ShouldBe(2);
         inner.AuthorizationHeaders.ShouldBe(["Bearer token-1", "Bearer token-1", "Bearer token-2"]);
+    }
+
+    [Fact]
+    public async Task Unauthorized_answer_refreshes_the_token_once_and_repeats_the_request()
+    {
+        var time = new FakeTimeProvider(new DateTimeOffset(2026, 10, 23, 8, 0, 0, TimeSpan.Zero));
+        var (client, credential, inner) = Create(time, TimeSpan.FromHours(1));
+        inner.Responses.Enqueue(System.Net.HttpStatusCode.Unauthorized); // token revoked or expired early
+
+        using var response = await client.GetAsync(new Uri("http://localhost/x"));
+
+        response.StatusCode.ShouldBe(System.Net.HttpStatusCode.OK);
+        credential.Calls.ShouldBe(2);
+        inner.AuthorizationHeaders.ShouldBe(["Bearer token-1", "Bearer token-2"]);
+    }
+
+    [Fact]
+    public async Task Second_unauthorized_answer_is_returned_without_further_retries()
+    {
+        var time = new FakeTimeProvider(new DateTimeOffset(2026, 10, 23, 8, 0, 0, TimeSpan.Zero));
+        var (client, credential, inner) = Create(time, TimeSpan.FromHours(1));
+        inner.Responses.Enqueue(System.Net.HttpStatusCode.Unauthorized);
+        inner.Responses.Enqueue(System.Net.HttpStatusCode.Unauthorized);
+
+        using var response = await client.GetAsync(new Uri("http://localhost/x"));
+
+        response.StatusCode.ShouldBe(System.Net.HttpStatusCode.Unauthorized);
+        credential.Calls.ShouldBe(2);
+        inner.AuthorizationHeaders.Count.ShouldBe(2);
     }
 }
