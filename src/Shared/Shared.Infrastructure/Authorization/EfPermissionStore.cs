@@ -28,6 +28,9 @@ public sealed class EfPermissionStore<TContext>(TContext db) : IPermissionStore 
         await db.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task DeleteAsync(Guid employeeId, CancellationToken cancellationToken) =>
+        await db.Set<PermissionSnapshotRecord>().Where(r => r.EmployeeId == employeeId).ExecuteDeleteAsync(cancellationToken);
+
     private static Dictionary<string, PrivilegeReach> Deserialize(string json) =>
         (JsonSerializer.Deserialize<Dictionary<string, StoredReach>>(json) ?? [])
         .ToDictionary(p => p.Key, p => p.Value.Unrestricted ? PrivilegeReach.Everywhere : PrivilegeReach.Stores(p.Value.StoreIds, p.Value.EmployeeIds));

@@ -13,4 +13,11 @@ public sealed class PermissionsChangedHandler(IPermissionCache cache, IPermissio
             await store.SaveAsync(snapshot, cancellationToken);
         }
     }
+
+    /// <summary>Data erasure: removes the person from the cache and the database copy.</summary>
+    public async Task EraseAsync(Guid employeeId, CancellationToken cancellationToken = default)
+    {
+        cache.Remove(employeeId);
+        await store.DeleteAsync(employeeId, cancellationToken);
+    }
 }

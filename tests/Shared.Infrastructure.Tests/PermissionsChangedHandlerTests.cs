@@ -79,4 +79,18 @@ public sealed class PermissionsChangedHandlerTests(PostgresFixture postgres) : I
         current.AppliesToEmployee("absence:read", Anna).ShouldBeTrue();
         current.AppliesToStore("faq:read", Guid.NewGuid()).ShouldBeTrue();
     }
+
+    [Fact]
+    public async Task Erasure_removes_the_person_from_cache_and_database()
+    {
+        await using var db = await NewDb();
+        var cache = new InMemoryPermissionCache();
+        var handler = new PermissionsChangedHandler(cache, new EfPermissionStore<PermissionDbContext>(db));
+        await handler.HandleAsync(Snapshot(1, Store1));
+
+        await handler.EraseAsync(Anna);
+
+        cache.TryGet(Anna, out _).ShouldBeFalse();
+        (await db.Set<PermissionSnapshotRecord>().CountAsync()).ShouldBe(0);
+    }
 }

@@ -7,4 +7,7 @@ public interface IPermissionCache
     bool Apply(PermissionSnapshot snapshot);
 
     bool TryGet(Guid employeeId, out PermissionSnapshot? snapshot);
+
+    /// <summary>Forgets a person (data erasure).</summary>
+    void Remove(Guid employeeId);
 }

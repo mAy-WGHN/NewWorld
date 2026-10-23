@@ -27,6 +27,14 @@ public sealed class InMemoryPermissionCache : IPermissionCache
         }
     }
 
+    public void Remove(Guid employeeId)
+    {
+        lock (_gate)
+        {
+            _byEmployee.Remove(employeeId);
+        }
+    }
+
     /// <summary>Restores the cache from the service's database after a start (last known state).</summary>
     public async Task LoadAsync(IPermissionStore store, CancellationToken cancellationToken = default)
     {

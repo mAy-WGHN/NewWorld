@@ -29,6 +29,9 @@ public enum GuardReason
 
     /// <summary>The referenced role, scope or assignment does not exist.</summary>
     NotFound = 8,
+
+    /// <summary>Malformed input (name, privilege key, topic, period).</summary>
+    Invalid = 9,
 }
 
 public sealed record GuardResult(bool IsAllowed, GuardReason Reason)
@@ -135,6 +138,12 @@ public sealed class AclGuard(AclData data, DateTimeOffset now, TimeZoneInfo zone
 
         return RoleChange(actor, AccessPrivileges.RoleDelete, role.Privileges, new HashSet<string>(), data);
     }
+
+    /// <summary>Creating roles' building blocks that grant nothing by themselves (scopes, own privileges) needs the privilege only.</summary>
+    public GuardResult CanUse(Guid actor, string privilege) =>
+        Permissions(actor).Privileges.TryGetValue(privilege, out var reach) && reach.Unrestricted
+            ? GuardResult.Allowed
+            : GuardResult.Denied(GuardReason.NoEscalation);
 
     /// <summary>Changing scope members changes the reach of every assignment using the scope: only stores the actor reaches.</summary>
     public GuardResult CanChangeScope(Guid actor, Guid scopeId, IReadOnlySet<Guid> storeIds)

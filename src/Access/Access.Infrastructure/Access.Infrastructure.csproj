@@ -3,6 +3,7 @@
     <ProjectReference Include="..\Access.Core\Access.Core.csproj" />
     <ProjectReference Include="..\Access.Contracts\Access.Contracts.csproj" />
     <ProjectReference Include="..\..\Shared\Shared.Infrastructure\Shared.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\BcIntegration\BcIntegration.Contracts\BcIntegration.Contracts.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
