@@ -8,7 +8,7 @@
             "Name": "sync-absence-to-bc",
             "Properties": {
               "DeadLetteringOnMessageExpiration": false,
-              "DefaultMessageTimeToLive": "P1D",
+              "DefaultMessageTimeToLive": "PT1H",
               "DuplicateDetectionHistoryTimeWindow": "PT20S",
               "ForwardDeadLetteredMessagesTo": "",
               "ForwardTo": "",
@@ -22,7 +22,7 @@
             "Name": "send-notification",
             "Properties": {
               "DeadLetteringOnMessageExpiration": false,
-              "DefaultMessageTimeToLive": "P1D",
+              "DefaultMessageTimeToLive": "PT1H",
               "DuplicateDetectionHistoryTimeWindow": "PT20S",
               "ForwardDeadLetteredMessagesTo": "",
               "ForwardTo": "",
@@ -37,7 +37,7 @@
           {
             "Name": "employee-changed",
             "Properties": {
-              "DefaultMessageTimeToLive": "P1D",
+              "DefaultMessageTimeToLive": "PT1H",
               "DuplicateDetectionHistoryTimeWindow": "PT20S",
               "RequiresDuplicateDetection": false
             },
@@ -46,7 +46,7 @@
                 "Name": "workforce",
                 "Properties": {
                   "DeadLetteringOnMessageExpiration": false,
-                  "DefaultMessageTimeToLive": "P1D",
+                  "DefaultMessageTimeToLive": "PT1H",
                   "LockDuration": "PT1M",
                   "MaxDeliveryCount": 5,
                   "ForwardDeadLetteredMessagesTo": "",
@@ -58,7 +58,7 @@
                 "Name": "portal",
                 "Properties": {
                   "DeadLetteringOnMessageExpiration": false,
-                  "DefaultMessageTimeToLive": "P1D",
+                  "DefaultMessageTimeToLive": "PT1H",
                   "LockDuration": "PT1M",
                   "MaxDeliveryCount": 5,
                   "ForwardDeadLetteredMessagesTo": "",
@@ -70,7 +70,7 @@
                 "Name": "access",
                 "Properties": {
                   "DeadLetteringOnMessageExpiration": false,
-                  "DefaultMessageTimeToLive": "P1D",
+                  "DefaultMessageTimeToLive": "PT1H",
                   "LockDuration": "PT1M",
                   "MaxDeliveryCount": 5,
                   "ForwardDeadLetteredMessagesTo": "",
@@ -83,7 +83,7 @@
           {
             "Name": "employee-hired",
             "Properties": {
-              "DefaultMessageTimeToLive": "P1D",
+              "DefaultMessageTimeToLive": "PT1H",
               "DuplicateDetectionHistoryTimeWindow": "PT20S",
               "RequiresDuplicateDetection": false
             },
@@ -92,7 +92,7 @@
                 "Name": "access",
                 "Properties": {
                   "DeadLetteringOnMessageExpiration": false,
-                  "DefaultMessageTimeToLive": "P1D",
+                  "DefaultMessageTimeToLive": "PT1H",
                   "LockDuration": "PT1M",
                   "MaxDeliveryCount": 5,
                   "ForwardDeadLetteredMessagesTo": "",
@@ -105,7 +105,7 @@
           {
             "Name": "employee-left",
             "Properties": {
-              "DefaultMessageTimeToLive": "P1D",
+              "DefaultMessageTimeToLive": "PT1H",
               "DuplicateDetectionHistoryTimeWindow": "PT20S",
               "RequiresDuplicateDetection": false
             },
@@ -114,7 +114,7 @@
                 "Name": "workforce",
                 "Properties": {
                   "DeadLetteringOnMessageExpiration": false,
-                  "DefaultMessageTimeToLive": "P1D",
+                  "DefaultMessageTimeToLive": "PT1H",
                   "LockDuration": "PT1M",
                   "MaxDeliveryCount": 5,
                   "ForwardDeadLetteredMessagesTo": "",
@@ -126,7 +126,7 @@
                 "Name": "access",
                 "Properties": {
                   "DeadLetteringOnMessageExpiration": false,
-                  "DefaultMessageTimeToLive": "P1D",
+                  "DefaultMessageTimeToLive": "PT1H",
                   "LockDuration": "PT1M",
                   "MaxDeliveryCount": 5,
                   "ForwardDeadLetteredMessagesTo": "",
@@ -139,7 +139,7 @@
           {
             "Name": "employee-data-erasure-requested",
             "Properties": {
-              "DefaultMessageTimeToLive": "P1D",
+              "DefaultMessageTimeToLive": "PT1H",
               "DuplicateDetectionHistoryTimeWindow": "PT20S",
               "RequiresDuplicateDetection": false
             },
@@ -148,7 +148,7 @@
                 "Name": "workforce",
                 "Properties": {
                   "DeadLetteringOnMessageExpiration": false,
-                  "DefaultMessageTimeToLive": "P1D",
+                  "DefaultMessageTimeToLive": "PT1H",
                   "LockDuration": "PT1M",
                   "MaxDeliveryCount": 5,
                   "ForwardDeadLetteredMessagesTo": "",
@@ -160,7 +160,7 @@
                 "Name": "portal",
                 "Properties": {
                   "DeadLetteringOnMessageExpiration": false,
-                  "DefaultMessageTimeToLive": "P1D",
+                  "DefaultMessageTimeToLive": "PT1H",
                   "LockDuration": "PT1M",
                   "MaxDeliveryCount": 5,
                   "ForwardDeadLetteredMessagesTo": "",
@@ -172,7 +172,7 @@
                 "Name": "access",
                 "Properties": {
                   "DeadLetteringOnMessageExpiration": false,
-                  "DefaultMessageTimeToLive": "P1D",
+                  "DefaultMessageTimeToLive": "PT1H",
                   "LockDuration": "PT1M",
                   "MaxDeliveryCount": 5,
                   "ForwardDeadLetteredMessagesTo": "",
@@ -184,7 +184,7 @@
                 "Name": "notifications",
                 "Properties": {
                   "DeadLetteringOnMessageExpiration": false,
-                  "DefaultMessageTimeToLive": "P1D",
+                  "DefaultMessageTimeToLive": "PT1H",
                   "LockDuration": "PT1M",
                   "MaxDeliveryCount": 5,
                   "ForwardDeadLetteredMessagesTo": "",
@@ -197,7 +197,7 @@
           {
             "Name": "store-changed",
             "Properties": {
-              "DefaultMessageTimeToLive": "P1D",
+              "DefaultMessageTimeToLive": "PT1H",
               "DuplicateDetectionHistoryTimeWindow": "PT20S",
               "RequiresDuplicateDetection": false
             },
@@ -206,7 +206,7 @@
                 "Name": "workforce",
                 "Properties": {
                   "DeadLetteringOnMessageExpiration": false,
-                  "DefaultMessageTimeToLive": "P1D",
+                  "DefaultMessageTimeToLive": "PT1H",
                   "LockDuration": "PT1M",
                   "MaxDeliveryCount": 5,
                   "ForwardDeadLetteredMessagesTo": "",
@@ -218,7 +218,7 @@
                 "Name": "portal",
                 "Properties": {
                   "DeadLetteringOnMessageExpiration": false,
-                  "DefaultMessageTimeToLive": "P1D",
+                  "DefaultMessageTimeToLive": "PT1H",
                   "LockDuration": "PT1M",
                   "MaxDeliveryCount": 5,
                   "ForwardDeadLetteredMessagesTo": "",
@@ -230,7 +230,7 @@
                 "Name": "access",
                 "Properties": {
                   "DeadLetteringOnMessageExpiration": false,
-                  "DefaultMessageTimeToLive": "P1D",
+                  "DefaultMessageTimeToLive": "PT1H",
                   "LockDuration": "PT1M",
                   "MaxDeliveryCount": 5,
                   "ForwardDeadLetteredMessagesTo": "",
@@ -243,7 +243,7 @@
           {
             "Name": "bc-sync-succeeded",
             "Properties": {
-              "DefaultMessageTimeToLive": "P1D",
+              "DefaultMessageTimeToLive": "PT1H",
               "DuplicateDetectionHistoryTimeWindow": "PT20S",
               "RequiresDuplicateDetection": false
             },
@@ -252,7 +252,7 @@
                 "Name": "workforce",
                 "Properties": {
                   "DeadLetteringOnMessageExpiration": false,
-                  "DefaultMessageTimeToLive": "P1D",
+                  "DefaultMessageTimeToLive": "PT1H",
                   "LockDuration": "PT1M",
                   "MaxDeliveryCount": 5,
                   "ForwardDeadLetteredMessagesTo": "",
@@ -276,7 +276,7 @@
           {
             "Name": "bc-sync-failed",
             "Properties": {
-              "DefaultMessageTimeToLive": "P1D",
+              "DefaultMessageTimeToLive": "PT1H",
               "DuplicateDetectionHistoryTimeWindow": "PT20S",
               "RequiresDuplicateDetection": false
             },
@@ -285,7 +285,7 @@
                 "Name": "workforce",
                 "Properties": {
                   "DeadLetteringOnMessageExpiration": false,
-                  "DefaultMessageTimeToLive": "P1D",
+                  "DefaultMessageTimeToLive": "PT1H",
                   "LockDuration": "PT1M",
                   "MaxDeliveryCount": 5,
                   "ForwardDeadLetteredMessagesTo": "",
@@ -309,7 +309,7 @@
           {
             "Name": "permissions-changed",
             "Properties": {
-              "DefaultMessageTimeToLive": "P1D",
+              "DefaultMessageTimeToLive": "PT1H",
               "DuplicateDetectionHistoryTimeWindow": "PT20S",
               "RequiresDuplicateDetection": false
             },
@@ -318,7 +318,7 @@
                 "Name": "workforce",
                 "Properties": {
                   "DeadLetteringOnMessageExpiration": false,
-                  "DefaultMessageTimeToLive": "P1D",
+                  "DefaultMessageTimeToLive": "PT1H",
                   "LockDuration": "PT1M",
                   "MaxDeliveryCount": 5,
                   "ForwardDeadLetteredMessagesTo": "",
@@ -330,7 +330,7 @@
                 "Name": "portal",
                 "Properties": {
                   "DeadLetteringOnMessageExpiration": false,
-                  "DefaultMessageTimeToLive": "P1D",
+                  "DefaultMessageTimeToLive": "PT1H",
                   "LockDuration": "PT1M",
                   "MaxDeliveryCount": 5,
                   "ForwardDeadLetteredMessagesTo": "",
@@ -342,7 +342,7 @@
                 "Name": "notifications",
                 "Properties": {
                   "DeadLetteringOnMessageExpiration": false,
-                  "DefaultMessageTimeToLive": "P1D",
+                  "DefaultMessageTimeToLive": "PT1H",
                   "LockDuration": "PT1M",
                   "MaxDeliveryCount": 5,
                   "ForwardDeadLetteredMessagesTo": "",
@@ -355,7 +355,7 @@
           {
             "Name": "responsibilities-changed",
             "Properties": {
-              "DefaultMessageTimeToLive": "P1D",
+              "DefaultMessageTimeToLive": "PT1H",
               "DuplicateDetectionHistoryTimeWindow": "PT20S",
               "RequiresDuplicateDetection": false
             },
@@ -364,7 +364,7 @@
                 "Name": "workforce",
                 "Properties": {
                   "DeadLetteringOnMessageExpiration": false,
-                  "DefaultMessageTimeToLive": "P1D",
+                  "DefaultMessageTimeToLive": "PT1H",
                   "LockDuration": "PT1M",
                   "MaxDeliveryCount": 5,
                   "ForwardDeadLetteredMessagesTo": "",
@@ -377,20 +377,24 @@
           {
             "Name": "employee-availability-changed",
             "Properties": {
-              "DefaultMessageTimeToLive": "P1D",
+              "DefaultMessageTimeToLive": "PT1H",
               "DuplicateDetectionHistoryTimeWindow": "PT20S",
               "RequiresDuplicateDetection": false
             },
-            "Subscriptions": []
-          },
-          {
-            "Name": "shift-uncovered",
-            "Properties": {
-              "DefaultMessageTimeToLive": "P1D",
-              "DuplicateDetectionHistoryTimeWindow": "PT20S",
-              "RequiresDuplicateDetection": false
-            },
-            "Subscriptions": []
+            "Subscriptions": [
+              {
+                "Name": "portal",
+                "Properties": {
+                  "DeadLetteringOnMessageExpiration": false,
+                  "DefaultMessageTimeToLive": "PT1H",
+                  "LockDuration": "PT1M",
+                  "MaxDeliveryCount": 5,
+                  "ForwardDeadLetteredMessagesTo": "",
+                  "ForwardTo": "",
+                  "RequiresSession": false
+                }
+              }
+            ]
           }
         ]
       }

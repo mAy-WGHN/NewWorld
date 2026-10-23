@@ -2,6 +2,7 @@ using BcIntegration.Contracts;
 using Microsoft.EntityFrameworkCore;
 using Shared.Authorization;
 using Shared.Infrastructure.Messaging;
+using Workforce.Contracts;
 
 namespace Portal.Infrastructure.Messaging;
 
@@ -65,4 +66,13 @@ public sealed class EmployeeDataErasureRequestedHandler(PortalDbContext db, Perm
         await db.People.Where(p => p.EmployeeId == message.EmployeeId).ExecuteDeleteAsync(cancellationToken);
         await permissions.EraseAsync(message.EmployeeId, cancellationToken);
     }
+}
+
+/// <summary>
+/// Prepared (catalogue: Portal consumes the neutralised availability): the Portal API has no business function yet, so the message
+/// is only acknowledged. TODO(Fachfunktion): store or forward when the Portal shows availability.
+/// </summary>
+public sealed class EmployeeAvailabilityChangedHandler : IMessageHandler<EmployeeAvailabilityChanged>
+{
+    public Task HandleAsync(EmployeeAvailabilityChanged message, CancellationToken cancellationToken) => Task.CompletedTask;
 }

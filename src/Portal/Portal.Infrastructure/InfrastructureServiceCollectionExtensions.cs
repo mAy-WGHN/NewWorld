@@ -9,6 +9,7 @@ using Shared.Infrastructure.Authorization;
 using Shared.Infrastructure.Messaging;
 using Shared.Infrastructure.Persistence;
 using Shared.Messaging;
+using Workforce.Contracts;
 
 namespace Portal.Infrastructure;
 
@@ -43,6 +44,8 @@ public static class InfrastructureServiceCollectionExtensions
             MessageSource.Subscription(MessagingNames.For(typeof(StoreChanged)), "portal"));
         services.AddMessageHandler<PortalDbContext, EmployeeDataErasureRequested, EmployeeDataErasureRequestedHandler>(
             MessageSource.Subscription(MessagingNames.For(typeof(EmployeeDataErasureRequested)), "portal"));
+        services.AddMessageHandler<PortalDbContext, EmployeeAvailabilityChanged, EmployeeAvailabilityChangedHandler>(
+            MessageSource.Subscription(MessagingNames.For(typeof(EmployeeAvailabilityChanged)), "portal"));
         return services;
     }
 

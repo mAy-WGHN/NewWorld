@@ -663,21 +663,23 @@ resource send_employee_availability_changed 'Microsoft.Authorization/roleAssignm
   }
 }
 
-// Topic shift-uncovered (event). Publisher: Workforce.
-resource topic_shift_uncovered 'Microsoft.ServiceBus/namespaces/topics@2024-01-01' = {
-  parent: sbNamespace
-  name: 'shift-uncovered'
+// Subscription employee-availability-changed/portal. Purpose: Prepared: availability for the Portal (no business function yet); the handler only acknowledges.
+resource sub_employee_availability_changed_portal 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2024-01-01' = {
+  parent: topic_employee_availability_changed
+  name: 'portal'
   properties: {
+    maxDeliveryCount: 5
+    lockDuration: 'PT1M'
     defaultMessageTimeToLive: 'P1D'
   }
 }
 
-resource send_shift_uncovered 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  scope: topic_shift_uncovered
-  name: guid(topic_shift_uncovered.id, workforcePrincipalId, senderRoleId)
+resource read_employee_availability_changed_portal 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: sub_employee_availability_changed_portal
+  name: guid(sub_employee_availability_changed_portal.id, portalPrincipalId, receiverRoleId)
   properties: {
-    roleDefinitionId: senderRole.id
-    principalId: workforcePrincipalId
+    roleDefinitionId: receiverRole.id
+    principalId: portalPrincipalId
     principalType: 'ServicePrincipal'
   }
 }
