@@ -4,6 +4,8 @@
     <ProjectReference Include="..\Workforce.Contracts\Workforce.Contracts.csproj" />
     <ProjectReference Include="..\..\Shared\Shared.Infrastructure\Shared.Infrastructure.csproj" />
     <ProjectReference Include="..\..\Access\Access.Contracts\Access.Contracts.csproj" />
+    <ProjectReference Include="..\..\BcIntegration\BcIntegration.Contracts\BcIntegration.Contracts.csproj" />
+    <ProjectReference Include="..\..\Notifications\Notifications.Contracts\Notifications.Contracts.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
