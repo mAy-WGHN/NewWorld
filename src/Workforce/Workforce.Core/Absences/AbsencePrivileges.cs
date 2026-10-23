@@ -17,10 +17,10 @@ public static class AbsencePrivileges
     /// <summary>Sees that colleagues are absent ("abwesend"), nothing more.</summary>
     public const string ReadAvailability = "absence:read-availability";
 
-    /// <summary>Sees absences with period and status, but not the type.</summary>
-    public const string Read = "absence:read";
-
-    /// <summary>Sees the type (sickness/vacation) too: the person, supervisors and HR.</summary>
+    /// <summary>
+    /// Full view: period, status and type (sickness/vacation): the person themself, supervisors and HR. There is deliberately no
+    /// level in between: the status of a sick note ("reported") would reveal the type.
+    /// </summary>
     public const string ReadReason = "absence:read-reason";
 
     /// <summary>Sees the BC transfer status.</summary>
@@ -33,6 +33,6 @@ public static class AbsencePrivileges
     public static readonly IReadOnlyList<(string Key, bool Scopable)> Catalog =
     [
         (ReadOwn, false), (CreateOwn, false), (UpdateOwn, false),
-        (ReadAvailability, true), (Read, true), (ReadReason, true), (ReadSync, true), (Create, true), (Approve, true), (ManageEntitlement, true),
+        (ReadAvailability, true), (ReadReason, true), (ReadSync, true), (Create, true), (Approve, true), (ManageEntitlement, true),
     ];
 }
