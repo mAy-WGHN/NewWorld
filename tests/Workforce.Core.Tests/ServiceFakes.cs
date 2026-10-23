@@ -1,0 +1,65 @@
+using Shared.Approvals;
+using Shared.Messaging;
+using Workforce.Core.Absences;
+
+namespace Workforce.Core.Tests;
+
+internal sealed class FakeStore : IAbsenceStore
+{
+    public List<Absence> Absences { get; } = [];
+    public Dictionary<Guid, ApprovalRequest> Approvals { get; } = [];
+
+    public Task LockEmployeeAsync(Guid employeeId, CancellationToken cancellationToken) => Task.CompletedTask;
+
+    public Task<IReadOnlyList<Absence>> ForEmployeeAsync(Guid employeeId, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<Absence>>(Absences.Where(a => a.EmployeeId == employeeId).ToList());
+
+    public Task<Absence?> GetAsync(Guid absenceId, CancellationToken cancellationToken) => Task.FromResult(Absences.FirstOrDefault(a => a.Id == absenceId));
+
+    public void Add(Absence absence) => Absences.Add(absence);
+
+    public Task<ApprovalRequest?> GetApprovalAsync(Guid approvalId, CancellationToken cancellationToken) =>
+        Task.FromResult(Approvals.GetValueOrDefault(approvalId));
+
+    public void AddApproval(ApprovalRequest approval) => Approvals[approval.Id] = approval;
+}
+
+internal sealed class FakePeople : IPeopleDirectory
+{
+    public Dictionary<Guid, PersonInfo> People { get; } = [];
+
+    public Task<PersonInfo?> GetAsync(Guid employeeId, CancellationToken cancellationToken) => Task.FromResult(People.GetValueOrDefault(employeeId));
+}
+
+internal sealed class FakeEntitlements : IEntitlementStore
+{
+    public Dictionary<(Guid, int), decimal> Days { get; } = [];
+
+    public Task<decimal?> GetAsync(Guid employeeId, int year, CancellationToken cancellationToken) =>
+        Task.FromResult(Days.TryGetValue((employeeId, year), out var d) ? d : (decimal?)null);
+
+    public Task SetAsync(Guid employeeId, int year, decimal days, CancellationToken cancellationToken)
+    {
+        Days[(employeeId, year)] = days;
+        return Task.CompletedTask;
+    }
+}
+
+internal sealed class FakeResponsibilities : IResponsibilityDirectory
+{
+    public Dictionary<Guid, List<Guid>> Approvers { get; } = [];
+
+    public Task<IReadOnlyList<Guid>> ApproversAsync(Guid employeeId, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<Guid>>(Approvers.GetValueOrDefault(employeeId) ?? []);
+}
+
+internal sealed class RecordingMessages : IWorkforceMessages
+{
+    public List<IMessage> Sent { get; } = [];
+
+    public void Publish(IEvent message) => Sent.Add(message);
+
+    public void Send(ICommand message) => Sent.Add(message);
+
+    public IEnumerable<T> Of<T>() where T : IMessage => Sent.OfType<T>();
+}
