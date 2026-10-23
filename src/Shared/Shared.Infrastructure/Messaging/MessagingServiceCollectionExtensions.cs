@@ -10,10 +10,11 @@ namespace Shared.Infrastructure.Messaging;
 public static class MessagingServiceCollectionExtensions
 {
     /// <summary>
-    /// Outbox/inbox for one service: <see cref="Outbox{TContext}"/>, dispatcher, cleanup and the Service Bus transport.
+    /// Outbox/inbox for one service: <see cref="Outbox{TContext}"/>, dispatcher, cleanup, the Service Bus transport and
+    /// the consumer host for handlers registered with <c>AddMessageHandler</c>.
     /// Transport: namespace + <see cref="Azure.Core.TokenCredential"/> from <c>Messaging:ServiceBusNamespace</c>; a connection
     /// string (<c>ConnectionStrings:servicebus</c>, emulator) is accepted in Development/Testing only. If neither is
-    /// configured, no transport is registered and messages stay in the outbox.
+    /// configured, no transport is registered: messages stay in the outbox and nothing is received.
     /// </summary>
     public static IServiceCollection AddMessaging<TContext>(
         this IServiceCollection services,
@@ -30,11 +31,13 @@ public static class MessagingServiceCollectionExtensions
         services.AddScoped<MessagingCleaner<TContext>>();
         services.TryAddSingleton(TimeProvider.System);
 
-        var transport = ResolveClient(configuration, options, environment);
-        if (transport is not null)
+        var client = ResolveClient(configuration, options, environment);
+        if (client is not null)
         {
-            services.AddSingleton<IMessageTransport>(new ServiceBusTransport(transport));
+            services.AddSingleton(client);
+            services.AddSingleton<IMessageTransport>(sp => new ServiceBusTransport(sp.GetRequiredService<ServiceBusClient>()));
             services.AddHostedService<OutboxDispatcherService<TContext>>();
+            services.AddHostedService<ServiceBusConsumerHost>();
         }
 
         return services;

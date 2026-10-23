@@ -13,6 +13,9 @@ public sealed class MessagingOptions
 
     public TimeSpan CleanupInterval { get; set; } = TimeSpan.FromHours(1);
 
+    /// <summary>Parallel message handlers per queue/subscription.</summary>
+    public int MaxConcurrentCalls { get; set; } = 4;
+
     /// <summary>Fully qualified Service Bus namespace (managed identity). No shared access keys.</summary>
     public string? ServiceBusNamespace { get; set; }
 }

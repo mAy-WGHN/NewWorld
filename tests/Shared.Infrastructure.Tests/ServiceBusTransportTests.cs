@@ -6,7 +6,8 @@ using Shared.Testing;
 namespace Shared.Infrastructure.Tests;
 
 /// <summary>The transport delivers to the real Service Bus emulator: commands to a queue, events to a topic.</summary>
-public sealed class ServiceBusTransportTests(ServiceBusFixture serviceBus) : IClassFixture<ServiceBusFixture>
+[Collection(ServiceBusTestGroup.Name)]
+public sealed class ServiceBusTransportTests(ServiceBusFixture serviceBus)
 {
     private static readonly TimeSpan ReceiveTimeout = TimeSpan.FromSeconds(30);
 
@@ -23,9 +24,9 @@ public sealed class ServiceBusTransportTests(ServiceBusFixture serviceBus) : ICl
     public async Task Command_arrives_in_the_queue_with_ids_and_body()
     {
         await using var client = new ServiceBusClient(serviceBus.ConnectionString);
-        await using var transport = new ServiceBusTransport(new ServiceBusClient(serviceBus.ConnectionString));
-        await using var receiver = client.CreateReceiver(ServiceBusFixture.DefaultQueue);
-        var sent = Message(MessageKind.Command, ServiceBusFixture.DefaultQueue);
+        await using var transport = new ServiceBusTransport(client);
+        await using var receiver = client.CreateReceiver(ServiceBusFixture.TransportQueue);
+        var sent = Message(MessageKind.Command, ServiceBusFixture.TransportQueue);
 
         await transport.SendAsync(sent, CancellationToken.None);
         var received = await receiver.ReceiveMessageAsync(ReceiveTimeout);
@@ -42,9 +43,9 @@ public sealed class ServiceBusTransportTests(ServiceBusFixture serviceBus) : ICl
     public async Task Event_reaches_a_topic_subscription()
     {
         await using var client = new ServiceBusClient(serviceBus.ConnectionString);
-        await using var transport = new ServiceBusTransport(new ServiceBusClient(serviceBus.ConnectionString));
-        await using var receiver = client.CreateReceiver(ServiceBusFixture.DefaultTopic, ServiceBusFixture.DefaultSubscription);
-        var sent = Message(MessageKind.Event, ServiceBusFixture.DefaultTopic);
+        await using var transport = new ServiceBusTransport(client);
+        await using var receiver = client.CreateReceiver(ServiceBusFixture.Topic, ServiceBusFixture.Subscription);
+        var sent = Message(MessageKind.Event, ServiceBusFixture.Topic);
 
         await transport.SendAsync(sent, CancellationToken.None);
         var received = await receiver.ReceiveMessageAsync(ReceiveTimeout);

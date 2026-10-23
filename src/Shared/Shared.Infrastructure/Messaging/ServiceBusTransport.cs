@@ -6,6 +6,7 @@ namespace Shared.Infrastructure.Messaging;
 /// <summary>
 /// Sends outbox messages to Azure Service Bus: events to the topic, commands to the queue named by
 /// <see cref="OutboundMessage.Destination"/>. Authentication is the client's (managed identity in Azure).
+/// The client is shared (DI singleton) and not owned here; only the senders are disposed.
 /// </summary>
 public sealed class ServiceBusTransport(ServiceBusClient client) : IMessageTransport, IAsyncDisposable
 {
@@ -24,6 +25,5 @@ public sealed class ServiceBusTransport(ServiceBusClient client) : IMessageTrans
             await sender.DisposeAsync();
         }
 
-        await client.DisposeAsync();
     }
 }
