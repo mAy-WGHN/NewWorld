@@ -72,6 +72,24 @@ public sealed class BcClient(HttpClient http, IOptions<BcClientOptions> options)
         }
     }
 
+    /// <summary>Asks BC to compare the PIN. The request is a write-like call: it is not repeated on unclear outcomes.</summary>
+    internal async Task<BcPinVerifyResponse> VerifyPinAsync(string personnelNumber, string pin, CancellationToken cancellationToken)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, Path(_options.PinVerifyPath, "PinVerifyPath"))
+        {
+            Content = JsonContent.Create(new BcPinVerifyRequest(personnelNumber, pin), options: Json),
+        };
+        try
+        {
+            return await SendAsync<BcPinVerifyResponse>(request, BcPriority.High, cancellationToken);
+        }
+        catch (BcRejectedException)
+        {
+            // A business rejection of the request itself (not of the PIN) means the assumed action does not match BC.
+            throw new BcTechnicalFailureException("BcPinRequestRejected");
+        }
+    }
+
     private async Task<List<T>> GetAllAsync<T>(string path, DateTimeOffset? since, BcPriority priority, CancellationToken cancellationToken)
     {
         var items = new List<T>();

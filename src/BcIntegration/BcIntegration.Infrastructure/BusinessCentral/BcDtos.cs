@@ -61,3 +61,11 @@ internal sealed record BcAbsenceWriteDto(
 internal sealed record BcErrorDto([property: JsonPropertyName("error")] BcErrorDetail? Error);
 
 internal sealed record BcErrorDetail([property: JsonPropertyName("code")] string? Code);
+
+/// <summary>
+/// Body of the PIN check. TODO(BC-Modell): the archived BC-Anbindung calls the SOAP codeunit Zeiterfassung.GetStatus; a REST/OData
+/// action with this shape is assumed here. The PIN is only ever in this request body.
+/// </summary>
+internal sealed record BcPinVerifyRequest(string EmployeeNumber, string Pin);
+
+internal sealed record BcPinVerifyResponse(bool Authenticated, string? EmployeeName);

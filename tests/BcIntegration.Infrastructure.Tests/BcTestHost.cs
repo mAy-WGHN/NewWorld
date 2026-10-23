@@ -59,6 +59,7 @@ internal sealed class BcTestHost : IAsyncDisposable
             ["Bc:CompanyId"] = CompanyId,
             ["Bc:StoresPath"] = "test/stores/v1.0/companies({companyId})/stores",
             ["Bc:AbsencesPath"] = "test/absences/v1.0/companies({companyId})/employeeAbsences",
+            ["Bc:PinVerifyPath"] = "test/employeeauth/v1.0/companies({companyId})/verifyPin",
             ["Bc:Resilience:MaxRetries"] = "2",
             ["Bc:Resilience:BaseDelay"] = "00:00:00.010",
             ["Bc:Resilience:AttemptTimeout"] = "00:00:01",

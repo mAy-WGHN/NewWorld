@@ -1,6 +1,7 @@
 using System.Net;
 using Azure.Core;
 using BcIntegration.Core.Errors;
+using BcIntegration.Core.Login;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -31,6 +32,7 @@ public static class BcClientServiceCollectionExtensions
         services.TryAddKeyedSingleton<TokenCredential>(CredentialKey, (_, _) => TokenCredentialFactory.Create(options.Credential));
         services.TryAddSingleton(sp => new BcRequestLimiter(sp.GetRequiredService<IOptions<BcClientOptions>>().Value.RateLimit, sp.GetRequiredService<TimeProvider>()));
 
+        services.AddScoped<IBcPinVerifier, BcPinVerifier>();
         var client = services.AddHttpClient<BcClient>((sp, http) =>
             {
                 var current = sp.GetRequiredService<IOptions<BcClientOptions>>().Value;

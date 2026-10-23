@@ -29,6 +29,9 @@ public sealed class BcClientOptions
     /// <summary>Employee absences with external ID. TODO(BC-Modell): custom API page path required.</summary>
     public string AbsencesPath { get; set; } = "";
 
+    /// <summary>PIN check action. TODO(BC-Modell): see <c>BcPinVerifyRequest</c>; path of the custom API page or action required.</summary>
+    public string PinVerifyPath { get; set; } = "";
+
     /// <summary>BC cause-of-absence codes per absence type (codes seen in the BC export: KRANK, URLAUB).</summary>
     public Dictionary<string, string> AbsenceTypeCodes { get; set; } = new(StringComparer.Ordinal)
     {

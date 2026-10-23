@@ -1,0 +1,27 @@
+{
+  "Request": {
+    "Path": {
+      "Matchers": [
+        {
+          "Name": "ExactMatcher",
+          "Pattern": "/test/employeeauth/v1.0/companies(test-company)/verifyPin"
+        }
+      ]
+    },
+    "Methods": [
+      "POST"
+    ]
+  },
+  "Response": {
+    "StatusCode": 500,
+    "Headers": {
+      "Content-Type": "application/json"
+    },
+    "BodyAsJson": {
+      "error": {
+        "code": "Internal_ServerError",
+        "message": "PIN 4711 of Erika Mustermann secret detail"
+      }
+    }
+  }
+}
