@@ -17,7 +17,11 @@ public sealed class PermissionsChangedHandlerTests(PostgresFixture postgres) : I
     private static readonly Guid Store2 = Guid.Parse("00000000-0000-0000-0000-0000000000a2");
 
     private static PermissionSnapshot Snapshot(long version, Guid store) =>
-        new(Anna, version, "oid-anna", new HashSet<Guid> { store }, new HashSet<Guid> { Anna });
+        new(Anna, version, new Dictionary<string, PrivilegeReach>
+        {
+            ["absence:read"] = PrivilegeReach.Stores([store], [Anna]),
+            ["faq:read"] = PrivilegeReach.Everywhere,
+        });
 
     private async Task<PermissionDbContext> NewDb()
     {
@@ -38,7 +42,8 @@ public sealed class PermissionsChangedHandlerTests(PostgresFixture postgres) : I
         await handler.HandleAsync(Snapshot(2, Store2));
 
         cache.TryGet(Anna, out var current);
-        current!.StoreIds.ShouldBe([Store2]);
+        current!.AppliesToStore("absence:read", Store2).ShouldBeTrue();
+        current.AppliesToStore("absence:read", Store1).ShouldBeFalse();
         var rows = await db.Set<PermissionSnapshotRecord>().ToListAsync();
         rows.Single().Version.ShouldBe(2);
     }
@@ -54,7 +59,7 @@ public sealed class PermissionsChangedHandlerTests(PostgresFixture postgres) : I
         await handler.HandleAsync(Snapshot(3, Store2));
 
         cache.TryGet(Anna, out var current);
-        current!.StoreIds.ShouldBe([Store1]);
+        current!.AppliesToStore("absence:read", Store1).ShouldBeTrue();
         (await db.Set<PermissionSnapshotRecord>().SingleAsync()).Version.ShouldBe(5);
     }
 
@@ -70,8 +75,8 @@ public sealed class PermissionsChangedHandlerTests(PostgresFixture postgres) : I
 
         restarted.TryGet(Anna, out var current).ShouldBeTrue();
         current!.Version.ShouldBe(7);
-        current.StoreIds.ShouldBe([Store1]);
-        restarted.TryResolveEmployeeId("oid-anna", out var id).ShouldBeTrue();
-        id.ShouldBe(Anna);
+        current.AppliesToStore("absence:read", Store1).ShouldBeTrue();
+        current.AppliesToEmployee("absence:read", Anna).ShouldBeTrue();
+        current.AppliesToStore("faq:read", Guid.NewGuid()).ShouldBeTrue();
     }
 }

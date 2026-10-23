@@ -1,17 +1,11 @@
-using Shared.Authorization;
-
 namespace Shared.Infrastructure.Authorization;
 
-/// <summary>Database row of a <see cref="PermissionSnapshot"/>; the ID sets are stored as JSON text.</summary>
+/// <summary>Database row of a <c>PermissionSnapshot</c>: the privileges with their reach as JSON text.</summary>
 public sealed class PermissionSnapshotRecord
 {
     public Guid EmployeeId { get; set; }
 
     public long Version { get; set; }
 
-    public string? ExternalId { get; set; }
-
-    public required string StoreIdsJson { get; set; }
-
-    public required string EmployeeIdsJson { get; set; }
+    public required string PrivilegesJson { get; set; }
 }

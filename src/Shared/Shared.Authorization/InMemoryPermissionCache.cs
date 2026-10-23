@@ -4,31 +4,17 @@ public sealed class InMemoryPermissionCache : IPermissionCache
 {
     private readonly Lock _gate = new();
     private readonly Dictionary<Guid, PermissionSnapshot> _byEmployee = [];
-    private readonly Dictionary<string, Guid> _byExternalId = new(StringComparer.Ordinal);
 
     public bool Apply(PermissionSnapshot snapshot)
     {
         lock (_gate)
         {
-            if (_byEmployee.TryGetValue(snapshot.EmployeeId, out var current))
+            if (_byEmployee.TryGetValue(snapshot.EmployeeId, out var current) && snapshot.Version <= current.Version)
             {
-                if (snapshot.Version <= current.Version)
-                {
-                    return false;
-                }
-
-                if (current.ExternalId is not null)
-                {
-                    _byExternalId.Remove(current.ExternalId);
-                }
+                return false;
             }
 
             _byEmployee[snapshot.EmployeeId] = snapshot;
-            if (snapshot.ExternalId is not null)
-            {
-                _byExternalId[snapshot.ExternalId] = snapshot.EmployeeId;
-            }
-
             return true;
         }
     }
@@ -38,14 +24,6 @@ public sealed class InMemoryPermissionCache : IPermissionCache
         lock (_gate)
         {
             return _byEmployee.TryGetValue(employeeId, out snapshot);
-        }
-    }
-
-    public bool TryResolveEmployeeId(string externalId, out Guid employeeId)
-    {
-        lock (_gate)
-        {
-            return _byExternalId.TryGetValue(externalId, out employeeId);
         }
     }
 

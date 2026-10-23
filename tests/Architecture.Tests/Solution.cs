@@ -28,10 +28,11 @@ internal static class Solution
 
     public static string SrcPath => Path.Combine(RootPath.Value, "src");
 
-    /// <summary>C# files under src/ (without bin/obj) with their path relative to src/.</summary>
+    /// <summary>Hand-written C# files under src/ (without bin/obj and generated EF migrations), path relative to src/.</summary>
     public static IEnumerable<(string RelativePath, string[] Lines)> SourceFiles() =>
         Directory.EnumerateFiles(SrcPath, "*.cs", SearchOption.AllDirectories)
             .Where(f => !f.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
-                     && !f.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+                     && !f.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+                     && !f.Contains($"{Path.DirectorySeparatorChar}Migrations{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
             .Select(f => (Path.GetRelativePath(SrcPath, f), File.ReadAllLines(f)));
 }

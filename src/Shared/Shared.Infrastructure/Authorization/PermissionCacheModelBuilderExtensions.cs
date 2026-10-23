@@ -11,7 +11,6 @@ public static class PermissionCacheModelBuilderExtensions
         {
             b.ToTable("permission_snapshots");
             b.HasKey(r => r.EmployeeId);
-            b.Property(r => r.ExternalId).HasMaxLength(200);
         });
         return modelBuilder;
     }

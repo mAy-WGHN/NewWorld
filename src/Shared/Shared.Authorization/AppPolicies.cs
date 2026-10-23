@@ -1,18 +1,17 @@
 namespace Shared.Authorization;
 
+/// <summary>Policy names. Privileges come from the ACL of the Access service (decision 13); there are no coarse roles.</summary>
 public static class AppPolicies
 {
-    public const string RequireEmployee = "App.Employee";
-    public const string RequireStoreManager = "App.StoreManager";
-    public const string RequireHr = "App.Hr";
-    public const string RequireExecutive = "App.Executive";
+    internal const string PrivilegePrefix = "App.Privilege.";
+    internal const string ServiceRolePrefix = "App.Service.";
 
-    /// <summary>Resource policy for <see cref="StoreResource"/>.</summary>
-    public const string CanAccessStore = "App.CanAccessStore";
+    /// <summary>
+    /// Policy for an ACL privilege <c>resource:action</c>. Without resource: the person has the privilege anywhere.
+    /// With <see cref="StoreResource"/> or <see cref="EmployeeResource"/>: the privilege reaches that store or person.
+    /// </summary>
+    public static string Privilege(string key) => PrivilegePrefix + key;
 
-    /// <summary>Resource policy for <see cref="EmployeeResource"/>.</summary>
-    public const string CanAccessEmployee = "App.CanAccessEmployee";
-
-    /// <summary>Policy name for a service app role registered in <see cref="SharedAuthorizationOptions.ServiceRoles"/>.</summary>
-    public static string ServiceRole(string role) => "App.Service." + role;
+    /// <summary>Policy for a service app role registered in <see cref="SharedAuthorizationOptions.ServiceRoles"/>.</summary>
+    public static string ServiceRole(string role) => ServiceRolePrefix + role;
 }

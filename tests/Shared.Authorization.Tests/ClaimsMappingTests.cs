@@ -7,49 +7,48 @@ public class ClaimsMappingTests
 {
     private static readonly Guid Anna = Guid.Parse("00000000-0000-0000-0000-00000000000a");
 
-    private static async Task<ClaimsPrincipal> Transform(InMemoryPermissionCache cache, params Claim[] claims) =>
-        await Transform(cache, new SharedAuthorizationOptions(), claims);
-
-    private static async Task<ClaimsPrincipal> Transform(InMemoryPermissionCache cache, SharedAuthorizationOptions options, params Claim[] claims)
+    private static async Task<ClaimsPrincipal> Transform(SharedAuthorizationOptions options, params Claim[] claims)
     {
-        var transformation = new AppClaimsTransformation(cache, options);
         var principal = new ClaimsPrincipal(new ClaimsIdentity(claims, "test"));
-        return await transformation.TransformAsync(principal);
+        return await new AppClaimsTransformation(options).TransformAsync(principal);
+    }
+
+    private static SharedAuthorizationOptions WithServiceRole(string role)
+    {
+        var options = new SharedAuthorizationOptions();
+        options.ServiceRoles.Add(role);
+        return options;
     }
 
     [Fact]
-    public async Task Provider_roles_are_mapped_to_internal_roles()
+    public async Task Employee_id_of_the_access_token_becomes_the_internal_employee_claim()
     {
-        var principal = await Transform(new InMemoryPermissionCache(),
-            new Claim("roles", "StoreManager"), new Claim("roles", "Employee"));
-
-        principal.FindAll(AppClaimTypes.Role).Select(c => c.Value).ShouldBe(["StoreManager", "Employee"], ignoreOrder: true);
-    }
-
-    [Fact]
-    public async Task Unknown_provider_roles_are_dropped()
-    {
-        var principal = await Transform(new InMemoryPermissionCache(),
-            new Claim("roles", "Domain.Admin"), new Claim("roles", "Hr"));
-
-        principal.FindAll(AppClaimTypes.Role).Select(c => c.Value).ShouldBe(["Hr"]);
-    }
-
-    [Fact]
-    public async Task Object_id_is_resolved_to_the_employee_id_via_the_cache()
-    {
-        var cache = new InMemoryPermissionCache();
-        cache.Apply(new PermissionSnapshot(Anna, 1, "oid-anna", new HashSet<Guid>(), new HashSet<Guid>()));
-
-        var principal = await Transform(cache, new Claim("oid", "oid-anna"));
+        var principal = await Transform(new SharedAuthorizationOptions(), new Claim("employee_id", Anna.ToString()));
 
         principal.FindFirst(AppClaimTypes.EmployeeId)!.Value.ShouldBe(Anna.ToString());
     }
 
     [Fact]
-    public async Task Unresolvable_object_id_yields_no_employee_claim()
+    public async Task Malformed_employee_id_is_ignored()
     {
-        var principal = await Transform(new InMemoryPermissionCache(), new Claim("oid", "oid-unknown"));
+        var principal = await Transform(new SharedAuthorizationOptions(), new Claim("employee_id", "not-a-guid"));
+
+        principal.FindFirst(AppClaimTypes.EmployeeId).ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Configured_service_roles_are_mapped_and_others_dropped()
+    {
+        var principal = await Transform(WithServiceRole("BcIntegration.EmployeeErasure.Request"),
+            new Claim("roles", "BcIntegration.EmployeeErasure.Request"), new Claim("roles", "Other.Service.Role"), new Claim("roles", "Executive"));
+
+        principal.FindAll(AppClaimTypes.ServiceRole).Select(c => c.Value).ShouldBe(["BcIntegration.EmployeeErasure.Request"]);
+    }
+
+    [Fact]
+    public async Task Entra_object_id_no_longer_identifies_a_person()
+    {
+        var principal = await Transform(new SharedAuthorizationOptions(), new Claim("oid", Anna.ToString()));
 
         principal.FindFirst(AppClaimTypes.EmployeeId).ShouldBeNull();
     }
@@ -57,28 +56,12 @@ public class ClaimsMappingTests
     [Fact]
     public async Task Transformation_is_idempotent()
     {
-        var cache = new InMemoryPermissionCache();
-        cache.Apply(new PermissionSnapshot(Anna, 1, "oid-anna", new HashSet<Guid>(), new HashSet<Guid>()));
-        var transformation = new AppClaimsTransformation(cache, new SharedAuthorizationOptions());
-        var principal = new ClaimsPrincipal(new ClaimsIdentity([new Claim("oid", "oid-anna"), new Claim("roles", "Hr")], "test"));
+        var transformation = new AppClaimsTransformation(WithServiceRole("X.Y"));
+        var principal = new ClaimsPrincipal(new ClaimsIdentity([new Claim("employee_id", Anna.ToString()), new Claim("roles", "X.Y")], "test"));
 
-        var once = await transformation.TransformAsync(principal);
-        var twice = await transformation.TransformAsync(once);
+        var twice = await transformation.TransformAsync(await transformation.TransformAsync(principal));
 
-        twice.FindAll(AppClaimTypes.Role).Count().ShouldBe(1);
         twice.FindAll(AppClaimTypes.EmployeeId).Count().ShouldBe(1);
-    }
-
-    [Fact]
-    public async Task Configured_service_roles_are_mapped_to_internal_service_role_claims()
-    {
-        var options = new SharedAuthorizationOptions();
-        options.ServiceRoles.Add("BcIntegration.EmployeeErasure.Request");
-
-        var principal = await Transform(new InMemoryPermissionCache(), options,
-            new Claim("roles", "BcIntegration.EmployeeErasure.Request"), new Claim("roles", "Other.Service.Role"));
-
-        principal.FindAll(AppClaimTypes.ServiceRole).Select(c => c.Value).ShouldBe(["BcIntegration.EmployeeErasure.Request"]);
-        principal.FindAll(AppClaimTypes.Role).ShouldBeEmpty();
+        twice.FindAll(AppClaimTypes.ServiceRole).Count().ShouldBe(1);
     }
 }

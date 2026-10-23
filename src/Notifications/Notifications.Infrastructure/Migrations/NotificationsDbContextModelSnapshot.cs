@@ -30,20 +30,10 @@ namespace Notifications.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("employee_id");
 
-                    b.Property<string>("EmployeeIdsJson")
+                    b.Property<string>("PrivilegesJson")
                         .IsRequired()
                         .HasColumnType("text")
-                        .HasColumnName("employee_ids_json");
-
-                    b.Property<string>("ExternalId")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("external_id");
-
-                    b.Property<string>("StoreIdsJson")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("store_ids_json");
+                        .HasColumnName("privileges_json");
 
                     b.Property<long>("Version")
                         .HasColumnType("bigint")

@@ -4,15 +4,14 @@ using Microsoft.AspNetCore.Authentication;
 namespace Shared.Authorization;
 
 /// <summary>
-/// The only place that reads provider claims. Maps <c>roles</c> to <see cref="AppClaimTypes.Role"/> (known user roles) or
-/// <see cref="AppClaimTypes.ServiceRole"/> (configured service roles); other roles are dropped,
-/// and the object ID <c>oid</c> to <see cref="AppClaimTypes.EmployeeId"/> via the local cache. Replacing the identity
-/// provider changes this class and the configuration, nothing else.
+/// The only place that reads token claims. Maps <c>employee_id</c> (person, in tokens issued by Access) to
+/// <see cref="AppClaimTypes.EmployeeId"/> and configured service roles from <c>roles</c> to <see cref="AppClaimTypes.ServiceRole"/>.
+/// Everything else (e.g. Entra user roles or object IDs) is ignored: permissions come only from the ACL (decision 13).
 /// </summary>
-public sealed class AppClaimsTransformation(IPermissionCache cache, SharedAuthorizationOptions options) : IClaimsTransformation
+public sealed class AppClaimsTransformation(SharedAuthorizationOptions options) : IClaimsTransformation
 {
-    private const string ProviderRoleClaim = "roles";
-    private const string ProviderObjectIdClaim = "oid";
+    private const string EmployeeIdClaim = "employee_id";
+    private const string RolesClaim = "roles";
     private const string MarkerAuthenticationType = "Shared.Authorization";
 
     public Task<ClaimsPrincipal> TransformAsync(ClaimsPrincipal principal)
@@ -24,22 +23,14 @@ public sealed class AppClaimsTransformation(IPermissionCache cache, SharedAuthor
         }
 
         var mapped = new ClaimsIdentity(MarkerAuthenticationType);
-        foreach (var role in principal.FindAll(ProviderRoleClaim).Select(c => c.Value).Distinct())
-        {
-            if (AppRoles.All.Contains(role))
-            {
-                mapped.AddClaim(new Claim(AppClaimTypes.Role, role));
-            }
-            else if (options.ServiceRoles.Contains(role))
-            {
-                mapped.AddClaim(new Claim(AppClaimTypes.ServiceRole, role));
-            }
-        }
-
-        var objectId = principal.FindFirst(ProviderObjectIdClaim)?.Value;
-        if (objectId is not null && cache.TryResolveEmployeeId(objectId, out var employeeId))
+        if (principal.FindFirst(EmployeeIdClaim)?.Value is { } value && Guid.TryParse(value, out var employeeId))
         {
             mapped.AddClaim(new Claim(AppClaimTypes.EmployeeId, employeeId.ToString()));
+        }
+
+        foreach (var role in principal.FindAll(RolesClaim).Select(c => c.Value).Where(options.ServiceRoles.Contains).Distinct())
+        {
+            mapped.AddClaim(new Claim(AppClaimTypes.ServiceRole, role));
         }
 
         principal.AddIdentity(mapped);

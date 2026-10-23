@@ -7,7 +7,4 @@ public interface IPermissionCache
     bool Apply(PermissionSnapshot snapshot);
 
     bool TryGet(Guid employeeId, out PermissionSnapshot? snapshot);
-
-    /// <summary>Resolves the identity provider's object ID to the internal EmployeeId.</summary>
-    bool TryResolveEmployeeId(string externalId, out Guid employeeId);
 }

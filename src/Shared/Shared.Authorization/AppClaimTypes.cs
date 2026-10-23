@@ -1,12 +1,12 @@
 namespace Shared.Authorization;
 
 /// <summary>
-/// Internal claim types. Feature code sees only these; provider claims (<c>roles</c>, <c>oid</c>) are read
+/// Internal claim types. Feature code sees only these; token claims (<c>employee_id</c>, <c>roles</c>) are read
 /// exclusively inside <c>Shared.Authorization</c> (enforced by an architecture test).
 /// </summary>
 public static class AppClaimTypes
 {
-    public const string Role = "app:role";
+    /// <summary>The signed-in person (from the token issued by Access).</summary>
     public const string EmployeeId = "app:employee_id";
 
     /// <summary>App role of a calling service (service-to-service), see <see cref="SharedAuthorizationOptions.ServiceRoles"/>.</summary>

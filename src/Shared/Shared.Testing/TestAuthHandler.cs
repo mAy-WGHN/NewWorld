@@ -9,9 +9,9 @@ namespace Shared.Testing;
 public sealed class TestAuthOptions : AuthenticationSchemeOptions;
 
 /// <summary>
-/// Replaces Entra in tests. Identity and roles come per request from headers and are emitted as provider
-/// claims (<c>oid</c>, <c>roles</c>), so the real claims mapping runs. Scopes are set in the permission cache.
-/// No header → anonymous.
+/// Replaces real tokens in tests. Per request from headers: a person (<c>employee_id</c> claim as in tokens issued by Access)
+/// or a calling service (<c>roles</c> claim as in Entra service tokens). The real claims mapping runs; privileges are set in
+/// the permission cache (<see cref="TestAuthentication.Grant"/>). No header → anonymous.
 /// </summary>
 public sealed class TestAuthHandler(
     IOptionsMonitor<TestAuthOptions> options,
@@ -19,28 +19,26 @@ public sealed class TestAuthHandler(
     UrlEncoder encoder) : AuthenticationHandler<TestAuthOptions>(options, logger, encoder)
 {
     public const string SchemeName = "Test";
-    public const string ObjectIdHeader = "X-Test-Oid";
-    public const string RolesHeader = "X-Test-Roles";
+    public const string EmployeeHeader = "X-Test-Employee";
+    public const string ServiceRolesHeader = "X-Test-Service-Roles";
 
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        var hasOid = Request.Headers.TryGetValue(ObjectIdHeader, out var oid);
-        var hasRoles = Request.Headers.TryGetValue(RolesHeader, out var roles);
-        if (!hasOid && !hasRoles)
-        {
-            return Task.FromResult(AuthenticateResult.NoResult());
-        }
-
         var claims = new List<Claim>();
-        if (hasOid)
+        if (Request.Headers.TryGetValue(EmployeeHeader, out var employee))
         {
-            claims.Add(new Claim("oid", oid.ToString()));
+            claims.Add(new Claim("employee_id", employee.ToString()));
         }
 
-        if (hasRoles)
+        if (Request.Headers.TryGetValue(ServiceRolesHeader, out var roles))
         {
             claims.AddRange(roles.ToString().Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                 .Select(r => new Claim("roles", r)));
+        }
+
+        if (claims.Count == 0)
+        {
+            return Task.FromResult(AuthenticateResult.NoResult());
         }
 
         var ticket = new AuthenticationTicket(new ClaimsPrincipal(new ClaimsIdentity(claims, SchemeName)), SchemeName);

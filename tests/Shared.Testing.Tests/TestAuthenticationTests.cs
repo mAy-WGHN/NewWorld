@@ -9,38 +9,39 @@ public class TestAuthenticationTests
     private static readonly Guid Store = Guid.Parse("00000000-0000-0000-0000-0000000000a1");
 
     [Fact]
-    public void Grant_applies_scopes_and_always_includes_the_person_themself()
+    public void Grant_applies_privileges_with_reach()
     {
         var cache = new InMemoryPermissionCache();
 
-        var snapshot = cache.Grant(Anna, "oid-anna", storeIds: [Store]);
+        var snapshot = cache.Grant(Anna, new TestGrant("absence:read", StoreIds: [Store]), TestGrant.Everywhere("faq:read"));
 
         snapshot.Version.ShouldBe(1);
-        snapshot.StoreIds.ShouldBe([Store]);
-        snapshot.EmployeeIds.ShouldBe([Anna]);
-        cache.TryResolveEmployeeId("oid-anna", out var id).ShouldBeTrue();
-        id.ShouldBe(Anna);
+        snapshot.AppliesToStore("absence:read", Store).ShouldBeTrue();
+        snapshot.AppliesToStore("absence:read", Guid.NewGuid()).ShouldBeFalse();
+        snapshot.AppliesToStore("faq:read", Guid.NewGuid()).ShouldBeTrue();
     }
 
     [Fact]
-    public void Repeated_grant_raises_the_version_and_replaces_scopes()
+    public void Repeated_grant_raises_the_version_and_replaces_privileges()
     {
         var cache = new InMemoryPermissionCache();
-        cache.Grant(Anna, "oid-anna", storeIds: [Store]);
+        cache.Grant(Anna, new TestGrant("absence:read", StoreIds: [Store]));
 
-        var second = cache.Grant(Anna, "oid-anna");
+        var second = cache.Grant(Anna);
 
         second.Version.ShouldBe(2);
         cache.TryGet(Anna, out var current);
-        current!.StoreIds.ShouldBeEmpty();
+        current!.Has("absence:read").ShouldBeFalse();
     }
 
     [Fact]
-    public void AsUser_sets_identity_and_roles_headers()
+    public void AsUser_and_AsService_set_the_test_headers()
     {
-        using var request = new HttpRequestMessage(HttpMethod.Get, "/x").AsUser("oid-anna", AppRoles.Hr, AppRoles.Employee);
+        using var user = new HttpRequestMessage(HttpMethod.Get, "/x").AsUser(Anna);
+        using var service = new HttpRequestMessage(HttpMethod.Get, "/x").AsService("A.B", "C.D");
 
-        request.Headers.GetValues(TestAuthHandler.ObjectIdHeader).ShouldBe(["oid-anna"]);
-        request.Headers.GetValues(TestAuthHandler.RolesHeader).ShouldBe(["Hr,Employee"]);
+        user.Headers.GetValues(TestAuthHandler.EmployeeHeader).ShouldBe([Anna.ToString()]);
+        service.Headers.GetValues(TestAuthHandler.ServiceRolesHeader).ShouldBe(["A.B,C.D"]);
+        user.Headers.Contains(TestAuthHandler.ServiceRolesHeader).ShouldBeFalse();
     }
 }

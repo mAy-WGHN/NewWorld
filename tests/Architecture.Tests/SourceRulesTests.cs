@@ -7,7 +7,7 @@ public partial class SourceRulesTests
     [GeneratedRegex(@"\b(DateTime|DateTimeOffset)\s*\.\s*(Now|UtcNow|Today)\b")]
     private static partial Regex ClockAccess();
 
-    [GeneratedRegex("\"(oid|roles)\"")]
+    [GeneratedRegex("\"(oid|roles|employee_id)\"")]
     private static partial Regex ProviderClaimLiteral();
 
     private static bool IsComment(string line) => line.TrimStart().StartsWith("//", StringComparison.Ordinal);
@@ -25,7 +25,7 @@ public partial class SourceRulesTests
     }
 
     [Fact]
-    public void Provider_claims_oid_and_roles_are_only_touched_in_shared_authorization()
+    public void Token_claims_are_only_touched_in_shared_authorization()
     {
         var sep = Path.DirectorySeparatorChar;
         var violations = Solution.SourceFiles()
@@ -36,7 +36,7 @@ public partial class SourceRulesTests
             .Select(l => $"{l.RelativePath}:{l.Line}")
             .ToList();
 
-        violations.ShouldBeEmpty("claims 'oid'/'roles' belong to Shared.Authorization (use app:role / app:employee_id)");
+        violations.ShouldBeEmpty("token claims belong to Shared.Authorization (use app:employee_id / app:service_role)");
     }
 
     [Fact]
@@ -53,6 +53,7 @@ public partial class SourceRulesTests
     {
         ProviderClaimLiteral().IsMatch("""principal.FindFirst("oid")""").ShouldBeTrue();
         ProviderClaimLiteral().IsMatch("""new Claim("roles", r)""").ShouldBeTrue();
-        ProviderClaimLiteral().IsMatch("""new Claim("app:role", r)""").ShouldBeFalse();
+        ProviderClaimLiteral().IsMatch("""new Claim("employee_id", id)""").ShouldBeTrue();
+        ProviderClaimLiteral().IsMatch("""new Claim("app:employee_id", id)""").ShouldBeFalse();
     }
 }

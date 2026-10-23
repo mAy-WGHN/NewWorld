@@ -23,13 +23,10 @@ public sealed class ErasureEndpointTests(PostgresFixture postgres) : IClassFixtu
         return (api, client, employeeId);
     }
 
-    private static async Task<HttpStatusCode> Erase(HttpClient client, Guid employeeId, string? oid, params string[] roles)
+    private static async Task<HttpStatusCode> Erase(HttpClient client, Guid employeeId, Func<HttpRequestMessage, HttpRequestMessage>? identity)
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, $"/internal/employees/{employeeId}/erasure");
-        if (oid is not null)
-        {
-            request.AsUser(oid, roles);
-        }
+        identity?.Invoke(request);
 
         using var response = await client.SendAsync(request);
         return response.StatusCode;
@@ -41,7 +38,7 @@ public sealed class ErasureEndpointTests(PostgresFixture postgres) : IClassFixtu
         var (api, client, employeeId) = await StartAsync();
         await using var _ = api;
 
-        (await Erase(client, employeeId, "oid-operator-app", BcIntegrationRoles.EmployeeErasureRequest)).ShouldBe(HttpStatusCode.Accepted);
+        (await Erase(client, employeeId, r => r.AsService(BcIntegrationRoles.EmployeeErasureRequest))).ShouldBe(HttpStatusCode.Accepted);
 
         await using var scope = api.Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<BcIntegrationDbContext>();
@@ -56,16 +53,18 @@ public sealed class ErasureEndpointTests(PostgresFixture postgres) : IClassFixtu
         var (api, client, _) = await StartAsync();
         await using var __ = api;
 
-        (await Erase(client, Guid.NewGuid(), "oid-operator-app", BcIntegrationRoles.EmployeeErasureRequest)).ShouldBe(HttpStatusCode.NotFound);
+        (await Erase(client, Guid.NewGuid(), r => r.AsService(BcIntegrationRoles.EmployeeErasureRequest))).ShouldBe(HttpStatusCode.NotFound);
     }
 
     [Fact]
-    public async Task Users_are_forbidden_even_with_strong_roles()
+    public async Task People_are_forbidden_even_with_all_privileges()
     {
         var (api, client, employeeId) = await StartAsync();
         await using var _ = api;
+        var ceo = Guid.NewGuid();
+        api.Services.GetRequiredService<Shared.Authorization.IPermissionCache>().Grant(ceo, TestGrant.Everywhere("access:assignment:create"));
 
-        (await Erase(client, employeeId, "oid-ceo", "Executive", "Hr")).ShouldBe(HttpStatusCode.Forbidden);
+        (await Erase(client, employeeId, r => r.AsUser(ceo))).ShouldBe(HttpStatusCode.Forbidden);
     }
 
     [Fact]
@@ -74,6 +73,6 @@ public sealed class ErasureEndpointTests(PostgresFixture postgres) : IClassFixtu
         var (api, client, employeeId) = await StartAsync();
         await using var _ = api;
 
-        (await Erase(client, employeeId, oid: null)).ShouldBe(HttpStatusCode.Unauthorized);
+        (await Erase(client, employeeId, identity: null)).ShouldBe(HttpStatusCode.Unauthorized);
     }
 }

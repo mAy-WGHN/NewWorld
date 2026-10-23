@@ -66,7 +66,7 @@ public class DependencyRulesTests
     [Fact]
     public void Shared_libraries_do_not_depend_on_any_service()
     {
-        foreach (var shared in new[] { PureMessaging, typeof(Shared.Authorization.AppRoles).Assembly, PureApprovals, SharedInfrastructure })
+        foreach (var shared in new[] { PureMessaging, typeof(Shared.Authorization.AppPolicies).Assembly, PureApprovals, SharedInfrastructure })
         {
             shared.GetReferencedAssemblies().Select(a => a.Name!)
                 .Where(n => Solution.Services.Any(s => n.StartsWith(s + ".", StringComparison.Ordinal)))
@@ -92,7 +92,7 @@ public class DependencyRulesTests
     [Fact]
     public void Shared_authorization_has_no_persistence_or_messaging_dependencies()
     {
-        var result = Types.InAssembly(typeof(Shared.Authorization.AppRoles).Assembly)
+        var result = Types.InAssembly(typeof(Shared.Authorization.AppPolicies).Assembly)
             .ShouldNot().HaveDependencyOnAny("Microsoft.EntityFrameworkCore", "Npgsql", "Azure.Messaging")
             .GetResult();
 
