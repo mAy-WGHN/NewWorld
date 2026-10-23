@@ -39,6 +39,7 @@
     <Project Path="src/Portal/Portal.Contracts/Portal.Contracts.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/BcIntegration.Api.Tests/BcIntegration.Api.Tests.csproj" />
     <Project Path="tests/BcIntegration.Infrastructure.Tests/BcIntegration.Infrastructure.Tests.csproj" />
     <Project Path="tests/BcIntegration.Core.Tests/BcIntegration.Core.Tests.csproj" />
     <Project Path="tests/Access.Contracts.Tests/Access.Contracts.Tests.csproj" />
