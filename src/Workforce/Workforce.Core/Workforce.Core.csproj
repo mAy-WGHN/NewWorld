@@ -1,2 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\Workforce.Contracts\Workforce.Contracts.csproj" />
+    <ProjectReference Include="..\..\Notifications\Notifications.Contracts\Notifications.Contracts.csproj" />
+    <ProjectReference Include="..\..\Shared\Shared.Messaging\Shared.Messaging.csproj" />
+    <ProjectReference Include="..\..\Shared\Shared.Approvals\Shared.Approvals.csproj" />
+  </ItemGroup>
 </Project>
