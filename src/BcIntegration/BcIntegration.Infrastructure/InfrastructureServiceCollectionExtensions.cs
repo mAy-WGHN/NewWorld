@@ -1,10 +1,20 @@
+using BcIntegration.Core.MasterData;
+using BcIntegration.Core.Messaging;
+using BcIntegration.Core.Workforce;
+using BcIntegration.Infrastructure.BusinessCentral;
+using BcIntegration.Infrastructure.MasterData;
+using BcIntegration.Infrastructure.Messaging;
+using BcIntegration.Infrastructure.Workforce;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using Shared.Infrastructure.Authorization;
 using Shared.Infrastructure.Messaging;
 using Shared.Infrastructure.Persistence;
+using Shared.Messaging;
+using Workforce.Contracts;
 
 namespace BcIntegration.Infrastructure;
 
@@ -26,6 +36,30 @@ public static class InfrastructureServiceCollectionExtensions
 
         services.AddMessaging<BcIntegrationDbContext>(configuration, environment);
         services.AddPermissionCachePersistence<BcIntegrationDbContext>();
+
+        // Ports of the core.
+        services.AddScoped<IEventPublisher, OutboxEventPublisher>();
+        services.AddScoped<IMasterDataStore, EfMasterDataStore>();
+        services.AddScoped<IAbsenceSyncStore, EfAbsenceSyncStore>();
+        services.AddBcClient(configuration);
+        services.AddScoped<IBcMasterDataSource>(sp => sp.GetRequiredService<BcClient>());
+        services.AddScoped<IBcAbsenceWriter, BcAbsenceWriter>();
+
+        // Master data (MasterData/).
+        services.Configure<MasterDataSyncOptions>(configuration.GetSection(MasterDataSyncOptions.ConfigurationSection));
+        services.AddScoped(sp => new MasterDataSynchronizer(
+            sp.GetRequiredService<IBcMasterDataSource>(), sp.GetRequiredService<IMasterDataStore>(), sp.GetRequiredService<IEventPublisher>(),
+            sp.GetRequiredService<TimeProvider>(), sp.GetRequiredService<IOptions<MasterDataSyncOptions>>().Value));
+        services.AddScoped<EmployeeErasure>();
+        if (configuration[$"{BcClientOptions.ConfigurationSection}:BaseUrl"] is { Length: > 0 })
+        {
+            services.AddHostedService<MasterDataSyncService>();
+        }
+
+        // Absences (Workforce/): queue readable only by BC Integration.
+        services.AddScoped<AbsenceSynchronizer>();
+        services.AddMessageHandler<BcIntegrationDbContext, SyncAbsenceToBc, SyncAbsenceToBcHandler>(
+            MessageSource.Queue(MessagingNames.For(typeof(SyncAbsenceToBc))));
         return services;
     }
 

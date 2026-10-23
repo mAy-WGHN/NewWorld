@@ -2,6 +2,8 @@ using Azure.Core;
 using BcIntegration.Infrastructure.BusinessCentral;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Hosting;
 using Shared.Testing;
 using WireMock.Server;
 
@@ -38,7 +40,15 @@ internal sealed class BcTestHost : IAsyncDisposable
     public CountingCredential Credential { get; }
     public BcClient Client => Services.GetRequiredService<BcClient>();
 
-    public static BcTestHost Start(string scenario, IDictionary<string, string?>? overrides = null, Action<IServiceCollection>? configure = null)
+    /// <param name="scenario">Folder under tests/Fixtures/Bc.</param>
+    /// <param name="overrides">Configuration values replacing the test defaults.</param>
+    /// <param name="configure">Extra registrations before the service's own (e.g. replacements).</param>
+    /// <param name="connectionString">With a database: the complete service infrastructure; without: only the BC client.</param>
+    public static BcTestHost Start(
+        string scenario,
+        IDictionary<string, string?>? overrides = null,
+        Action<IServiceCollection>? configure = null,
+        string? connectionString = null)
     {
         var server = WireMockServer.Start();
         server.ReadStaticMappings(Path.Combine(RepositoryPaths.Root, "tests", "Fixtures", "Bc", scenario));
@@ -55,6 +65,11 @@ internal sealed class BcTestHost : IAsyncDisposable
             ["Bc:Resilience:TotalTimeout"] = "00:00:20",
             ["Bc:RateLimit:PermitsPerSecond"] = "100",
         };
+        if (connectionString is not null)
+        {
+            settings[$"ConnectionStrings:{InfrastructureServiceCollectionExtensions.ConnectionName}"] = connectionString;
+        }
+
         foreach (var (key, value) in overrides ?? new Dictionary<string, string?>())
         {
             settings[key] = value;
@@ -66,7 +81,15 @@ internal sealed class BcTestHost : IAsyncDisposable
         services.AddLogging();
         services.AddKeyedSingleton<TokenCredential>(BcClientServiceCollectionExtensions.CredentialKey, credential);
         configure?.Invoke(services);
-        services.AddBcClient(configuration);
+        if (connectionString is null)
+        {
+            services.AddBcClient(configuration);
+        }
+        else
+        {
+            services.AddBcIntegrationInfrastructure(configuration, new TestHostEnvironment());
+        }
+
         return new BcTestHost(server, services.BuildServiceProvider(), credential);
     }
 
@@ -78,4 +101,12 @@ internal sealed class BcTestHost : IAsyncDisposable
         Server.Stop();
         Server.Dispose();
     }
+}
+
+internal sealed class TestHostEnvironment : IHostEnvironment
+{
+    public string EnvironmentName { get; set; } = "Testing";
+    public string ApplicationName { get; set; } = "BcIntegration.Tests";
+    public string ContentRootPath { get; set; } = AppContext.BaseDirectory;
+    public IFileProvider ContentRootFileProvider { get; set; } = new NullFileProvider();
 }

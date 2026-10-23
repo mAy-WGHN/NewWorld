@@ -15,6 +15,7 @@ Die Tests in `tests/BcIntegration.Infrastructure.Tests` laden je Test genau ein 
 | `employees-timeout` | Antwort erst nach 2 s |
 | `employees-expired-token` | 401 für das alte Token, Erfolg mit neuem Token |
 | `employees-unauthorized` | immer 401 |
+| `master-data` | eine Filiale und die zwei Mitarbeitenden aus `employees-success` |
 | `absence-create` / `absence-update` | Upsert über die externe ID (POST bzw. PATCH mit ETag) |
 | `absence-validation-error` | BC-Validierungsfehler (400) |
 | `absence-throttled-write` | 429 auf POST, danach Erfolg |
