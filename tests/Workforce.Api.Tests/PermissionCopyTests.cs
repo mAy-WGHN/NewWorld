@@ -51,7 +51,7 @@ public sealed class PermissionCopyTests(PostgresFixture postgres) : IClassFixtur
             app.UseAuthentication();
             app.UseAuthorization();
             app.UseEndpoints(endpoints => endpoints.MapGet("/probe/stores/{storeId:guid}/absences", async (Guid storeId, IAuthorizationService auth, HttpContext context) =>
-                (await auth.AuthorizeAsync(context.User, new StoreResource(storeId), AppPolicies.Privilege("absence:read"))).Succeeded
+                (await auth.AuthorizeAsync(context.User, new StoreResource(storeId), AppPolicies.Privilege("absence:read-availability"))).Succeeded
                     ? Results.Ok()
                     : Results.Forbid()).RequireAuthorization());
         };
@@ -60,7 +60,7 @@ public sealed class PermissionCopyTests(PostgresFixture postgres) : IClassFixtur
     private static PermissionsChanged Permissions(long version, params Guid[] stores) => new(
         Guid.NewGuid(), Guid.NewGuid(), new DateTimeOffset(2026, 10, 23, 12, 0, 0, TimeSpan.Zero), Max, version, [],
         stores, [Max], ["Filialleitung"],
-        stores.Length == 0 ? [] : [new PrivilegeGrant("absence:read", false, stores, [Max])]);
+        stores.Length == 0 ? [] : [new PrivilegeGrant("absence:read-availability", false, stores, [Max])]);
 
     private static async Task Deliver(WorkforceApi api, PermissionsChanged message)
     {
