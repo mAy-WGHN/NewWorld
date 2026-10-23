@@ -54,7 +54,11 @@ public static class EffectivePermissionCalculator
         return new EffectivePermissions(privileges, roleNames.Distinct().ToList(), overviewStores, overviewEmployees);
     }
 
-    /// <summary>The valid assignments of a person with their role, the public user role first.</summary>
+    /// <summary>
+    /// The valid assignments of a person with their role, the public user role first.
+    /// TODO(Entscheidung 13): further automatic assignments from home store + function (function only if the person has no or
+    /// several linked stores) are to be specified; until then everything beyond the public user role is assigned manually.
+    /// </summary>
     internal static IEnumerable<(Role Role, Assignment Assignment)> EffectiveAssignments(Guid employeeId, Context context)
     {
         if (context.RolesById.TryGetValue(Role.PublicUserId, out var publicUser))
