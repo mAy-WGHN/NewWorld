@@ -23,6 +23,231 @@ namespace BcIntegration.Infrastructure.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("BcIntegration.Infrastructure.MasterData.EmployeeStateRecord", b =>
+                {
+                    b.Property<Guid>("EmployeeId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("employee_id");
+
+                    b.Property<decimal?>("ContractedHoursPerWeek")
+                        .HasColumnType("numeric")
+                        .HasColumnName("contracted_hours_per_week");
+
+                    b.Property<string>("EmploymentType")
+                        .HasColumnType("text")
+                        .HasColumnName("employment_type");
+
+                    b.Property<DateOnly?>("EntryDate")
+                        .HasColumnType("date")
+                        .HasColumnName("entry_date");
+
+                    b.Property<DateOnly?>("ExitDate")
+                        .HasColumnType("date")
+                        .HasColumnName("exit_date");
+
+                    b.Property<Guid?>("HomeStoreId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("home_store_id");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("PersonnelNumber")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("personnel_number");
+
+                    b.Property<string>("Position")
+                        .HasColumnType("text")
+                        .HasColumnName("position");
+
+                    b.HasKey("EmployeeId")
+                        .HasName("pk_employee_states");
+
+                    b.ToTable("employee_states", "bc_integration");
+                });
+
+            modelBuilder.Entity("BcIntegration.Infrastructure.MasterData.ErasedEmployee", b =>
+                {
+                    b.Property<Guid>("EmployeeId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("employee_id");
+
+                    b.Property<DateTimeOffset>("ErasedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("erased_at");
+
+                    b.HasKey("EmployeeId")
+                        .HasName("pk_erased_employees");
+
+                    b.ToTable("erased_employees", "bc_integration");
+                });
+
+            modelBuilder.Entity("BcIntegration.Infrastructure.MasterData.IdMapping", b =>
+                {
+                    b.Property<string>("EntityType")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("entity_type");
+
+                    b.Property<Guid>("BcSystemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("bc_system_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("InternalId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("internal_id");
+
+                    b.HasKey("EntityType", "BcSystemId")
+                        .HasName("pk_id_mappings");
+
+                    b.HasIndex("InternalId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_id_mappings_internal_id");
+
+                    b.ToTable("id_mappings", "bc_integration");
+                });
+
+            modelBuilder.Entity("BcIntegration.Infrastructure.MasterData.StoreStateRecord", b =>
+                {
+                    b.Property<Guid>("StoreId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("store_id");
+
+                    b.Property<string>("City")
+                        .HasColumnType("text")
+                        .HasColumnName("city");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name");
+
+                    b.Property<string>("OpeningHoursJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("opening_hours_json");
+
+                    b.Property<string>("PostalCode")
+                        .HasColumnType("text")
+                        .HasColumnName("postal_code");
+
+                    b.Property<string>("StoreNumber")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("store_number");
+
+                    b.Property<string>("Street")
+                        .HasColumnType("text")
+                        .HasColumnName("street");
+
+                    b.HasKey("StoreId")
+                        .HasName("pk_store_states");
+
+                    b.HasIndex("StoreNumber")
+                        .HasDatabaseName("ix_store_states_store_number");
+
+                    b.ToTable("store_states", "bc_integration");
+                });
+
+            modelBuilder.Entity("BcIntegration.Infrastructure.MasterData.SyncWatermarkRecord", b =>
+                {
+                    b.Property<string>("EntityType")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("entity_type");
+
+                    b.Property<bool>("InitialLoadCompleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("initial_load_completed");
+
+                    b.Property<DateTimeOffset?>("LastModified")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_modified");
+
+                    b.HasKey("EntityType")
+                        .HasName("pk_sync_watermarks");
+
+                    b.ToTable("sync_watermarks", "bc_integration");
+                });
+
+            modelBuilder.Entity("BcIntegration.Infrastructure.Workforce.AbsenceSyncStateRecord", b =>
+                {
+                    b.Property<Guid>("AbsenceId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("absence_id");
+
+                    b.Property<Guid>("BcSystemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("bc_system_id");
+
+                    b.Property<long>("LastSyncedVersion")
+                        .HasColumnType("bigint")
+                        .HasColumnName("last_synced_version");
+
+                    b.HasKey("AbsenceId")
+                        .HasName("pk_absence_sync_states");
+
+                    b.ToTable("absence_sync_states", "bc_integration");
+                });
+
+            modelBuilder.Entity("BcIntegration.Infrastructure.Workforce.SyncErrorRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("EntityId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("entity_id");
+
+                    b.Property<string>("EntityType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("entity_type");
+
+                    b.Property<string>("ErrorCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("error_code");
+
+                    b.Property<DateTimeOffset>("OccurredAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("occurred_at");
+
+                    b.Property<long>("Version")
+                        .HasColumnType("bigint")
+                        .HasColumnName("version");
+
+                    b.HasKey("Id")
+                        .HasName("pk_sync_errors");
+
+                    b.HasIndex("EntityType", "EntityId")
+                        .HasDatabaseName("ix_sync_errors_entity_type_entity_id");
+
+                    b.ToTable("sync_errors", "bc_integration");
+                });
+
             modelBuilder.Entity("Shared.Infrastructure.Authorization.PermissionSnapshotRecord", b =>
                 {
                     b.Property<Guid>("EmployeeId")
