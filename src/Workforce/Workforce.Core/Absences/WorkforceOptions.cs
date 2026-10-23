@@ -12,10 +12,10 @@ public sealed class WorkforceOptions
         [DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday, DayOfWeek.Saturday];
 
     /// <summary>
-    /// State (ISO 3166-2:DE code, e.g. <c>NW</c>) for state-specific holidays; <c>null</c> = nationwide holidays only.
-    /// TODO(Entscheidung): which state applies (per store? one default?) is open.
+    /// State (ISO 3166-2:DE code) for state-specific holidays; <c>null</c> = nationwide holidays only. Decision 2026-10-23:
+    /// Bavaria for all stores; the municipal holiday of Augsburg follows the city of the store address.
     /// </summary>
-    public string? HolidayState { get; set; }
+    public string? HolidayState { get; set; } = "BY";
 
     public TimeZoneInfo Zone => TimeZoneInfo.FindSystemTimeZoneById(TimeZoneId);
 

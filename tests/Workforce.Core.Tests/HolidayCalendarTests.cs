@@ -66,4 +66,33 @@ public class HolidayCalendarTests
     [Fact]
     public void Unknown_state_code_is_rejected_instead_of_silently_ignored() =>
         Should.Throw<ArgumentException>(() => Calendar.IsHoliday(new DateOnly(2026, 6, 4), "XX"));
+
+    [Fact]
+    public void Augsburger_friedensfest_applies_only_to_stores_in_augsburg_in_bavaria()
+    {
+        var day = new DateOnly(2025, 8, 8);
+
+        Calendar.IsHoliday(day, "BY", "Augsburg").ShouldBeTrue();
+        Calendar.IsHoliday(day, "BY", " augsburg ").ShouldBeTrue();
+        Calendar.IsHoliday(day, "BY", "München").ShouldBeFalse();
+        Calendar.IsHoliday(day, "BY").ShouldBeFalse();
+        Calendar.IsHoliday(day, "NW", "Augsburg").ShouldBeFalse();
+        Calendar.IsHoliday(new DateOnly(2025, 8, 9), "BY", "Augsburg").ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Assumption_day_is_not_counted_in_bavaria_until_decided()
+    {
+        Calendar.IsHoliday(new DateOnly(2025, 8, 15), "BY", "Augsburg").ShouldBeFalse();
+        Calendar.IsHoliday(new DateOnly(2025, 8, 15), "SL").ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Bavarian_holidays_apply_by_default_in_the_options()
+    {
+        new WorkforceOptions().HolidayState.ShouldBe("BY");
+        Calendar.IsHoliday(new DateOnly(2026, 1, 6), "BY").ShouldBeTrue();   // Heilige Drei Könige
+        Calendar.IsHoliday(new DateOnly(2026, 11, 1), "BY").ShouldBeTrue();  // Allerheiligen
+        Calendar.IsHoliday(new DateOnly(2026, 6, 4), "BY").ShouldBeTrue();   // Fronleichnam
+    }
 }

@@ -12,9 +12,9 @@ public sealed record WorkingWeek(IReadOnlySet<DayOfWeek> Days)
 }
 
 /// <summary>Working days of a person: the working week without statutory holidays of the applicable state.</summary>
-public sealed class WorkCalendar(WorkingWeek week, IHolidayCalendar holidays, string? state)
+public sealed class WorkCalendar(WorkingWeek week, IHolidayCalendar holidays, string? state, string? city = null)
 {
-    public bool IsWorkingDay(DateOnly date) => week.IsWorkingDay(date) && !holidays.IsHoliday(date, state);
+    public bool IsWorkingDay(DateOnly date) => week.IsWorkingDay(date) && !holidays.IsHoliday(date, state, city);
 
     public int CountWorkingDays(DateOnly from, DateOnly to)
     {

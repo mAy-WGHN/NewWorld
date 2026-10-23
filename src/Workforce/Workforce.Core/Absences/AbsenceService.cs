@@ -25,7 +25,10 @@ public sealed class AbsenceService(
     private const string VacationDecisionTemplate = "workforce.vacation-decision.requester";
     private const string ApprovalSubject = "Vacation";
 
-    private WorkCalendar Calendar => new(options.Week, holidays, options.HolidayState);
+    private WorkCalendar CalendarFor(PersonInfo? person) => new(options.Week, holidays, options.HolidayState, person?.StoreCity);
+
+    private async Task<WorkCalendar> CalendarForAsync(Guid employeeId, CancellationToken cancellationToken) =>
+        CalendarFor(await people.GetAsync(employeeId, cancellationToken));
 
     /// <summary>Today's date in the local time zone (not UTC): the day changes at local midnight, also on summer/winter time days.</summary>
     public DateOnly TodayLocal => DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(time.GetUtcNow(), options.Zone).DateTime);
@@ -113,7 +116,7 @@ public sealed class AbsenceService(
             return AbsenceResult.Fail(AbsenceError.UnknownPerson);
         }
 
-        var calendar = Calendar;
+        var calendar = CalendarFor(person);
         if (to < from || from < TodayLocal || calendar.CountWorkingDays(from, to) == 0)
         {
             return AbsenceResult.Fail(AbsenceError.InvalidPeriod);
@@ -303,7 +306,7 @@ public sealed class AbsenceService(
         var bookings = (await store.ForEmployeeAsync(employeeId, cancellationToken))
             .Where(a => a.Type == AbsenceType.Vacation && a.To is not null)
             .Select(a => new VacationBooking(a.Range, a.Status));
-        return VacationAccount.Compute(year, entitlement, bookings, TodayLocal, Calendar);
+        return VacationAccount.Compute(year, entitlement, bookings, TodayLocal, await CalendarForAsync(employeeId, cancellationToken));
     }
 
     public async Task<AbsenceError> SetEntitlementAsync(Guid employeeId, int year, decimal days, CancellationToken cancellationToken)
@@ -336,7 +339,7 @@ public sealed class AbsenceService(
             return;
         }
 
-        var plan = SicknessAdjustment.Plan(vacation.Range, sickness, Calendar);
+        var plan = SicknessAdjustment.Plan(vacation.Range, sickness, await CalendarForAsync(vacation.EmployeeId, cancellationToken));
         if (plan.IsCompletelyCancelled)
         {
             vacation.Status = AbsenceStatus.Cancelled;

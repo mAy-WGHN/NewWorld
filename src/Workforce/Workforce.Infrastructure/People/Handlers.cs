@@ -51,6 +51,7 @@ public sealed class StoreChangedHandler(WorkforceDbContext db) : IMessageHandler
 
         store.StoreNumber = message.StoreNumber;
         store.Name = message.Name;
+        store.City = message.Address?.City;
         store.IsActive = message.IsActive;
     }
 }

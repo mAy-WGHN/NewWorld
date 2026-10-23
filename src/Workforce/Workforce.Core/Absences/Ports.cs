@@ -4,7 +4,12 @@ using Shared.Messaging;
 namespace Workforce.Core.Absences;
 
 /// <summary>Read-only copy of a person (from BC Integration events).</summary>
-public sealed record PersonInfo(Guid EmployeeId, string Name, Guid? HomeStoreId, DateOnly? ExitDate);
+/// <param name="EmployeeId">Internal id.</param>
+/// <param name="Name">Display name.</param>
+/// <param name="HomeStoreId">Home store.</param>
+/// <param name="ExitDate">Exit date, if any.</param>
+/// <param name="StoreCity">City of the home store (for municipal holidays); <c>null</c> if unknown.</param>
+public sealed record PersonInfo(Guid EmployeeId, string Name, Guid? HomeStoreId, DateOnly? ExitDate, string? StoreCity = null);
 
 public interface IPeopleDirectory
 {

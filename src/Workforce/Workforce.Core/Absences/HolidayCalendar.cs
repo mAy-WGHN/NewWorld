@@ -1,15 +1,19 @@
 namespace Workforce.Core.Absences;
 
-/// <summary>Statutory holidays, replaceable (e.g. by a calendar fed from another source). A state code is the two-letter ISO 3166-2:DE code.</summary>
+/// <summary>
+/// Statutory holidays, replaceable (e.g. by a calendar fed from another source). A state code is the two-letter ISO 3166-2:DE code;
+/// the city (optional) is the location of the store for holidays that apply to a single municipality.
+/// </summary>
 public interface IHolidayCalendar
 {
-    bool IsHoliday(DateOnly date, string? state);
+    bool IsHoliday(DateOnly date, string? state, string? city = null);
 }
 
 /// <summary>
 /// German statutory holidays: the nationwide ones always, state-specific ones when a state is given. Without a state only the nationwide
-/// holidays count. TODO(Entscheidung): which state applies (per store? one default?) is open; Mariä Himmelfahrt is only modelled for
-/// Saarland (in Bavaria it depends on the municipality), Augsburger Friedensfest and similar local holidays are not modelled.
+/// holidays count. Decision (2026-10-23): Bavaria is the default state; the Augsburger Friedensfest (8 August) applies to stores in
+/// Augsburg (by the city of the store address). TODO(Entscheidung): Mariä Himmelfahrt (15 August) is a holiday only in Bavarian
+/// municipalities with a predominantly Catholic population; for which stores it applies is still to be checked, so it only counts for Saarland.
 /// </summary>
 public sealed class GermanHolidayCalendar : IHolidayCalendar
 {
@@ -27,7 +31,7 @@ public sealed class GermanHolidayCalendar : IHolidayCalendar
     private static readonly string[] AllSaints = ["BW", "BY", "NW", "RP", "SL"];
     private static readonly string[] RepentanceDay = ["SN"];
 
-    public bool IsHoliday(DateOnly date, string? state)
+    public bool IsHoliday(DateOnly date, string? state, string? city = null)
     {
         var code = Normalize(state);
         var easter = EasterSunday(date.Year);
@@ -46,6 +50,12 @@ public sealed class GermanHolidayCalendar : IHolidayCalendar
         if (code is null)
         {
             return false;
+        }
+
+        // Augsburger Friedensfest: only in the city of Augsburg (Bavaria).
+        if (code == "BY" && (date.Month, date.Day) is (8, 8) && string.Equals(city?.Trim(), "Augsburg", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
         }
 
         return ((date.Month, date.Day) switch

@@ -34,8 +34,11 @@ public sealed class EfPeopleDirectory(WorkforceDbContext db) : IPeopleDirectory
 {
     public async Task<PersonInfo?> GetAsync(Guid employeeId, CancellationToken cancellationToken) =>
         await db.People.AsNoTracking().FirstOrDefaultAsync(p => p.EmployeeId == employeeId, cancellationToken) is { } p
-            ? new PersonInfo(p.EmployeeId, p.Name, p.HomeStoreId, p.ExitDate)
+            ? new PersonInfo(p.EmployeeId, p.Name, p.HomeStoreId, p.ExitDate, await StoreCityAsync(p.HomeStoreId, cancellationToken))
             : null;
+
+    private async Task<string?> StoreCityAsync(Guid? storeId, CancellationToken cancellationToken) =>
+        storeId is { } id ? await db.Stores.AsNoTracking().Where(s => s.StoreId == id).Select(s => s.City).FirstOrDefaultAsync(cancellationToken) : null;
 }
 
 public sealed class EfEntitlementStore(WorkforceDbContext db) : IEntitlementStore

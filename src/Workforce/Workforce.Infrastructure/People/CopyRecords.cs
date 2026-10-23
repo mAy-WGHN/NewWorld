@@ -15,6 +15,8 @@ public sealed class StoreRecord
     public Guid StoreId { get; set; }
     public required string StoreNumber { get; set; }
     public required string Name { get; set; }
+    /// <summary>City of the store address (municipal holidays); organisation data.</summary>
+    public string? City { get; set; }
     public bool IsActive { get; set; }
 }
 
