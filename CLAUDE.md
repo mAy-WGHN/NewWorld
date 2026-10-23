@@ -136,7 +136,7 @@ Jede Nachricht und jeder Endpunkt hat eine Sensibilitätsklasse. Im Zweifel die 
 
 ## Technischer Stack
 
-.NET 10, ASP.NET Core Minimal APIs (Controller nur, wo Bestandscode sie nutzt), PostgreSQL + EF Core/Npgsql (**ein Schema pro Dienst, keine Cross-Schema-Joins**), Azure Service Bus über `Azure.Messaging.ServiceBus` mit eigener Outbox/Inbox (EF Core) in `Shared.Messaging` hinter einem Transport-Interface (kein Wolverine, siehe Entscheidung 8), .NET Aspire AppHost + ServiceDefaults (Service-Bus-Emulator, PostgreSQL, WireMock als Container), Entra ID, OpenTelemetry über ServiceDefaults.
+.NET 10, ASP.NET Core Minimal APIs (Controller nur, wo Bestandscode sie nutzt), PostgreSQL + EF Core/Npgsql (**ein Schema pro Dienst, keine Cross-Schema-Joins**), Azure Service Bus über `Azure.Messaging.ServiceBus` mit eigener Outbox/Inbox (EF Core) in `Shared.Infrastructure` hinter einem Transport-Interface (kein Wolverine, siehe Entscheidung 8), .NET Aspire AppHost + ServiceDefaults (Service-Bus-Emulator, PostgreSQL, WireMock als Container), Entra ID, OpenTelemetry über ServiceDefaults.
 
 Tests: xUnit (Bestandswahl übernehmen), FluentAssertions oder Shouldly, `Microsoft.Extensions.TimeProvider.Testing` (`FakeTimeProvider`), `WebApplicationFactory` + Testcontainers (PostgreSQL, Service-Bus-Emulator; **kein EF-In-Memory-Provider**), WireMock.Net (Antworten als Dateien unter `tests/Fixtures/Bc`), Verify (Snapshots), NetArchTest.Rules oder ArchUnitNET, `Aspire.Hosting.Testing` für E2E.
 

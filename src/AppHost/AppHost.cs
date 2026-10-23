@@ -8,11 +8,12 @@ var postgres = builder.AddPostgres("postgres");
 // TODO(Phase 7): declare the topology here and in infra/servicebus.bicep, each subscription with a purpose comment.
 var serviceBus = builder.AddAzureServiceBus("servicebus").RunAsEmulator();
 
-// WireMock stands in for Business Central. Mappings are files under tests/Fixtures/Bc.
-// TODO(Phase 3): mappings for the BC endpoints once the BC data model is known.
-var bcMock = builder.AddContainer("bc-mock", "wiremock/wiremock", "3.13.1")
-    .WithBindMount(Path.GetFullPath(Path.Combine(builder.AppHostDirectory, "..", "..", "tests", "Fixtures", "Bc")), "/home/wiremock")
-    .WithHttpEndpoint(targetPort: 8080, name: "http");
+// WireMock.Net stands in for Business Central: the same mapping files as the tests (tests/Fixtures/Bc).
+// The "master-data" scenario delivers one store and two employees.
+var bcMock = builder.AddContainer("bc-mock", "sheyenrath/wiremock.net", "2.19.0")
+    .WithBindMount(Path.GetFullPath(Path.Combine(builder.AppHostDirectory, "..", "..", "tests", "Fixtures", "Bc", "master-data")), "/app/__admin/mappings", isReadOnly: true)
+    .WithArgs("--ReadStaticMappings", "true")
+    .WithHttpEndpoint(targetPort: 80, name: "http");
 
 var bcIntegrationDb = postgres.AddDatabase("bcintegration");
 var accessDb = postgres.AddDatabase("access");
@@ -23,7 +24,12 @@ var portalDb = postgres.AddDatabase("portal");
 builder.AddProject<Projects.BcIntegration_Api>("bc-integration-api")
     .WithReference(bcIntegrationDb).WaitFor(bcIntegrationDb)
     .WithReference(serviceBus).WaitFor(serviceBus)
-    .WithEnvironment("Bc__BaseUrl", bcMock.GetEndpoint("http"))
+    // BC fake: paths of the assumed custom API pages (TODO(BC-Modell)) and a dummy token (allowed in Development only).
+    .WithEnvironment("Bc__BaseUrl", ReferenceExpression.Create($"{bcMock.GetEndpoint("http")}/"))
+    .WithEnvironment("Bc__CompanyId", "test-company")
+    .WithEnvironment("Bc__StoresPath", "test/stores/v1.0/companies({companyId})/stores")
+    .WithEnvironment("Bc__AbsencesPath", "test/absences/v1.0/companies({companyId})/employeeAbsences")
+    .WithEnvironment("Bc__Credential", "LocalFake")
     .WaitFor(bcMock)
     .WithHttpHealthCheck("/health/ready");
 

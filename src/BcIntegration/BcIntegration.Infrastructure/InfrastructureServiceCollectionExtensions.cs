@@ -10,6 +10,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using Shared.Authorization;
 using Shared.Infrastructure.Authorization;
 using Shared.Infrastructure.Messaging;
 using Shared.Infrastructure.Persistence;
@@ -41,6 +42,12 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IEventPublisher, OutboxEventPublisher>();
         services.AddScoped<IMasterDataStore, EfMasterDataStore>();
         services.AddScoped<IAbsenceSyncStore, EfAbsenceSyncStore>();
+        if (configuration[$"{BcClientOptions.ConfigurationSection}:Credential"] == TokenCredentialFactory.LocalFake
+            && !environment.IsDevelopment() && !environment.IsEnvironment("Testing"))
+        {
+            throw new InvalidOperationException("The local fake credential for BC is only allowed in Development/Testing.");
+        }
+
         services.AddBcClient(configuration);
         services.AddScoped<IBcMasterDataSource>(sp => sp.GetRequiredService<BcClient>());
         services.AddScoped<IBcAbsenceWriter, BcAbsenceWriter>();

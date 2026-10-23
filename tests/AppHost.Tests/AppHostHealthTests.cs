@@ -3,7 +3,14 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace AppHost.Tests;
 
-/// <summary>Starts the whole landscape once per test class (PostgreSQL, Service Bus emulator, WireMock, five services).</summary>
+/// <summary>All E2E tests share one landscape (PostgreSQL, Service Bus emulator, WireMock, five services).</summary>
+[CollectionDefinition(Name)]
+public sealed class AppHostGroup : ICollectionFixture<AppHostFixture>
+{
+    public const string Name = "AppHost";
+}
+
+/// <summary>Starts the whole landscape once.</summary>
 public sealed class AppHostFixture : IAsyncLifetime
 {
     private static readonly TimeSpan StartupTimeout = TimeSpan.FromMinutes(5);
@@ -33,7 +40,8 @@ public sealed class AppHostFixture : IAsyncLifetime
 /// E2E: after the AppHost start every service answers 200 on /health/ready. Needs Docker; the first run pulls images.
 /// </summary>
 [Trait("Category", "E2E")]
-public class AppHostHealthTests(AppHostFixture fixture) : IClassFixture<AppHostFixture>
+[Collection(AppHostGroup.Name)]
+public class AppHostHealthTests(AppHostFixture fixture)
 {
     private static readonly TimeSpan ReadyTimeout = TimeSpan.FromMinutes(4);
 

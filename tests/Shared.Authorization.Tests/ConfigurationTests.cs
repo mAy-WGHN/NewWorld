@@ -41,6 +41,8 @@ public class ConfigurationTests
     {
         TokenCredentialFactory.Create("ManagedIdentity").ShouldBeOfType<ManagedIdentityCredential>();
         TokenCredentialFactory.Create(null).ShouldBeOfType<DefaultAzureCredential>();
+        TokenCredentialFactory.Create(TokenCredentialFactory.LocalFake)
+            .GetToken(new Azure.Core.TokenRequestContext(["x/.default"]), CancellationToken.None).Token.ShouldBe("local-fake-token");
         Should.Throw<ArgumentException>(() => TokenCredentialFactory.Create("Password"));
     }
 }
