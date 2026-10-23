@@ -7,7 +7,7 @@ public partial class SourceRulesTests
     [GeneratedRegex(@"\b(DateTime|DateTimeOffset)\s*\.\s*(Now|UtcNow|Today)\b")]
     private static partial Regex ClockAccess();
 
-    [GeneratedRegex("\"(oid|roles|employee_id)\"")]
+    [GeneratedRegex("(Claim\\(|FindFirst\\(|FindAll\\(|HasClaim\\(|RequireClaim\\()\\s*\"(oid|roles|employee_id)\"")]
     private static partial Regex ProviderClaimLiteral();
 
     private static bool IsComment(string line) => line.TrimStart().StartsWith("//", StringComparison.Ordinal);
@@ -55,5 +55,6 @@ public partial class SourceRulesTests
         ProviderClaimLiteral().IsMatch("""new Claim("roles", r)""").ShouldBeTrue();
         ProviderClaimLiteral().IsMatch("""new Claim("employee_id", id)""").ShouldBeTrue();
         ProviderClaimLiteral().IsMatch("""new Claim("app:employee_id", id)""").ShouldBeFalse();
+        ProviderClaimLiteral().IsMatch("""b.ToTable("roles");""").ShouldBeFalse();
     }
 }

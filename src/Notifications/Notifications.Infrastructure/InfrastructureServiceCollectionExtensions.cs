@@ -1,10 +1,13 @@
+using Access.Contracts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Notifications.Infrastructure.Messaging;
 using Shared.Infrastructure.Authorization;
 using Shared.Infrastructure.Messaging;
 using Shared.Infrastructure.Persistence;
+using Shared.Messaging;
 
 namespace Notifications.Infrastructure;
 
@@ -26,6 +29,10 @@ public static class InfrastructureServiceCollectionExtensions
 
         services.AddMessaging<NotificationsDbContext>(configuration, environment);
         services.AddPermissionCachePersistence<NotificationsDbContext>();
+
+        // Permission copy from Access (decision 13). Subscription "notifications" on the PermissionsChanged topic.
+        services.AddMessageHandler<NotificationsDbContext, PermissionsChanged, PermissionsChangedConsumer>(
+            MessageSource.Subscription(MessagingNames.For(typeof(PermissionsChanged)), "notifications"));
         return services;
     }
 

@@ -1,10 +1,13 @@
+using Access.Contracts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Portal.Infrastructure.Messaging;
 using Shared.Infrastructure.Authorization;
 using Shared.Infrastructure.Messaging;
 using Shared.Infrastructure.Persistence;
+using Shared.Messaging;
 
 namespace Portal.Infrastructure;
 
@@ -26,6 +29,10 @@ public static class InfrastructureServiceCollectionExtensions
 
         services.AddMessaging<PortalDbContext>(configuration, environment);
         services.AddPermissionCachePersistence<PortalDbContext>();
+
+        // Permission copy from Access (decision 13). Subscription "portal" on the PermissionsChanged topic.
+        services.AddMessageHandler<PortalDbContext, PermissionsChanged, PermissionsChangedConsumer>(
+            MessageSource.Subscription(MessagingNames.For(typeof(PermissionsChanged)), "portal"));
         return services;
     }
 

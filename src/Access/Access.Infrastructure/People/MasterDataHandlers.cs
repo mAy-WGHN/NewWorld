@@ -1,3 +1,4 @@
+using Access.Core.Responsibilities;
 using Access.Infrastructure.Publishing;
 using BcIntegration.Contracts;
 using Microsoft.EntityFrameworkCore;
@@ -82,7 +83,7 @@ public sealed class EmployeeDataErasureRequestedHandler(AccessDbContext db, Reca
         await runner.RunAsync(async ct =>
         {
             await db.Assignments.Where(a => a.EmployeeId == id).ExecuteDeleteAsync(ct);
-            await db.Responsibilities.Where(r => r.ResponsibleEmployeeId == id || (r.TargetKind == "Employee" && r.TargetId == id)).ExecuteDeleteAsync(ct);
+            await db.Responsibilities.Where(r => r.ResponsibleEmployeeId == id || (r.TargetKind == nameof(ResponsibilityTarget.Employee) && r.TargetId == id)).ExecuteDeleteAsync(ct);
             await db.Publications.Where(p => p.EmployeeId == id).ExecuteDeleteAsync(ct);
             await db.People.Where(p => p.EmployeeId == id).ExecuteDeleteAsync(ct);
         }, cancellationToken);

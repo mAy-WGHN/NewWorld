@@ -1,3 +1,4 @@
+using Access.Contracts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -5,6 +6,8 @@ using Microsoft.Extensions.Hosting;
 using Shared.Infrastructure.Authorization;
 using Shared.Infrastructure.Messaging;
 using Shared.Infrastructure.Persistence;
+using Shared.Messaging;
+using Workforce.Infrastructure.Messaging;
 
 namespace Workforce.Infrastructure;
 
@@ -26,6 +29,10 @@ public static class InfrastructureServiceCollectionExtensions
 
         services.AddMessaging<WorkforceDbContext>(configuration, environment);
         services.AddPermissionCachePersistence<WorkforceDbContext>();
+
+        // Permission copy from Access (decision 13). Subscription "workforce" on the PermissionsChanged topic.
+        services.AddMessageHandler<WorkforceDbContext, PermissionsChanged, PermissionsChangedConsumer>(
+            MessageSource.Subscription(MessagingNames.For(typeof(PermissionsChanged)), "workforce"));
         return services;
     }
 
