@@ -1,0 +1,38 @@
+{
+  "Request": {
+    "Path": {
+      "Matchers": [
+        {
+          "Name": "ExactMatcher",
+          "Pattern": "/v2.0/companies(test-company)/employees"
+        }
+      ]
+    },
+    "Methods": [
+      "GET"
+    ],
+    "Headers": [
+      {
+        "Name": "Authorization",
+        "Matchers": [
+          {
+            "Name": "ExactMatcher",
+            "Pattern": "Bearer token-1"
+          }
+        ]
+      }
+    ]
+  },
+  "Response": {
+    "StatusCode": 401,
+    "Headers": {
+      "Content-Type": "application/json"
+    },
+    "BodyAsJson": {
+      "error": {
+        "code": "Authentication_InvalidCredentials",
+        "message": "Erika Mustermann: secret detail that must never be logged"
+      }
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "Request": {
+    "Path": {
+      "Matchers": [
+        {
+          "Name": "ExactMatcher",
+          "Pattern": "/test/absences/v1.0/companies(test-company)/employeeAbsences"
+        }
+      ]
+    },
+    "Methods": [
+      "POST"
+    ]
+  },
+  "Response": {
+    "StatusCode": 400,
+    "Headers": {
+      "Content-Type": "application/json"
+    },
+    "BodyAsJson": {
+      "error": {
+        "code": "Internal_ValidationError",
+        "message": "Erika Mustermann: secret detail that must never be logged"
+      }
+    }
+  }
+}

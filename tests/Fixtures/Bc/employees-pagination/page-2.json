@@ -1,0 +1,49 @@
+{
+  "Request": {
+    "Path": {
+      "Matchers": [
+        {
+          "Name": "ExactMatcher",
+          "Pattern": "/v2.0/companies(test-company)/employees"
+        }
+      ]
+    },
+    "Methods": [
+      "GET"
+    ],
+    "Params": [
+      {
+        "Name": "$skiptoken",
+        "Matchers": [
+          {
+            "Name": "WildcardMatcher",
+            "Pattern": "2"
+          }
+        ]
+      }
+    ]
+  },
+  "Response": {
+    "StatusCode": 200,
+    "Headers": {
+      "Content-Type": "application/json"
+    },
+    "BodyAsJson": {
+      "value": [
+        {
+          "id": "bbbbbbbb-0000-0000-0000-000000000002",
+          "number": "10043",
+          "displayName": "Max Mustermann",
+          "employmentDate": "2019-01-01",
+          "terminationDate": "2026-12-31",
+          "lastModifiedDateTime": "2026-12-31T22:05:00Z",
+          "storeNumber": "",
+          "positionCode": "FILIALLEITUNG",
+          "employmentType": "VOLLZEIT",
+          "contractedHoursPerWeek": 40
+        }
+      ]
+    }
+  },
+  "Priority": 1
+}

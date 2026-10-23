@@ -1,0 +1,24 @@
+{
+  "Request": {
+    "Path": {
+      "Matchers": [
+        {
+          "Name": "ExactMatcher",
+          "Pattern": "/v2.0/companies(test-company)/employees"
+        }
+      ]
+    },
+    "Methods": [
+      "GET"
+    ]
+  },
+  "Response": {
+    "StatusCode": 200,
+    "Headers": {
+      "Content-Type": "application/json"
+    },
+    "UseTransformer": true,
+    "Body": "{\"value\": [{\"id\": \"bbbbbbbb-0000-0000-0000-000000000001\", \"number\": \"10042\", \"displayName\": \"Erika Mustermann\", \"employmentDate\": \"2024-02-29\", \"terminationDate\": \"0001-01-01\", \"lastModifiedDateTime\": \"2026-12-31T22:02:00Z\", \"storeNumber\": \"F017\", \"positionCode\": \"VERKAUF\", \"employmentType\": \"TEILZEIT\", \"contractedHoursPerWeek\": 30.5}], \"@odata.nextLink\": \"{{request.origin}}/v2.0/companies(test-company)/employees?$skiptoken=2\"}"
+  },
+  "Priority": 2
+}

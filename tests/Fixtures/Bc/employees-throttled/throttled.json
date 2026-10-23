@@ -1,0 +1,30 @@
+{
+  "Request": {
+    "Path": {
+      "Matchers": [
+        {
+          "Name": "ExactMatcher",
+          "Pattern": "/v2.0/companies(test-company)/employees"
+        }
+      ]
+    },
+    "Methods": [
+      "GET"
+    ]
+  },
+  "Response": {
+    "StatusCode": 429,
+    "Headers": {
+      "Content-Type": "application/json",
+      "Retry-After": "1"
+    },
+    "BodyAsJson": {
+      "error": {
+        "code": "Application_TooManyRequests",
+        "message": "Erika Mustermann: secret detail that must never be logged"
+      }
+    }
+  },
+  "Scenario": "throttle",
+  "SetStateTo": "released"
+}
