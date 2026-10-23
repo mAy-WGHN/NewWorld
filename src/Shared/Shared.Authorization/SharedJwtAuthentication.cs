@@ -24,6 +24,8 @@ public static class SharedJwtAuthentication
             {
                 options.Authority = authority;
                 options.Audience = audience;
+                // Local landscape only: Access runs on plain http there. Production keeps the default (https).
+                options.RequireHttpsMetadata = section.GetValue("RequireHttpsMetadata", true);
                 options.MapInboundClaims = false; // keep provider claim names (roles, oid) for AppClaimsTransformation
                 options.TokenValidationParameters.ValidateIssuer = true;
                 options.TokenValidationParameters.ValidateAudience = true;

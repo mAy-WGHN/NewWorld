@@ -1,4 +1,5 @@
 using Access.Contracts;
+using BcIntegration.Contracts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -33,6 +34,15 @@ public static class InfrastructureServiceCollectionExtensions
         // Permission copy from Access (decision 13). Subscription "portal" on the PermissionsChanged topic.
         services.AddMessageHandler<PortalDbContext, PermissionsChanged, PermissionsChangedConsumer>(
             MessageSource.Subscription(MessagingNames.For(typeof(PermissionsChanged)), "portal"));
+
+        // Copies of employees and stores (read-only) and erasure: subscriptions "portal". The Portal API has no business functions yet;
+        // these copies prove the event distribution to a third consumer.
+        services.AddMessageHandler<PortalDbContext, EmployeeChanged, EmployeeChangedHandler>(
+            MessageSource.Subscription(MessagingNames.For(typeof(EmployeeChanged)), "portal"));
+        services.AddMessageHandler<PortalDbContext, StoreChanged, StoreChangedHandler>(
+            MessageSource.Subscription(MessagingNames.For(typeof(StoreChanged)), "portal"));
+        services.AddMessageHandler<PortalDbContext, EmployeeDataErasureRequested, EmployeeDataErasureRequestedHandler>(
+            MessageSource.Subscription(MessagingNames.For(typeof(EmployeeDataErasureRequested)), "portal"));
         return services;
     }
 

@@ -17,7 +17,7 @@ public static class AccessAuthentication
     /// (configuration section <c>Authentication</c>, optional). A policy scheme picks by the token's issuer, so neither kind can
     /// pass as the other: a token from the wrong issuer fails validation in the chosen scheme.
     /// </summary>
-    public static IServiceCollection AddAccessAuthentication(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddAccessAuthentication(this IServiceCollection services, IConfiguration configuration, bool localServices = false)
     {
         var entra = configuration.GetSection(SharedJwtAuthentication.ConfigurationSection).Exists();
         if (entra)
@@ -25,10 +25,21 @@ public static class AccessAuthentication
             services.AddSharedJwtAuthentication(configuration);
         }
 
-        services.AddAuthentication(SelectorScheme)
+        var authentication = services.AddAuthentication(SelectorScheme);
+        if (localServices)
+        {
+            authentication.AddLocalServiceScheme();
+        }
+
+        authentication
             .AddPolicyScheme(SelectorScheme, SelectorScheme, options => options.ForwardDefaultSelector = context =>
             {
                 var header = context.Request.Headers.Authorization.ToString();
+                if (localServices && LocalServiceAuthentication.HasStaticToken(header))
+                {
+                    return LocalServiceAuthentication.SchemeName;
+                }
+
                 if (entra && header.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
                     && new JsonWebTokenHandler().CanReadToken(header[7..])
                     && new JsonWebTokenHandler().ReadJsonWebToken(header[7..]).Issuer != context.RequestServices.GetRequiredService<AccessTokenIssuer>().Issuer)

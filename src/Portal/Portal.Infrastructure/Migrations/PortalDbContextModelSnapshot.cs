@@ -23,6 +23,62 @@ namespace Portal.Infrastructure.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Portal.Infrastructure.Messaging.PersonRecord", b =>
+                {
+                    b.Property<Guid>("EmployeeId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("employee_id");
+
+                    b.Property<DateOnly?>("ExitDate")
+                        .HasColumnType("date")
+                        .HasColumnName("exit_date");
+
+                    b.Property<Guid?>("HomeStoreId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("home_store_id");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name");
+
+                    b.HasKey("EmployeeId")
+                        .HasName("pk_people");
+
+                    b.HasIndex("HomeStoreId")
+                        .HasDatabaseName("ix_people_home_store_id");
+
+                    b.ToTable("people", "portal");
+                });
+
+            modelBuilder.Entity("Portal.Infrastructure.Messaging.StoreRecord", b =>
+                {
+                    b.Property<Guid>("StoreId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("store_id");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name");
+
+                    b.Property<string>("StoreNumber")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("store_number");
+
+                    b.HasKey("StoreId")
+                        .HasName("pk_stores");
+
+                    b.ToTable("stores", "portal");
+                });
+
             modelBuilder.Entity("Shared.Infrastructure.Authorization.PermissionSnapshotRecord", b =>
                 {
                     b.Property<Guid>("EmployeeId")

@@ -20,6 +20,11 @@ if (builder.Configuration.GetSection(SharedJwtAuthentication.ConfigurationSectio
 {
     builder.Services.AddSharedJwtAuthentication(builder.Configuration);
 }
+else if (LocalServiceAuthentication.IsEnabled(builder.Configuration, builder.Environment))
+{
+    // Local landscape: the static fake token counts as a calling service (stands in for Entra service tokens).
+    builder.Services.AddAuthentication(LocalServiceAuthentication.SchemeName).AddLocalServiceScheme();
+}
 else
 {
     builder.Services.AddAuthentication();
