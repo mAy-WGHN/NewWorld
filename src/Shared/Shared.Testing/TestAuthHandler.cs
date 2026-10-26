@@ -3,6 +3,7 @@ using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Shared.Authorization;
 
 namespace Shared.Testing;
 
@@ -10,7 +11,7 @@ public sealed class TestAuthOptions : AuthenticationSchemeOptions;
 
 /// <summary>
 /// Replaces real tokens in tests. Per request from headers: a person (<c>employee_id</c> claim as in tokens issued by Access)
-/// or a calling service (<c>roles</c> claim as in Entra service tokens). The real claims mapping runs; privileges are set in
+/// or a calling service (service role claims as the service authentication sets them). The real claims mapping runs; privileges are set in
 /// the permission cache (<see cref="TestAuthentication.Grant"/>). No header → anonymous.
 /// </summary>
 public sealed class TestAuthHandler(
@@ -33,7 +34,7 @@ public sealed class TestAuthHandler(
         if (Request.Headers.TryGetValue(ServiceRolesHeader, out var roles))
         {
             claims.AddRange(roles.ToString().Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                .Select(r => new Claim("roles", r)));
+                .Select(r => new Claim(AppClaimTypes.ServiceRole, r)));
         }
 
         if (claims.Count == 0)

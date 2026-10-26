@@ -1,7 +1,7 @@
 # NewWorld
 
 Backend des Mitarbeiterportals: neue Dienste nach dem Umsetzungsplan (`src/`) und die bisherigen Dienste als Referenz (`Archiv/`).
-Entwicklerdoku: `docs/architektur.md`; Entra-Einrichtung: `docs/entra-setup.md`. Regeln und Entscheidungen: `CLAUDE.md`; Plan: `Umsetzungsplan Mitarbeiterportal – Backend-Architektur.md`.
+Entwicklerdoku: `docs/architektur.md`; Dienst-zu-Dienst-Authentifizierung: `docs/service-auth.md`. Regeln und Entscheidungen: `CLAUDE.md`; Plan: `Umsetzungsplan Mitarbeiterportal – Backend-Architektur.md`.
 
 ## Struktur
 
@@ -19,8 +19,8 @@ src/
     <Dienst>.Api | .Core | .Infrastructure | .Contracts
 tests/                Unit-, Integrations-, Architektur- und E2E-Tests
 Archiv/               Bestandsdienste (BC-Anbindung, Rollen-Rechte, Benachrichtigungen, Portal, hr-tool-API), unverändert
-docs/                 Phasenberichte, Architektur, Entra-Einrichtungspaket
-infra/                Service-Bus-Topologie (Bicep + Emulator), Entra-Skripte (nicht ausgeführt)
+docs/                 Phasenberichte, Architektur, Dienst-zu-Dienst-Authentifizierung
+infra/                Service-Bus-Topologie (Bicep + Emulator)
 ```
 
 ## Neue Dienste (`src/`)

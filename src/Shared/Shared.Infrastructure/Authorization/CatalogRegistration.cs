@@ -25,7 +25,7 @@ public enum RegistrationResult
 }
 
 /// <summary>
-/// Registers the application's privileges with Access (service-to-service, app role <c>Access.Catalog.Register</c>) at start and keeps
+/// Registers the application's privileges with Access (service-to-service, service role <c>Access.Catalog.Register</c>) at start and keeps
 /// trying until Access answers, so every service starts without Access (last known state). Only privileges that are registered
 /// take effect in the ACL. Logs status and key counts, never content.
 /// </summary>
@@ -52,7 +52,7 @@ public sealed partial class CatalogRegistrationService(
                 _ => RegistrationResult.Retry,
             };
         }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException && !cancellationToken.IsCancellationRequested)
+        catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException || ex is TaskCanceledException && !cancellationToken.IsCancellationRequested)
         {
             return RegistrationResult.Retry;
         }
@@ -92,24 +92,15 @@ public sealed partial class CatalogRegistrationService(
 public static class CatalogRegistrationExtensions
 {
     /// <summary>
-    /// Registers <paramref name="privileges"/> of <paramref name="appKey"/> with Access in the background. Configuration:
-    /// <c>Access:BaseUrl</c>, <c>Access:Scope</c>, <c>Access:Credential</c> (credential kind).
+    /// Registers <paramref name="privileges"/> of <paramref name="appKey"/> with Access in the background. The call carries a token signed with
+    /// this service's key (<c>ServiceAuth</c> section); Access must grant it the role <c>Access.Catalog.Register</c>. Configuration: <c>Access:BaseUrl</c>.
     /// </summary>
     public static IServiceCollection AddCatalogRegistration(
-        this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment, string appKey, IReadOnlyList<CatalogPrivilege> privileges)
+        this IServiceCollection services, IConfiguration configuration, string appKey, IReadOnlyList<CatalogPrivilege> privileges)
     {
-        var credentialKind = configuration["Access:Credential"];
-        if (credentialKind == TokenCredentialFactory.LocalFake && !environment.IsDevelopment() && !environment.IsEnvironment("Testing"))
-        {
-            throw new InvalidOperationException("The local fake credential is only allowed in Development/Testing.");
-        }
-
-        services.AddKeyedSingleton<TokenCredential>("access", (_, _) => TokenCredentialFactory.Create(credentialKind));
+        services.AddServiceIdentity(configuration);
         services.AddHttpClient("access-catalog", http => http.BaseAddress = new Uri(configuration["Access:BaseUrl"] ?? "http://access-api"))
-            .AddHttpMessageHandler(sp => new TokenCredentialHandler(
-                sp.GetRequiredKeyedService<TokenCredential>("access"),
-                configuration["Access:Scope"] ?? "api://access/.default",
-                sp.GetRequiredService<TimeProvider>()));
+            .AddServiceToken(ServiceNames.Access);
         services.AddHostedService(sp => new CatalogRegistrationService(
             sp.GetRequiredService<IHttpClientFactory>().CreateClient("access-catalog"), appKey, privileges, sp.GetRequiredService<TimeProvider>(),
             TimeSpan.FromSeconds(30), sp.GetRequiredService<ILogger<CatalogRegistrationService>>()));

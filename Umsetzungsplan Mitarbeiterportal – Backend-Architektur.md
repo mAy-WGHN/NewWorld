@@ -2,6 +2,8 @@
 
 Oct 20, 2026 · @Mehmet
 
+> **Hinweis (Stand 2026-10-26):** Dieser Plan ist der ursprüngliche Stand und bewusst unverändert. Einzelne Festlegungen wurden danach vom Projektverantwortlichen anders entschieden. Verbindlich ist die Root-`CLAUDE.md`, Abschnitt „Entscheidungen nach Phase 0“. Betroffen sind vor allem: **Autorisierung** (kein Entra für Personen, feingranulares ACL im Access-Dienst statt grober App Roles; Entscheidungen 3, 5, 13), **Dienst-zu-Dienst-Authentifizierung** (Schlüsselpaar je Dienst mit signierten Kurzzeit-Tokens statt Managed Identity und App Roles; Entscheidung 18, `docs/service-auth.md`), **Messaging** (kein Wolverine, eigene Outbox/Inbox auf `Azure.Messaging.ServiceBus`; Entscheidungen 8 und 11), **Zielstruktur** (fünfte Shared-Bibliothek `Shared.Infrastructure`, Bestandsdienste unter `Archiv/`; Entscheidungen 10 und 11), **Notification Service** (Fachlogik zu `report.created` bleibt im Archiv; Entscheidungen 6 und 14) und **Workforce** (Basis ist `hr-tool-API`, Feiertage und Genehmigung nach Entscheidung 17). Wo Plan und Entscheidung sich widersprechen, gilt die Entscheidung.
+
 ## Auftrag und Kontext
 
 Du baust das Backend eines Mitarbeiterportals, eines HR-Tools und der zugehörigen Integrationsdienste auf. Ziel dieses Plans ist ein lauffähiger, getesteter vertikaler Durchstich: Eine Abwesenheit wird erfasst, nach Business Central (BC) synchronisiert und die zuständige Filialleitung wird benachrichtigt. Alles, was dafür nötig ist, wird so gebaut, dass weitere Fachbereiche später nach demselben Muster ergänzt werden können.

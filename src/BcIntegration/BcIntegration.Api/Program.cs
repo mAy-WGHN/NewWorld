@@ -14,18 +14,10 @@ builder.Services.AddSharedAuthorization(options =>
     }
 });
 
-// Authority/audience/tenant come from configuration only. Without them (local runs, tests) no JWT scheme is added;
-// tests register the test auth handler instead.
-if (builder.Configuration.GetSection(SharedJwtAuthentication.ConfigurationSection).Exists())
-{
-    builder.Services.AddSharedJwtAuthentication(builder.Configuration);
-}
-else if (LocalServiceAuthentication.IsEnabled(builder.Configuration, builder.Environment))
-{
-    // Local landscape: the static fake token counts as a calling service (stands in for Entra service tokens).
-    builder.Services.AddAuthentication(LocalServiceAuthentication.SchemeName).AddLocalServiceScheme();
-}
-else
+// Only other services call this API (no frontends): tokens signed with the caller's own key, accepted peers in ServiceAuth:Peers.
+// Without configured peers (tests register the test auth handler instead) no service can authenticate.
+builder.Services.AddServiceAuthentication(builder.Configuration);
+if (!ServiceAuthenticationExtensions.AcceptsServices(builder.Configuration))
 {
     builder.Services.AddAuthentication();
 }

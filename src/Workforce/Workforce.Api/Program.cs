@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Workforce.Api;
 using Workforce.Infrastructure;
 using Shared.Authorization;
@@ -14,7 +15,7 @@ builder.Services.AddSharedAuthorization(options =>
     }
 });
 
-// Authority/audience/tenant come from configuration only. Without them (local runs, tests) no JWT scheme is added;
+// Authority (the address of Access) and audience come from configuration only. Without them (local runs, tests) no JWT scheme is added;
 // tests register the test auth handler instead.
 if (builder.Configuration.GetSection(SharedJwtAuthentication.ConfigurationSection).Exists())
 {
@@ -24,6 +25,11 @@ else
 {
     builder.Services.AddAuthentication();
 }
+
+// Other services (later the HR API) may call the internal endpoints with tokens signed by their own key (ServiceAuth:Peers).
+builder.Services.AddServiceAuthentication(
+    builder.Configuration,
+    builder.Configuration.GetSection(SharedJwtAuthentication.ConfigurationSection).Exists() ? JwtBearerDefaults.AuthenticationScheme : null);
 
 var app = builder.Build();
 

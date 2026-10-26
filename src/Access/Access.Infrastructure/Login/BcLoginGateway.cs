@@ -3,7 +3,7 @@ using Access.Core.Login;
 
 namespace Access.Infrastructure.Login;
 
-/// <summary>BC Integration client (the only way to BC): asks it to check personnel number and PIN. Needs the app role <c>BcIntegration.Pin.Verify</c>.</summary>
+/// <summary>BC Integration client (the only way to BC): asks it to check personnel number and PIN. Needs the service role <c>BcIntegration.Pin.Verify</c>.</summary>
 public sealed class BcLoginGateway(HttpClient http) : IBcLoginGateway
 {
     public async Task<BcPinResult> VerifyAsync(string personnelNumber, string pin, CancellationToken cancellationToken)

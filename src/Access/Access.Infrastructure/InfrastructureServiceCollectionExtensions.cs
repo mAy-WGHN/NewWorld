@@ -7,7 +7,6 @@ using Access.Infrastructure.Login;
 using Access.Infrastructure.Messaging;
 using Access.Infrastructure.People;
 using Access.Infrastructure.Publishing;
-using Azure.Core;
 using BcIntegration.Contracts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -92,19 +91,10 @@ public static class InfrastructureServiceCollectionExtensions
             sp.GetRequiredService<IRefreshTokenStore>(), sp.GetRequiredService<IPersonDirectory>(), sp.GetRequiredService<TimeProvider>(),
             login, sp.GetRequiredService<AccessOptions>().Zone));
 
-        var credentialKind = configuration["BcIntegration:Credential"];
-        if (credentialKind == TokenCredentialFactory.LocalFake && !local)
-        {
-            throw new InvalidOperationException("The local fake credential is only allowed in Development/Testing.");
-        }
-
-        services.AddKeyedSingleton<TokenCredential>("bc-integration", (_, _) => TokenCredentialFactory.Create(credentialKind));
+        // The PIN is checked through BC Integration (the only BC access); the call carries a token signed with this service's key.
         services.AddHttpClient<IBcLoginGateway, BcLoginGateway>((sp, http) =>
                 http.BaseAddress = new Uri(configuration["BcIntegration:BaseUrl"] ?? "http://bc-integration-api"))
-            .AddHttpMessageHandler(sp => new TokenCredentialHandler(
-                sp.GetRequiredKeyedService<TokenCredential>("bc-integration"),
-                configuration["BcIntegration:Scope"] ?? "api://bc-integration/.default",
-                sp.GetRequiredService<TimeProvider>()));
+            .AddServiceToken(ServiceNames.BcIntegration);
         return services;
     }
 

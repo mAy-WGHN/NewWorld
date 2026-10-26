@@ -8,7 +8,7 @@ using Shared.Testing;
 
 namespace BcIntegration.Api.Tests;
 
-/// <summary>The real API against its own PostgreSQL database, with the test auth handler instead of Entra.</summary>
+/// <summary>The real API against its own PostgreSQL database, with the test auth handler instead of service tokens.</summary>
 public sealed class BcIntegrationApiFactory(string connectionString, Action<IServiceCollection>? configure = null) : WebApplicationFactory<ApiMarker>
 {
     protected override void ConfigureWebHost(IWebHostBuilder builder)

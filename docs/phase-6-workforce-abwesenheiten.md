@@ -25,7 +25,7 @@ Stand: 2026-10-23. Gebaut: `Workforce.Core/Absences` (Regeln, ohne Infrastruktur
 | `GET /api/approvals/pending` | `absence:approve` |
 | `POST /api/absences/{id}/approve` / `reject` | `absence:approve` auf die Person **und** Mitglied der Kette |
 | `PUT /api/employees/{id}/vacation-entitlements/{year}` | `absence:manage-entitlement` |
-| `GET /internal/absences/{id}` | App Role `Workforce.AbsenceDetails.Read` |
+| `GET /internal/absences/{id}` | Service Role `Workforce.AbsenceDetails.Read` |
 
 Fehlerabbildung: NotFound/UnknownPerson 404, InvalidPeriod/AfterExit/NoEntitlement/InsufficientBalance 422, Overlap/NoApprover/InvalidState/AlreadyStarted 409, NotAllowed 403.
 
@@ -38,4 +38,4 @@ Fehlerabbildung: NotFound/UnknownPerson 404, InvalidPeriod/AfterExit/NoEntitleme
 6. Empfänger der Krankmeldungs-Benachrichtigung = Genehmiger des Themas `absence.approval`.
 7. Das Recht `absence:read` entfiel zugunsten von `read-availability`/`read-reason` (eine Zwischenstufe würde über den Status „gemeldet“ den Typ verraten).
 8. Rolle „Public User“ braucht die Own-Rechte per Verwaltung in Access.
-9. Lokaler AppHost-Lauf ohne Entra-Service-Auth.
+9. Lokaler AppHost-Lauf (damals mit Fake-Token, seit Entscheidung 18 mit signierten Tokens).

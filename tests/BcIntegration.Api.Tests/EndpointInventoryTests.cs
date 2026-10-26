@@ -5,7 +5,7 @@ using Shared.Testing;
 
 namespace BcIntegration.Api.Tests;
 
-/// <summary>BC Integration has no endpoints for frontends: everything except health requires a service app role.</summary>
+/// <summary>BC Integration has no endpoints for frontends: everything except health requires a service role.</summary>
 public sealed class EndpointInventoryTests(PostgresFixture postgres) : IClassFixture<PostgresFixture>
 {
     [Fact]

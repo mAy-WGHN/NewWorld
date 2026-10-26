@@ -8,7 +8,7 @@ builder.AddServiceDefaults();
 builder.Services.AddNotificationsInfrastructure(builder.Configuration, builder.Environment);
 builder.Services.AddSharedAuthorization();
 
-// Authority/audience/tenant come from configuration only. Without them (local runs, tests) no JWT scheme is added;
+// Authority (the address of Access) and audience come from configuration only. Without them (local runs, tests) no JWT scheme is added;
 // tests register the test auth handler instead.
 if (builder.Configuration.GetSection(SharedJwtAuthentication.ConfigurationSection).Exists())
 {

@@ -17,8 +17,6 @@
     <!-- Messaging -->
     <PackageVersion Include="Azure.Messaging.ServiceBus" Version="7.21.0" />
     <PackageVersion Include="Azure.Identity" Version="1.21.0" />
-    <!-- Auth -->
-    <PackageVersion Include="Microsoft.Identity.Web" Version="4.16.1" />
     <!-- Observability / resilience (ServiceDefaults) -->
     <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.20.1" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.20.1" />

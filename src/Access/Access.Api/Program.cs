@@ -16,8 +16,8 @@ builder.Services.AddSharedAuthorization(options =>
 });
 builder.Services.AddScoped<IAuthorizationServiceAdapter, AuthorizationServiceAdapter>();
 
-// People sign in through Access (own tokens, own key); services use Entra tokens (Authentication section, optional).
-builder.Services.AddAccessAuthentication(builder.Configuration, LocalServiceAuthentication.IsEnabled(builder.Configuration, builder.Environment));
+// People sign in through Access (own tokens, own key); other services call with tokens signed by their own key (ServiceAuth section).
+builder.Services.AddAccessAuthentication(builder.Configuration);
 
 var app = builder.Build();
 

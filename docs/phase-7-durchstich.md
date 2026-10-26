@@ -2,6 +2,8 @@
 
 Stand: 2026-10-23. Build ohne Warnungen; gesamte Solution grün (inkl. drei E2E-Tests, BC-Sandbox übersprungen). Vollständiger Testlauf lokal ca. 1,5 Minuten, die E2E-Tests (ganze Landschaft über Aspire) rund 20 Sekunden nach dem Start.
 
+> **Nachtrag 2026-10-26 (Entscheidung 18):** Die Dienst-Authentifizierung läuft nicht mehr über Entra, sondern mit einem Schlüsselpaar je Dienst und signierten Kurzzeit-Tokens (`docs/service-auth.md`). Entra-Paket und -Skripte (`docs/entra-setup.md`, `infra/entra/`) sind entfallen; die Aussagen zu Fake-Token, Entra und nicht ausgeführten Skripten unten gelten nicht mehr. Der Bicep-Text für den Service Bus wurde inzwischen mit `az bicep build` ohne Fehler und Warnungen kompiliert.
+
 ## Gebaut
 - **Portal-Gerüst:** Kopien von Mitarbeitenden und Filialen (`EmployeeChanged`, `StoreChanged`), Löschung bei `EmployeeDataErasureRequested`, `EmployeeAvailabilityChanged` wird nur bestätigt. Beweist die Verteilung an einen dritten Konsumenten.
 - **Service-Bus-Topologie:** `infra/servicebus.bicep` (Topics, Queues, Subscriptions mit Zweck-Kommentar und SQL-Filter, Rollen je Managed Identity) und `infra/servicebus-emulator.json`; Vergleichstest in `tests/Architecture.Tests`. Der Bicep-Text konnte ohne Azure-CLI nicht kompiliert werden (nur durch den Test strukturell geprüft).

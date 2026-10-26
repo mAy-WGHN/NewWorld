@@ -51,7 +51,7 @@ public static class InfrastructureServiceCollectionExtensions
         // Register the privileges of this API with Access (only if Access is configured).
         if (configuration["Access:BaseUrl"] is { Length: > 0 })
         {
-            services.AddCatalogRegistration(configuration, environment, AbsencePrivileges.AppKey, [.. AbsencePrivileges.Catalog.Select(p => new CatalogPrivilege(p.Key, p.Scopable))]);
+            services.AddCatalogRegistration(configuration, AbsencePrivileges.AppKey, [.. AbsencePrivileges.Catalog.Select(p => new CatalogPrivilege(p.Key, p.Scopable))]);
         }
 
         // Copies and results: subscriptions "workforce" on the topics (purpose: employee/store copies, approvers, BC sync status, erasure).

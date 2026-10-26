@@ -19,19 +19,25 @@ public class ConfigurationTests
     }
 
     [Fact]
-    public void Jwt_authentication_requires_authority_or_tenant()
+    public void Jwt_authentication_requires_the_address_of_access_as_authority()
     {
-        var config = Config(("Authentication:Audience", "api://portal"));
+        var config = Config(("Authentication:Audience", "newworld"));
 
         Should.Throw<InvalidOperationException>(() => new ServiceCollection().AddSharedJwtAuthentication(config));
     }
 
-    [Theory]
-    [InlineData("Authentication:Authority", "https://issuer.example/v2.0")]
-    [InlineData("Authentication:TenantId", "00000000-0000-0000-0000-000000000001")]
-    public void Jwt_authentication_accepts_authority_or_tenant(string key, string value)
+    [Fact]
+    public void A_tenant_id_is_no_longer_a_way_to_configure_authentication()
     {
-        var config = Config(("Authentication:Audience", "api://portal"), (key, value));
+        var config = Config(("Authentication:Audience", "newworld"), ("Authentication:TenantId", "00000000-0000-0000-0000-000000000001"));
+
+        Should.Throw<InvalidOperationException>(() => new ServiceCollection().AddSharedJwtAuthentication(config));
+    }
+
+    [Fact]
+    public void Jwt_authentication_accepts_authority_and_audience()
+    {
+        var config = Config(("Authentication:Audience", "newworld"), ("Authentication:Authority", "https://access.example"));
 
         Should.NotThrow(() => new ServiceCollection().AddSharedJwtAuthentication(config));
     }

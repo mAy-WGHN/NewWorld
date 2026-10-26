@@ -42,7 +42,7 @@ public static class InfrastructureServiceCollectionExtensions
         // Register the privileges of this API with Access (only if Access is configured; tests and local runs without Access skip it).
         if (configuration["Access:BaseUrl"] is { Length: > 0 })
         {
-            services.AddCatalogRegistration(configuration, environment, NotificationPrivileges.AppKey, [.. NotificationPrivileges.All.Select(k => new CatalogPrivilege(k, false))]);
+            services.AddCatalogRegistration(configuration, NotificationPrivileges.AppKey, [.. NotificationPrivileges.All.Select(k => new CatalogPrivilege(k, false))]);
         }
 
         var options = configuration.GetSection(NotificationOptions.ConfigurationSection).Get<NotificationOptions>() ?? new NotificationOptions();

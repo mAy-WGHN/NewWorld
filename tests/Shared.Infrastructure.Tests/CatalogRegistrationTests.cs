@@ -49,6 +49,23 @@ public class CatalogRegistrationTests
     public async Task Temporary_problems_are_retried_later(HttpStatusCode status) =>
         (await Service(new ScriptedHandler(status), new FakeTimeProvider()).RegisterOnceAsync(CancellationToken.None)).ShouldBe(RegistrationResult.Retry);
 
+    [Fact]
+    public async Task A_service_token_that_cannot_be_created_is_retried_instead_of_crashing_the_service()
+    {
+        // e.g. ServiceAuth:PrivateKey not configured yet: the token handler throws InvalidOperationException.
+        using var http = new HttpClient(new ThrowingHandler()) { BaseAddress = new Uri("http://access") };
+        var service = new CatalogRegistrationService(http, "notifications", Privileges, new FakeTimeProvider(), TimeSpan.FromSeconds(30),
+            NullLogger<CatalogRegistrationService>.Instance);
+
+        (await service.RegisterOnceAsync(CancellationToken.None)).ShouldBe(RegistrationResult.Retry);
+    }
+
+    private sealed class ThrowingHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+            throw new InvalidOperationException("ServiceAuth:PrivateKey is not configured.");
+    }
+
     [Theory]
     [InlineData(HttpStatusCode.Conflict)]
     [InlineData(HttpStatusCode.UnprocessableEntity)]

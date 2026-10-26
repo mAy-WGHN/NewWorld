@@ -25,7 +25,7 @@ public static class TestAuthentication
         return request;
     }
 
-    /// <summary>Sends the request as a service with the given app roles.</summary>
+    /// <summary>Sends the request as a service with the given service roles.</summary>
     public static HttpRequestMessage AsService(this HttpRequestMessage request, params string[] roles)
     {
         request.Headers.Add(TestAuthHandler.ServiceRolesHeader, string.Join(',', roles));

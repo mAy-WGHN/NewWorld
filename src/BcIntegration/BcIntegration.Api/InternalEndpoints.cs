@@ -5,7 +5,7 @@ using Shared.Authorization;
 
 namespace BcIntegration.Api;
 
-/// <summary>Internal endpoints. Each one requires its own service app role; there are no endpoints for frontends.</summary>
+/// <summary>Internal endpoints. Each one requires its own service role; there are no endpoints for frontends.</summary>
 public static class InternalEndpoints
 {
     private const int MaxPinLength = 64;

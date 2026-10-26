@@ -4,7 +4,10 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Shared.Authorization;
 
-/// <summary>Standards-based JWT validation. Authority, audience and tenant come from configuration only.</summary>
+/// <summary>
+/// Validation of the person tokens issued by Access (discovery/JWKS at the Access address). Authority and audience come from
+/// configuration only.
+/// </summary>
 public static class SharedJwtAuthentication
 {
     public const string ConfigurationSection = "Authentication";
@@ -12,7 +15,12 @@ public static class SharedJwtAuthentication
     public static IServiceCollection AddSharedJwtAuthentication(this IServiceCollection services, IConfiguration configuration)
     {
         var section = configuration.GetSection(ConfigurationSection);
-        var authority = Resolve(section);
+        var authority = section["Authority"];
+        if (string.IsNullOrWhiteSpace(authority))
+        {
+            throw new InvalidOperationException($"{ConfigurationSection}:Authority (the address of Access) is not configured.");
+        }
+
         var audience = section["Audience"];
         if (string.IsNullOrWhiteSpace(audience))
         {
@@ -26,28 +34,11 @@ public static class SharedJwtAuthentication
                 options.Audience = audience;
                 // Local landscape only: Access runs on plain http there. Production keeps the default (https).
                 options.RequireHttpsMetadata = section.GetValue("RequireHttpsMetadata", true);
-                options.MapInboundClaims = false; // keep provider claim names (roles, oid) for AppClaimsTransformation
+                options.MapInboundClaims = false; // keep claim names (employee_id) for AppClaimsTransformation
                 options.TokenValidationParameters.ValidateIssuer = true;
                 options.TokenValidationParameters.ValidateAudience = true;
                 options.TokenValidationParameters.ValidateLifetime = true;
             });
         return services;
-    }
-
-    private static string Resolve(IConfigurationSection section)
-    {
-        var authority = section["Authority"];
-        if (!string.IsNullOrWhiteSpace(authority))
-        {
-            return authority;
-        }
-
-        var tenant = section["TenantId"];
-        if (!string.IsNullOrWhiteSpace(tenant))
-        {
-            return $"https://login.microsoftonline.com/{tenant}/v2.0";
-        }
-
-        throw new InvalidOperationException($"{ConfigurationSection}:Authority or {ConfigurationSection}:TenantId is not configured.");
     }
 }

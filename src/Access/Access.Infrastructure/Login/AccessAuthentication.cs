@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.IdentityModel.JsonWebTokens;
 using Shared.Authorization;
 
 namespace Access.Infrastructure.Login;
@@ -13,42 +12,26 @@ public static class AccessAuthentication
     public const string OwnTokenScheme = "AccessToken";
 
     /// <summary>
-    /// Two kinds of callers: people with tokens issued by Access itself (validated with its own key) and services with Entra tokens
-    /// (configuration section <c>Authentication</c>, optional). A policy scheme picks by the token's issuer, so neither kind can
-    /// pass as the other: a token from the wrong issuer fails validation in the chosen scheme.
+    /// Two kinds of callers: people with tokens issued by Access itself (validated with its own key) and other services with
+    /// tokens signed by their own key (<c>ServiceAuth:Peers</c>, optional). A policy scheme picks by the token's issuer prefix
+    /// (<see cref="ServiceTokens.IssuerPrefix"/>), so neither kind can pass as the other: a token in the wrong scheme fails validation there.
     /// </summary>
-    public static IServiceCollection AddAccessAuthentication(this IServiceCollection services, IConfiguration configuration, bool localServices = false)
+    public static IServiceCollection AddAccessAuthentication(this IServiceCollection services, IConfiguration configuration)
     {
-        var entra = configuration.GetSection(SharedJwtAuthentication.ConfigurationSection).Exists();
-        if (entra)
-        {
-            services.AddSharedJwtAuthentication(configuration);
-        }
+        services.AddServiceIdentity(configuration);
+        var acceptsServices = ServiceAuthenticationExtensions.AcceptsServices(configuration);
 
         var authentication = services.AddAuthentication(SelectorScheme);
-        if (localServices)
+        if (acceptsServices)
         {
-            authentication.AddLocalServiceScheme();
+            authentication.AddServiceKeyScheme();
         }
 
         authentication
             .AddPolicyScheme(SelectorScheme, SelectorScheme, options => options.ForwardDefaultSelector = context =>
-            {
-                var header = context.Request.Headers.Authorization.ToString();
-                if (localServices && LocalServiceAuthentication.HasStaticToken(header))
-                {
-                    return LocalServiceAuthentication.SchemeName;
-                }
-
-                if (entra && header.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
-                    && new JsonWebTokenHandler().CanReadToken(header[7..])
-                    && new JsonWebTokenHandler().ReadJsonWebToken(header[7..]).Issuer != context.RequestServices.GetRequiredService<AccessTokenIssuer>().Issuer)
-                {
-                    return JwtBearerDefaults.AuthenticationScheme;
-                }
-
-                return OwnTokenScheme;
-            })
+                acceptsServices && ServiceAuthenticationExtensions.IsServiceRequest(context)
+                    ? ServiceAuthenticationExtensions.ServiceKeyScheme
+                    : OwnTokenScheme)
             .AddJwtBearer(OwnTokenScheme, options => options.MapInboundClaims = false);
 
         services.AddOptions<JwtBearerOptions>(OwnTokenScheme).Configure<AccessTokenIssuer>((options, issuer) =>

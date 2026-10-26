@@ -22,6 +22,6 @@ public sealed record PendingApprovalDto(Guid AbsenceId, Guid EmployeeId, string 
 
 public sealed record VacationBalanceDto(int Year, decimal Entitlement, decimal Taken, decimal Planned, decimal Remaining);
 
-/// <summary>Everything about an absence for authorised services (App Role <c>Workforce.AbsenceDetails.Read</c>), including the type and the BC transfer status.</summary>
+/// <summary>Everything about an absence for authorised services (service role <c>Workforce.AbsenceDetails.Read</c>), including the type and the BC transfer status.</summary>
 public sealed record AbsenceDetailsDto(
     Guid Id, Guid EmployeeId, string Type, string Status, DateOnly From, DateOnly? To, bool? CertificateOnFile, long Version, string SyncStatus, long? SyncedVersion);

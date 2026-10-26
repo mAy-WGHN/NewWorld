@@ -22,7 +22,7 @@ flowchart LR
     WF -- "SyncAbsenceToBc (Queue)" --> BCI
     WF -- "SendNotification (Queue)" --> NOT
     WF -- "EmployeeAvailabilityChanged (neutralisiert)" --> POR
-    ACC -- "PIN-Prüfung (HTTP, App Role)" --> BCI
+    ACC -- "PIN-Prüfung (HTTP, Service Role)" --> BCI
 ```
 
 Der Weg einer Krankmeldung: Workforce-API → Zustand + Outbox in **einer** DB-Transaktion (`SyncAbsenceToBc`, `EmployeeAvailabilityChanged`, `SendNotification`) → Service Bus → BC Integration (Upsert über die interne GUID als externe ID) → `BcSyncSucceeded`/`BcSyncFailed` → Workforce setzt den Sync-Status; Notifications legt die InApp-Benachrichtigung der Filialleitung ab. Der Grund der Abwesenheit steht nur im Command an BC Integration, nie in Events oder Push-fähigen Daten.
@@ -40,7 +40,7 @@ dotnet run --project src/AppHost  # ganze Landschaft starten, Aspire-Dashboard i
 
 Der AppHost startet PostgreSQL (eine Datenbank je Dienst), den Service-Bus-Emulator, WireMock als BC-Ersatz (`tests/Fixtures/Bc/e2e-landscape`: eine Filiale, sechs Mitarbeitende, PIN 4711 für alle) und die fünf Dienste.
 
-Lokal ersetzt ein statisches Fake-Token die Entra-Dienst-Tokens (`LocalServiceAuth=true`, nur Development/Testing); die anderen Dienste prüfen Personen-Tokens gegen Access. Erster Administrator ist Personalnummer `10099` (`Access:BootstrapAdministrators`). Anmelden: `POST /api/auth/login` mit `{"personnelNumber":"10099","pin":"4711"}`.
+Dienste rufen sich mit signierten Kurzzeit-Tokens auf (Schlüsselpaar je Dienst, siehe `docs/service-auth.md`); der AppHost erzeugt dafür bei jedem Start neue Schlüssel und setzt die Konfiguration. Die anderen Dienste prüfen Personen-Tokens gegen Access. Erster Administrator ist Personalnummer `10099` (`Access:BootstrapAdministrators`). Anmelden: `POST /api/auth/login` mit `{"personnelNumber":"10099","pin":"4711"}`.
 
 Tests: Unit/Integration/Vertrag/Architektur laufen mit `dotnet test`; E2E (`tests/AppHost.Tests`, Kategorie `E2E`) startet die ganze Landschaft über Aspire. BC-Sandbox-Tests (`Category=BcSandbox`) nur manuell.
 
@@ -57,8 +57,8 @@ Nur nach Rückfrage. Dann: `sealed record` in `<Dienst>.Contracts` mit `[Sensiti
 
 ## Neuen Endpunkt hinzufügen
 
-Recht im Katalog des Dienstes (`<Dienst>Privileges`, wird beim Start bei Access angemeldet), Policy `AppPolicies.Privilege(...)` bzw. `AppPolicies.ServiceRole(...)` (eigene App Role, siehe `docs/entra-setup.md`), mindestens ein positiver und ein negativer Berechtigungstest.
+Recht im Katalog des Dienstes (`<Dienst>Privileges`, wird beim Start bei Access angemeldet), Policy `AppPolicies.Privilege(...)` bzw. `AppPolicies.ServiceRole(...)` (eigene Service Role; wer sie hat, steht in `ServiceAuth:Peers` des Empfängers, siehe `docs/service-auth.md`), mindestens ein positiver und ein negativer Berechtigungstest.
 
-## Entra
+## Dienst-zu-Dienst-Authentifizierung
 
-Einrichtungspaket für den Tenant-Admin: `docs/entra-setup.md`, Skripte unter `infra/entra/` (werden vom Projekt nicht ausgeführt).
+Schlüsselpaar je Dienst, signierte Kurzzeit-Tokens, öffentliche Schlüssel und Rechte in der Konfiguration der Empfänger: `docs/service-auth.md`, Schlüssel erzeugen mit `scripts/New-ServiceKey.ps1`. Entra wird nicht mehr für Dienstaufrufe gebraucht (Entscheidung 18).

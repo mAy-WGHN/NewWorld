@@ -12,6 +12,6 @@ public static class AppPolicies
     /// </summary>
     public static string Privilege(string key) => PrivilegePrefix + key;
 
-    /// <summary>Policy for a service app role registered in <see cref="SharedAuthorizationOptions.ServiceRoles"/>.</summary>
+    /// <summary>Policy for a service role registered in <see cref="SharedAuthorizationOptions.ServiceRoles"/>.</summary>
     public static string ServiceRole(string role) => ServiceRolePrefix + role;
 }
