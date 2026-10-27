@@ -13,6 +13,16 @@ public sealed class ExtraVacationRecord
     public DateTimeOffset CreatedAt { get; set; }
 }
 
+/// <summary>The one row with the expiry rule for additional vacation days that HR has set (no row = they never expire).</summary>
+public sealed class VacationRulesRecord
+{
+    public int Id { get; set; } = 1;
+    public int? ExpiryMonth { get; set; }
+    public int? ExpiryDay { get; set; }
+    public DateTimeOffset ChangedAt { get; set; }
+    public Guid ChangedBy { get; set; }
+}
+
 public sealed class EntitlementRecord
 {
     public Guid EmployeeId { get; set; }

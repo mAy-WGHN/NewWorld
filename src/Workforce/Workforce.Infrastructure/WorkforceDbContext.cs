@@ -18,6 +18,7 @@ public sealed class WorkforceDbContext(DbContextOptions<WorkforceDbContext> opti
     public DbSet<Absence> Absences => Set<Absence>();
     public DbSet<EntitlementRecord> Entitlements => Set<EntitlementRecord>();
     public DbSet<ExtraVacationRecord> ExtraVacation => Set<ExtraVacationRecord>();
+    public DbSet<VacationRulesRecord> VacationRules => Set<VacationRulesRecord>();
     public DbSet<PersonRecord> People => Set<PersonRecord>();
     public DbSet<StoreRecord> Stores => Set<StoreRecord>();
     public DbSet<ApproverCopyRecord> ApproverCopies => Set<ApproverCopyRecord>();
@@ -53,6 +54,12 @@ public sealed class WorkforceDbContext(DbContextOptions<WorkforceDbContext> opti
             b.HasIndex(a => new { a.EmployeeId, a.From });
             b.HasIndex(a => new { a.Type, a.Status, a.CertificateStatus });
             b.HasIndex(a => a.ApprovalRequestId);
+        });
+        modelBuilder.Entity<VacationRulesRecord>(b =>
+        {
+            b.ToTable("vacation_rules");
+            b.HasKey(v => v.Id);
+            b.Property(v => v.Id).ValueGeneratedNever();
         });
         modelBuilder.Entity<ExtraVacationRecord>(b =>
         {

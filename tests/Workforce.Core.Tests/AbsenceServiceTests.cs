@@ -571,6 +571,7 @@ public class AbsenceServiceTests
     {
         _time = new FakeTimeProvider(new DateTimeOffset(2026, 2, 2, 9, 0, 0, TimeSpan.Zero));
         _entitlements.Days[(Erika, 2026)] = 2;
+        await Service().SetVacationRulesAsync(3, 31, Max, CancellationToken.None);
         await AddExtra(ExtraVacationKind.CarryOver, 2025, 2.5m); // usable until 31 March 2026
 
         (await Service().RequestVacationAsync(Erika, D("2026-04-13"), D("2026-04-15"), CancellationToken.None)).Error.ShouldBe(AbsenceError.InsufficientBalance); // 3 > 2
@@ -582,6 +583,7 @@ public class AbsenceServiceTests
     {
         // Today is 15 July 2026: the leftover of 2025 expired on 31 March.
         _entitlements.Days[(Erika, 2026)] = 2;
+        await Service().SetVacationRulesAsync(3, 31, Max, CancellationToken.None);
         await AddExtra(ExtraVacationKind.CarryOver, 2025, 2.5m);
 
         (await Service().RequestVacationAsync(Erika, D("2026-09-07"), D("2026-09-09"), CancellationToken.None)).Error.ShouldBe(AbsenceError.InsufficientBalance);
@@ -601,6 +603,41 @@ public class AbsenceServiceTests
         (breakdown.ContractualAnnualDays, breakdown.ContractualDays, breakdown.EffectiveDays).ShouldBe((25m, 2.5m, 2.5m));
         (await Service().RequestVacationAsync(Erika, D("2026-12-14"), D("2026-12-16"), CancellationToken.None)).Error.ShouldBe(AbsenceError.InsufficientBalance); // 3 > 2.5
         (await Service().RequestVacationAsync(Erika, D("2026-12-14"), D("2026-12-15"), CancellationToken.None)).Error.ShouldBe(AbsenceError.None);              // 2 fit
+    }
+
+    [Fact]
+    public async Task Without_a_rule_from_HR_additional_days_never_expire()
+    {
+        _entitlements.Days[(Erika, 2026)] = 2;
+        await AddExtra(ExtraVacationKind.CarryOver, 2025, 2.5m);
+
+        var rules = await Service().GetVacationRulesAsync(CancellationToken.None);
+        (rules.Rules, rules.IsDefault, rules.ChangedAt, rules.ChangedBy).ShouldBe((VacationRules.NeverExpire, true, null, null));
+        // Today is 15 July 2026, long after March: the leftover still counts and a request may use it.
+        (await Service().RequestVacationAsync(Erika, D("2026-09-07"), D("2026-09-09"), CancellationToken.None)).Error.ShouldBe(AbsenceError.None);
+        (await Service().BreakdownAsync(Erika, 2026, CancellationToken.None))!.ForfeitedExtraDays.ShouldBe(0m);
+    }
+
+    [Fact]
+    public async Task HR_sets_and_resets_the_expiry_rule()
+    {
+        (await Service().SetVacationRulesAsync(3, 31, Max, CancellationToken.None)).ShouldBe(AbsenceError.None);
+        var set = await Service().GetVacationRulesAsync(CancellationToken.None);
+        (set.Rules, set.IsDefault, set.ChangedBy, set.ChangedAt).ShouldBe((VacationRules.EndOfFirstQuarter, false, (Guid?)Max, (DateTimeOffset?)_time.GetUtcNow()));
+
+        (await Service().SetVacationRulesAsync(null, null, Max, CancellationToken.None)).ShouldBe(AbsenceError.None);
+        (await Service().GetVacationRulesAsync(CancellationToken.None)).Rules.ShouldBe(VacationRules.NeverExpire);
+    }
+
+    [Theory]
+    [InlineData(3, null)]
+    [InlineData(null, 31)]
+    [InlineData(13, 1)]
+    [InlineData(4, 31)]
+    public async Task An_invalid_expiry_rule_is_refused_and_changes_nothing(int? month, int? day)
+    {
+        (await Service().SetVacationRulesAsync(month, day, Max, CancellationToken.None)).ShouldBe(AbsenceError.InvalidVacationRules);
+        (await Service().GetVacationRulesAsync(CancellationToken.None)).IsDefault.ShouldBeTrue();
     }
 
     [Fact]

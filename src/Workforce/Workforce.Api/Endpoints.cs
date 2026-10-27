@@ -170,12 +170,38 @@ public static class Endpoints
             .RequireAuthorization();
 
         // Additional vacation days (leftover, special leave) on top of the contract: used first, expire after the first quarter of the next year.
-        static ExtraVacationDto ToExtraDto(ExtraVacationDays e) => new(e.Id, e.Kind.ToString(), e.Year, e.Days, e.UsableFrom, e.ExpiresOn);
+        static ExtraVacationDto ToExtraDto(ExtraVacationDays e, VacationRules rules) => new(e.Id, e.Kind.ToString(), e.Year, e.Days, e.UsableFrom, e.ExpiresOn(rules));
+
+        static async Task<IResult> Rules(AbsenceService service, CancellationToken ct)
+        {
+            var r = await service.GetVacationRulesAsync(ct);
+            return Results.Ok(new VacationRulesDto(r.Rules.ExpiryMonth, r.Rules.ExpiryDay, r.IsDefault, r.ChangedAt, r.ChangedBy));
+        }
+
+        // When additional days expire: HR sets it for everybody; by default they never expire.
+        api.MapGet("/vacation-rules", Rules).RequireAuthorization(AppPolicies.Privilege(AbsencePrivileges.ManageVacationRules));
+        api.MapPut("/vacation-rules", async (SetVacationRulesRequest request, ClaimsPrincipal user, AbsenceService service, WorkforceUnitOfWork uow, CancellationToken ct) =>
+            {
+                if (Me(user) is not { } me)
+                {
+                    return Results.Forbid();
+                }
+
+                var error = await uow.RunAsync(async () => AbsenceResult.Fail(await service.SetVacationRulesAsync(request.ExtraDaysExpiryMonth, request.ExtraDaysExpiryDay, me, ct)), r => r.Error == AbsenceError.None, ct);
+                return error.Error == AbsenceError.None ? await Rules(service, ct) : Problem(error.Error);
+            })
+            .RequireAuthorization(AppPolicies.Privilege(AbsencePrivileges.ManageVacationRules));
 
         api.MapGet("/employees/{employeeId:guid}/vacation-extra-days", async (Guid employeeId, ClaimsPrincipal user, IAuthorizationService auth, AbsenceService service, CancellationToken ct) =>
-                !await Allows(auth, user, new EmployeeResource(employeeId), AbsencePrivileges.ManageEntitlement)
-                    ? Results.Forbid()
-                    : Results.Ok((await service.ListExtraVacationAsync(employeeId, ct)).Select(ToExtraDto)))
+            {
+                if (!await Allows(auth, user, new EmployeeResource(employeeId), AbsencePrivileges.ManageEntitlement))
+                {
+                    return Results.Forbid();
+                }
+
+                var rules = (await service.GetVacationRulesAsync(ct)).Rules;
+                return Results.Ok((await service.ListExtraVacationAsync(employeeId, ct)).Select(e => ToExtraDto(e, rules)));
+            })
             .RequireAuthorization();
 
         api.MapPost("/employees/{employeeId:guid}/vacation-extra-days", async (
@@ -194,7 +220,7 @@ public static class Endpoints
                 var result = await uow.RunAsync(() => service.AddExtraVacationAsync(employeeId, kind, request.Year, request.Days, me, ct), r => r.Error == AbsenceError.None, ct);
                 return result.Error != AbsenceError.None
                     ? Problem(result.Error)
-                    : Results.Ok(ToExtraDto((await service.ListExtraVacationAsync(employeeId, ct)).Single(e => e.Id == result.Id)));
+                    : Results.Ok(ToExtraDto((await service.ListExtraVacationAsync(employeeId, ct)).Single(e => e.Id == result.Id), (await service.GetVacationRulesAsync(ct)).Rules));
             })
             .RequireAuthorization();
 
@@ -376,7 +402,7 @@ public static class Endpoints
             AbsenceError.NotAllowed => StatusCodes.Status403Forbidden,
             AbsenceError.FileTooLarge => StatusCodes.Status413PayloadTooLarge,
             AbsenceError.UnsupportedFileType => StatusCodes.Status415UnsupportedMediaType,
-            AbsenceError.InvalidPeriod or AbsenceError.AfterExit or AbsenceError.NoEntitlement or AbsenceError.InsufficientBalance or AbsenceError.FileRejected or AbsenceError.InvalidRetention or AbsenceError.InvalidReminderSettings => StatusCodes.Status422UnprocessableEntity,
+            AbsenceError.InvalidPeriod or AbsenceError.AfterExit or AbsenceError.NoEntitlement or AbsenceError.InsufficientBalance or AbsenceError.FileRejected or AbsenceError.InvalidRetention or AbsenceError.InvalidReminderSettings or AbsenceError.InvalidVacationRules => StatusCodes.Status422UnprocessableEntity,
             _ => StatusCodes.Status409Conflict,
         },
         title: error.ToString());

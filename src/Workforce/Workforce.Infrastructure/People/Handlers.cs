@@ -135,6 +135,7 @@ public sealed class EmployeeDataErasureRequestedHandler(
         await db.Entitlements.Where(e => e.EmployeeId == id).ExecuteDeleteAsync(cancellationToken);
         await db.ExtraVacation.Where(e => e.EmployeeId == id).ExecuteDeleteAsync(cancellationToken);
         await db.ExtraVacation.Where(e => e.CreatedBy == id).ExecuteUpdateAsync(s => s.SetProperty(e => e.CreatedBy, Guid.Empty), cancellationToken);
+        await db.VacationRules.Where(v => v.ChangedBy == id).ExecuteUpdateAsync(s => s.SetProperty(v => v.ChangedBy, Guid.Empty), cancellationToken);
         await db.People.Where(p => p.EmployeeId == id).ExecuteDeleteAsync(cancellationToken);
         await db.MainStoreCopies.Where(m => m.EmployeeId == id).ExecuteDeleteAsync(cancellationToken);
         await db.StoreSettings.Where(s => s.ChangedBy == id).ExecuteUpdateAsync(s => s.SetProperty(x => x.ChangedBy, Guid.Empty), cancellationToken);

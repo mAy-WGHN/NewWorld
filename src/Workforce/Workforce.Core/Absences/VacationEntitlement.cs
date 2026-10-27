@@ -13,8 +13,41 @@ public enum ExtraVacationKind
 }
 
 /// <summary>
-/// Additional vacation days entered by HR on top of the contractual ones. They are used up <b>before</b> the contractual days and
-/// expire at the end of March of the year after <see cref="Year"/> (the first quarter of the following year); what is unused by then is lost.
+/// When additional vacation days expire; maintained by HR. By default they <b>never</b> expire. With a threshold they expire on that day
+/// (month and day) of the year after the year they belong to; what is unused by then is lost.
+/// </summary>
+/// <param name="ExpiryMonth">Month of the expiry date, <c>null</c> = never expire.</param>
+/// <param name="ExpiryDay">Day of the expiry date, <c>null</c> = never expire.</param>
+public sealed record VacationRules(int? ExpiryMonth, int? ExpiryDay)
+{
+    /// <summary>The default: additional days never expire.</summary>
+    public static readonly VacationRules NeverExpire = new(null, null);
+
+    /// <summary>Expiry at the end of the first quarter of the following year (31 March).</summary>
+    public static readonly VacationRules EndOfFirstQuarter = new(3, 31);
+
+    /// <summary>Both or none; a real calendar day (29 February is allowed and falls on 28 February in years without it).</summary>
+    public bool IsValid => (ExpiryMonth, ExpiryDay) switch
+    {
+        (null, null) => true,
+        ( { } m, { } d) => m is >= 1 and <= 12 && d >= 1 && d <= DateTime.DaysInMonth(2024, m),
+        _ => false,
+    };
+
+    public bool ExtraDaysExpire => ExpiryMonth is not null && ExpiryDay is not null;
+
+    /// <summary>The last usable day of additional days that belong to <paramref name="year"/>; <c>null</c> if they never expire.</summary>
+    public DateOnly? ExpiryFor(int year) => ExpiryMonth is { } m && ExpiryDay is { } d
+        ? new DateOnly(year + 1, m, Math.Min(d, DateTime.DaysInMonth(year + 1, m)))
+        : null;
+}
+
+/// <summary>The rules HR has set, with who and when.</summary>
+public sealed record VacationRulesSetting(VacationRules Rules, DateTimeOffset ChangedAt, Guid ChangedBy);
+
+/// <summary>
+/// Additional vacation days entered by HR on top of the contractual ones. They are used up <b>before</b> the contractual days and expire
+/// as <see cref="VacationRules"/> says (by default never); what is unused by then is lost.
 /// </summary>
 /// <param name="Id">Identifier.</param>
 /// <param name="Kind">Leftover or additional days.</param>
@@ -25,8 +58,8 @@ public sealed record ExtraVacationDays(Guid Id, ExtraVacationKind Kind, int Year
     /// <summary>First day they can be used.</summary>
     public DateOnly UsableFrom => Kind == ExtraVacationKind.CarryOver ? new DateOnly(Year + 1, 1, 1) : new DateOnly(Year, 1, 1);
 
-    /// <summary>Last day they can be used: the end of the first quarter of the following year.</summary>
-    public DateOnly ExpiresOn => new(Year + 1, 3, 31);
+    /// <summary>Last day they can be used under <paramref name="rules"/>; <c>null</c> if they never expire.</summary>
+    public DateOnly? ExpiresOn(VacationRules rules) => rules.ExpiryFor(Year);
 }
 
 /// <summary>One group of additional days in the account of a year.</summary>
@@ -37,8 +70,8 @@ public sealed record ExtraVacationDays(Guid Id, ExtraVacationKind Kind, int Year
 /// <param name="AvailableInYear">What was still there at the start of the year (less what was used in an earlier year).</param>
 /// <param name="UsedInYear">Used by vacation in the year.</param>
 /// <param name="Forfeited">Lost: unused after the expiry date (only once the date the account is evaluated for lies behind it).</param>
-/// <param name="ExpiresOn">Last day they can be used.</param>
-public sealed record ExtraDaysLine(Guid Id, ExtraVacationKind Kind, int Year, decimal Days, decimal AvailableInYear, decimal UsedInYear, decimal Forfeited, DateOnly ExpiresOn);
+/// <param name="ExpiresOn">Last day they can be used; <c>null</c> if they never expire.</param>
+public sealed record ExtraDaysLine(Guid Id, ExtraVacationKind Kind, int Year, decimal Days, decimal AvailableInYear, decimal UsedInYear, decimal Forfeited, DateOnly? ExpiresOn);
 
 /// <summary>The account of a year with every component, so that the calculation can be followed.</summary>
 /// <param name="Year">The year.</param>

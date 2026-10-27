@@ -65,6 +65,26 @@ public sealed class EfExtraVacationStore(WorkforceDbContext db) : IExtraVacation
         db.ExtraVacation.Remove(row);
         return true;
     }
+
+    public async Task<VacationRulesSetting?> GetRulesAsync(CancellationToken cancellationToken) =>
+        await db.VacationRules.AsNoTracking().Where(v => v.Id == 1)
+            .Select(v => new VacationRulesSetting(new VacationRules(v.ExpiryMonth, v.ExpiryDay), v.ChangedAt, v.ChangedBy))
+            .FirstOrDefaultAsync(cancellationToken);
+
+    public async Task SetRulesAsync(VacationRulesSetting setting, CancellationToken cancellationToken)
+    {
+        var row = await db.VacationRules.FirstOrDefaultAsync(v => v.Id == 1, cancellationToken);
+        if (row is null)
+        {
+            row = new VacationRulesRecord();
+            db.VacationRules.Add(row);
+        }
+
+        row.ExpiryMonth = setting.Rules.ExpiryMonth;
+        row.ExpiryDay = setting.Rules.ExpiryDay;
+        row.ChangedAt = setting.ChangedAt;
+        row.ChangedBy = setting.ChangedBy;
+    }
 }
 
 public sealed class EfEntitlementStore(WorkforceDbContext db) : IEntitlementStore

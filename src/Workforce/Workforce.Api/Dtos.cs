@@ -31,10 +31,15 @@ public sealed record VacationBalanceDto(
     decimal ContractualAnnualDays = 0, decimal ContractualDays = 0, decimal ExtraDays = 0, decimal ForfeitedExtraDays = 0,
     IReadOnlyList<ExtraDaysLineDto>? ExtraLines = null);
 
-public sealed record ExtraDaysLineDto(Guid Id, string Kind, int Year, decimal Days, decimal AvailableInYear, decimal UsedInYear, decimal Forfeited, DateOnly ExpiresOn);
+public sealed record ExtraDaysLineDto(Guid Id, string Kind, int Year, decimal Days, decimal AvailableInYear, decimal UsedInYear, decimal Forfeited, DateOnly? ExpiresOn);
 
 /// <summary>Additional vacation days (leftover or special leave) of a person.</summary>
-public sealed record ExtraVacationDto(Guid Id, string Kind, int Year, decimal Days, DateOnly UsableFrom, DateOnly ExpiresOn);
+public sealed record ExtraVacationDto(Guid Id, string Kind, int Year, decimal Days, DateOnly UsableFrom, DateOnly? ExpiresOn);
+
+/// <summary>When additional vacation days expire; month and day empty = they never expire (the default).</summary>
+public sealed record VacationRulesDto(int? ExtraDaysExpiryMonth, int? ExtraDaysExpiryDay, bool IsDefault, DateTimeOffset? ChangedAt, Guid? ChangedBy);
+
+public sealed record SetVacationRulesRequest(int? ExtraDaysExpiryMonth, int? ExtraDaysExpiryDay);
 
 public sealed record AddExtraVacationRequest(string Kind, int Year, decimal Days);
 

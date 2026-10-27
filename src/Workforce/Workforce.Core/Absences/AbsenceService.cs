@@ -192,6 +192,7 @@ public sealed class AbsenceService(
         var bookings = existing.Where(a => a.Type == AbsenceType.Vacation && a.To is not null).Select(a => new VacationBooking(a.Range, a.Status))
             .Append(new VacationBooking(range, AbsenceStatus.Requested)).ToList();
         var extras = await extraVacation.ForEmployeeAsync(employeeId, cancellationToken);
+        var rules = (await GetVacationRulesAsync(cancellationToken)).Rules;
         foreach (var year in calendar.CountWorkingDaysByYear(from, to).Where(y => y.Value > 0).Select(y => y.Key))
         {
             if (await entitlements.GetAsync(employeeId, year, cancellationToken) is not { } entitlement)
@@ -201,7 +202,7 @@ public sealed class AbsenceService(
 
             var lastDayInYear = to < new DateOnly(year, 12, 31) ? to : new DateOnly(year, 12, 31);
             var asOf = lastDayInYear > TodayLocal ? lastDayInYear : TodayLocal;
-            if (VacationAccount.Compute(year, entitlement, person.EntryDate, extras, bookings, TodayLocal, asOf, calendar).Remaining < 0)
+            if (VacationAccount.Compute(year, entitlement, person.EntryDate, extras, rules, bookings, TodayLocal, asOf, calendar).Remaining < 0)
             {
                 return AbsenceResult.Fail(AbsenceError.InsufficientBalance);
             }
@@ -373,7 +374,30 @@ public sealed class AbsenceService(
             .Where(a => a.Type == AbsenceType.Vacation && a.To is not null)
             .Select(a => new VacationBooking(a.Range, a.Status));
         return VacationAccount.Compute(
-            year, entitlement, person?.EntryDate, await extraVacation.ForEmployeeAsync(employeeId, cancellationToken), bookings, TodayLocal, TodayLocal, CalendarFor(person));
+            year, entitlement, person?.EntryDate, await extraVacation.ForEmployeeAsync(employeeId, cancellationToken),
+            (await GetVacationRulesAsync(cancellationToken)).Rules, bookings, TodayLocal, TodayLocal, CalendarFor(person));
+    }
+
+    /// <summary>The expiry rule for additional days in force: what HR has set, otherwise they never expire.</summary>
+    public async Task<(VacationRules Rules, bool IsDefault, DateTimeOffset? ChangedAt, Guid? ChangedBy)> GetVacationRulesAsync(CancellationToken cancellationToken) =>
+        await extraVacation.GetRulesAsync(cancellationToken) is { } set
+            ? (set.Rules, false, set.ChangedAt, set.ChangedBy)
+            : (VacationRules.NeverExpire, true, null, null);
+
+    /// <summary>
+    /// HR sets when additional days expire: month and day (in the year after the year they belong to), or both empty = they never expire.
+    /// The rule applies to all additional days, also to those already entered.
+    /// </summary>
+    public async Task<AbsenceError> SetVacationRulesAsync(int? expiryMonth, int? expiryDay, Guid actorId, CancellationToken cancellationToken)
+    {
+        var rules = new VacationRules(expiryMonth, expiryDay);
+        if (!rules.IsValid)
+        {
+            return AbsenceError.InvalidVacationRules;
+        }
+
+        await extraVacation.SetRulesAsync(new VacationRulesSetting(rules, time.GetUtcNow(), actorId), cancellationToken);
+        return AbsenceError.None;
     }
 
     public async Task<IReadOnlyList<ExtraVacationDays>> ListExtraVacationAsync(Guid employeeId, CancellationToken cancellationToken) =>

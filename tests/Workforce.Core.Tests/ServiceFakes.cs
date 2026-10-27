@@ -49,6 +49,16 @@ internal sealed class FakeExtraVacation : IExtraVacationStore
 {
     public List<(Guid EmployeeId, ExtraVacationDays Extra, Guid CreatedBy)> Items { get; } = [];
 
+    public VacationRulesSetting? Rules { get; set; }
+
+    public Task<VacationRulesSetting?> GetRulesAsync(CancellationToken cancellationToken) => Task.FromResult(Rules);
+
+    public Task SetRulesAsync(VacationRulesSetting setting, CancellationToken cancellationToken)
+    {
+        Rules = setting;
+        return Task.CompletedTask;
+    }
+
     public Task<IReadOnlyList<ExtraVacationDays>> ForEmployeeAsync(Guid employeeId, CancellationToken cancellationToken) =>
         Task.FromResult<IReadOnlyList<ExtraVacationDays>>([.. Items.Where(i => i.EmployeeId == employeeId).Select(i => i.Extra)]);
 

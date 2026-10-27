@@ -500,6 +500,34 @@ namespace Workforce.Infrastructure.Migrations
                     b.ToTable("extra_vacation_days", "workforce");
                 });
 
+            modelBuilder.Entity("Workforce.Infrastructure.Absences.VacationRulesRecord", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("ChangedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("changed_at");
+
+                    b.Property<Guid>("ChangedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("changed_by");
+
+                    b.Property<int?>("ExpiryDay")
+                        .HasColumnType("integer")
+                        .HasColumnName("expiry_day");
+
+                    b.Property<int?>("ExpiryMonth")
+                        .HasColumnType("integer")
+                        .HasColumnName("expiry_month");
+
+                    b.HasKey("Id")
+                        .HasName("pk_vacation_rules");
+
+                    b.ToTable("vacation_rules", "workforce");
+                });
+
             modelBuilder.Entity("Workforce.Infrastructure.Certificates.CertificateReminderSettingsRecord", b =>
                 {
                     b.Property<int>("Id")

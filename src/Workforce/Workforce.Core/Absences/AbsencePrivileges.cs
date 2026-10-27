@@ -36,9 +36,12 @@ public static class AbsencePrivileges
     /// </summary>
     public const string ManageHolidayOpening = "absence:manage-holiday-opening";
 
+    /// <summary>Sets when additional vacation days (leftover, special leave) expire, for everybody (HR); not scopable.</summary>
+    public const string ManageVacationRules = "absence:manage-vacation-rules";
+
     public static readonly IReadOnlyList<(string Key, bool Scopable)> Catalog =
     [
         (ReadOwn, false), (CreateOwn, false), (UpdateOwn, false),
-        (ReadAvailability, true), (ReadReason, true), (ReadSync, true), (Create, true), (Approve, true), (ManageEntitlement, true), (ManageHolidayOpening, true),
+        (ReadAvailability, true), (ReadReason, true), (ReadSync, true), (Create, true), (Approve, true), (ManageEntitlement, true), (ManageHolidayOpening, true), (ManageVacationRules, false),
     ];
 }

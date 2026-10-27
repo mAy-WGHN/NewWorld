@@ -66,7 +66,7 @@ public sealed class AbsenceEndpointTests(PostgresFixture postgres) : IClassFixtu
         using var created = await api.SendAsync(HttpMethod.Post, url, Hanna, new { kind = "Additional", year = 2026, days = 3 });
         created.StatusCode.ShouldBe(HttpStatusCode.OK);
         var extra = (await created.Content.ReadFromJsonAsync<ExtraVacationDto>())!;
-        (extra.Kind, extra.Year, extra.Days, extra.UsableFrom, extra.ExpiresOn).ShouldBe(("Additional", 2026, 3m, new DateOnly(2026, 1, 1), new DateOnly(2027, 3, 31)));
+        (extra.Kind, extra.Year, extra.Days, extra.UsableFrom, extra.ExpiresOn).ShouldBe(("Additional", 2026, 3m, new DateOnly(2026, 1, 1), (DateOnly?)null)); // by default they never expire
         (await api.GetAsync<List<ExtraVacationDto>>(url, Hanna)).ShouldHaveSingleItem().Id.ShouldBe(extra.Id);
 
         // Effective days = contract 2 + additional 3; the person sees the same account.
@@ -77,6 +77,39 @@ public sealed class AbsenceEndpointTests(PostgresFixture postgres) : IClassFixtu
         (await api.SendAsync(HttpMethod.Delete, $"{url}/{extra.Id}", Hanna)).StatusCode.ShouldBe(HttpStatusCode.NoContent);
         (await api.SendAsync(HttpMethod.Delete, $"{url}/{extra.Id}", Hanna)).StatusCode.ShouldBe(HttpStatusCode.NotFound);
         (await api.GetAsync<VacationBalanceDto>("/api/me/vacation-balance?year=2026", Erika)).Entitlement.ShouldBe(2m);
+    }
+
+    [Fact]
+    public async Task Only_HR_with_the_privilege_reads_and_sets_when_additional_days_expire()
+    {
+        await using var api = await StartAsync(postgres);
+        var rules = await api.GetAsync<VacationRulesDto>("/api/vacation-rules", Hanna);
+        (rules.ExtraDaysExpiryMonth, rules.ExtraDaysExpiryDay, rules.IsDefault).ShouldBe(((int?)null, (int?)null, true)); // by default nothing expires
+
+        foreach (var person in new Guid?[] { Max, Erika, null })
+        {
+            var expected = person is null ? HttpStatusCode.Unauthorized : HttpStatusCode.Forbidden;
+            (await api.SendAsync(HttpMethod.Get, "/api/vacation-rules", person)).StatusCode.ShouldBe(expected);
+            (await api.SendAsync(HttpMethod.Put, "/api/vacation-rules", person, new { extraDaysExpiryMonth = 3, extraDaysExpiryDay = 31 })).StatusCode.ShouldBe(expected);
+        }
+
+        (await api.SendAsync(HttpMethod.Put, "/api/vacation-rules", Hanna, new { extraDaysExpiryMonth = 3 })).StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+        (await api.SendAsync(HttpMethod.Put, "/api/vacation-rules", Hanna, new { extraDaysExpiryMonth = 4, extraDaysExpiryDay = 31 })).StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+        using var set = await api.SendAsync(HttpMethod.Put, "/api/vacation-rules", Hanna, new { extraDaysExpiryMonth = 3, extraDaysExpiryDay = 31 });
+        set.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var saved = (await set.Content.ReadFromJsonAsync<VacationRulesDto>())!;
+        (saved.ExtraDaysExpiryMonth, saved.ExtraDaysExpiryDay, saved.IsDefault, saved.ChangedBy).ShouldBe((3, 31, false, (Guid?)Hanna));
+
+        // The rule applies to additional days: a leftover of 2025 that is entered later expires on 31 March 2026 (today is 23 Oct 2026).
+        (await api.SendAsync(HttpMethod.Put, $"/api/employees/{Erika}/vacation-entitlements/2026", Hanna, new SetEntitlementRequest(2))).StatusCode.ShouldBe(HttpStatusCode.NoContent);
+        using var extra = await api.SendAsync(HttpMethod.Post, $"/api/employees/{Erika}/vacation-extra-days", Hanna, new { kind = "CarryOver", year = 2025, days = 2.5 });
+        (await extra.Content.ReadFromJsonAsync<ExtraVacationDto>())!.ExpiresOn.ShouldBe(new DateOnly(2026, 3, 31));
+        var balance = await api.GetAsync<VacationBalanceDto>("/api/me/vacation-balance?year=2026", Erika);
+        (balance.Entitlement, balance.ForfeitedExtraDays).ShouldBe((2m, 2.5m));
+
+        // Back to the default: nothing expires, the leftover counts again.
+        (await api.SendAsync(HttpMethod.Put, "/api/vacation-rules", Hanna, new { })).StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await api.GetAsync<VacationBalanceDto>("/api/me/vacation-balance?year=2026", Erika)).Entitlement.ShouldBe(4.5m);
     }
 
     [Fact]

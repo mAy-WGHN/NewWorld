@@ -60,6 +60,7 @@ public static class VacationAccount
     /// <param name="contractualAnnualDays">Days per year according to the contract.</param>
     /// <param name="entryDate">Date of joining, <c>null</c> if unknown; in the year of joining the days are pro rata.</param>
     /// <param name="extras">Additional days of the person (all years; the ones outside the year are ignored).</param>
+    /// <param name="rules">When additional days expire (by default never).</param>
     /// <param name="bookings">All vacation bookings of the person.</param>
     /// <param name="today">Today: approved days before it are taken, from it on planned.</param>
     /// <param name="asOf">
@@ -72,6 +73,7 @@ public static class VacationAccount
         decimal contractualAnnualDays,
         DateOnly? entryDate,
         IReadOnlyList<ExtraVacationDays> extras,
+        VacationRules rules,
         IEnumerable<VacationBooking> bookings,
         DateOnly today,
         DateOnly asOf,
@@ -83,8 +85,8 @@ public static class VacationAccount
 
         // Additional days whose usable window touches the year, the earlier expiring ones first.
         var relevant = extras
-            .Where(e => e.Days > 0 && e.UsableFrom <= yearEnd && e.ExpiresOn >= yearStart)
-            .OrderBy(e => e.ExpiresOn).ThenBy(e => e.UsableFrom).ThenBy(e => e.Id)
+            .Where(e => e.Days > 0 && e.UsableFrom <= yearEnd && (e.ExpiresOn(rules) is not { } expires || expires >= yearStart))
+            .OrderBy(e => e.ExpiresOn(rules) ?? DateOnly.MaxValue).ThenBy(e => e.UsableFrom).ThenBy(e => e.Id)
             .ToList();
         var simulationStart = relevant.Count == 0 ? yearStart : relevant.Min(e => e.UsableFrom) < yearStart ? relevant.Min(e => e.UsableFrom) : yearStart;
 
@@ -113,7 +115,7 @@ public static class VacationAccount
         foreach (var (day, status) in days.OrderBy(d => d.Day))
         {
             var need = 1m;
-            foreach (var extra in relevant.Where(e => e.UsableFrom <= day && day <= e.ExpiresOn && left[e.Id] > 0))
+            foreach (var extra in relevant.Where(e => e.UsableFrom <= day && (e.ExpiresOn(rules) is not { } expires || day <= expires) && left[e.Id] > 0))
             {
                 var part = Math.Min(need, left[extra.Id]);
                 left[extra.Id] -= part;
@@ -153,8 +155,9 @@ public static class VacationAccount
         var lines = relevant.Select(e =>
         {
             var available = e.Days - usedBefore[e.Id];
-            var forfeited = e.ExpiresOn < asOf ? Math.Max(0m, available - usedInYear[e.Id]) : 0m;
-            return new ExtraDaysLine(e.Id, e.Kind, e.Year, e.Days, available, usedInYear[e.Id], forfeited, e.ExpiresOn);
+            var expiresOn = e.ExpiresOn(rules);
+            var forfeited = expiresOn is { } last && last < asOf ? Math.Max(0m, available - usedInYear[e.Id]) : 0m;
+            return new ExtraDaysLine(e.Id, e.Kind, e.Year, e.Days, available, usedInYear[e.Id], forfeited, expiresOn);
         }).ToList();
 
         var extraDays = lines.Sum(l => l.AvailableInYear - l.Forfeited);

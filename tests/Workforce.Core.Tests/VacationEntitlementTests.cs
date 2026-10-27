@@ -18,9 +18,12 @@ public class VacationEntitlementTests
 
     private static ExtraVacationDays Extra(ExtraVacationKind kind, int year, decimal days) => new(Guid.NewGuid(), kind, year, days);
 
+    // The tests of the expiry use the end of the first quarter as the threshold; without a threshold nothing expires (see the last tests).
+    private static readonly VacationRules Rules = VacationRules.EndOfFirstQuarter;
+
     private static VacationBreakdown Compute(
         int year, decimal annual, DateOnly? entry, string today, ExtraVacationDays[] extras, params VacationBooking[] bookings) =>
-        VacationAccount.Compute(year, annual, entry, extras, bookings, D(today), D(today), Calendar);
+        VacationAccount.Compute(year, annual, entry, extras, Rules, bookings, D(today), D(today), Calendar);
 
     // ---------------------------------------------------------------- pro rata in the year of joining
 
@@ -79,7 +82,7 @@ public class VacationEntitlementTests
         var carryOver = Extra(ExtraVacationKind.CarryOver, 2025, 2.5m);
 
         carryOver.UsableFrom.ShouldBe(D("2026-01-01"));
-        carryOver.ExpiresOn.ShouldBe(D("2026-03-31"));
+        carryOver.ExpiresOn(Rules).ShouldBe(D("2026-03-31"));
     }
 
     [Fact]
@@ -88,7 +91,7 @@ public class VacationEntitlementTests
         var additional = Extra(ExtraVacationKind.Additional, 2026, 3);
 
         additional.UsableFrom.ShouldBe(D("2026-01-01"));
-        additional.ExpiresOn.ShouldBe(D("2027-03-31"));
+        additional.ExpiresOn(Rules).ShouldBe(D("2027-03-31"));
     }
 
     [Fact]
@@ -199,12 +202,85 @@ public class VacationEntitlementTests
         var carryOver = Extra(ExtraVacationKind.CarryOver, 2025, 2.5m);
         var request = Booking("2026-04-13", "2026-04-17", AbsenceStatus.Requested); // 5 days after the expiry
 
-        var today = VacationAccount.Compute(2026, 25, null, [carryOver], [request], D("2026-02-01"), D("2026-02-01"), Calendar);
-        var atRequest = VacationAccount.Compute(2026, 25, null, [carryOver], [request], D("2026-02-01"), D("2026-04-17"), Calendar);
+        var today = VacationAccount.Compute(2026, 25, null, [carryOver], Rules, [request], D("2026-02-01"), D("2026-02-01"), Calendar);
+        var atRequest = VacationAccount.Compute(2026, 25, null, [carryOver], Rules, [request], D("2026-02-01"), D("2026-04-17"), Calendar);
 
         today.Remaining.ShouldBe(27.5m - 5m);   // the carry-over could still be used by other days until the end of March
         atRequest.Remaining.ShouldBe(25m - 5m); // but for the request itself it is gone
     }
+
+    // ---------------------------------------------------------------- the expiry rule (maintained by HR, default: nothing expires)
+
+    [Fact]
+    public void By_default_additional_days_never_expire()
+    {
+        var carryOver = Extra(ExtraVacationKind.CarryOver, 2025, 2.5m);
+        var never = VacationRules.NeverExpire;
+
+        carryOver.ExpiresOn(never).ShouldBeNull();
+        var account = VacationAccount.Compute(2030, 25, null, [carryOver], never, [], D("2030-06-01"), D("2030-06-01"), Calendar);
+
+        // Years later the leftover is still there, nothing is forfeited.
+        (account.ExtraDays, account.ForfeitedExtraDays, account.EffectiveDays).ShouldBe((2.5m, 0m, 27.5m));
+        account.Lines.Single().ExpiresOn.ShouldBeNull();
+    }
+
+    [Fact]
+    public void Without_an_expiry_the_additional_days_are_still_used_first_and_across_years()
+    {
+        var additional = Extra(ExtraVacationKind.Additional, 2026, 3);
+        var never = VacationRules.NeverExpire;
+
+        // 2 days used in 2026 (Mon 6 and Tue 7 July): one day is left for 2028 and every later year.
+        var account = VacationAccount.Compute(2028, 25, null, [additional], never, [new(DateRange.Of(D("2026-07-06"), D("2026-07-07")), AbsenceStatus.Approved)], D("2028-05-01"), D("2028-05-01"), Calendar);
+
+        (account.ExtraDays, account.EffectiveDays).ShouldBe((1m, 26m));
+    }
+
+    [Fact]
+    public void HR_can_set_another_threshold_for_example_the_end_of_june()
+    {
+        var june = new VacationRules(6, 30);
+        var carryOver = Extra(ExtraVacationKind.CarryOver, 2025, 2.5m);
+
+        carryOver.ExpiresOn(june).ShouldBe(D("2026-06-30"));
+        VacationAccount.Compute(2026, 25, null, [carryOver], june, [], D("2026-06-30"), D("2026-06-30"), Calendar).ForfeitedExtraDays.ShouldBe(0m);
+        VacationAccount.Compute(2026, 25, null, [carryOver], june, [], D("2026-07-01"), D("2026-07-01"), Calendar).ForfeitedExtraDays.ShouldBe(2.5m);
+    }
+
+    [Fact]
+    public void A_changed_threshold_applies_to_the_days_that_are_already_entered()
+    {
+        var carryOver = Extra(ExtraVacationKind.CarryOver, 2025, 2.5m);
+
+        VacationAccount.Compute(2026, 25, null, [carryOver], VacationRules.NeverExpire, [], D("2026-08-01"), D("2026-08-01"), Calendar).EffectiveDays.ShouldBe(27.5m);
+        VacationAccount.Compute(2026, 25, null, [carryOver], VacationRules.EndOfFirstQuarter, [], D("2026-08-01"), D("2026-08-01"), Calendar).EffectiveDays.ShouldBe(25m);
+    }
+
+    [Fact]
+    public void A_leap_day_threshold_falls_on_the_28th_in_years_without_one()
+    {
+        var february = new VacationRules(2, 29);
+
+        february.ExpiryFor(2027).ShouldBe(D("2028-02-29")); // the year after 2027 is a leap year
+        february.ExpiryFor(2025).ShouldBe(D("2026-02-28"));
+    }
+
+    [Theory]
+    [InlineData(null, null, true)]
+    [InlineData(3, 31, true)]
+    [InlineData(2, 29, true)]
+    [InlineData(1, 1, true)]
+    [InlineData(12, 31, true)]
+    [InlineData(3, null, false)]
+    [InlineData(null, 31, false)]
+    [InlineData(0, 1, false)]
+    [InlineData(13, 1, false)]
+    [InlineData(4, 31, false)]
+    [InlineData(2, 30, false)]
+    [InlineData(3, 0, false)]
+    public void The_threshold_is_a_real_calendar_day_or_empty(int? month, int? day, bool valid) =>
+        new VacationRules(month, day).IsValid.ShouldBe(valid);
 
     // ---------------------------------------------------------------- joining during the year
 

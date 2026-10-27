@@ -52,6 +52,11 @@ public interface IExtraVacationStore
 
     /// <returns><c>false</c> if the person has no such entry.</returns>
     Task<bool> RemoveAsync(Guid employeeId, Guid id, CancellationToken cancellationToken);
+
+    /// <summary>The rules HR has set for the expiry of additional days, or <c>null</c> if none were set (then they never expire).</summary>
+    Task<VacationRulesSetting?> GetRulesAsync(CancellationToken cancellationToken);
+
+    Task SetRulesAsync(VacationRulesSetting setting, CancellationToken cancellationToken);
 }
 
 /// <summary>The persons responsible for a person for absences (topic <c>absence.approval</c>, copy of Access's responsibilities).</summary>
