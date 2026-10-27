@@ -67,10 +67,13 @@ public interface IExtraVacationStore
     Task<bool> RemoveChangeAsync(Guid employeeId, Guid id, CancellationToken cancellationToken);
 }
 
-/// <summary>The persons responsible for a person for absences (topic <c>absence.approval</c>, copy of Access's responsibilities).</summary>
+/// <summary>The persons responsible for a person (copy of Access's responsibilities): for absences (topic <c>absence.approval</c>) and for change requests of the card (<c>employee.change-request</c>).</summary>
 public interface IResponsibilityDirectory
 {
     Task<IReadOnlyList<Guid>> ApproversAsync(Guid employeeId, CancellationToken cancellationToken);
+
+    /// <summary>The persons in HR who decide change requests of the employee card of this person.</summary>
+    Task<IReadOnlyList<Guid>> ChangeRequestHandlersAsync(Guid employeeId, CancellationToken cancellationToken);
 }
 
 /// <summary>Publishes messages together with the current unit of work (outbox).</summary>

@@ -18,6 +18,7 @@ public static class EmployeeEndpoints
     {
         MapCards(app);
         MapLists(app);
+        MapChangeRequests(app);
         return app;
     }
 
@@ -157,6 +158,93 @@ public static class EmployeeEndpoints
             .RequireAuthorization(AppPolicies.Privilege(EmployeePrivileges.ManageLists));
     }
 
+    private static void MapChangeRequests(WebApplication app)
+    {
+        // The person asks; they cannot change anything themself, not even the own address. HR is notified (without the data).
+        app.MapPost("/api/me/employee-card/change-requests", async (ChangeRequestBody body, ClaimsPrincipal user, EmployeeChangeService service, WorkforceUnitOfWork uow, CancellationToken ct) =>
+            {
+                if (Endpoints.Me(user) is not { } me)
+                {
+                    return Results.Forbid();
+                }
+
+                var result = await uow.RunAsync(
+                    () => service.RequestAsync(me, new ChangeRequestFields(body.Street, body.PostalCode, body.City, body.PrivatePhone, body.PrivateEmail), body.Message, ct),
+                    r => r.Error == EmployeeError.None, ct);
+                return result.Error == EmployeeError.None ? Results.Ok(ToDto(result.Request!, null)) : Problem(result.Error);
+            })
+            .RequireAuthorization(AppPolicies.Privilege(EmployeePrivileges.RequestChangeOwn));
+
+        app.MapGet("/api/me/employee-card/change-requests", async (ClaimsPrincipal user, EmployeeChangeService service, CancellationToken ct) =>
+                Endpoints.Me(user) is not { } me ? Results.Forbid() : Results.Ok((await service.ListOwnAsync(me, ct)).Select(r => ToDto(r, null))))
+            .RequireAuthorization(AppPolicies.Privilege(EmployeePrivileges.RequestChangeOwn));
+
+        app.MapDelete("/api/me/employee-card/change-requests/{requestId:guid}", async (Guid requestId, ClaimsPrincipal user, EmployeeChangeService service, WorkforceUnitOfWork uow, CancellationToken ct) =>
+            {
+                if (Endpoints.Me(user) is not { } me)
+                {
+                    return Results.Forbid();
+                }
+
+                var error = await uow.RunAsync(async () => await service.WithdrawAsync(me, requestId, ct), e => e == EmployeeError.None, ct);
+                return error == EmployeeError.None ? Results.NoContent() : Problem(error);
+            })
+            .RequireAuthorization(AppPolicies.Privilege(EmployeePrivileges.RequestChangeOwn));
+
+        // HR: the pending requests of the persons in reach.
+        app.MapGet("/api/employee-change-requests", async (IAuthorizationService auth, ClaimsPrincipal user, EmployeeChangeService service, EmployeeService employees, CancellationToken ct) =>
+            {
+                var result = new List<EmployeeChangeRequestDto>();
+                foreach (var request in await service.PendingAsync(ct))
+                {
+                    if (await Endpoints.Allows(auth, user, new EmployeeResource(request.EmployeeId), EmployeePrivileges.DecideChange))
+                    {
+                        result.Add(ToDto(request, await employees.GetAsync(request.EmployeeId, ct)));
+                    }
+                }
+
+                return Results.Ok(result);
+            })
+            .RequireAuthorization();
+
+        app.MapPost("/api/employee-change-requests/{requestId:guid}/approve", async (
+                Guid requestId, ClaimsPrincipal user, IAuthorizationService auth, EmployeeChangeService service, WorkforceUnitOfWork uow, CancellationToken ct) =>
+                await Decide(requestId, user, auth, service, uow, (id, me) => service.ApproveAsync(id, me, ct), ct))
+            .RequireAuthorization();
+
+        app.MapPost("/api/employee-change-requests/{requestId:guid}/reject", async (
+                Guid requestId, RejectChangeRequestBody? body, ClaimsPrincipal user, IAuthorizationService auth, EmployeeChangeService service, WorkforceUnitOfWork uow, CancellationToken ct) =>
+                await Decide(requestId, user, auth, service, uow, (id, me) => service.RejectAsync(id, me, body?.Reason, ct), ct))
+            .RequireAuthorization();
+    }
+
+    private static async Task<IResult> Decide(
+        Guid requestId, ClaimsPrincipal user, IAuthorizationService auth, EmployeeChangeService service, WorkforceUnitOfWork uow,
+        Func<Guid, Guid, Task<EmployeeError>> decide, CancellationToken ct)
+    {
+        if (Endpoints.Me(user) is not { } me)
+        {
+            return Results.Forbid();
+        }
+
+        if (await service.GetAsync(requestId, ct) is not { } request)
+        {
+            return Results.NotFound();
+        }
+
+        if (!await Endpoints.Allows(auth, user, new EmployeeResource(request.EmployeeId), EmployeePrivileges.DecideChange))
+        {
+            return Results.Forbid();
+        }
+
+        var error = await uow.RunAsync(async () => await decide(requestId, me), e => e == EmployeeError.None, ct);
+        return error == EmployeeError.None ? Results.NoContent() : Problem(error);
+    }
+
+    private static EmployeeChangeRequestDto ToDto(EmployeeChangeRequest r, EmployeeCard? person) => new(
+        r.Id, r.EmployeeId, person?.PersonnelNumber, person?.FullName, r.Status.ToString(), new ChangeFieldsDto(r.Street, r.PostalCode, r.City, r.PrivatePhone, r.PrivateEmail),
+        r.Message, r.CreatedAt, r.DecidedAt, r.RejectionReason);
+
     private static ReferenceKind? ParseKind(string kind) =>
         Enum.TryParse<ReferenceKind>(kind, ignoreCase: true, out var parsed) && parsed != ReferenceKind.Unknown && Enum.IsDefined(parsed) ? parsed : null;
 
@@ -182,7 +270,8 @@ public static class EmployeeEndpoints
         {
             EmployeeError.NotFound => StatusCodes.Status404NotFound,
             EmployeeError.NotAllowed => StatusCodes.Status403Forbidden,
-            EmployeeError.NumberSeriesNotSet or EmployeeError.NumberSeriesExhausted or EmployeeError.DuplicateNumber or EmployeeError.DuplicateCode => StatusCodes.Status409Conflict,
+            EmployeeError.NumberSeriesNotSet or EmployeeError.NumberSeriesExhausted or EmployeeError.DuplicateNumber or EmployeeError.DuplicateCode
+                or EmployeeError.PendingRequestExists or EmployeeError.NoHandler or EmployeeError.NotPending => StatusCodes.Status409Conflict,
             _ => StatusCodes.Status422UnprocessableEntity,
         },
         title: error.ToString());

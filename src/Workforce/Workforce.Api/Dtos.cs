@@ -166,3 +166,17 @@ public sealed record ReferenceEntryDto(Guid Id, string Kind, string Code, string
 public sealed record AddReferenceEntryRequest(string Code, string Name);
 
 public sealed record UpdateReferenceEntryRequest(string Name, bool IsActive);
+
+// ---------------------------------------------------------------- change requests
+
+/// <summary>What a person asks for: contact fields to change (left out = unchanged) and/or a message. The person cannot change anything themself.</summary>
+public sealed record ChangeRequestBody(string? Street, string? PostalCode, string? City, string? PrivatePhone, string? PrivateEmail, string? Message);
+
+public sealed record ChangeFieldsDto(string? Street, string? PostalCode, string? City, string? PrivatePhone, string? PrivateEmail);
+
+/// <summary>A change request. <see cref="PersonnelNumber"/> and <see cref="PersonName"/> are filled for those who decide, not in the person's own list.</summary>
+public sealed record EmployeeChangeRequestDto(
+    Guid Id, Guid EmployeeId, string? PersonnelNumber, string? PersonName, string Status, ChangeFieldsDto Fields, string? Message,
+    DateTimeOffset CreatedAt, DateTimeOffset? DecidedAt, string? RejectionReason);
+
+public sealed record RejectChangeRequestBody(string? Reason);

@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Text.RegularExpressions;
 using Workforce.Core.Absences;
 
 namespace Workforce.Core.Employees;
@@ -10,7 +9,7 @@ namespace Workforce.Core.Employees;
 /// (continuing the existing one; HR enters the last number used), never entered. Business failures are returned as
 /// <see cref="EmployeeError"/>; nothing is stored then (the caller does not commit).
 /// </summary>
-public sealed partial class EmployeeService(
+public sealed class EmployeeService(
     IEmployeeCardStore cards,
     IReferenceLists lists,
     IPersonnelNumberSeries series,
@@ -19,12 +18,6 @@ public sealed partial class EmployeeService(
     WorkforceOptions options)
 {
     private const int MaxName = 100;
-
-    [GeneratedRegex(@"^[^@\s]+@[^@\s]+\.[^@\s]+$")]
-    private static partial Regex EmailPattern();
-
-    [GeneratedRegex(@"^[0-9 +\-/().]+$")]
-    private static partial Regex PhonePattern();
 
     private DateOnly TodayLocal => DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(time.GetUtcNow(), options.Zone).DateTime);
 
@@ -162,9 +155,9 @@ public sealed partial class EmployeeService(
             && (d.ExitDate is not { } exit || exit >= d.HireDate)
             && (d.BirthDate is not { } birth || (birth.Year >= 1900 && birth < today && birth < d.HireDate))
             && Length(d.Street, 200) && Length(d.PostalCode, 10) && Length(d.City, MaxName) && Length(d.Note, 1000)
-            && (Clean(d.PrivateEmail) is not { } privateEmail || EmailPattern().IsMatch(privateEmail))
-            && (Clean(d.BusinessEmail) is not { } businessEmail || EmailPattern().IsMatch(businessEmail))
-            && (Clean(d.PrivatePhone) is not { } phone || (PhonePattern().IsMatch(phone) && phone.Count(char.IsDigit) >= 5 && phone.Length <= 30));
+            && (Clean(d.PrivateEmail) is not { } privateEmail || EmployeeValidation.IsEmail(privateEmail))
+            && (Clean(d.BusinessEmail) is not { } businessEmail || EmployeeValidation.IsEmail(businessEmail))
+            && (Clean(d.PrivatePhone) is not { } phone || EmployeeValidation.IsPhone(phone));
     }
 
     private static bool Name(string? value) => !string.IsNullOrWhiteSpace(value) && value.Trim().Length <= MaxName;

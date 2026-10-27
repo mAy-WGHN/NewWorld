@@ -49,6 +49,8 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<Workforce.Core.Employees.IReferenceLists, Employees.EfReferenceLists>();
         services.AddScoped<Workforce.Core.Employees.IPersonnelNumberSeries, Employees.EfPersonnelNumberSeries>();
         services.AddScoped<Workforce.Core.Employees.EmployeeService>();
+        services.AddScoped<Workforce.Core.Employees.IEmployeeChangeStore, Employees.EfEmployeeChangeStore>();
+        services.AddScoped<Workforce.Core.Employees.EmployeeChangeService>();
         services.AddScoped<IExtraVacationStore, EfExtraVacationStore>();
         services.AddScoped<IResponsibilityDirectory, EfResponsibilityDirectory>();
         services.AddScoped<IWorkforceMessages, OutboxWorkforceMessages>();

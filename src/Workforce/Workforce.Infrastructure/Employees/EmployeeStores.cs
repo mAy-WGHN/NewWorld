@@ -63,6 +63,20 @@ public sealed class EfEmployeeCardStore(WorkforceDbContext db) : IEmployeeCardSt
         await db.Stores.AsNoTracking().AnyAsync(s => s.StoreId == storeId && s.IsActive, cancellationToken);
 }
 
+public sealed class EfEmployeeChangeStore(WorkforceDbContext db) : IEmployeeChangeStore
+{
+    public void Add(EmployeeChangeRequest request) => db.EmployeeChangeRequests.Add(request);
+
+    public async Task<EmployeeChangeRequest?> GetAsync(Guid id, CancellationToken cancellationToken) =>
+        await db.EmployeeChangeRequests.FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
+
+    public async Task<IReadOnlyList<EmployeeChangeRequest>> ForEmployeeAsync(Guid employeeId, CancellationToken cancellationToken) =>
+        await db.EmployeeChangeRequests.Where(r => r.EmployeeId == employeeId).OrderByDescending(r => r.CreatedAt).ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<EmployeeChangeRequest>> PendingAsync(CancellationToken cancellationToken) =>
+        await db.EmployeeChangeRequests.Where(r => r.Status == ChangeRequestStatus.Pending).OrderBy(r => r.CreatedAt).ToListAsync(cancellationToken);
+}
+
 public sealed class EfReferenceLists(WorkforceDbContext db) : IReferenceLists
 {
     public async Task<IReadOnlyList<ReferenceEntry>> ListAsync(ReferenceKind kind, CancellationToken cancellationToken) =>

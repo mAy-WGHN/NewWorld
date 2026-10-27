@@ -112,7 +112,7 @@ Regeln, alle von HR pflegbar:
 | Schritt | Inhalt | Stand |
 | --- | --- | --- |
 | 1 | Karte: Felder, Anlegen mit Personalnummer aus dem Nummernkreis, Auswahllisten, Lesen mit Datenschutz-Stufen, Urlaubsanspruch beim Anlegen | **gebaut** (Entscheidung 29) |
-| 2 | Änderungsanträge der Person für private Daten, HR-Benachrichtigung und Entscheidung | geplant |
+| 2 | Änderungsanträge der Person für private Daten, HR-Benachrichtigung und Entscheidung | **gebaut** (Entscheidung 30) |
 | 3 | Nicht-Verfügbarkeit: pflegbare Arten (Start: 25 aus der Liste), Einträge je Person, Anbindung der Abwesenheiten, Hinweis „nicht abgedeckt“ | geplant |
 | 4 | Arbeitszeitkonto mit Schwellen für Auszahlung und Verfall | geplant |
 | 5 | Übertragung nach BC (neue Nachricht, Start-PIN, Feldliste) | braucht Freigabe und BC-Modell |

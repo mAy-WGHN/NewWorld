@@ -17,6 +17,8 @@ public static class EmployeePrivileges
     public const string Update = "employee:update";
     public const string ManageLists = "employee:manage-lists";
     public const string ManageNumberSeries = "employee:manage-number-series";
+    public const string RequestChangeOwn = "employee:request-change-own";
+    public const string DecideChange = "employee:decide-change";
 
     /// <summary>The privileges with what they allow in plain words (German, shown in Access when roles are put together).</summary>
     public static readonly IReadOnlyList<(string Key, bool Scopable, string Description)> Catalog =
@@ -28,6 +30,8 @@ public static class EmployeePrivileges
         (Create, true, "Neue Mitarbeitende anlegen (die Personalnummer wird aus dem Nummernkreis vergeben); nur für Filialen in der Reichweite."),
         (Update, true, "Die Mitarbeiterkarte von Personen in der Reichweite ändern."),
         (ManageLists, false, "Die Auswahllisten pflegen (Funktion, Rolle, Region, Arbeitsort, Arbeitsverhältnis, Beschäftigungsverhältniscode, Berechtigungsgruppe, Lohnart)."),
-        (ManageNumberSeries, false, "Den Nummernkreis der Personalnummern ansehen und die zuletzt vergebene Nummer setzen."),
+        (ManageNumberSeries, false, "Den Nummernkreis der Personalnummern ansehen und die zuletzt vergebene Nummer und den Bereich setzen."),
+        (RequestChangeOwn, false, "Für die eigenen privaten Kontaktdaten (Adresse, Telefon, private E-Mail) eine Änderung beantragen oder etwas melden und die eigenen Anträge ansehen. Ändern kann die Person nichts selbst."),
+        (DecideChange, true, "Änderungsanträge von Personen in der Reichweite ansehen, genehmigen oder ablehnen (HR). Genehmigte Änderungen werden in die Mitarbeiterkarte übernommen."),
     ];
 }

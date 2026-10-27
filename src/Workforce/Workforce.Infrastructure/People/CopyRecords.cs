@@ -57,7 +57,11 @@ public sealed class ApproverCopyRecord
 {
     public const string Topic = "absence.approval";
 
+    /// <summary>The persons in HR who decide change requests of the employee card of this person.</summary>
+    public const string ChangeRequestTopic = "employee.change-request";
+
     public Guid EmployeeId { get; set; }
     public long Version { get; set; }
     public List<Guid> ApproverIds { get; set; } = [];
+    public List<Guid> ChangeRequestHandlerIds { get; set; } = [];
 }

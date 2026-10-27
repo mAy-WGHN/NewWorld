@@ -25,6 +25,7 @@ public sealed class WorkforceDbContext(DbContextOptions<WorkforceDbContext> opti
     public DbSet<ApproverCopyRecord> ApproverCopies => Set<ApproverCopyRecord>();
     public DbSet<StoreSettingsRecord> StoreSettings => Set<StoreSettingsRecord>();
     public DbSet<Workforce.Core.Employees.EmployeeCard> EmployeeCards => Set<Workforce.Core.Employees.EmployeeCard>();
+    public DbSet<Workforce.Core.Employees.EmployeeChangeRequest> EmployeeChangeRequests => Set<Workforce.Core.Employees.EmployeeChangeRequest>();
     public DbSet<Workforce.Core.Employees.ReferenceEntry> ReferenceEntries => Set<Workforce.Core.Employees.ReferenceEntry>();
     public DbSet<Employees.PersonnelNumberSeriesRecord> PersonnelNumberSeries => Set<Employees.PersonnelNumberSeriesRecord>();
     public DbSet<MainStoreCopyRecord> MainStoreCopies => Set<MainStoreCopyRecord>();
@@ -149,6 +150,22 @@ public sealed class WorkforceDbContext(DbContextOptions<WorkforceDbContext> opti
             b.Property(c => c.Note).HasMaxLength(1000);
             b.Ignore(c => c.FullName);
             b.HasIndex(c => c.MainStoreId);
+        });
+        modelBuilder.Entity<Workforce.Core.Employees.EmployeeChangeRequest>(b =>
+        {
+            b.ToTable("employee_change_requests");
+            b.HasKey(c => c.Id);
+            b.Property(c => c.Id).ValueGeneratedNever();
+            b.Property(c => c.Status).HasConversion<string>().HasMaxLength(20);
+            b.Property(c => c.Street).HasMaxLength(200);
+            b.Property(c => c.PostalCode).HasMaxLength(10);
+            b.Property(c => c.City).HasMaxLength(100);
+            b.Property(c => c.PrivatePhone).HasMaxLength(30);
+            b.Property(c => c.PrivateEmail).HasMaxLength(200);
+            b.Property(c => c.Message).HasMaxLength(500);
+            b.Property(c => c.RejectionReason).HasMaxLength(200);
+            b.HasIndex(c => c.EmployeeId);
+            b.HasIndex(c => c.Status);
         });
         modelBuilder.Entity<Workforce.Core.Employees.ReferenceEntry>(b =>
         {

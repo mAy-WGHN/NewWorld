@@ -82,6 +82,11 @@ internal sealed class FakeResponsibilities : IResponsibilityDirectory
 {
     public Dictionary<Guid, List<Guid>> Approvers { get; } = [];
 
+    public Dictionary<Guid, List<Guid>> ChangeRequestHandlers { get; } = [];
+
+    public Task<IReadOnlyList<Guid>> ChangeRequestHandlersAsync(Guid employeeId, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<Guid>>(ChangeRequestHandlers.GetValueOrDefault(employeeId) ?? []);
+
     public Task<IReadOnlyList<Guid>> ApproversAsync(Guid employeeId, CancellationToken cancellationToken) =>
         Task.FromResult<IReadOnlyList<Guid>>(Approvers.GetValueOrDefault(employeeId) ?? []);
 }

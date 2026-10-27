@@ -133,6 +133,9 @@ public sealed class EfResponsibilityDirectory(WorkforceDbContext db) : IResponsi
 {
     public async Task<IReadOnlyList<Guid>> ApproversAsync(Guid employeeId, CancellationToken cancellationToken) =>
         await db.ApproverCopies.AsNoTracking().Where(a => a.EmployeeId == employeeId).Select(a => a.ApproverIds).FirstOrDefaultAsync(cancellationToken) ?? [];
+
+    public async Task<IReadOnlyList<Guid>> ChangeRequestHandlersAsync(Guid employeeId, CancellationToken cancellationToken) =>
+        await db.ApproverCopies.AsNoTracking().Where(a => a.EmployeeId == employeeId).Select(a => a.ChangeRequestHandlerIds).FirstOrDefaultAsync(cancellationToken) ?? [];
 }
 
 /// <summary>Publishes through the outbox: in the same transaction as the change.</summary>

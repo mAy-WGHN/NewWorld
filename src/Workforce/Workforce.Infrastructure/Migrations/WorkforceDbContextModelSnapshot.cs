@@ -603,6 +603,81 @@ namespace Workforce.Infrastructure.Migrations
                     b.ToTable("employee_cards", "workforce");
                 });
 
+            modelBuilder.Entity("Workforce.Core.Employees.EmployeeChangeRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("City")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("city");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("DecidedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("decided_at");
+
+                    b.Property<Guid?>("DecidedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("decided_by");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("employee_id");
+
+                    b.Property<string>("Message")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("message");
+
+                    b.Property<string>("PostalCode")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("postal_code");
+
+                    b.Property<string>("PrivateEmail")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("private_email");
+
+                    b.Property<string>("PrivatePhone")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("private_phone");
+
+                    b.Property<string>("RejectionReason")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("rejection_reason");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<string>("Street")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("street");
+
+                    b.HasKey("Id")
+                        .HasName("pk_employee_change_requests");
+
+                    b.HasIndex("EmployeeId")
+                        .HasDatabaseName("ix_employee_change_requests_employee_id");
+
+                    b.HasIndex("Status")
+                        .HasDatabaseName("ix_employee_change_requests_status");
+
+                    b.ToTable("employee_change_requests", "workforce");
+                });
+
             modelBuilder.Entity("Workforce.Core.Employees.ReferenceEntry", b =>
                 {
                     b.Property<Guid>("Id")
@@ -898,6 +973,11 @@ namespace Workforce.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("uuid[]")
                         .HasColumnName("approver_ids");
+
+                    b.PrimitiveCollection<List<Guid>>("ChangeRequestHandlerIds")
+                        .IsRequired()
+                        .HasColumnType("uuid[]")
+                        .HasColumnName("change_request_handler_ids");
 
                     b.Property<long>("Version")
                         .HasColumnType("bigint")

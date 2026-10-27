@@ -184,4 +184,13 @@ public enum EmployeeError
 
     /// <summary>All numbers of the range are given out; HR has to widen the range.</summary>
     NumberSeriesExhausted = 10,
+
+    /// <summary>The person has a pending change request already.</summary>
+    PendingRequestExists = 11,
+
+    /// <summary>Nobody in HR is responsible for the person, so a request would not reach anybody.</summary>
+    NoHandler = 12,
+
+    /// <summary>The request has been decided or withdrawn already.</summary>
+    NotPending = 13,
 }
