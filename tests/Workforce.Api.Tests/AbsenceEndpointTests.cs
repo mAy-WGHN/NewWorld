@@ -1,3 +1,4 @@
+using System.Net.Http.Json;
 using System.Net;
 using Access.Contracts;
 using BcIntegration.Contracts;
@@ -15,6 +16,81 @@ namespace Workforce.Api.Tests;
 public sealed class AbsenceEndpointTests(PostgresFixture postgres) : IClassFixture<PostgresFixture>
 {
     private static readonly ReportSickRequest SickToday = new(new DateOnly(2026, 10, 23), new DateOnly(2026, 10, 25));
+
+    [Fact]
+    public async Task Many_stores_can_be_marked_open_on_holidays_at_once_all_or_none()
+    {
+        await using var api = await StartAsync(postgres);
+        api.Grant(Max, new TestGrant(AbsencePrivileges.ManageHolidayOpening, [StoreA], [Erika, Ben, Max]));
+        var both = new { storeIds = new[] { StoreA, StoreB }, opensOnHolidays = true };
+
+        // Max reaches only store A: the whole request is refused and nothing changes.
+        (await api.SendAsync(HttpMethod.Put, "/api/stores/holiday-opening", Max, both)).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        (await api.GetAsync<StoreHolidayOpeningDto>($"/api/stores/{StoreA}/holiday-opening", Hanna)).OpensOnHolidays.ShouldBeFalse();
+        (await api.SendAsync(HttpMethod.Put, "/api/stores/holiday-opening", Erika, both)).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        (await api.SendAsync(HttpMethod.Put, "/api/stores/holiday-opening", null, both)).StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        (await api.SendAsync(HttpMethod.Put, "/api/stores/holiday-opening", Hanna, new { storeIds = Array.Empty<Guid>(), opensOnHolidays = true })).StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+        (await api.SendAsync(HttpMethod.Put, "/api/stores/holiday-opening", Hanna, new { storeIds = new[] { StoreA, Guid.NewGuid() }, opensOnHolidays = true })).StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        (await api.GetAsync<StoreHolidayOpeningDto>($"/api/stores/{StoreA}/holiday-opening", Hanna)).OpensOnHolidays.ShouldBeFalse();
+
+        // Max may set his own store through the same action; HR sets both.
+        (await api.SendAsync(HttpMethod.Put, "/api/stores/holiday-opening", Max, new { storeIds = new[] { StoreA }, opensOnHolidays = true })).StatusCode.ShouldBe(HttpStatusCode.NoContent);
+        (await api.SendAsync(HttpMethod.Put, "/api/stores/holiday-opening", Hanna, both)).StatusCode.ShouldBe(HttpStatusCode.NoContent);
+        (await api.GetAsync<StoreHolidayOpeningDto>($"/api/stores/{StoreA}/holiday-opening", Hanna)).OpensOnHolidays.ShouldBeTrue();
+        (await api.GetAsync<StoreHolidayOpeningDto>($"/api/stores/{StoreB}/holiday-opening", Hanna)).OpensOnHolidays.ShouldBeTrue();
+        (await api.SendAsync(HttpMethod.Put, "/api/stores/holiday-opening", Hanna, new { storeIds = new[] { StoreA, StoreB }, opensOnHolidays = false })).StatusCode.ShouldBe(HttpStatusCode.NoContent);
+        (await api.GetAsync<StoreHolidayOpeningDto>($"/api/stores/{StoreB}/holiday-opening", Hanna)).OpensOnHolidays.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task Additional_vacation_days_are_maintained_by_HR_and_show_up_in_the_balance()
+    {
+        await using var api = await StartAsync(postgres);
+        var url = $"/api/employees/{Erika}/vacation-extra-days";
+        (await api.SendAsync(HttpMethod.Put, $"/api/employees/{Erika}/vacation-entitlements/2026", Hanna, new SetEntitlementRequest(2))).StatusCode.ShouldBe(HttpStatusCode.NoContent);
+
+        // Only holders of the privilege (HR) may read or change them; the store manager and the person themself may not.
+        foreach (var person in new Guid?[] { Max, Erika, null })
+        {
+            var expected = person is null ? HttpStatusCode.Unauthorized : HttpStatusCode.Forbidden;
+            (await api.SendAsync(HttpMethod.Get, url, person)).StatusCode.ShouldBe(expected);
+            (await api.SendAsync(HttpMethod.Post, url, person, new { kind = "Additional", year = 2026, days = 3 })).StatusCode.ShouldBe(expected);
+            (await api.SendAsync(HttpMethod.Delete, $"{url}/{Guid.NewGuid()}", person)).StatusCode.ShouldBe(expected);
+        }
+
+        foreach (var invalid in new object[] { new { kind = "Nonsense", year = 2026, days = 3 }, new { kind = "Additional", year = 2026, days = 0 }, new { kind = "Additional", year = 2026, days = 2.25 } })
+        {
+            (await api.SendAsync(HttpMethod.Post, url, Hanna, invalid)).StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+        }
+
+        using var created = await api.SendAsync(HttpMethod.Post, url, Hanna, new { kind = "Additional", year = 2026, days = 3 });
+        created.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var extra = (await created.Content.ReadFromJsonAsync<ExtraVacationDto>())!;
+        (extra.Kind, extra.Year, extra.Days, extra.UsableFrom, extra.ExpiresOn).ShouldBe(("Additional", 2026, 3m, new DateOnly(2026, 1, 1), new DateOnly(2027, 3, 31)));
+        (await api.GetAsync<List<ExtraVacationDto>>(url, Hanna)).ShouldHaveSingleItem().Id.ShouldBe(extra.Id);
+
+        // Effective days = contract 2 + additional 3; the person sees the same account.
+        var balance = await api.GetAsync<VacationBalanceDto>("/api/me/vacation-balance?year=2026", Erika);
+        (balance.Entitlement, balance.ContractualAnnualDays, balance.ContractualDays, balance.ExtraDays, balance.Remaining).ShouldBe((5m, 2m, 2m, 3m, 5m));
+        balance.ExtraLines.ShouldNotBeNull().ShouldHaveSingleItem().Kind.ShouldBe("Additional");
+
+        (await api.SendAsync(HttpMethod.Delete, $"{url}/{extra.Id}", Hanna)).StatusCode.ShouldBe(HttpStatusCode.NoContent);
+        (await api.SendAsync(HttpMethod.Delete, $"{url}/{extra.Id}", Hanna)).StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        (await api.GetAsync<VacationBalanceDto>("/api/me/vacation-balance?year=2026", Erika)).Entitlement.ShouldBe(2m);
+    }
+
+    [Fact]
+    public async Task The_year_of_joining_is_pro_rata_from_the_entry_date_in_bc()
+    {
+        await using var api = await StartAsync(postgres);
+        await api.DeliverAsync(new BcIntegration.Contracts.EmployeeChanged(
+            Guid.NewGuid(), Guid.NewGuid(), Start, Erika, "10042", "Erika Mustermann", StoreA, null, null, null, new DateOnly(2026, 10, 1), null));
+        (await api.SendAsync(HttpMethod.Put, $"/api/employees/{Erika}/vacation-entitlements/2026", Hanna, new SetEntitlementRequest(25))).StatusCode.ShouldBe(HttpStatusCode.NoContent);
+
+        // From 1 October: 3 full months, 25 / 12 * 3 = 6.25, rounded up to 6.5 days.
+        var balance = await api.GetAsync<VacationBalanceDto>("/api/me/vacation-balance?year=2026", Erika);
+        (balance.ContractualAnnualDays, balance.ContractualDays, balance.Entitlement).ShouldBe((25m, 6.5m, 6.5m));
+    }
 
     [Fact]
     public async Task A_store_open_on_holidays_makes_holidays_working_days_and_only_the_responsible_manager_may_set_it()

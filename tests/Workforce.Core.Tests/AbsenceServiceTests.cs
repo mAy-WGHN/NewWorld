@@ -17,6 +17,7 @@ public class AbsenceServiceTests
     private readonly FakeStore _store = new();
     private readonly FakePeople _people = new();
     private readonly FakeEntitlements _entitlements = new();
+    private readonly FakeExtraVacation _extraVacation = new();
     private readonly FakeResponsibilities _responsibilities = new();
     private readonly RecordingMessages _messages = new();
 
@@ -34,7 +35,7 @@ public class AbsenceServiceTests
     }
 
     private AbsenceService Service(string? state = null) => new(
-        _store, _people, _entitlements, _responsibilities, _messages, _time,
+        _store, _people, _entitlements, _extraVacation, _responsibilities, _messages, _time,
         new WorkforceOptions { HolidayState = state }, new GermanHolidayCalendar());
 
     private static DateOnly D(string date) => DateOnly.Parse(date, System.Globalization.CultureInfo.InvariantCulture);
@@ -543,6 +544,90 @@ public class AbsenceServiceTests
     [InlineData(367)]
     public async Task Entitlement_must_be_sensible(int days) =>
         (await Service().SetEntitlementAsync(Erika, 2026, days, CancellationToken.None)).ShouldBe(AbsenceError.InvalidPeriod);
+
+    // ---------------------------------------------------------------- additional days and joining during the year
+
+    private async Task<Guid> AddExtra(ExtraVacationKind kind, int year, decimal days)
+    {
+        var result = await Service().AddExtraVacationAsync(Erika, kind, year, days, Max, CancellationToken.None);
+        result.Error.ShouldBe(AbsenceError.None);
+        return result.Id!.Value;
+    }
+
+    [Fact]
+    public async Task Additional_days_make_a_request_possible_that_the_contract_alone_would_not_cover()
+    {
+        _entitlements.Days[(Erika, 2026)] = 2;
+        await AddExtra(ExtraVacationKind.Additional, 2026, 3);
+
+        // Mon 7 Sep: 6 days (Mon-Sat) do not fit into 2 + 3, 4 days do.
+        (await Service().RequestVacationAsync(Erika, D("2026-09-07"), D("2026-09-12"), CancellationToken.None)).Error.ShouldBe(AbsenceError.InsufficientBalance);
+        (await Service().RequestVacationAsync(Erika, D("2026-09-07"), D("2026-09-10"), CancellationToken.None)).Error.ShouldBe(AbsenceError.None);
+        (await Service().BalanceAsync(Erika, 2026, CancellationToken.None)).ShouldBe(new VacationBalance(2026, 5, 0, 4, 1));
+    }
+
+    [Fact]
+    public async Task A_request_cannot_count_on_additional_days_that_expire_before_it()
+    {
+        _time = new FakeTimeProvider(new DateTimeOffset(2026, 2, 2, 9, 0, 0, TimeSpan.Zero));
+        _entitlements.Days[(Erika, 2026)] = 2;
+        await AddExtra(ExtraVacationKind.CarryOver, 2025, 2.5m); // usable until 31 March 2026
+
+        (await Service().RequestVacationAsync(Erika, D("2026-04-13"), D("2026-04-15"), CancellationToken.None)).Error.ShouldBe(AbsenceError.InsufficientBalance); // 3 > 2
+        (await Service().RequestVacationAsync(Erika, D("2026-02-09"), D("2026-02-11"), CancellationToken.None)).Error.ShouldBe(AbsenceError.None);              // 3 <= 4.5
+    }
+
+    [Fact]
+    public async Task Leftover_days_that_have_expired_do_not_count_any_more()
+    {
+        // Today is 15 July 2026: the leftover of 2025 expired on 31 March.
+        _entitlements.Days[(Erika, 2026)] = 2;
+        await AddExtra(ExtraVacationKind.CarryOver, 2025, 2.5m);
+
+        (await Service().RequestVacationAsync(Erika, D("2026-09-07"), D("2026-09-09"), CancellationToken.None)).Error.ShouldBe(AbsenceError.InsufficientBalance);
+        var breakdown = (await Service().BreakdownAsync(Erika, 2026, CancellationToken.None))!;
+        (breakdown.ExtraDays, breakdown.ForfeitedExtraDays, breakdown.EffectiveDays).ShouldBe((0m, 2.5m, 2m));
+    }
+
+    [Fact]
+    public async Task Somebody_who_joins_during_the_year_gets_the_pro_rata_contractual_days()
+    {
+        _time = new FakeTimeProvider(new DateTimeOffset(2026, 12, 1, 9, 0, 0, TimeSpan.Zero));
+        _people.People[Erika] = _people.People[Erika] with { EntryDate = D("2026-12-01") };
+        _entitlements.Days[(Erika, 2026)] = 25;
+
+        // 25 / 12 * 1 month = 2.083, rounded up: 2.5 days.
+        var breakdown = (await Service().BreakdownAsync(Erika, 2026, CancellationToken.None))!;
+        (breakdown.ContractualAnnualDays, breakdown.ContractualDays, breakdown.EffectiveDays).ShouldBe((25m, 2.5m, 2.5m));
+        (await Service().RequestVacationAsync(Erika, D("2026-12-14"), D("2026-12-16"), CancellationToken.None)).Error.ShouldBe(AbsenceError.InsufficientBalance); // 3 > 2.5
+        (await Service().RequestVacationAsync(Erika, D("2026-12-14"), D("2026-12-15"), CancellationToken.None)).Error.ShouldBe(AbsenceError.None);              // 2 fit
+    }
+
+    [Fact]
+    public async Task Additional_days_are_maintained_by_year_and_can_be_removed()
+    {
+        var id = await AddExtra(ExtraVacationKind.CarryOver, 2025, 2.5m);
+
+        var listed = await Service().ListExtraVacationAsync(Erika, CancellationToken.None);
+        listed.ShouldHaveSingleItem().ShouldBe(new ExtraVacationDays(id, ExtraVacationKind.CarryOver, 2025, 2.5m));
+        (await Service().RemoveExtraVacationAsync(Erika, id, CancellationToken.None)).ShouldBe(AbsenceError.None);
+        (await Service().ListExtraVacationAsync(Erika, CancellationToken.None)).ShouldBeEmpty();
+        (await Service().RemoveExtraVacationAsync(Erika, id, CancellationToken.None)).ShouldBe(AbsenceError.NotFound);
+    }
+
+    [Theory]
+    [InlineData(ExtraVacationKind.CarryOver, 2025, 0)]
+    [InlineData(ExtraVacationKind.CarryOver, 2025, -1)]
+    [InlineData(ExtraVacationKind.CarryOver, 2025, 2.25)] // only whole and half days
+    [InlineData(ExtraVacationKind.CarryOver, 2025, 101)]
+    [InlineData(ExtraVacationKind.Unknown, 2025, 1)]
+    [InlineData(ExtraVacationKind.Additional, 1999, 1)]
+    public async Task Additional_days_must_be_sensible(ExtraVacationKind kind, int year, double days) =>
+        (await Service().AddExtraVacationAsync(Erika, kind, year, (decimal)days, Max, CancellationToken.None)).Error.ShouldBe(AbsenceError.InvalidPeriod);
+
+    [Fact]
+    public async Task Additional_days_of_an_unknown_person_are_refused() =>
+        (await Service().AddExtraVacationAsync(Guid.NewGuid(), ExtraVacationKind.Additional, 2026, 1, Max, CancellationToken.None)).Error.ShouldBe(AbsenceError.UnknownPerson);
 }
 
 public class AbsenceSyncStatusTests

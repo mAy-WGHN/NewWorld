@@ -35,7 +35,7 @@ public sealed class EfPeopleDirectory(WorkforceDbContext db) : IPeopleDirectory
 {
     public async Task<PersonInfo?> GetAsync(Guid employeeId, CancellationToken cancellationToken) =>
         await db.People.AsNoTracking().FirstOrDefaultAsync(p => p.EmployeeId == employeeId, cancellationToken) is { } p
-            ? new PersonInfo(p.EmployeeId, p.Name, p.HomeStoreId, p.ExitDate, await StoreCityAsync(p.HomeStoreId, cancellationToken), await OpensOnHolidaysAsync(p.HomeStoreId, cancellationToken))
+            ? new PersonInfo(p.EmployeeId, p.Name, p.HomeStoreId, p.ExitDate, await StoreCityAsync(p.HomeStoreId, cancellationToken), await OpensOnHolidaysAsync(p.HomeStoreId, cancellationToken), p.EntryDate)
             : null;
 
     private async Task<bool> OpensOnHolidaysAsync(Guid? storeId, CancellationToken cancellationToken) =>
@@ -43,6 +43,28 @@ public sealed class EfPeopleDirectory(WorkforceDbContext db) : IPeopleDirectory
 
     private async Task<string?> StoreCityAsync(Guid? storeId, CancellationToken cancellationToken) =>
         storeId is { } id ? await db.Stores.AsNoTracking().Where(s => s.StoreId == id).Select(s => s.City).FirstOrDefaultAsync(cancellationToken) : null;
+}
+
+public sealed class EfExtraVacationStore(WorkforceDbContext db) : IExtraVacationStore
+{
+    public async Task<IReadOnlyList<ExtraVacationDays>> ForEmployeeAsync(Guid employeeId, CancellationToken cancellationToken) =>
+        (await db.ExtraVacation.AsNoTracking().Where(e => e.EmployeeId == employeeId).OrderBy(e => e.Year).ThenBy(e => e.Id).ToListAsync(cancellationToken))
+            .Select(e => new ExtraVacationDays(e.Id, e.Kind, e.Year, e.Days)).ToList();
+
+    public void Add(Guid employeeId, ExtraVacationDays extra, Guid createdBy, DateTimeOffset at) =>
+        db.ExtraVacation.Add(new ExtraVacationRecord { Id = extra.Id, EmployeeId = employeeId, Kind = extra.Kind, Year = extra.Year, Days = extra.Days, CreatedBy = createdBy, CreatedAt = at });
+
+    public async Task<bool> RemoveAsync(Guid employeeId, Guid id, CancellationToken cancellationToken)
+    {
+        var row = await db.ExtraVacation.FirstOrDefaultAsync(e => e.Id == id && e.EmployeeId == employeeId, cancellationToken);
+        if (row is null)
+        {
+            return false;
+        }
+
+        db.ExtraVacation.Remove(row);
+        return true;
+    }
 }
 
 public sealed class EfEntitlementStore(WorkforceDbContext db) : IEntitlementStore

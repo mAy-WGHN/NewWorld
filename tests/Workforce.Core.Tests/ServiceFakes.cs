@@ -45,6 +45,19 @@ internal sealed class FakeEntitlements : IEntitlementStore
     }
 }
 
+internal sealed class FakeExtraVacation : IExtraVacationStore
+{
+    public List<(Guid EmployeeId, ExtraVacationDays Extra, Guid CreatedBy)> Items { get; } = [];
+
+    public Task<IReadOnlyList<ExtraVacationDays>> ForEmployeeAsync(Guid employeeId, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<ExtraVacationDays>>([.. Items.Where(i => i.EmployeeId == employeeId).Select(i => i.Extra)]);
+
+    public void Add(Guid employeeId, ExtraVacationDays extra, Guid createdBy, DateTimeOffset at) => Items.Add((employeeId, extra, createdBy));
+
+    public Task<bool> RemoveAsync(Guid employeeId, Guid id, CancellationToken cancellationToken) =>
+        Task.FromResult(Items.RemoveAll(i => i.EmployeeId == employeeId && i.Extra.Id == id) > 0);
+}
+
 internal sealed class FakeResponsibilities : IResponsibilityDirectory
 {
     public Dictionary<Guid, List<Guid>> Approvers { get; } = [];

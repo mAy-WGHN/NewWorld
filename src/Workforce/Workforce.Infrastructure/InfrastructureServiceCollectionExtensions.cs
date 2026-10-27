@@ -45,6 +45,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IAbsenceStore, EfAbsenceStore>();
         services.AddScoped<IPeopleDirectory, EfPeopleDirectory>();
         services.AddScoped<IEntitlementStore, EfEntitlementStore>();
+        services.AddScoped<IExtraVacationStore, EfExtraVacationStore>();
         services.AddScoped<IResponsibilityDirectory, EfResponsibilityDirectory>();
         services.AddScoped<IWorkforceMessages, OutboxWorkforceMessages>();
         services.AddScoped<AbsenceService>();

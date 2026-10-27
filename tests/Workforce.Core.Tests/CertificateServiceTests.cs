@@ -42,7 +42,7 @@ public class CertificateServiceTests
         _responsibilities.Approvers[Erika] = [Max];
     }
 
-    private AbsenceService Absences() => new(_store, _people, _entitlements, _responsibilities, _messages, _time, _options, new GermanHolidayCalendar());
+    private AbsenceService Absences() => new(_store, _people, _entitlements, new FakeExtraVacation(), _responsibilities, _messages, _time, _options, new GermanHolidayCalendar());
 
     private CertificateService Service() => new(_store, _certificates, _people, _messages, Absences(), _scanner, _time, _options);
 

@@ -51,4 +51,115 @@ public static class VacationAccount
 
         return new VacationBalance(year, entitlement, taken, planned, entitlement - taken - planned);
     }
+
+    /// <summary>
+    /// The account of a year with contractual and additional days. Vacation days are taken from the additional days first (the ones that
+    /// expire earlier first), then from the contractual days of the year. Additional days that are not used by their expiry date are lost.
+    /// </summary>
+    /// <param name="year">The year of the account.</param>
+    /// <param name="contractualAnnualDays">Days per year according to the contract.</param>
+    /// <param name="entryDate">Date of joining, <c>null</c> if unknown; in the year of joining the days are pro rata.</param>
+    /// <param name="extras">Additional days of the person (all years; the ones outside the year are ignored).</param>
+    /// <param name="bookings">All vacation bookings of the person.</param>
+    /// <param name="today">Today: approved days before it are taken, from it on planned.</param>
+    /// <param name="asOf">
+    /// The date the account is evaluated for: additional days that have expired before it count as lost. Today for a display; the end of a
+    /// requested period when a request is checked (days that expire before it cannot cover it).
+    /// </param>
+    /// <param name="calendar">Working days of the person.</param>
+    public static VacationBreakdown Compute(
+        int year,
+        decimal contractualAnnualDays,
+        DateOnly? entryDate,
+        IReadOnlyList<ExtraVacationDays> extras,
+        IEnumerable<VacationBooking> bookings,
+        DateOnly today,
+        DateOnly asOf,
+        WorkCalendar calendar)
+    {
+        var yearStart = new DateOnly(year, 1, 1);
+        var yearEnd = new DateOnly(year, 12, 31);
+        var contractual = VacationEntitlement.Contractual(contractualAnnualDays, entryDate, year);
+
+        // Additional days whose usable window touches the year, the earlier expiring ones first.
+        var relevant = extras
+            .Where(e => e.Days > 0 && e.UsableFrom <= yearEnd && e.ExpiresOn >= yearStart)
+            .OrderBy(e => e.ExpiresOn).ThenBy(e => e.UsableFrom).ThenBy(e => e.Id)
+            .ToList();
+        var simulationStart = relevant.Count == 0 ? yearStart : relevant.Min(e => e.UsableFrom) < yearStart ? relevant.Min(e => e.UsableFrom) : yearStart;
+
+        var days = new List<(DateOnly Day, AbsenceStatus Status)>();
+        foreach (var booking in bookings)
+        {
+            if (booking.Status is not (AbsenceStatus.Approved or AbsenceStatus.Requested) || booking.Range.To is not { } to)
+            {
+                continue;
+            }
+
+            for (var day = booking.Range.From > simulationStart ? booking.Range.From : simulationStart; day <= to && day <= yearEnd; day = day.AddDays(1))
+            {
+                if (calendar.IsWorkingDay(day))
+                {
+                    days.Add((day, booking.Status));
+                }
+            }
+        }
+
+        var left = relevant.ToDictionary(e => e.Id, e => e.Days);
+        var usedBefore = relevant.ToDictionary(e => e.Id, _ => 0m);
+        var usedInYear = relevant.ToDictionary(e => e.Id, _ => 0m);
+        decimal taken = 0;
+        decimal planned = 0;
+        foreach (var (day, status) in days.OrderBy(d => d.Day))
+        {
+            var need = 1m;
+            foreach (var extra in relevant.Where(e => e.UsableFrom <= day && day <= e.ExpiresOn && left[e.Id] > 0))
+            {
+                var part = Math.Min(need, left[extra.Id]);
+                left[extra.Id] -= part;
+                need -= part;
+                if (day < yearStart)
+                {
+                    usedBefore[extra.Id] += part;
+                }
+                else
+                {
+                    usedInYear[extra.Id] += part;
+                }
+
+                if (need == 0)
+                {
+                    break;
+                }
+            }
+
+            // Whatever the additional days do not cover, and all days of the year are counted: before the year only the use of
+            // additional days matters (those days were paid from the contract of their own year).
+            if (day < yearStart)
+            {
+                continue;
+            }
+
+            if (status == AbsenceStatus.Approved && day < today)
+            {
+                taken += 1m;
+            }
+            else
+            {
+                planned += 1m;
+            }
+        }
+
+        var lines = relevant.Select(e =>
+        {
+            var available = e.Days - usedBefore[e.Id];
+            var forfeited = e.ExpiresOn < asOf ? Math.Max(0m, available - usedInYear[e.Id]) : 0m;
+            return new ExtraDaysLine(e.Id, e.Kind, e.Year, e.Days, available, usedInYear[e.Id], forfeited, e.ExpiresOn);
+        }).ToList();
+
+        var extraDays = lines.Sum(l => l.AvailableInYear - l.Forfeited);
+        var effective = contractual + extraDays;
+        return new VacationBreakdown(
+            year, contractualAnnualDays, contractual, extraDays, lines.Sum(l => l.Forfeited), effective, taken, planned, effective - taken - planned, lines);
+    }
 }

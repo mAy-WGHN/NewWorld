@@ -169,6 +169,48 @@ public static class Endpoints
                 !await Allows(auth, user, new EmployeeResource(employeeId), AbsencePrivileges.ReadReason) ? Results.Forbid() : await Balance(service, employeeId, year, ct))
             .RequireAuthorization();
 
+        // Additional vacation days (leftover, special leave) on top of the contract: used first, expire after the first quarter of the next year.
+        static ExtraVacationDto ToExtraDto(ExtraVacationDays e) => new(e.Id, e.Kind.ToString(), e.Year, e.Days, e.UsableFrom, e.ExpiresOn);
+
+        api.MapGet("/employees/{employeeId:guid}/vacation-extra-days", async (Guid employeeId, ClaimsPrincipal user, IAuthorizationService auth, AbsenceService service, CancellationToken ct) =>
+                !await Allows(auth, user, new EmployeeResource(employeeId), AbsencePrivileges.ManageEntitlement)
+                    ? Results.Forbid()
+                    : Results.Ok((await service.ListExtraVacationAsync(employeeId, ct)).Select(ToExtraDto)))
+            .RequireAuthorization();
+
+        api.MapPost("/employees/{employeeId:guid}/vacation-extra-days", async (
+                Guid employeeId, AddExtraVacationRequest request, ClaimsPrincipal user, IAuthorizationService auth, AbsenceService service, WorkforceUnitOfWork uow, CancellationToken ct) =>
+            {
+                if (Me(user) is not { } me || !await Allows(auth, user, new EmployeeResource(employeeId), AbsencePrivileges.ManageEntitlement))
+                {
+                    return Results.Forbid();
+                }
+
+                if (!Enum.TryParse<ExtraVacationKind>(request.Kind, ignoreCase: true, out var kind))
+                {
+                    return Problem(AbsenceError.InvalidPeriod);
+                }
+
+                var result = await uow.RunAsync(() => service.AddExtraVacationAsync(employeeId, kind, request.Year, request.Days, me, ct), r => r.Error == AbsenceError.None, ct);
+                return result.Error != AbsenceError.None
+                    ? Problem(result.Error)
+                    : Results.Ok(ToExtraDto((await service.ListExtraVacationAsync(employeeId, ct)).Single(e => e.Id == result.Id)));
+            })
+            .RequireAuthorization();
+
+        api.MapDelete("/employees/{employeeId:guid}/vacation-extra-days/{extraId:guid}", async (
+                Guid employeeId, Guid extraId, ClaimsPrincipal user, IAuthorizationService auth, AbsenceService service, WorkforceUnitOfWork uow, CancellationToken ct) =>
+            {
+                if (!await Allows(auth, user, new EmployeeResource(employeeId), AbsencePrivileges.ManageEntitlement))
+                {
+                    return Results.Forbid();
+                }
+
+                var error = await uow.RunAsync(async () => AbsenceResult.Fail(await service.RemoveExtraVacationAsync(employeeId, extraId, ct)), r => r.Error == AbsenceError.None, ct);
+                return error.Error == AbsenceError.None ? Results.NoContent() : Problem(error.Error);
+            })
+            .RequireAuthorization();
+
         // Stores are closed on public holidays unless marked otherwise (railway-station stores); the district manager maintains it.
         api.MapGet("/stores/{storeId:guid}/holiday-opening", async (Guid storeId, ClaimsPrincipal user, IAuthorizationService auth, WorkforceDbContext db, CancellationToken ct) =>
             {
@@ -184,6 +226,57 @@ public static class Endpoints
 
                 var row = await db.StoreSettings.AsNoTracking().FirstOrDefaultAsync(s => s.StoreId == storeId, ct);
                 return Results.Ok(new StoreHolidayOpeningDto(storeId, row?.OpensOnHolidays ?? false, row?.ChangedAt, row?.ChangedBy));
+            })
+            .RequireAuthorization();
+
+        // Many stores at once, so that nobody has to maintain every railway-station store by hand. All or nothing: one store outside the reach refuses all.
+        api.MapPut("/stores/holiday-opening", async (
+                SetStoresHolidayOpeningRequest request, ClaimsPrincipal user, IAuthorizationService auth, WorkforceDbContext db, TimeProvider time, WorkforceUnitOfWork uow, CancellationToken ct) =>
+            {
+                if (Me(user) is not { } me)
+                {
+                    return Results.Forbid();
+                }
+
+                var ids = request.StoreIds.Distinct().ToList();
+                if (ids.Count == 0 || ids.Count > 500)
+                {
+                    return Results.Problem(statusCode: StatusCodes.Status422UnprocessableEntity, title: nameof(AbsenceError.InvalidPeriod));
+                }
+
+                foreach (var id in ids)
+                {
+                    if (!await Allows(auth, user, new StoreResource(id), AbsencePrivileges.ManageHolidayOpening))
+                    {
+                        return Results.Forbid();
+                    }
+                }
+
+                if (await db.Stores.AsNoTracking().CountAsync(s => ids.Contains(s.StoreId), ct) != ids.Count)
+                {
+                    return Results.NotFound();
+                }
+
+                await uow.RunAsync(async () =>
+                {
+                    var rows = await db.StoreSettings.Where(s => ids.Contains(s.StoreId)).ToDictionaryAsync(s => s.StoreId, ct);
+                    var now = time.GetUtcNow();
+                    foreach (var id in ids)
+                    {
+                        if (!rows.TryGetValue(id, out var row))
+                        {
+                            row = new StoreSettingsRecord { StoreId = id };
+                            db.StoreSettings.Add(row);
+                        }
+
+                        row.OpensOnHolidays = request.OpensOnHolidays;
+                        row.ChangedBy = me;
+                        row.ChangedAt = now;
+                    }
+
+                    return true;
+                }, ok => ok, ct);
+                return Results.NoContent();
             })
             .RequireAuthorization();
 
@@ -252,8 +345,10 @@ public static class Endpoints
     }
 
     private static async Task<IResult> Balance(AbsenceService service, Guid employeeId, int? year, CancellationToken ct) =>
-        await service.BalanceAsync(employeeId, year ?? service.TodayLocal.Year, ct) is { } b
-            ? Results.Ok(new VacationBalanceDto(b.Year, b.Entitlement, b.Taken, b.Planned, b.Remaining))
+        await service.BreakdownAsync(employeeId, year ?? service.TodayLocal.Year, ct) is { } b
+            ? Results.Ok(new VacationBalanceDto(
+                b.Year, b.EffectiveDays, b.Taken, b.Planned, b.Remaining, b.ContractualAnnualDays, b.ContractualDays, b.ExtraDays, b.ForfeitedExtraDays,
+                [.. b.Lines.Select(l => new ExtraDaysLineDto(l.Id, l.Kind.ToString(), l.Year, l.Days, l.AvailableInYear, l.UsedInYear, l.Forfeited, l.ExpiresOn))]))
             : Problem(AbsenceError.NoEntitlement);
 
     private static async Task<IResult> Mutate(ClaimsPrincipal user, Func<Guid, Task<AbsenceResult>> action) =>

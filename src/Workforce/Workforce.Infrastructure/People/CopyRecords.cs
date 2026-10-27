@@ -10,6 +10,8 @@ public sealed class PersonRecord
     /// <summary>The suggestion from BC (the "Vorgabefiliale"), from <c>EmployeeChanged</c>.</summary>
     public Guid? BcHomeStoreId { get; set; }
     public DateOnly? ExitDate { get; set; }
+    /// <summary>Date of joining (from BC); the vacation days of the year of joining are pro rata.</summary>
+    public DateOnly? EntryDate { get; set; }
 }
 
 /// <summary>

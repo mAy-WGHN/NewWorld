@@ -23,6 +23,7 @@ public sealed class EmployeeChangedHandler(WorkforceDbContext db) : IMessageHand
         person.BcHomeStoreId = message.HomeStoreId;
         person.HomeStoreId = (await db.MainStoreCopies.FindAsync([message.EmployeeId], cancellationToken))?.StoreId ?? message.HomeStoreId;
         person.ExitDate = message.ExitDate;
+        person.EntryDate = message.EntryDate;
     }
 }
 
@@ -132,6 +133,8 @@ public sealed class EmployeeDataErasureRequestedHandler(
         await db.CertificateAccessLog.Where(e => e.ActorId == id).ExecuteUpdateAsync(s => s.SetProperty(e => e.ActorId, Guid.Empty), cancellationToken);
         await db.Absences.Where(a => a.EmployeeId == id).ExecuteDeleteAsync(cancellationToken);
         await db.Entitlements.Where(e => e.EmployeeId == id).ExecuteDeleteAsync(cancellationToken);
+        await db.ExtraVacation.Where(e => e.EmployeeId == id).ExecuteDeleteAsync(cancellationToken);
+        await db.ExtraVacation.Where(e => e.CreatedBy == id).ExecuteUpdateAsync(s => s.SetProperty(e => e.CreatedBy, Guid.Empty), cancellationToken);
         await db.People.Where(p => p.EmployeeId == id).ExecuteDeleteAsync(cancellationToken);
         await db.MainStoreCopies.Where(m => m.EmployeeId == id).ExecuteDeleteAsync(cancellationToken);
         await db.StoreSettings.Where(s => s.ChangedBy == id).ExecuteUpdateAsync(s => s.SetProperty(x => x.ChangedBy, Guid.Empty), cancellationToken);

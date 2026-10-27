@@ -458,6 +458,48 @@ namespace Workforce.Infrastructure.Migrations
                     b.ToTable("vacation_entitlements", "workforce");
                 });
 
+            modelBuilder.Entity("Workforce.Infrastructure.Absences.ExtraVacationRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<decimal>("Days")
+                        .HasPrecision(5, 1)
+                        .HasColumnType("numeric(5,1)")
+                        .HasColumnName("days");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("employee_id");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("kind");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("integer")
+                        .HasColumnName("year");
+
+                    b.HasKey("Id")
+                        .HasName("pk_extra_vacation_days");
+
+                    b.HasIndex("EmployeeId")
+                        .HasDatabaseName("ix_extra_vacation_days_employee_id");
+
+                    b.ToTable("extra_vacation_days", "workforce");
+                });
+
             modelBuilder.Entity("Workforce.Infrastructure.Certificates.CertificateReminderSettingsRecord", b =>
                 {
                     b.Property<int>("Id")
@@ -566,6 +608,10 @@ namespace Workforce.Infrastructure.Migrations
                     b.Property<Guid?>("BcHomeStoreId")
                         .HasColumnType("uuid")
                         .HasColumnName("bc_home_store_id");
+
+                    b.Property<DateOnly?>("EntryDate")
+                        .HasColumnType("date")
+                        .HasColumnName("entry_date");
 
                     b.Property<DateOnly?>("ExitDate")
                         .HasColumnType("date")

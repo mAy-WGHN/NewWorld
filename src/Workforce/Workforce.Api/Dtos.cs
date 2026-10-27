@@ -22,7 +22,21 @@ public sealed record StoreAbsenceDto(Guid EmployeeId, string EmployeeName, DateO
 
 public sealed record PendingApprovalDto(Guid AbsenceId, Guid EmployeeId, string EmployeeName, DateOnly From, DateOnly To);
 
-public sealed record VacationBalanceDto(int Year, decimal Entitlement, decimal Taken, decimal Planned, decimal Remaining);
+/// <summary>
+/// The vacation account of a year. <see cref="Entitlement"/> are the effective vacation days (contractual days, pro rata in the year of
+/// joining, plus additional days that have not expired); the other fields show how they come about.
+/// </summary>
+public sealed record VacationBalanceDto(
+    int Year, decimal Entitlement, decimal Taken, decimal Planned, decimal Remaining,
+    decimal ContractualAnnualDays = 0, decimal ContractualDays = 0, decimal ExtraDays = 0, decimal ForfeitedExtraDays = 0,
+    IReadOnlyList<ExtraDaysLineDto>? ExtraLines = null);
+
+public sealed record ExtraDaysLineDto(Guid Id, string Kind, int Year, decimal Days, decimal AvailableInYear, decimal UsedInYear, decimal Forfeited, DateOnly ExpiresOn);
+
+/// <summary>Additional vacation days (leftover or special leave) of a person.</summary>
+public sealed record ExtraVacationDto(Guid Id, string Kind, int Year, decimal Days, DateOnly UsableFrom, DateOnly ExpiresOn);
+
+public sealed record AddExtraVacationRequest(string Kind, int Year, decimal Days);
 
 /// <summary>Everything about an absence for authorised services (service role <c>Workforce.AbsenceDetails.Read</c>), including the type and the BC transfer status.</summary>
 public sealed record AbsenceDetailsDto(
@@ -46,6 +60,9 @@ public sealed record SetCertificateRetentionRequest(int RetentionAfterEndDays);
 public sealed record StoreHolidayOpeningDto(Guid StoreId, bool OpensOnHolidays, DateTimeOffset? ChangedAt, Guid? ChangedBy);
 
 public sealed record SetStoreHolidayOpeningRequest(bool OpensOnHolidays);
+
+/// <summary>Sets the holiday opening of many stores at once (e.g. all railway-station stores); all or none.</summary>
+public sealed record SetStoresHolidayOpeningRequest(IReadOnlyList<Guid> StoreIds, bool OpensOnHolidays);
 
 public sealed record CertificateReminderSettingsDto(int FirstReminderAfterReturnDays, int ReminderEveryDays, int MaxReminders, bool IsDefault, DateTimeOffset? ChangedAt, Guid? ChangedBy);
 

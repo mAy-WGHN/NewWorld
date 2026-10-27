@@ -10,7 +10,8 @@ namespace Workforce.Core.Absences;
 /// <param name="ExitDate">Exit date, if any.</param>
 /// <param name="StoreCity">City of the home store (for municipal holidays); <c>null</c> if unknown.</param>
 /// <param name="StoreOpensOnHolidays">The home store is open on public holidays, so they are working days for its staff.</param>
-public sealed record PersonInfo(Guid EmployeeId, string Name, Guid? HomeStoreId, DateOnly? ExitDate, string? StoreCity = null, bool StoreOpensOnHolidays = false);
+/// <param name="EntryDate">Date of joining (from BC); <c>null</c> if unknown. In the year of joining the vacation days are pro rata.</param>
+public sealed record PersonInfo(Guid EmployeeId, string Name, Guid? HomeStoreId, DateOnly? ExitDate, string? StoreCity = null, bool StoreOpensOnHolidays = false, DateOnly? EntryDate = null);
 
 public interface IPeopleDirectory
 {
@@ -40,6 +41,17 @@ public interface IEntitlementStore
     Task<decimal?> GetAsync(Guid employeeId, int year, CancellationToken cancellationToken);
 
     Task SetAsync(Guid employeeId, int year, decimal days, CancellationToken cancellationToken);
+}
+
+/// <summary>Additional vacation days per person (leftover, special leave), entered by HR.</summary>
+public interface IExtraVacationStore
+{
+    Task<IReadOnlyList<ExtraVacationDays>> ForEmployeeAsync(Guid employeeId, CancellationToken cancellationToken);
+
+    void Add(Guid employeeId, ExtraVacationDays extra, Guid createdBy, DateTimeOffset at);
+
+    /// <returns><c>false</c> if the person has no such entry.</returns>
+    Task<bool> RemoveAsync(Guid employeeId, Guid id, CancellationToken cancellationToken);
 }
 
 /// <summary>The persons responsible for a person for absences (topic <c>absence.approval</c>, copy of Access's responsibilities).</summary>

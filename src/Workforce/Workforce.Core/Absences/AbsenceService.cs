@@ -15,6 +15,7 @@ public sealed class AbsenceService(
     IAbsenceStore store,
     IPeopleDirectory people,
     IEntitlementStore entitlements,
+    IExtraVacationStore extraVacation,
     IResponsibilityDirectory responsibilities,
     IWorkforceMessages messages,
     TimeProvider time,
@@ -186,15 +187,21 @@ public sealed class AbsenceService(
             return AbsenceResult.Fail(AbsenceError.Overlap);
         }
 
-        var bookings = existing.Where(a => a.Type == AbsenceType.Vacation && a.To is not null).Select(a => new VacationBooking(a.Range, a.Status)).ToList();
-        foreach (var (year, days) in calendar.CountWorkingDaysByYear(from, to).Where(y => y.Value > 0))
+        // The request is checked as if it were booked: the days it needs must fit into the effective days of every year it touches.
+        // Additional days that expire before the end of the period cannot cover it (asOf), the unused rest of them is lost by then.
+        var bookings = existing.Where(a => a.Type == AbsenceType.Vacation && a.To is not null).Select(a => new VacationBooking(a.Range, a.Status))
+            .Append(new VacationBooking(range, AbsenceStatus.Requested)).ToList();
+        var extras = await extraVacation.ForEmployeeAsync(employeeId, cancellationToken);
+        foreach (var year in calendar.CountWorkingDaysByYear(from, to).Where(y => y.Value > 0).Select(y => y.Key))
         {
             if (await entitlements.GetAsync(employeeId, year, cancellationToken) is not { } entitlement)
             {
                 return AbsenceResult.Fail(AbsenceError.NoEntitlement);
             }
 
-            if (VacationAccount.Compute(year, entitlement, bookings, TodayLocal, calendar).Remaining < days)
+            var lastDayInYear = to < new DateOnly(year, 12, 31) ? to : new DateOnly(year, 12, 31);
+            var asOf = lastDayInYear > TodayLocal ? lastDayInYear : TodayLocal;
+            if (VacationAccount.Compute(year, entitlement, person.EntryDate, extras, bookings, TodayLocal, asOf, calendar).Remaining < 0)
             {
                 return AbsenceResult.Fail(AbsenceError.InsufficientBalance);
             }
@@ -346,19 +353,57 @@ public sealed class AbsenceService(
 
     // ------------------------------------------------------------------ account
 
-    /// <returns>The balance of the year, or <c>null</c> if no entitlement is maintained for it.</returns>
-    public async Task<VacationBalance?> BalanceAsync(Guid employeeId, int year, CancellationToken cancellationToken)
+    /// <returns>The balance of the year (entitlement = effective days), or <c>null</c> if no entitlement is maintained for it.</returns>
+    public async Task<VacationBalance?> BalanceAsync(Guid employeeId, int year, CancellationToken cancellationToken) =>
+        (await BreakdownAsync(employeeId, year, cancellationToken))?.ToBalance();
+
+    /// <summary>
+    /// The account of the year with every component (contract, pro rata in the year of joining, additional days, expiry), or <c>null</c>
+    /// if no contractual entitlement is maintained for the year.
+    /// </summary>
+    public async Task<VacationBreakdown?> BreakdownAsync(Guid employeeId, int year, CancellationToken cancellationToken)
     {
         if (await entitlements.GetAsync(employeeId, year, cancellationToken) is not { } entitlement)
         {
             return null;
         }
 
+        var person = await people.GetAsync(employeeId, cancellationToken);
         var bookings = (await store.ForEmployeeAsync(employeeId, cancellationToken))
             .Where(a => a.Type == AbsenceType.Vacation && a.To is not null)
             .Select(a => new VacationBooking(a.Range, a.Status));
-        return VacationAccount.Compute(year, entitlement, bookings, TodayLocal, await CalendarForAsync(employeeId, cancellationToken));
+        return VacationAccount.Compute(
+            year, entitlement, person?.EntryDate, await extraVacation.ForEmployeeAsync(employeeId, cancellationToken), bookings, TodayLocal, TodayLocal, CalendarFor(person));
     }
+
+    public async Task<IReadOnlyList<ExtraVacationDays>> ListExtraVacationAsync(Guid employeeId, CancellationToken cancellationToken) =>
+        await extraVacation.ForEmployeeAsync(employeeId, cancellationToken);
+
+    /// <summary>
+    /// HR enters additional days (leftover or special leave): whole or half days, 100 at most. They are used before the contractual days and
+    /// expire at the end of March of the year after <paramref name="year"/>.
+    /// </summary>
+    public async Task<(AbsenceError Error, Guid? Id)> AddExtraVacationAsync(
+        Guid employeeId, ExtraVacationKind kind, int year, decimal days, Guid actorId, CancellationToken cancellationToken)
+    {
+        if (kind == ExtraVacationKind.Unknown || !Enum.IsDefined(kind) || year is < 2000 or > 2200 || days is <= 0 or > 100 || days * 2 != decimal.Truncate(days * 2))
+        {
+            return (AbsenceError.InvalidPeriod, null);
+        }
+
+        if (await people.GetAsync(employeeId, cancellationToken) is null)
+        {
+            return (AbsenceError.UnknownPerson, null);
+        }
+
+        var now = time.GetUtcNow();
+        var extra = new ExtraVacationDays(Guid.CreateVersion7(now), kind, year, days);
+        extraVacation.Add(employeeId, extra, actorId, now);
+        return (AbsenceError.None, extra.Id);
+    }
+
+    public async Task<AbsenceError> RemoveExtraVacationAsync(Guid employeeId, Guid id, CancellationToken cancellationToken) =>
+        await extraVacation.RemoveAsync(employeeId, id, cancellationToken) ? AbsenceError.None : AbsenceError.NotFound;
 
     public async Task<AbsenceError> SetEntitlementAsync(Guid employeeId, int year, decimal days, CancellationToken cancellationToken)
     {
