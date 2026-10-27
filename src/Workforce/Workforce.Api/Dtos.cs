@@ -43,6 +43,10 @@ public sealed record CertificateRetentionDto(int RetentionAfterEndDays, bool IsD
 
 public sealed record SetCertificateRetentionRequest(int RetentionAfterEndDays);
 
+public sealed record StoreHolidayOpeningDto(Guid StoreId, bool OpensOnHolidays, DateTimeOffset? ChangedAt, Guid? ChangedBy);
+
+public sealed record SetStoreHolidayOpeningRequest(bool OpensOnHolidays);
+
 public sealed record CertificateReminderSettingsDto(int FirstReminderAfterReturnDays, int ReminderEveryDays, int MaxReminders, bool IsDefault, DateTimeOffset? ChangedAt, Guid? ChangedBy);
 
 public sealed record SetCertificateReminderSettingsRequest(int FirstReminderAfterReturnDays, int ReminderEveryDays, int MaxReminders);

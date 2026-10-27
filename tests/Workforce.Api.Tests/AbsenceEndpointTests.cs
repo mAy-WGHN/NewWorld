@@ -17,6 +17,43 @@ public sealed class AbsenceEndpointTests(PostgresFixture postgres) : IClassFixtu
     private static readonly ReportSickRequest SickToday = new(new DateOnly(2026, 10, 23), new DateOnly(2026, 10, 25));
 
     [Fact]
+    public async Task A_store_open_on_holidays_makes_holidays_working_days_and_only_the_responsible_manager_may_set_it()
+    {
+        await using var api = await StartAsync(postgres);
+        await api.SetEntitlementAsync(Erika, 2026, 30);
+        var url = $"/api/stores/{StoreA}/holiday-opening";
+        var christmas = new RequestVacationRequest(new DateOnly(2026, 12, 25), new DateOnly(2026, 12, 25)); // Friday, public holiday
+        api.Grant(Max, new TestGrant(AbsencePrivileges.ManageHolidayOpening, [StoreA], [Erika, Ben, Max]));
+
+        // Closed on holidays by default: a vacation request on a holiday has no working day.
+        (await api.GetAsync<StoreHolidayOpeningDto>(url, Hanna)).OpensOnHolidays.ShouldBeFalse();
+        using var closed = await api.SendAsync(HttpMethod.Post, "/api/me/absences/vacation", Erika, christmas);
+        closed.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+
+        // Without the privilege, or without reach over the store, nothing can be read or changed.
+        foreach (var person in new Guid?[] { Erika, Ben, Lena, null })
+        {
+            var expected = person is null ? HttpStatusCode.Unauthorized : HttpStatusCode.Forbidden;
+            (await api.SendAsync(HttpMethod.Get, url, person)).StatusCode.ShouldBe(expected);
+            (await api.SendAsync(HttpMethod.Put, url, person, new { opensOnHolidays = true })).StatusCode.ShouldBe(expected);
+        }
+
+        (await api.SendAsync(HttpMethod.Put, $"/api/stores/{StoreB}/holiday-opening", Max, new { opensOnHolidays = true })).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        (await api.SendAsync(HttpMethod.Put, $"/api/stores/{Guid.NewGuid()}/holiday-opening", Hanna, new { opensOnHolidays = true })).StatusCode.ShouldBe(HttpStatusCode.NotFound);
+
+        // The manager of the store marks it as open on holidays: the same request now counts a working day.
+        (await api.SendAsync(HttpMethod.Put, url, Max, new { opensOnHolidays = true })).StatusCode.ShouldBe(HttpStatusCode.NoContent);
+        var set = await api.GetAsync<StoreHolidayOpeningDto>(url, Max);
+        (set.OpensOnHolidays, set.ChangedBy).ShouldBe((true, (Guid?)Max));
+        (await api.PostAbsenceAsync("/api/me/absences/vacation", Erika, christmas)).Status.ShouldBe("Requested");
+        // A colleague of the other store is not affected.
+        (await api.GetAsync<StoreHolidayOpeningDto>($"/api/stores/{StoreB}/holiday-opening", Hanna)).OpensOnHolidays.ShouldBeFalse();
+
+        (await api.SendAsync(HttpMethod.Put, url, Hanna, new { opensOnHolidays = false })).StatusCode.ShouldBe(HttpStatusCode.NoContent);
+        (await api.GetAsync<StoreHolidayOpeningDto>(url, Hanna)).OpensOnHolidays.ShouldBeFalse();
+    }
+
+    [Fact]
     public async Task Sick_note_writes_exactly_three_outbox_messages_and_the_reason_only_goes_to_bc()
     {
         await using var api = await StartAsync(postgres);

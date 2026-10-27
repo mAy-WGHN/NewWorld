@@ -26,7 +26,7 @@ public sealed class AbsenceService(
     private const string VacationDecisionTemplate = "workforce.vacation-decision.requester";
     private const string ApprovalSubject = "Vacation";
 
-    private WorkCalendar CalendarFor(PersonInfo? person) => new(options.Week, holidays, options.HolidayState, person?.StoreCity);
+    private WorkCalendar CalendarFor(PersonInfo? person) => new(options.Week, holidays, options.HolidayState, person?.StoreCity, person?.StoreOpensOnHolidays ?? false);
 
     private async Task<WorkCalendar> CalendarForAsync(Guid employeeId, CancellationToken cancellationToken) =>
         CalendarFor(await people.GetAsync(employeeId, cancellationToken));

@@ -30,9 +30,15 @@ public static class AbsencePrivileges
     public const string Approve = "absence:approve";
     public const string ManageEntitlement = "absence:manage-entitlement";
 
+    /// <summary>
+    /// Sets whether a store is open on public holidays (e.g. railway-station stores); scopable, so district managers maintain
+    /// the stores of their district.
+    /// </summary>
+    public const string ManageHolidayOpening = "absence:manage-holiday-opening";
+
     public static readonly IReadOnlyList<(string Key, bool Scopable)> Catalog =
     [
         (ReadOwn, false), (CreateOwn, false), (UpdateOwn, false),
-        (ReadAvailability, true), (ReadReason, true), (ReadSync, true), (Create, true), (Approve, true), (ManageEntitlement, true),
+        (ReadAvailability, true), (ReadReason, true), (ReadSync, true), (Create, true), (Approve, true), (ManageEntitlement, true), (ManageHolidayOpening, true),
     ];
 }

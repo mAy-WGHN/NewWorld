@@ -36,6 +36,20 @@ public class WorkCalendarTests
             .ShouldBe(expected);
 
     [Fact]
+    public void A_store_open_on_holidays_counts_them_as_working_days()
+    {
+        var closed = Berlin("BY");
+        var open = new WorkCalendar(WorkingWeek.MondayToSaturday, new GermanHolidayCalendar(), "BY", opensOnHolidays: true);
+        var christmas = new DateOnly(2026, 12, 25); // Friday, public holiday
+
+        closed.IsWorkingDay(christmas).ShouldBeFalse();
+        open.IsWorkingDay(christmas).ShouldBeTrue();
+        open.IsWorkingDay(new DateOnly(2026, 12, 27)).ShouldBeFalse(); // Sunday stays a day off: the working week is separate
+        closed.CountWorkingDays(new DateOnly(2026, 12, 24), new DateOnly(2026, 12, 26)).ShouldBe(1); // 25th and 26th are holidays
+        open.CountWorkingDays(new DateOnly(2026, 12, 24), new DateOnly(2026, 12, 26)).ShouldBe(3);
+    }
+
+    [Fact]
     public void State_holidays_reduce_the_count_only_in_that_state()
     {
         var from = new DateOnly(2026, 6, 1);

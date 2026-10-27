@@ -9,7 +9,8 @@ namespace Workforce.Core.Absences;
 /// <param name="HomeStoreId">Home store.</param>
 /// <param name="ExitDate">Exit date, if any.</param>
 /// <param name="StoreCity">City of the home store (for municipal holidays); <c>null</c> if unknown.</param>
-public sealed record PersonInfo(Guid EmployeeId, string Name, Guid? HomeStoreId, DateOnly? ExitDate, string? StoreCity = null);
+/// <param name="StoreOpensOnHolidays">The home store is open on public holidays, so they are working days for its staff.</param>
+public sealed record PersonInfo(Guid EmployeeId, string Name, Guid? HomeStoreId, DateOnly? ExitDate, string? StoreCity = null, bool StoreOpensOnHolidays = false);
 
 public interface IPeopleDirectory
 {

@@ -23,6 +23,17 @@ public sealed class MainStoreCopyRecord
     public long Version { get; set; }
 }
 
+/// <summary>
+/// Setting of a store maintained in Workforce (not from BC): whether it is open on public holidays. No row = closed on holidays.
+/// </summary>
+public sealed class StoreSettingsRecord
+{
+    public Guid StoreId { get; set; }
+    public bool OpensOnHolidays { get; set; }
+    public Guid ChangedBy { get; set; }
+    public DateTimeOffset ChangedAt { get; set; }
+}
+
 /// <summary>Read-only copy of a store.</summary>
 public sealed class StoreRecord
 {

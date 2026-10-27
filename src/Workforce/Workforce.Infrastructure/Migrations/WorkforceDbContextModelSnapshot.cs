@@ -620,6 +620,30 @@ namespace Workforce.Infrastructure.Migrations
                     b.ToTable("stores", "workforce");
                 });
 
+            modelBuilder.Entity("Workforce.Infrastructure.People.StoreSettingsRecord", b =>
+                {
+                    b.Property<Guid>("StoreId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("store_id");
+
+                    b.Property<DateTimeOffset>("ChangedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("changed_at");
+
+                    b.Property<Guid>("ChangedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("changed_by");
+
+                    b.Property<bool>("OpensOnHolidays")
+                        .HasColumnType("boolean")
+                        .HasColumnName("opens_on_holidays");
+
+                    b.HasKey("StoreId")
+                        .HasName("pk_store_settings");
+
+                    b.ToTable("store_settings", "workforce");
+                });
+
             modelBuilder.Entity("Shared.Approvals.ApprovalStep", b =>
                 {
                     b.HasOne("Shared.Approvals.ApprovalRequest", null)

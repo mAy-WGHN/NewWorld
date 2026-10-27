@@ -7,6 +7,7 @@ using Workforce.Contracts;
 using Workforce.Core.Absences;
 using Workforce.Core.Certificates;
 using Workforce.Infrastructure;
+using Workforce.Infrastructure.People;
 using Workforce.Infrastructure.Absences;
 
 namespace Workforce.Api;
@@ -166,6 +167,55 @@ public static class Endpoints
         api.MapGet("/employees/{employeeId:guid}/vacation-balance", async (
                 Guid employeeId, int? year, ClaimsPrincipal user, IAuthorizationService auth, AbsenceService service, CancellationToken ct) =>
                 !await Allows(auth, user, new EmployeeResource(employeeId), AbsencePrivileges.ReadReason) ? Results.Forbid() : await Balance(service, employeeId, year, ct))
+            .RequireAuthorization();
+
+        // Stores are closed on public holidays unless marked otherwise (railway-station stores); the district manager maintains it.
+        api.MapGet("/stores/{storeId:guid}/holiday-opening", async (Guid storeId, ClaimsPrincipal user, IAuthorizationService auth, WorkforceDbContext db, CancellationToken ct) =>
+            {
+                if (!await Allows(auth, user, new StoreResource(storeId), AbsencePrivileges.ManageHolidayOpening))
+                {
+                    return Results.Forbid();
+                }
+
+                if (!await db.Stores.AsNoTracking().AnyAsync(s => s.StoreId == storeId, ct))
+                {
+                    return Results.NotFound();
+                }
+
+                var row = await db.StoreSettings.AsNoTracking().FirstOrDefaultAsync(s => s.StoreId == storeId, ct);
+                return Results.Ok(new StoreHolidayOpeningDto(storeId, row?.OpensOnHolidays ?? false, row?.ChangedAt, row?.ChangedBy));
+            })
+            .RequireAuthorization();
+
+        api.MapPut("/stores/{storeId:guid}/holiday-opening", async (
+                Guid storeId, SetStoreHolidayOpeningRequest request, ClaimsPrincipal user, IAuthorizationService auth, WorkforceDbContext db, TimeProvider time, WorkforceUnitOfWork uow, CancellationToken ct) =>
+            {
+                if (Me(user) is not { } me || !await Allows(auth, user, new StoreResource(storeId), AbsencePrivileges.ManageHolidayOpening))
+                {
+                    return Results.Forbid();
+                }
+
+                if (!await db.Stores.AsNoTracking().AnyAsync(s => s.StoreId == storeId, ct))
+                {
+                    return Results.NotFound();
+                }
+
+                await uow.RunAsync(async () =>
+                {
+                    var row = await db.StoreSettings.FindAsync([storeId], ct);
+                    if (row is null)
+                    {
+                        row = new StoreSettingsRecord { StoreId = storeId };
+                        db.StoreSettings.Add(row);
+                    }
+
+                    row.OpensOnHolidays = request.OpensOnHolidays;
+                    row.ChangedBy = me;
+                    row.ChangedAt = time.GetUtcNow();
+                    return true;
+                }, ok => ok, ct);
+                return Results.NoContent();
+            })
             .RequireAuthorization();
 
         api.MapPut("/employees/{employeeId:guid}/vacation-entitlements/{year:int}", async (

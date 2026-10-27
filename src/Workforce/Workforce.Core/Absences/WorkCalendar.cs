@@ -11,10 +11,13 @@ public sealed record WorkingWeek(IReadOnlySet<DayOfWeek> Days)
     public bool IsWorkingDay(DateOnly date) => Days.Contains(date.DayOfWeek);
 }
 
-/// <summary>Working days of a person: the working week without statutory holidays of the applicable state.</summary>
-public sealed class WorkCalendar(WorkingWeek week, IHolidayCalendar holidays, string? state, string? city = null)
+/// <summary>
+/// Working days of a person: the working week without statutory holidays of the applicable state. Stores are closed on holidays unless
+/// <paramref name="opensOnHolidays"/> says otherwise (railway-station stores); then the holidays count like any other day.
+/// </summary>
+public sealed class WorkCalendar(WorkingWeek week, IHolidayCalendar holidays, string? state, string? city = null, bool opensOnHolidays = false)
 {
-    public bool IsWorkingDay(DateOnly date) => week.IsWorkingDay(date) && !holidays.IsHoliday(date, state, city);
+    public bool IsWorkingDay(DateOnly date) => week.IsWorkingDay(date) && (opensOnHolidays || !holidays.IsHoliday(date, state, city));
 
     public int CountWorkingDays(DateOnly from, DateOnly to)
     {

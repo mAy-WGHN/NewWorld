@@ -20,6 +20,7 @@ public sealed class WorkforceDbContext(DbContextOptions<WorkforceDbContext> opti
     public DbSet<PersonRecord> People => Set<PersonRecord>();
     public DbSet<StoreRecord> Stores => Set<StoreRecord>();
     public DbSet<ApproverCopyRecord> ApproverCopies => Set<ApproverCopyRecord>();
+    public DbSet<StoreSettingsRecord> StoreSettings => Set<StoreSettingsRecord>();
     public DbSet<MainStoreCopyRecord> MainStoreCopies => Set<MainStoreCopyRecord>();
     public DbSet<CertificateDocument> CertificateDocuments => Set<CertificateDocument>();
     public DbSet<CertificateSettingsRecord> CertificateSettings => Set<CertificateSettingsRecord>();
@@ -94,6 +95,12 @@ public sealed class WorkforceDbContext(DbContextOptions<WorkforceDbContext> opti
             b.ToTable("certificate_settings");
             b.HasKey(s => s.Id);
             b.Property(s => s.Id).ValueGeneratedNever();
+        });
+        modelBuilder.Entity<StoreSettingsRecord>(b =>
+        {
+            b.ToTable("store_settings");
+            b.HasKey(s => s.StoreId);
+            b.Property(s => s.StoreId).ValueGeneratedNever();
         });
         modelBuilder.Entity<MainStoreCopyRecord>(b =>
         {
