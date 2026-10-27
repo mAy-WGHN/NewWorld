@@ -12,6 +12,7 @@ using Shared.Messaging;
 using Shared.Testing;
 using Workforce.Api;
 using Workforce.Core.Absences;
+using Workforce.Core.Certificates;
 using Workforce.Infrastructure;
 using Workforce.Infrastructure.People;
 
@@ -77,7 +78,7 @@ public sealed class WorkforceApi : WebApplicationFactory<ApiMarker>
         }
 
         var cache = Services.GetRequiredService<IPermissionCache>();
-        string[] own = [AbsencePrivileges.ReadOwn, AbsencePrivileges.CreateOwn, AbsencePrivileges.UpdateOwn];
+        string[] own = [AbsencePrivileges.ReadOwn, AbsencePrivileges.CreateOwn, AbsencePrivileges.UpdateOwn, CertificatePrivileges.UploadOwn];
         foreach (var person in new[] { Erika, Ben, Max, Lena, Hanna, Sven })
         {
             cache.Grant(person, own.Select(k => new TestGrant(k)).ToArray());
@@ -89,19 +90,19 @@ public sealed class WorkforceApi : WebApplicationFactory<ApiMarker>
         Grant(Max, StoreManager(StoreA, Erika, Ben, Max));
         Grant(Lena, StoreManager(StoreB, Lena));
         // HR: everywhere.
-        Grant(Hanna, [.. AbsencePrivileges.Catalog.Select(c => TestGrant.Everywhere(c.Key))]);
+        Grant(Hanna, [.. AbsencePrivileges.Catalog.Concat(CertificatePrivileges.Catalog).Select(c => TestGrant.Everywhere(c.Key))]);
     }
 
     private static TestGrant[] StoreManager(Guid store, params Guid[] employees) =>
     [
-        .. new[] { AbsencePrivileges.ReadAvailability, AbsencePrivileges.ReadReason, AbsencePrivileges.ReadSync, AbsencePrivileges.Create, AbsencePrivileges.Approve }
+        .. new[] { AbsencePrivileges.ReadAvailability, AbsencePrivileges.ReadReason, AbsencePrivileges.ReadSync, AbsencePrivileges.Create, AbsencePrivileges.Approve, CertificatePrivileges.UploadFor }
             .Select(k => new TestGrant(k, [store], employees)),
     ];
 
     /// <summary>Own privileges stay, the given ones are added.</summary>
     public void Grant(Guid person, params TestGrant[] grants)
     {
-        string[] own = [AbsencePrivileges.ReadOwn, AbsencePrivileges.CreateOwn, AbsencePrivileges.UpdateOwn];
+        string[] own = [AbsencePrivileges.ReadOwn, AbsencePrivileges.CreateOwn, AbsencePrivileges.UpdateOwn, CertificatePrivileges.UploadOwn];
         Services.GetRequiredService<IPermissionCache>().Grant(person, [.. own.Where(k => grants.All(g => g.Key != k)).Select(k => new TestGrant(k)), .. grants]);
     }
 
@@ -138,6 +139,32 @@ public sealed class WorkforceApi : WebApplicationFactory<ApiMarker>
         using var response = await SendAsync(HttpMethod.Post, url, person, body);
         response.StatusCode.ShouldBe(HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
         return (await response.Content.ReadFromJsonAsync<AbsenceDto>())!;
+    }
+
+    /// <summary>Uploads a certificate as a form (file, first and last day from the certificate).</summary>
+    public async Task<HttpResponseMessage> UploadCertificateAsync(string url, Guid? person, byte[] file, string from, string to, string fileName = "au.pdf")
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, url);
+        if (person is { } p)
+        {
+            request.AsUser(p);
+        }
+
+        var form = new MultipartFormDataContent
+        {
+            { new ByteArrayContent(file), "file", fileName },
+            { new StringContent(from), "certifiedFrom" },
+            { new StringContent(to), "certifiedTo" },
+        };
+        request.Content = form;
+        return await Http.SendAsync(request);
+    }
+
+    public async Task<CertificateDto> UploadOkAsync(string url, Guid person, byte[] file, string from, string to)
+    {
+        using var response = await UploadCertificateAsync(url, person, file, from, to);
+        response.StatusCode.ShouldBe(HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
+        return (await response.Content.ReadFromJsonAsync<CertificateDto>())!;
     }
 
     public async Task<List<OutboxMessage>> OutboxAsync()

@@ -1,4 +1,5 @@
 using Workforce.Contracts;
+using Workforce.Core.Certificates;
 
 namespace Workforce.Core.Absences;
 
@@ -12,7 +13,7 @@ public enum SyncStatus
 }
 
 /// <summary>
-/// An absence of a person: sickness (period, "AU liegt vor" yes/no, no free text and no diagnosis) or vacation (approved through
+/// An absence of a person: sickness (period and the state of the medical certificate (AU), no free text and no diagnosis) or vacation (approved through
 /// <c>Shared.Approvals</c>). Every change raises <see cref="Version"/>; the version goes to BC and makes the transfer an upsert.
 /// </summary>
 public sealed class Absence
@@ -30,8 +31,19 @@ public sealed class Absence
 
     public AbsenceStatus Status { get; set; }
 
-    /// <summary>Sickness only: a medical certificate (AU) is on file. Nothing else about the illness is stored.</summary>
-    public bool? CertificateOnFile { get; init; }
+    /// <summary>
+    /// Sickness only: where the medical certificate (AU) stands. Changes of this state do not go to BC and do not raise <see cref="Version"/>.
+    /// Nothing else about the illness is stored.
+    /// </summary>
+    public CertificateStatus CertificateStatus { get; set; }
+
+    /// <summary>Sickness only: last day covered by an uploaded certificate (as entered by the uploader).</summary>
+    public DateOnly? CertifiedThrough { get; set; }
+
+    /// <summary>Sickness only: reminders sent to upload the certificate.</summary>
+    public int RemindersSent { get; set; }
+
+    public DateTimeOffset? LastReminderAt { get; set; }
 
     public long Version { get; set; }
 

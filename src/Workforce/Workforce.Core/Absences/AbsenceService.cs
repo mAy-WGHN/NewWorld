@@ -2,6 +2,7 @@ using System.Globalization;
 using Notifications.Contracts;
 using Shared.Approvals;
 using Workforce.Contracts;
+using Workforce.Core.Certificates;
 
 namespace Workforce.Core.Absences;
 
@@ -36,7 +37,7 @@ public sealed class AbsenceService(
     // ------------------------------------------------------------------ sickness
 
     /// <summary>Records a sick note (no approval). Sickness wins over vacation: affected vacation days are cancelled and credited.</summary>
-    public async Task<AbsenceResult> ReportSickAsync(Guid employeeId, DateOnly from, DateOnly? to, bool certificateOnFile, CancellationToken cancellationToken)
+    public async Task<AbsenceResult> ReportSickAsync(Guid employeeId, DateOnly from, DateOnly? to, CancellationToken cancellationToken)
     {
         if (await people.GetAsync(employeeId, cancellationToken) is not { } person)
         {
@@ -63,7 +64,7 @@ public sealed class AbsenceService(
 
         var now = time.GetUtcNow();
         var correlationId = Guid.CreateVersion7(now);
-        var sick = NewAbsence(employeeId, AbsenceType.Sickness, from, to, AbsenceStatus.Reported, certificateOnFile, now);
+        var sick = NewAbsence(employeeId, AbsenceType.Sickness, from, to, AbsenceStatus.Reported, now);
         store.Add(sick);
 
         foreach (var vacation in existing.Where(a => a.Type == AbsenceType.Vacation && a.Status is AbsenceStatus.Requested or AbsenceStatus.Approved && a.Range.Overlaps(range)))
@@ -105,6 +106,56 @@ public sealed class AbsenceService(
         Sync(absence, correlationId, now);
         Availability(absence.EmployeeId, absence.From, to, AvailabilityStatus.Unavailable, correlationId, now);
         return AbsenceResult.Ok(absence);
+    }
+
+    /// <summary>
+    /// Changes the period of a sick note because a medical certificate says so (the period the person entered from the certificate).
+    /// Same rules as reporting: no overlap with another sick note, sickness wins over vacation. The change goes to BC (new version).
+    /// The caller has checked that the new period belongs to this sick note.
+    /// </summary>
+    public async Task<AbsenceError> ChangeSickNotePeriodAsync(Absence sick, DateOnly from, DateOnly? to, CancellationToken cancellationToken)
+    {
+        if (sick is not { Type: AbsenceType.Sickness, Status: AbsenceStatus.Reported })
+        {
+            return AbsenceError.InvalidState;
+        }
+
+        if (to is { } end && end < from)
+        {
+            return AbsenceError.InvalidPeriod;
+        }
+
+        if (await people.GetAsync(sick.EmployeeId, cancellationToken) is not { } person)
+        {
+            return AbsenceError.UnknownPerson;
+        }
+
+        if (person.ExitDate is { } exit && from > exit)
+        {
+            return AbsenceError.AfterExit;
+        }
+
+        await store.LockEmployeeAsync(sick.EmployeeId, cancellationToken);
+        var existing = await store.ForEmployeeAsync(sick.EmployeeId, cancellationToken);
+        var range = new DateRange(from, to);
+        if (existing.Any(a => a.Id != sick.Id && a is { Type: AbsenceType.Sickness, Status: AbsenceStatus.Reported } && a.Range.Overlaps(range)))
+        {
+            return AbsenceError.Overlap;
+        }
+
+        var now = time.GetUtcNow();
+        var correlationId = Guid.CreateVersion7(now);
+        foreach (var vacation in existing.Where(a => a.Type == AbsenceType.Vacation && a.Status is AbsenceStatus.Requested or AbsenceStatus.Approved && a.Range.Overlaps(range)).ToList())
+        {
+            await AdjustVacationAsync(vacation, range, now, correlationId, cancellationToken);
+        }
+
+        sick.From = from;
+        sick.To = to;
+        sick.Touch(now);
+        Sync(sick, correlationId, now);
+        Availability(sick.EmployeeId, from, to, AvailabilityStatus.Unavailable, correlationId, now);
+        return AbsenceError.None;
     }
 
     // ------------------------------------------------------------------ vacation
@@ -157,7 +208,7 @@ public sealed class AbsenceService(
 
         var now = time.GetUtcNow();
         var correlationId = Guid.CreateVersion7(now);
-        var vacation = NewAbsence(employeeId, AbsenceType.Vacation, from, to, AbsenceStatus.Requested, null, now);
+        var vacation = NewAbsence(employeeId, AbsenceType.Vacation, from, to, AbsenceStatus.Requested, now);
 
         // All responsible persons are alternatives of one step: the store manager or the substitute decides.
         var approval = ApprovalRequest.CreateWithAlternatives(ApprovalSubject, vacation.Id, employeeId, [approvers], now);
@@ -349,7 +400,7 @@ public sealed class AbsenceService(
             vacation.To = before.To;
             if (plan.After is { } after)
             {
-                var rest = NewAbsence(vacation.EmployeeId, AbsenceType.Vacation, after.From, after.To, AbsenceStatus.Approved, null, now);
+                var rest = NewAbsence(vacation.EmployeeId, AbsenceType.Vacation, after.From, after.To, AbsenceStatus.Approved, now);
                 rest.ApprovalRequestId = vacation.ApprovalRequestId;
                 store.Add(rest);
                 Sync(rest, correlationId, now);
@@ -376,7 +427,7 @@ public sealed class AbsenceService(
     private async Task<IReadOnlyList<Guid>> ApproversAsync(Guid employeeId, CancellationToken cancellationToken) =>
         (await responsibilities.ApproversAsync(employeeId, cancellationToken)).Distinct().ToList();
 
-    private static Absence NewAbsence(Guid employeeId, AbsenceType type, DateOnly from, DateOnly? to, AbsenceStatus status, bool? certificate, DateTimeOffset now) => new()
+    private static Absence NewAbsence(Guid employeeId, AbsenceType type, DateOnly from, DateOnly? to, AbsenceStatus status, DateTimeOffset now) => new()
     {
         Id = Guid.CreateVersion7(now),
         EmployeeId = employeeId,
@@ -384,7 +435,7 @@ public sealed class AbsenceService(
         From = from,
         To = to,
         Status = status,
-        CertificateOnFile = certificate,
+        CertificateStatus = type == AbsenceType.Sickness ? Certificates.CertificateStatus.Missing : Certificates.CertificateStatus.Unknown,
         Version = 1,
         SyncStatus = SyncStatus.Pending,
         CreatedAt = now,

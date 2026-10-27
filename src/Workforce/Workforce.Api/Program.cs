@@ -31,6 +31,16 @@ builder.Services.AddServiceAuthentication(
     builder.Configuration,
     builder.Configuration.GetSection(SharedJwtAuthentication.ConfigurationSection).Exists() ? JwtBearerDefaults.AuthenticationScheme : null);
 
+// Certificate uploads stay in memory: no temporary file with a health document on disk, and only one file of the allowed size per request.
+var certificateLimit = builder.Configuration.GetSection(Workforce.Core.Absences.WorkforceOptions.ConfigurationSection).Get<Workforce.Core.Absences.WorkforceOptions>()?.Certificates.MaxFileBytes
+    ?? new Workforce.Core.Certificates.CertificateOptions().MaxFileBytes;
+builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
+{
+    options.MemoryBufferThreshold = certificateLimit + 256 * 1024;
+    options.MultipartBodyLengthLimit = certificateLimit + 64 * 1024;
+    options.ValueLengthLimit = 4096;
+});
+
 var app = builder.Build();
 
 await app.Services.MigrateWorkforceDatabaseAsync(app.Environment);
@@ -39,5 +49,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapDefaultEndpoints();
 app.MapAbsenceEndpoints();
+app.MapCertificateEndpoints();
 
 app.Run();

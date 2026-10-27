@@ -17,6 +17,9 @@ public sealed class WorkforceOptions
     /// </summary>
     public string? HolidayState { get; set; } = "BY";
 
+    /// <summary>Upload of the medical certificate (AU) of a sick note.</summary>
+    public Certificates.CertificateOptions Certificates { get; set; } = new();
+
     public TimeZoneInfo Zone => TimeZoneInfo.FindSystemTimeZoneById(TimeZoneId);
 
     public WorkingWeek Week => new(WorkingDays.ToHashSet());

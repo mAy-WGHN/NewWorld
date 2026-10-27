@@ -223,9 +223,15 @@ namespace Workforce.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("approval_request_id");
 
-                    b.Property<bool?>("CertificateOnFile")
-                        .HasColumnType("boolean")
-                        .HasColumnName("certificate_on_file");
+                    b.Property<string>("CertificateStatus")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("certificate_status");
+
+                    b.Property<DateOnly?>("CertifiedThrough")
+                        .HasColumnType("date")
+                        .HasColumnName("certified_through");
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -238,6 +244,14 @@ namespace Workforce.Infrastructure.Migrations
                     b.Property<DateOnly>("From")
                         .HasColumnType("date")
                         .HasColumnName("from");
+
+                    b.Property<DateTimeOffset?>("LastReminderAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_reminder_at");
+
+                    b.Property<int>("RemindersSent")
+                        .HasColumnType("integer")
+                        .HasColumnName("reminders_sent");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -282,7 +296,145 @@ namespace Workforce.Infrastructure.Migrations
                     b.HasIndex("EmployeeId", "From")
                         .HasDatabaseName("ix_absences_employee_id_from");
 
+                    b.HasIndex("Type", "Status", "CertificateStatus")
+                        .HasDatabaseName("ix_absences_type_status_certificate_status");
+
                     b.ToTable("absences", "workforce");
+                });
+
+            modelBuilder.Entity("Workforce.Core.Certificates.CertificateAccessEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("AbsenceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("absence_id");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("action");
+
+                    b.Property<Guid?>("ActorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("actor_id");
+
+                    b.Property<DateTimeOffset>("At")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("at");
+
+                    b.Property<Guid>("DocumentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("document_id");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("employee_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_certificate_access_log");
+
+                    b.HasIndex("AbsenceId")
+                        .HasDatabaseName("ix_certificate_access_log_absence_id");
+
+                    b.HasIndex("At")
+                        .HasDatabaseName("ix_certificate_access_log_at");
+
+                    b.HasIndex("EmployeeId")
+                        .HasDatabaseName("ix_certificate_access_log_employee_id");
+
+                    b.ToTable("certificate_access_log", "workforce");
+                });
+
+            modelBuilder.Entity("Workforce.Core.Certificates.CertificateDocument", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("AbsenceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("absence_id");
+
+                    b.Property<DateOnly>("CertifiedFrom")
+                        .HasColumnType("date")
+                        .HasColumnName("certified_from");
+
+                    b.Property<DateOnly>("CertifiedTo")
+                        .HasColumnType("date")
+                        .HasColumnName("certified_to");
+
+                    b.Property<DateTimeOffset?>("ContentDeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("content_deleted_at");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("content_type");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("employee_id");
+
+                    b.Property<long>("Length")
+                        .HasColumnType("bigint")
+                        .HasColumnName("length");
+
+                    b.Property<string>("RejectionReason")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("rejection_reason");
+
+                    b.Property<DateTimeOffset?>("ReviewedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("reviewed_at");
+
+                    b.Property<Guid?>("ReviewedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("reviewed_by");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("state");
+
+                    b.Property<Guid>("StorageId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("storage_id");
+
+                    b.Property<DateTimeOffset>("UploadedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("uploaded_at");
+
+                    b.Property<Guid>("UploadedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("uploaded_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_certificate_documents");
+
+                    b.HasIndex("AbsenceId")
+                        .HasDatabaseName("ix_certificate_documents_absence_id");
+
+                    b.HasIndex("EmployeeId")
+                        .HasDatabaseName("ix_certificate_documents_employee_id");
+
+                    b.HasIndex("StorageId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_certificate_documents_storage_id");
+
+                    b.HasIndex("UploadedBy")
+                        .HasDatabaseName("ix_certificate_documents_uploaded_by");
+
+                    b.ToTable("certificate_documents", "workforce");
                 });
 
             modelBuilder.Entity("Workforce.Infrastructure.Absences.EntitlementRecord", b =>
@@ -304,6 +456,30 @@ namespace Workforce.Infrastructure.Migrations
                         .HasName("pk_vacation_entitlements");
 
                     b.ToTable("vacation_entitlements", "workforce");
+                });
+
+            modelBuilder.Entity("Workforce.Infrastructure.Certificates.CertificateSettingsRecord", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("ChangedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("changed_at");
+
+                    b.Property<Guid>("ChangedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("changed_by");
+
+                    b.Property<int>("RetentionAfterEndDays")
+                        .HasColumnType("integer")
+                        .HasColumnName("retention_after_end_days");
+
+                    b.HasKey("Id")
+                        .HasName("pk_certificate_settings");
+
+                    b.ToTable("certificate_settings", "workforce");
                 });
 
             modelBuilder.Entity("Workforce.Infrastructure.People.ApproverCopyRecord", b =>

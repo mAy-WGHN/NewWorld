@@ -38,7 +38,9 @@ var bcIntegration = builder.AddProject<Projects.BcIntegration_Api>("bc-integrati
     .WithEnvironment("Bc__CompanyId", "test-company")
     .WithEnvironment("Bc__StoresPath", "test/stores/v1.0/companies({companyId})/stores")
     .WithEnvironment("Bc__AbsencesPath", "test/absences/v1.0/companies({companyId})/employeeAbsences")
-    .WithEnvironment("Bc__PinVerifyPath", "test/employeeauth/v1.0/companies({companyId})/verifyPin")
+    // PIN check: SOAP codeunit Zeiterfassung.GetStatus (like the HR tool), at .../WS/{company}/Codeunit/Zeiterfassung.
+    .WithEnvironment("Bc__SoapBaseUrl", ReferenceExpression.Create($"{bcMock.GetEndpoint("http")}/WS/"))
+    .WithEnvironment("Bc__CompanyName", "test-company")
     .WithEnvironment("Bc__Credential", "LocalFake")
     // Only Access may call BC Integration (PIN check for the login).
     .WithServiceIdentity("bc-integration")
@@ -66,12 +68,26 @@ builder.AddProject<Projects.Notifications_Api>("notifications-api")
     .WithAccess(access)
     .WithHttpHealthCheck("/health/ready");
 
-builder.AddProject<Projects.Workforce_Api>("workforce-api")
+var workforce = builder.AddProject<Projects.Workforce_Api>("workforce-api")
     .WithReference(workforceDb).WaitFor(workforceDb)
     .WithServiceIdentity("workforce", workforceKey)
     .WithReference(serviceBus).WaitFor(serviceBus)
     .WithAccess(access)
     .WithHttpHealthCheck("/health/ready");
+
+// ClamAV scans the uploaded medical certificates (clamd, INSTREAM). The E2E tests switch it off (ClamAv:Enabled=false): the first start
+// downloads signatures and takes a while, and without a host Workforce uses the accept-everything placeholder in Development/Testing.
+// Until clamd answers, /health/ready of Workforce reports Degraded and uploads are refused (fail closed).
+if (!string.Equals(builder.Configuration["ClamAv:Enabled"], "false", StringComparison.OrdinalIgnoreCase))
+{
+    var clamav = builder.AddContainer("clamav", "clamav/clamav", "1.4")
+        .WithEndpoint(targetPort: 3310, name: "clamd", scheme: "tcp")
+        .WithVolume("newworld-clamav-signatures", "/var/lib/clamav"); // signatures survive a restart
+    workforce
+        .WithEnvironment("Workforce__Certificates__Scanner__Host", clamav.GetEndpoint("clamd").Property(EndpointProperty.Host))
+        .WithEnvironment("Workforce__Certificates__Scanner__Port", clamav.GetEndpoint("clamd").Property(EndpointProperty.Port))
+        .WaitFor(clamav);
+}
 
 builder.AddProject<Projects.Portal_Api>("portal-api")
     .WithReference(portalDb).WaitFor(portalDb)

@@ -19,7 +19,7 @@ public class AbsenceE2ETests(AppHostFixture fixture)
     private static string InTwoDays => DateOnly.FromDateTime(DateTime.UtcNow).AddDays(2).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
 
     private static async Task<JsonElement> ReportSickAsync(Landscape landscape, string personnelNumber) =>
-        await landscape.PostJsonAsync(Workforce, "/api/me/absences/sick", personnelNumber, new { from = Today, to = InTwoDays, certificateOnFile = true });
+        await landscape.PostJsonAsync(Workforce, "/api/me/absences/sick", personnelNumber, new { from = Today, to = InTwoDays });
 
     private static async Task<string> SyncStatusAsync(Landscape landscape, string personnelNumber, Guid absenceId)
     {

@@ -107,13 +107,27 @@ public sealed class BcSyncFailedHandler(WorkforceDbContext db) : IMessageHandler
 /// Deletes everything about the person: absences, their approvals, entitlements, copies, the person's name in other approvals'
 /// alternatives, outbox rows that mention the person and the permission copy.
 /// </summary>
-public sealed class EmployeeDataErasureRequestedHandler(WorkforceDbContext db, PermissionsChangedHandler permissions) : IMessageHandler<EmployeeDataErasureRequested>
+public sealed class EmployeeDataErasureRequestedHandler(
+    WorkforceDbContext db, PermissionsChangedHandler permissions, Workforce.Core.Certificates.ICertificateFileStorage certificateFiles) : IMessageHandler<EmployeeDataErasureRequested>
 {
     public async Task HandleAsync(EmployeeDataErasureRequested message, CancellationToken cancellationToken)
     {
         var id = message.EmployeeId;
         var needle = "%" + id.ToString() + "%";
         await db.Set<Shared.Approvals.ApprovalRequest>().Where(r => r.RequesterId == id).ExecuteDeleteAsync(cancellationToken);
+        // Certificates: everything about the person's documents (files, metadata, log); where the person only uploaded or reviewed for somebody else, the id is anonymised.
+        // The files go first: if the rest fails the message is delivered again and finds the documents without files, which is harmless.
+        foreach (var storageId in await db.CertificateDocuments.Where(d => d.EmployeeId == id && d.ContentDeletedAt == null).Select(d => d.StorageId).ToListAsync(cancellationToken))
+        {
+            await certificateFiles.DeleteAsync(storageId, cancellationToken);
+        }
+
+        await db.CertificateDocuments.Where(d => d.EmployeeId == id).ExecuteDeleteAsync(cancellationToken);
+        await db.CertificateSettings.Where(s => s.ChangedBy == id).ExecuteUpdateAsync(s => s.SetProperty(x => x.ChangedBy, Guid.Empty), cancellationToken);
+        await db.CertificateAccessLog.Where(e => e.EmployeeId == id).ExecuteDeleteAsync(cancellationToken);
+        await db.CertificateDocuments.Where(d => d.UploadedBy == id).ExecuteUpdateAsync(s => s.SetProperty(d => d.UploadedBy, Guid.Empty), cancellationToken);
+        await db.CertificateDocuments.Where(d => d.ReviewedBy == id).ExecuteUpdateAsync(s => s.SetProperty(d => d.ReviewedBy, Guid.Empty), cancellationToken);
+        await db.CertificateAccessLog.Where(e => e.ActorId == id).ExecuteUpdateAsync(s => s.SetProperty(e => e.ActorId, Guid.Empty), cancellationToken);
         await db.Absences.Where(a => a.EmployeeId == id).ExecuteDeleteAsync(cancellationToken);
         await db.Entitlements.Where(e => e.EmployeeId == id).ExecuteDeleteAsync(cancellationToken);
         await db.People.Where(p => p.EmployeeId == id).ExecuteDeleteAsync(cancellationToken);

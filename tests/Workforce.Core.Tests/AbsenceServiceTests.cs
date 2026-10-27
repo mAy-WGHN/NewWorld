@@ -3,6 +3,7 @@ using Notifications.Contracts;
 using Shared.Approvals;
 using Workforce.Contracts;
 using Workforce.Core.Absences;
+using Workforce.Core.Certificates;
 
 namespace Workforce.Core.Tests;
 
@@ -51,14 +52,14 @@ public class AbsenceServiceTests
     [Fact]
     public async Task Sick_note_is_reported_without_approval_and_creates_exactly_three_messages()
     {
-        var result = await Service().ReportSickAsync(Erika, D("2026-07-15"), D("2026-07-17"), certificateOnFile: true, CancellationToken.None);
+        var result = await Service().ReportSickAsync(Erika, D("2026-07-15"), D("2026-07-17"), CancellationToken.None);
 
         result.Error.ShouldBe(AbsenceError.None);
         var absence = result.Absence!;
         absence.Status.ShouldBe(AbsenceStatus.Reported);
         absence.Type.ShouldBe(AbsenceType.Sickness);
         absence.Version.ShouldBe(1);
-        absence.CertificateOnFile.ShouldBe(true);
+        absence.CertificateStatus.ShouldBe(CertificateStatus.Missing);
         absence.ApprovalRequestId.ShouldBeNull();
         _store.Approvals.ShouldBeEmpty();
         _messages.Sent.Count.ShouldBe(3);
@@ -77,7 +78,7 @@ public class AbsenceServiceTests
     [Fact]
     public async Task The_reason_travels_only_in_the_bc_sync_not_in_availability_or_notification_data()
     {
-        await Service().ReportSickAsync(Erika, D("2026-07-15"), D("2026-07-17"), false, CancellationToken.None);
+        await Service().ReportSickAsync(Erika, D("2026-07-15"), D("2026-07-17"), CancellationToken.None);
 
         var availabilityFields = typeof(EmployeeAvailabilityChanged).GetProperties().Select(p => p.Name);
         availabilityFields.ShouldNotContain(nameof(SyncAbsenceToBc.Type));
@@ -91,7 +92,7 @@ public class AbsenceServiceTests
     [Fact]
     public async Task Sick_note_without_end_date_is_open_ended_and_blocks_later_absences_until_it_is_ended()
     {
-        var sick = (await Service().ReportSickAsync(Erika, D("2026-07-15"), null, false, CancellationToken.None)).Absence!;
+        var sick = (await Service().ReportSickAsync(Erika, D("2026-07-15"), null, CancellationToken.None)).Absence!;
         _messages.Sent.Clear();
 
         (await Service().RequestVacationAsync(Erika, D("2026-09-07"), D("2026-09-11"), CancellationToken.None)).Error.ShouldBe(AbsenceError.Overlap);
@@ -107,8 +108,8 @@ public class AbsenceServiceTests
     [Fact]
     public async Task Only_open_sick_notes_can_be_ended_and_not_before_their_start()
     {
-        var closed = (await Service().ReportSickAsync(Erika, D("2026-07-15"), D("2026-07-16"), false, CancellationToken.None)).Absence!;
-        var open = (await Service().ReportSickAsync(Erika, D("2026-07-20"), null, false, CancellationToken.None)).Absence!;
+        var closed = (await Service().ReportSickAsync(Erika, D("2026-07-15"), D("2026-07-16"), CancellationToken.None)).Absence!;
+        var open = (await Service().ReportSickAsync(Erika, D("2026-07-20"), null, CancellationToken.None)).Absence!;
 
         (await Service().EndSickNoteAsync(closed.Id, D("2026-07-18"), CancellationToken.None)).Error.ShouldBe(AbsenceError.InvalidState);
         (await Service().EndSickNoteAsync(open.Id, D("2026-07-19"), CancellationToken.None)).Error.ShouldBe(AbsenceError.InvalidPeriod);
@@ -118,23 +119,23 @@ public class AbsenceServiceTests
     [Fact]
     public async Task Overlapping_sick_notes_are_refused()
     {
-        await Service().ReportSickAsync(Erika, D("2026-07-15"), D("2026-07-17"), false, CancellationToken.None);
+        await Service().ReportSickAsync(Erika, D("2026-07-15"), D("2026-07-17"), CancellationToken.None);
 
-        (await Service().ReportSickAsync(Erika, D("2026-07-17"), D("2026-07-20"), false, CancellationToken.None)).Error.ShouldBe(AbsenceError.Overlap);
-        (await Service().ReportSickAsync(Erika, D("2026-07-18"), D("2026-07-20"), false, CancellationToken.None)).Error.ShouldBe(AbsenceError.None);
+        (await Service().ReportSickAsync(Erika, D("2026-07-17"), D("2026-07-20"), CancellationToken.None)).Error.ShouldBe(AbsenceError.Overlap);
+        (await Service().ReportSickAsync(Erika, D("2026-07-18"), D("2026-07-20"), CancellationToken.None)).Error.ShouldBe(AbsenceError.None);
     }
 
     [Fact]
     public async Task Sick_note_period_may_not_end_before_it_starts() =>
-        (await Service().ReportSickAsync(Erika, D("2026-07-17"), D("2026-07-15"), false, CancellationToken.None)).Error.ShouldBe(AbsenceError.InvalidPeriod);
+        (await Service().ReportSickAsync(Erika, D("2026-07-17"), D("2026-07-15"), CancellationToken.None)).Error.ShouldBe(AbsenceError.InvalidPeriod);
 
     [Fact]
     public async Task Unknown_person_and_person_who_has_left_cannot_be_reported()
     {
-        (await Service().ReportSickAsync(Guid.NewGuid(), D("2026-07-15"), null, false, CancellationToken.None)).Error.ShouldBe(AbsenceError.UnknownPerson);
+        (await Service().ReportSickAsync(Guid.NewGuid(), D("2026-07-15"), null, CancellationToken.None)).Error.ShouldBe(AbsenceError.UnknownPerson);
 
         _people.People[Erika] = _people.People[Erika] with { ExitDate = D("2026-07-14") };
-        (await Service().ReportSickAsync(Erika, D("2026-07-15"), null, false, CancellationToken.None)).Error.ShouldBe(AbsenceError.AfterExit);
+        (await Service().ReportSickAsync(Erika, D("2026-07-15"), null, CancellationToken.None)).Error.ShouldBe(AbsenceError.AfterExit);
     }
 
     [Fact]
@@ -142,7 +143,7 @@ public class AbsenceServiceTests
     {
         _responsibilities.Approvers.Clear();
 
-        (await Service().ReportSickAsync(Erika, D("2026-07-15"), D("2026-07-16"), false, CancellationToken.None)).Error.ShouldBe(AbsenceError.None);
+        (await Service().ReportSickAsync(Erika, D("2026-07-15"), D("2026-07-16"), CancellationToken.None)).Error.ShouldBe(AbsenceError.None);
 
         _messages.Of<SendNotification>().ShouldBeEmpty();
         _messages.Of<SyncAbsenceToBc>().Count().ShouldBe(1);
@@ -151,7 +152,7 @@ public class AbsenceServiceTests
     [Fact]
     public async Task Notification_ids_are_stable_so_a_repeated_command_is_idempotent_at_the_receiver()
     {
-        var sick = (await Service().ReportSickAsync(Erika, D("2026-07-15"), D("2026-07-16"), false, CancellationToken.None)).Absence!;
+        var sick = (await Service().ReportSickAsync(Erika, D("2026-07-15"), D("2026-07-16"), CancellationToken.None)).Absence!;
         var first = _messages.Of<SendNotification>().Single().NotificationId;
 
         first.ShouldBe(DeterministicGuid.From($"{sick.Id}:{sick.Version}:workforce.sick-note.store-manager"));
@@ -163,7 +164,7 @@ public class AbsenceServiceTests
     {
         _time = new FakeTimeProvider(new DateTimeOffset(2026, 3, 28, 23, 30, 0, TimeSpan.Zero)); // 00:30 on 29 March local: the day of the change to summer time
 
-        var sick = (await Service().ReportSickAsync(Erika, Service().TodayLocal, null, false, CancellationToken.None)).Absence!;
+        var sick = (await Service().ReportSickAsync(Erika, Service().TodayLocal, null, CancellationToken.None)).Absence!;
 
         sick.From.ShouldBe(D("2026-03-29"));
     }
@@ -377,7 +378,7 @@ public class AbsenceServiceTests
     [Fact]
     public async Task Sick_notes_cannot_be_decided()
     {
-        var sick = (await Service().ReportSickAsync(Erika, D("2026-07-15"), D("2026-07-16"), false, CancellationToken.None)).Absence!;
+        var sick = (await Service().ReportSickAsync(Erika, D("2026-07-15"), D("2026-07-16"), CancellationToken.None)).Absence!;
 
         (await Service().DecideVacationAsync(sick.Id, Max, true, CancellationToken.None)).Error.ShouldBe(AbsenceError.InvalidState);
     }
@@ -427,7 +428,7 @@ public class AbsenceServiceTests
         var vacation = await ApprovedVacation("2026-08-03", "2026-08-15"); // Mon..Sat x2 = 12 days
         _entitlements.Days[(Erika, 2026)] = 30;
 
-        var sick = (await Service().ReportSickAsync(Erika, D("2026-08-06"), D("2026-08-07"), false, CancellationToken.None)).Absence!;
+        var sick = (await Service().ReportSickAsync(Erika, D("2026-08-06"), D("2026-08-07"), CancellationToken.None)).Absence!;
 
         vacation.To.ShouldBe(D("2026-08-05"));
         vacation.Version.ShouldBe(3);
@@ -446,7 +447,7 @@ public class AbsenceServiceTests
     {
         var vacation = await ApprovedVacation("2026-08-03", "2026-08-05");
 
-        await Service().ReportSickAsync(Erika, D("2026-08-01"), D("2026-08-10"), false, CancellationToken.None);
+        await Service().ReportSickAsync(Erika, D("2026-08-01"), D("2026-08-10"), CancellationToken.None);
 
         vacation.Status.ShouldBe(AbsenceStatus.Cancelled);
         vacation.Version.ShouldBe(3);
@@ -459,7 +460,7 @@ public class AbsenceServiceTests
     {
         var vacation = await ApprovedVacation("2026-08-03", "2026-08-15");
 
-        await Service().ReportSickAsync(Erika, D("2026-08-06"), null, false, CancellationToken.None);
+        await Service().ReportSickAsync(Erika, D("2026-08-06"), null, CancellationToken.None);
 
         vacation.To.ShouldBe(D("2026-08-05"));
         _store.Absences.Count(a => a.Type == AbsenceType.Vacation).ShouldBe(1);
@@ -470,7 +471,7 @@ public class AbsenceServiceTests
     {
         var pending = (await Service().RequestVacationAsync(Erika, D("2026-08-03"), D("2026-08-08"), CancellationToken.None)).Absence!;
 
-        await Service().ReportSickAsync(Erika, D("2026-08-05"), D("2026-08-06"), false, CancellationToken.None);
+        await Service().ReportSickAsync(Erika, D("2026-08-05"), D("2026-08-06"), CancellationToken.None);
 
         pending.Status.ShouldBe(AbsenceStatus.Cancelled);
         _store.Approvals[pending.ApprovalRequestId!.Value].Status.ShouldBe(ApprovalStatus.Withdrawn);
@@ -499,7 +500,7 @@ public class AbsenceServiceTests
     [Fact]
     public async Task Exit_ends_an_open_ended_sick_note_on_the_exit_date_and_cancels_one_that_starts_later()
     {
-        var running = (await Service().ReportSickAsync(Erika, D("2026-07-15"), null, false, CancellationToken.None)).Absence!;
+        var running = (await Service().ReportSickAsync(Erika, D("2026-07-15"), null, CancellationToken.None)).Absence!;
         _messages.Sent.Clear();
 
         await Service().OnEmployeeLeftAsync(Erika, D("2026-07-31"), CancellationToken.None);
@@ -509,7 +510,7 @@ public class AbsenceServiceTests
         running.Version.ShouldBe(2);
         _messages.Of<SyncAbsenceToBc>().Single().To.ShouldBe(D("2026-07-31"));
 
-        var later = (await Service().ReportSickAsync(Erika, D("2026-08-10"), D("2026-08-12"), false, CancellationToken.None)).Absence!;
+        var later = (await Service().ReportSickAsync(Erika, D("2026-08-10"), D("2026-08-12"), CancellationToken.None)).Absence!;
         await Service().OnEmployeeLeftAsync(Erika, D("2026-07-31"), CancellationToken.None);
         later.Status.ShouldBe(AbsenceStatus.Cancelled);
     }

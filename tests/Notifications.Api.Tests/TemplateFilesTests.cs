@@ -12,7 +12,8 @@ public class TemplateFilesTests
     {
         var catalog = TemplateLoader.Load(Folder);
 
-        catalog.Keys.Order().ShouldBe(["workforce.sick-note.store-manager", "workforce.vacation-decision.requester", "workforce.vacation-request.supervisor"]);
+        catalog.Keys.Order().ShouldBe(
+        ["workforce.sick-note-certificate-rejected.employee", "workforce.sick-note-certificate-reminder.employee", "workforce.sick-note.store-manager", "workforce.vacation-decision.requester", "workforce.vacation-request.supervisor"]);
         catalog.TryGet("workforce.sick-note.store-manager", out var sick).ShouldBeTrue();
         sick!.Mandatory.ShouldBeTrue();
         sick.Placeholders.Values.ShouldAllBe(sensitive => sensitive); // everything about an absence is class 2

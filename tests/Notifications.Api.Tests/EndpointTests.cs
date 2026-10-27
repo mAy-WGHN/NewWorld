@@ -64,7 +64,8 @@ public sealed class EndpointTests(PostgresFixture postgres) : IClassFixture<Post
         await using var api = await StartAsync(postgres);
 
         var before = await api.GetAsync<List<NotificationTypeDto>>("/api/me/notification-preferences", Max);
-        before.Select(t => t.TemplateKey).ShouldBe(["workforce.sick-note.store-manager", "workforce.vacation-decision.requester", "workforce.vacation-request.supervisor"]);
+        before.Select(t => t.TemplateKey).ShouldBe(
+        ["workforce.sick-note-certificate-rejected.employee", "workforce.sick-note-certificate-reminder.employee", "workforce.sick-note.store-manager", "workforce.vacation-decision.requester", "workforce.vacation-request.supervisor"]);
         before.Single(t => t.TemplateKey == "workforce.sick-note.store-manager").Mandatory.ShouldBeTrue();
         before.SelectMany(t => t.Channels).ShouldAllBe(c => c.Enabled);
 

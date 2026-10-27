@@ -20,6 +20,21 @@ public enum AbsenceError
     NotAllowed = 10,
 
     AlreadyStarted = 11,
+
+    /// <summary>The file is empty or larger than allowed.</summary>
+    FileTooLarge = 12,
+
+    /// <summary>The content is not a PDF, JPEG or PNG.</summary>
+    UnsupportedFileType = 13,
+
+    /// <summary>The sick note has as many documents as allowed.</summary>
+    TooManyDocuments = 14,
+
+    /// <summary>The malware check failed or found something.</summary>
+    FileRejected = 15,
+
+    /// <summary>The retention period is outside the allowed range.</summary>
+    InvalidRetention = 16,
 }
 
 public sealed record AbsenceResult(AbsenceError Error, Absence? Absence = null)

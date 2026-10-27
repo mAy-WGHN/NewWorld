@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Shared.Infrastructure.Approvals;
 using Workforce.Core.Absences;
+using Workforce.Core.Certificates;
+using Workforce.Infrastructure.Certificates;
 using Workforce.Infrastructure.Absences;
 using Workforce.Infrastructure.People;
 using Shared.Infrastructure.Authorization;
@@ -18,6 +20,9 @@ public sealed class WorkforceDbContext(DbContextOptions<WorkforceDbContext> opti
     public DbSet<PersonRecord> People => Set<PersonRecord>();
     public DbSet<StoreRecord> Stores => Set<StoreRecord>();
     public DbSet<ApproverCopyRecord> ApproverCopies => Set<ApproverCopyRecord>();
+    public DbSet<CertificateDocument> CertificateDocuments => Set<CertificateDocument>();
+    public DbSet<CertificateSettingsRecord> CertificateSettings => Set<CertificateSettingsRecord>();
+    public DbSet<CertificateAccessEntry> CertificateAccessLog => Set<CertificateAccessEntry>();
 
     /// <summary>Provider settings shared by runtime and design time (migrations).</summary>
     public static DbContextOptionsBuilder Configure(DbContextOptionsBuilder options, string connectionString) => options
@@ -40,7 +45,9 @@ public sealed class WorkforceDbContext(DbContextOptions<WorkforceDbContext> opti
             b.Property(a => a.Type).HasConversion<string>().HasMaxLength(20);
             b.Property(a => a.Status).HasConversion<string>().HasMaxLength(20);
             b.Property(a => a.SyncStatus).HasConversion<string>().HasMaxLength(20);
+            b.Property(a => a.CertificateStatus).HasConversion<string>().HasMaxLength(20);
             b.HasIndex(a => new { a.EmployeeId, a.From });
+            b.HasIndex(a => new { a.Type, a.Status, a.CertificateStatus });
             b.HasIndex(a => a.ApprovalRequestId);
         });
         modelBuilder.Entity<EntitlementRecord>(b =>
@@ -64,6 +71,36 @@ public sealed class WorkforceDbContext(DbContextOptions<WorkforceDbContext> opti
         {
             b.ToTable("approver_copies");
             b.HasKey(a => a.EmployeeId);
+        });
+
+        // Medical certificates (AU): metadata (the bytes live in the separate file storage), the settings HR can change, and the access log (who did what, never the content).
+        modelBuilder.Entity<CertificateDocument>(b =>
+        {
+            b.ToTable("certificate_documents");
+            b.HasKey(d => d.Id);
+            b.Ignore(d => d.HasContent);
+            b.Property(d => d.ContentType).HasMaxLength(50);
+            b.Property(d => d.State).HasConversion<string>().HasMaxLength(20);
+            b.Property(d => d.RejectionReason).HasConversion<string>().HasMaxLength(20);
+            b.HasIndex(d => d.AbsenceId);
+            b.HasIndex(d => d.EmployeeId);
+            b.HasIndex(d => d.UploadedBy);
+            b.HasIndex(d => d.StorageId).IsUnique();
+        });
+        modelBuilder.Entity<CertificateSettingsRecord>(b =>
+        {
+            b.ToTable("certificate_settings");
+            b.HasKey(s => s.Id);
+            b.Property(s => s.Id).ValueGeneratedNever();
+        });
+        modelBuilder.Entity<CertificateAccessEntry>(b =>
+        {
+            b.ToTable("certificate_access_log");
+            b.HasKey(e => e.Id);
+            b.Property(e => e.Action).HasConversion<string>().HasMaxLength(30);
+            b.HasIndex(e => e.At);
+            b.HasIndex(e => e.EmployeeId);
+            b.HasIndex(e => e.AbsenceId);
         });
     }
 }

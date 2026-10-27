@@ -3,6 +3,7 @@ using Shared.Approvals;
 using Shared.Infrastructure.Messaging;
 using Shared.Messaging;
 using Workforce.Core.Absences;
+using Workforce.Infrastructure.Certificates;
 using Workforce.Infrastructure.People;
 
 namespace Workforce.Infrastructure.Absences;
@@ -78,7 +79,7 @@ public sealed class OutboxWorkforceMessages(Outbox<WorkforceDbContext> outbox) :
 /// One transaction for a use case: change, outbox messages and the per-person lock commit (or roll back) together. Joins an ambient
 /// transaction (the inbox transaction of a message handler) if there is one.
 /// </summary>
-public sealed class WorkforceUnitOfWork(WorkforceDbContext db)
+public sealed class WorkforceUnitOfWork(WorkforceDbContext db, CertificateFileCleanup fileCleanup)
 {
     public async Task<T> RunAsync<T>(Func<Task<T>> work, Func<T, bool> shouldCommit, CancellationToken cancellationToken)
     {
@@ -95,10 +96,12 @@ public sealed class WorkforceUnitOfWork(WorkforceDbContext db)
         {
             await db.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
+            await fileCleanup.FlushAsync(cancellationToken); // files of deleted documents go only after the commit
         }
         else
         {
             db.ChangeTracker.Clear();
+            fileCleanup.Discard();
         }
 
         return result;

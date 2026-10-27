@@ -5,6 +5,7 @@ using Shared.Approvals;
 using Shared.Authorization;
 using Workforce.Contracts;
 using Workforce.Core.Absences;
+using Workforce.Core.Certificates;
 using Workforce.Infrastructure;
 using Workforce.Infrastructure.Absences;
 
@@ -27,7 +28,7 @@ public static class Endpoints
         // Details including the type for authorised services (later HR API).
         app.MapGet("/internal/absences/{absenceId:guid}", async (Guid absenceId, WorkforceDbContext db, CancellationToken ct) =>
                 await db.Absences.AsNoTracking().FirstOrDefaultAsync(a => a.Id == absenceId, ct) is { } a
-                    ? Results.Ok(new AbsenceDetailsDto(a.Id, a.EmployeeId, a.Type.ToString(), a.Status.ToString(), a.From, a.To, a.CertificateOnFile, a.Version, a.SyncStatus.ToString(), a.SyncedVersion))
+                    ? Results.Ok(new AbsenceDetailsDto(a.Id, a.EmployeeId, a.Type.ToString(), a.Status.ToString(), a.From, a.To, a.CertificateStatus.ToString(), a.Version, a.SyncStatus.ToString(), a.SyncedVersion))
                     : Results.NotFound())
             .RequireAuthorization(AppPolicies.ServiceRole(WorkforceRoles.AbsenceDetailsRead));
         return app;
@@ -43,12 +44,12 @@ public static class Endpoints
                 }
 
                 var rows = await db.Absences.AsNoTracking().Where(a => a.EmployeeId == id).OrderByDescending(a => a.From).ToListAsync(ct);
-                return Results.Ok(rows.Select(a => ToDto(a, reason: true, sync: false)));
+                return Results.Ok(rows.Select(a => ToDto(a, reason: true, sync: false, certificate: true)));
             })
             .RequireAuthorization(AppPolicies.Privilege(AbsencePrivileges.ReadOwn));
 
         me.MapPost("/absences/sick", (ReportSickRequest request, ClaimsPrincipal user, AbsenceService service, WorkforceUnitOfWork uow, CancellationToken ct) =>
-                Mutate(user, id => uow.RunAsync(() => service.ReportSickAsync(id, request.From, request.To, request.CertificateOnFile, ct), ct)))
+                Mutate(user, id => uow.RunAsync(() => service.ReportSickAsync(id, request.From, request.To, ct), ct)))
             .RequireAuthorization(AppPolicies.Privilege(AbsencePrivileges.CreateOwn));
 
         me.MapPost("/absences/vacation", (RequestVacationRequest request, ClaimsPrincipal user, AbsenceService service, WorkforceUnitOfWork uow, CancellationToken ct) =>
@@ -122,8 +123,9 @@ public static class Endpoints
                 }
 
                 var sync = await Allows(auth, user, new EmployeeResource(employeeId), AbsencePrivileges.ReadSync);
+                var certificate = await Allows(auth, user, new EmployeeResource(employeeId), CertificatePrivileges.ReadStatus);
                 var rows = await db.Absences.AsNoTracking().Where(a => a.EmployeeId == employeeId).OrderByDescending(a => a.From).ToListAsync(ct);
-                return Results.Ok(rows.Select(a => ToDto(a, reason: true, sync)));
+                return Results.Ok(rows.Select(a => ToDto(a, reason: true, sync, certificate)));
             })
             .RequireAuthorization();
 
@@ -132,7 +134,7 @@ public static class Endpoints
                 Guid employeeId, ReportSickRequest request, ClaimsPrincipal user, IAuthorizationService auth, AbsenceService service, WorkforceUnitOfWork uow, CancellationToken ct) =>
                 !await Allows(auth, user, new EmployeeResource(employeeId), AbsencePrivileges.Create)
                     ? Results.Forbid()
-                    : ToResult(await uow.RunAsync(() => service.ReportSickAsync(employeeId, request.From, request.To, request.CertificateOnFile, ct), ct)))
+                    : ToResult(await uow.RunAsync(() => service.ReportSickAsync(employeeId, request.From, request.To, ct), ct)))
             .RequireAuthorization();
 
         api.MapGet("/approvals/pending", async (ClaimsPrincipal user, WorkforceDbContext db, CancellationToken ct) =>
@@ -220,24 +222,27 @@ public static class Endpoints
     }
 
     private static IResult ToResult(AbsenceResult result) =>
-        result.Error == AbsenceError.None ? Results.Ok(ToDto(result.Absence!, reason: true, sync: false)) : Problem(result.Error);
+        result.Error == AbsenceError.None ? Results.Ok(ToDto(result.Absence!, reason: true, sync: false, certificate: true)) : Problem(result.Error);
 
-    private static IResult Problem(AbsenceError error) => Results.Problem(
+    internal static IResult Problem(AbsenceError error) => Results.Problem(
         statusCode: error switch
         {
             AbsenceError.NotFound or AbsenceError.UnknownPerson => StatusCodes.Status404NotFound,
             AbsenceError.NotAllowed => StatusCodes.Status403Forbidden,
-            AbsenceError.InvalidPeriod or AbsenceError.AfterExit or AbsenceError.NoEntitlement or AbsenceError.InsufficientBalance => StatusCodes.Status422UnprocessableEntity,
+            AbsenceError.FileTooLarge => StatusCodes.Status413PayloadTooLarge,
+            AbsenceError.UnsupportedFileType => StatusCodes.Status415UnsupportedMediaType,
+            AbsenceError.InvalidPeriod or AbsenceError.AfterExit or AbsenceError.NoEntitlement or AbsenceError.InsufficientBalance or AbsenceError.FileRejected or AbsenceError.InvalidRetention => StatusCodes.Status422UnprocessableEntity,
             _ => StatusCodes.Status409Conflict,
         },
         title: error.ToString());
 
-    private static AbsenceDto ToDto(Absence a, bool reason, bool sync) => new(
-        a.Id, a.EmployeeId, reason ? a.Type.ToString() : null, a.Status.ToString(), a.From, a.To, reason ? a.CertificateOnFile : null,
+    private static AbsenceDto ToDto(Absence a, bool reason, bool sync, bool certificate) => new(
+        a.Id, a.EmployeeId, reason ? a.Type.ToString() : null, a.Status.ToString(), a.From, a.To,
+        reason && certificate && a.Type == AbsenceType.Sickness ? a.CertificateStatus.ToString() : null, reason && certificate ? a.CertifiedThrough : null,
         sync ? a.Version : null, sync ? a.SyncStatus.ToString() : null);
 
-    private static async Task<bool> Allows(IAuthorizationService auth, ClaimsPrincipal user, object resource, string privilege) =>
+    internal static async Task<bool> Allows(IAuthorizationService auth, ClaimsPrincipal user, object resource, string privilege) =>
         (await auth.AuthorizeAsync(user, resource, AppPolicies.Privilege(privilege))).Succeeded;
 
-    private static Guid? Me(ClaimsPrincipal user) => Guid.TryParse(user.FindFirst(AppClaimTypes.EmployeeId)?.Value, out var id) ? id : null;
+    internal static Guid? Me(ClaimsPrincipal user) => Guid.TryParse(user.FindFirst(AppClaimTypes.EmployeeId)?.Value, out var id) ? id : null;
 }
