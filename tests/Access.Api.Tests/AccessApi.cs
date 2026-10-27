@@ -120,7 +120,7 @@ public sealed class AccessApi : WebApplicationFactory<ApiMarker>
         using var response = await SendAsync(HttpMethod.Put, "/internal/apps/workforce/catalog", r => r.AsService(AccessRoles.CatalogRegister),
             new RegisterCatalogRequest(
             [
-                new("absence:read", true), new("absence:read-reason", true), new("absence:approve", true), new("absence:read-own", false),
+                new("absence:read", true, "Abwesenheiten ansehen."), new("absence:read-reason", true), new("absence:approve", true), new("absence:read-own", false),
             ]));
         response.StatusCode.ShouldBe(HttpStatusCode.NoContent);
     }

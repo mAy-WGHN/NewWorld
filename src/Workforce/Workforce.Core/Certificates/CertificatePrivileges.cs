@@ -33,8 +33,15 @@ public static class CertificatePrivileges
     /// <summary>Reads the access log of the certificates (who opened or decided what, when). Never the content.</summary>
     public const string ReadAccessLog = "certificate:read-access-log";
 
-    public static readonly IReadOnlyList<(string Key, bool Scopable)> Catalog =
+    /// <summary>The privileges with what they allow in plain words (German, shown in Access when roles are put together).</summary>
+    public static readonly IReadOnlyList<(string Key, bool Scopable, string Description)> Catalog =
     [
-        (UploadOwn, false), (UploadFor, true), (ReadStatus, true), (Review, true), (Delete, true), (ManageRetention, false), (ReadAccessLog, false),
+        (UploadOwn, false, "Die eigene Arbeitsunfähigkeitsbescheinigung (AU) hochladen."),
+        (UploadFor, true, "Eine AU für Personen in der Reichweite hochladen, z. B. wenn sie in der Filiale abgegeben wird."),
+        (ReadStatus, true, "Sehen, ob eine AU fehlt, eingereicht, geprüft oder abgelehnt ist (nie den Inhalt), auch als gefilterte Übersicht."),
+        (Review, true, "AU-Dateien von Personen in der Reichweite öffnen und bestätigen oder mit Grund ablehnen (HR)."),
+        (Delete, true, "AU-Dateien in jedem Zustand löschen (HR). Die hochladende Person kann ungeprüfte Uploads selbst zurücknehmen."),
+        (ManageRetention, false, "Löschfrist der AU-Dateien nach Ende der Krankmeldung und den Erinnerungsrhythmus einstellen (HR)."),
+        (ReadAccessLog, false, "Das Zugriffsprotokoll der AUs lesen: wer wann hochgeladen, geöffnet oder entschieden hat, nie den Inhalt."),
     ];
 }

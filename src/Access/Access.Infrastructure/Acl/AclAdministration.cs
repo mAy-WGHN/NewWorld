@@ -233,7 +233,7 @@ public sealed class AclAdministration(AccessDbContext db, IAclReader reader, Rec
         }, cancellationToken);
     }
 
-    public async Task<AdminResult> CreateCustomPrivilegeAsync(Guid actor, string key, bool scopable, CancellationToken cancellationToken)
+    public async Task<AdminResult> CreateCustomPrivilegeAsync(Guid actor, string key, bool scopable, string? description, CancellationToken cancellationToken)
     {
         if (!PrivilegePattern.IsValidPattern(key) || key.EndsWith('*'))
         {
@@ -248,7 +248,7 @@ public sealed class AclAdministration(AccessDbContext db, IAclReader reader, Rec
         var guard = (await Guard(cancellationToken)).CanUse(actor, AccessPrivileges.CustomPrivilegeCreate);
         return await Apply(guard, null, _ =>
         {
-            db.Catalog.Add(new CatalogEntryRecord { Key = key, Owner = CustomOwner, Scopable = scopable });
+            db.Catalog.Add(new CatalogEntryRecord { Key = key, Owner = CustomOwner, Scopable = scopable, Description = Clean(description) });
             return Task.CompletedTask;
         }, cancellationToken);
     }
@@ -287,8 +287,15 @@ public sealed class AclAdministration(AccessDbContext db, IAclReader reader, Rec
         return await Apply(GuardResult.Allowed, null, async ct =>
         {
             await db.Catalog.Where(c => c.Owner == appKey).ExecuteDeleteAsync(ct);
-            db.Catalog.AddRange(entries.Select(e => new CatalogEntryRecord { Key = e.Key, Owner = appKey, Scopable = e.Scopable }));
+            db.Catalog.AddRange(entries.Select(e => new CatalogEntryRecord { Key = e.Key, Owner = appKey, Scopable = e.Scopable, Description = Clean(e.Description) }));
         }, cancellationToken);
+    }
+
+    /// <summary>Descriptions are free text for people: trimmed and cut to the column size.</summary>
+    private static string Clean(string? description)
+    {
+        var text = (description ?? "").Trim();
+        return text.Length > 500 ? text[..500] : text;
     }
 
     private async Task<AdminResult> Apply(GuardResult guard, Guid? id, Func<CancellationToken, Task> change, CancellationToken cancellationToken)

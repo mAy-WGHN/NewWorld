@@ -94,7 +94,7 @@ public static class InfrastructureServiceCollectionExtensions
         {
             services.AddCatalogRegistration(
                 configuration, AbsencePrivileges.AppKey,
-                [.. AbsencePrivileges.Catalog.Concat(CertificatePrivileges.Catalog).Select(p => new CatalogPrivilege(p.Key, p.Scopable))]);
+                [.. AbsencePrivileges.Catalog.Concat(CertificatePrivileges.Catalog).Select(p => new CatalogPrivilege(p.Key, p.Scopable, p.Description))]);
         }
 
         // Copies and results: subscriptions "workforce" on the topics (purpose: employee/store copies, approvers, BC sync status, erasure).

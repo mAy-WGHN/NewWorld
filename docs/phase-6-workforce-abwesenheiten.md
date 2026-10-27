@@ -26,6 +26,7 @@ Stand: 2026-10-23. Gebaut: `Workforce.Core/Absences` (Regeln, ohne Infrastruktur
 | `POST /api/absences/{id}/approve` / `reject` | `absence:approve` auf die Person **und** Mitglied der Kette |
 | `PUT /api/employees/{id}/vacation-entitlements/{year}` | `absence:manage-entitlement` (vertraglicher Jahresanspruch) |
 | `GET/POST /api/employees/{id}/vacation-extra-days`, `DELETE …/{extraId}` | `absence:manage-entitlement` (Zusatztage, siehe `urlaubsberechnung.md`) |
+| `GET/PUT /api/vacation-rules` | `absence:manage-vacation-rules` (Verfall der Zusatztage, Standard: nie) |
 | `GET/PUT /api/stores/{id}/holiday-opening`, `PUT /api/stores/holiday-opening` | `absence:manage-holiday-opening` (Store-Scope) |
 | `GET /internal/absences/{id}` | Service Role `Workforce.AbsenceDetails.Read` |
 

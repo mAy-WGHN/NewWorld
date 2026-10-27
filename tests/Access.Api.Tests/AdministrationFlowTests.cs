@@ -105,9 +105,22 @@ public sealed class AdministrationFlowTests(PostgresFixture postgres) : IClassFi
         (await api.GetAsync<List<ScopeDto>>("/api/scopes", As(Admin))).Single().StoreIds.Order().ShouldBe(new[] { F017, F018 }.Order());
         (await api.SendAsync(HttpMethod.Delete, $"/api/scopes/{scopeId}", As(Admin))).StatusCode.ShouldBe(HttpStatusCode.NoContent);
 
-        (await api.SendAsync(HttpMethod.Post, "/api/custom-privileges", As(Admin), new CreateCustomPrivilegeRequest("revision:instruct", true))).StatusCode.ShouldBe(HttpStatusCode.NoContent);
-        (await api.GetAsync<List<CatalogEntryDto>>("/api/catalog", As(Admin))).ShouldContain(c => c.Key == "revision:instruct" && c.Owner == "custom");
+        (await api.SendAsync(HttpMethod.Post, "/api/custom-privileges", As(Admin), new CreateCustomPrivilegeRequest("revision:instruct", true, "  Prüfanweisungen an Filialen erteilen.  "))).StatusCode.ShouldBe(HttpStatusCode.NoContent);
+        (await api.GetAsync<List<CatalogEntryDto>>("/api/catalog", As(Admin))).ShouldContain(c => c.Key == "revision:instruct" && c.Owner == "custom" && c.Description == "Prüfanweisungen an Filialen erteilen.");
         (await api.SendAsync(HttpMethod.Delete, "/api/custom-privileges/revision:instruct", As(Admin))).StatusCode.ShouldBe(HttpStatusCode.NoContent);
+    }
+
+    [Fact]
+    public async Task The_catalogue_carries_a_description_for_every_privilege_registered_with_one_and_for_access_itself()
+    {
+        await using var api = await StartAsync(postgres);
+        await api.RegisterWorkforceCatalogAsync();
+
+        var catalog = await api.GetAsync<List<CatalogEntryDto>>("/api/catalog", As(Admin));
+
+        catalog.Single(c => c.Key == "absence:read").Description.ShouldBe("Abwesenheiten ansehen.");
+        catalog.Single(c => c.Key == "absence:approve").Description.ShouldBeEmpty(); // an application that does not send one leaves it empty
+        catalog.Where(c => c.Owner == "access").ShouldAllBe(c => c.Description.Length > 0);
     }
 
     [Fact]

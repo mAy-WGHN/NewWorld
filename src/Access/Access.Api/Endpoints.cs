@@ -29,7 +29,7 @@ public static class Endpoints
             .RequireAuthorization();
 
         api.MapGet("/catalog", async (AccessDbContext db, CancellationToken ct) =>
-                Results.Ok(await db.Catalog.OrderBy(c => c.Key).Select(c => new CatalogEntryDto(c.Key, c.Owner, c.Scopable)).ToListAsync(ct)))
+                Results.Ok(await db.Catalog.OrderBy(c => c.Key).Select(c => new CatalogEntryDto(c.Key, c.Owner, c.Scopable, c.Description)).ToListAsync(ct)))
             .RequireAuthorization(AppPolicies.Privilege(AccessPrivileges.CatalogRead));
 
         MapRoles(api);
@@ -39,7 +39,7 @@ public static class Endpoints
         MapMainStore(api);
 
         api.MapPost("/custom-privileges", (CreateCustomPrivilegeRequest request, ClaimsPrincipal user, AclAdministration admin, CancellationToken ct) =>
-                Run(user, actor => admin.CreateCustomPrivilegeAsync(actor, request.Key, request.Scopable, ct), _ => Results.NoContent()))
+                Run(user, actor => admin.CreateCustomPrivilegeAsync(actor, request.Key, request.Scopable, request.Description, ct), _ => Results.NoContent()))
             .RequireAuthorization(AppPolicies.Privilege(AccessPrivileges.CustomPrivilegeCreate));
         api.MapDelete("/custom-privileges/{key}", (string key, ClaimsPrincipal user, AclAdministration admin, CancellationToken ct) =>
                 Run(user, actor => admin.DeleteCustomPrivilegeAsync(actor, key, ct), _ => Results.NoContent()))
@@ -152,7 +152,7 @@ public static class Endpoints
         var internalApi = app.MapGroup("/internal");
 
         internalApi.MapPut("/apps/{appKey}/catalog", async (string appKey, RegisterCatalogRequest request, AclAdministration admin, CancellationToken ct) =>
-                ToResult(await admin.RegisterCatalogAsync(appKey, request.Privileges.Select(p => new CatalogEntry(p.Key, appKey, p.Scopable)).ToList(), ct), _ => Results.NoContent()))
+                ToResult(await admin.RegisterCatalogAsync(appKey, request.Privileges.Select(p => new CatalogEntry(p.Key, appKey, p.Scopable, p.Description ?? "")).ToList(), ct), _ => Results.NoContent()))
             .RequireAuthorization(AppPolicies.ServiceRole(AccessRoles.CatalogRegister));
 
         internalApi.MapGet("/permissions", async (IAclReader reader, IPublicationStore publications, TimeProvider time, AccessOptions options, CancellationToken ct) =>

@@ -13,5 +13,14 @@ public static class NotificationPrivileges
     public const string PreferenceReadOwn = "preference:read-own";
     public const string PreferenceUpdateOwn = "preference:update-own";
 
-    public static readonly IReadOnlyList<string> All = [ReadOwn, UpdateOwn, PreferenceReadOwn, PreferenceUpdateOwn];
+    /// <summary>The privileges with what they allow in plain words (German, shown in Access when roles are put together).</summary>
+    public static readonly IReadOnlyList<(string Key, string Description)> Catalog =
+    [
+        (ReadOwn, "Die eigenen Benachrichtigungen im Portal lesen."),
+        (UpdateOwn, "Eigene Benachrichtigungen als gelesen markieren oder löschen."),
+        (PreferenceReadOwn, "Die eigenen Benachrichtigungseinstellungen ansehen."),
+        (PreferenceUpdateOwn, "Die eigenen Benachrichtigungseinstellungen ändern (Pflichtbenachrichtigungen bleiben aktiv)."),
+    ];
+
+    public static readonly IReadOnlyList<string> All = [.. Catalog.Select(c => c.Key)];
 }

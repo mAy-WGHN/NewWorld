@@ -13,7 +13,7 @@ Stand 2026-10-27, Entscheidung 24 in `CLAUDE.md`. Code: `Workforce.Core/Absences
 ## Regeln
 
 1. **Vertragliche Tage des Jahres** = Jahresanspruch, außer im Eintrittsjahr: `Jahresanspruch / 12 × volle Monate`, **aufgerundet auf halbe Tage**, höchstens der Jahresanspruch. Der Eintrittsmonat zählt nur, wenn der Eintritt am 1. liegt. Vor dem Eintrittsjahr: 0.
-2. **Zusatztage** gelten ab `UsableFrom` (`CarryOver`: 1.1. des Folgejahres, `Additional`: 1.1. des Jahres) und **verfallen am 31.3. des Folgejahres** (`ExpiresOn`, „nach dem ersten Quartal des nächsten Jahres“). Was bis dahin nicht verbraucht ist, ist verloren.
+2. **Zusatztage** gelten ab `UsableFrom` (`CarryOver`: 1.1. des Folgejahres, `Additional`: 1.1. des Jahres). **Ob und wann sie verfallen, pflegt HR** (`GET/PUT /api/vacation-rules`, Recht `absence:manage-vacation-rules`): Monat und Tag im Jahr nach dem Bezugsjahr, z. B. 31.3. für „nach dem ersten Quartal des nächsten Jahres“. **Standard: sie verfallen nie.** Ein 29.2. fällt in Jahren ohne Schalttag auf den 28.2. Was bis zum Termin nicht verbraucht ist, ist verloren. Die Regel gilt für alle Zusatztage, auch die schon erfassten (rückwirkend).
 3. **Verbrauch**: jeder Urlaubs-Arbeitstag nimmt zuerst aus Zusatztagen (der früher verfallende zuerst), erst danach aus den vertraglichen Tagen des Jahres. Urlaub vor `UsableFrom` verbraucht sie nie (er wurde aus dem Vertrag seines Jahres bezahlt).
 4. **Effektive Urlaubstage** = vertragliche Tage + Zusatztage, die noch zählen (zu Jahresbeginn vorhanden, abzüglich verfallener Reste).
 5. **Genommen** = genehmigter Urlaub vor heute, **geplant** = genehmigt ab heute plus beantragt; **Rest** = effektive Tage − genommen − geplant (kann negativ werden, wenn der Vertrag nachträglich gesenkt wird).
@@ -34,7 +34,7 @@ Stand 2026-10-27, Entscheidung 24 in `CLAUDE.md`. Code: `Workforce.Core/Absences
 | 01.12. | 1 | 2,083 | 2,5 |
 | 15.12. | 0 | 0,000 | 0 |
 
-**Zusatztage und Verfall** (Jahresanspruch 25, Resturlaub aus 2025 = 4, Zusatzurlaub 2026 = 1; Urlaub 2.–4.2. (3 Tage) und 6.–11.7. (6 Tage))
+**Zusatztage und Verfall** (Regel „verfällt am 31.3.“, Jahresanspruch 25, Resturlaub aus 2025 = 4, Zusatzurlaub 2026 = 1; Urlaub 2.–4.2. (3 Tage) und 6.–11.7. (6 Tage))
 
 | Stand | vertraglich | Zusatz zählt | verfallen | effektiv | genommen | geplant | Rest |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -49,5 +49,4 @@ Im Februar verbrauchen die 3 Tage zuerst den Resturlaub (3 von 4); das eine übr
 
 - Anteiliger Anspruch bei **Austritt** im Jahr und **Wartezeit** (BUrlG) sind nicht gebaut.
 - Die Umrechnung des Anspruchs bei Wechsel der Wochentage (z. B. 6 = 30 / 5 = 25 oder 6 = 28 / 5 = 23,5) trägt HR als fertigen Jahresanspruch ein.
-- Der Verfallstermin (31.3.) ist im Code fest (`ExtraVacationDays.ExpiresOn`).
 - Bereits vorhandene Personenkopien haben noch kein Eintrittsdatum, bis BC Integration die Person erneut meldet; bis dahin gilt der volle Jahresanspruch.

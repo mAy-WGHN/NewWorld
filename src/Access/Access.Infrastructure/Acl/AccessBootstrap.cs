@@ -26,7 +26,7 @@ public sealed class AccessBootstrap(IServiceScopeFactory scopes) : IHostedServic
         }
 
         await db.Catalog.Where(c => c.Owner == AccessPrivileges.Owner).ExecuteDeleteAsync(cancellationToken);
-        db.Catalog.AddRange(AccessPrivileges.Catalog.Select(c => new CatalogEntryRecord { Key = c.Key, Owner = c.Owner, Scopable = c.Scopable }));
+        db.Catalog.AddRange(AccessPrivileges.Catalog.Select(c => new CatalogEntryRecord { Key = c.Key, Owner = c.Owner, Scopable = c.Scopable, Description = c.Description }));
         await db.SaveChangesAsync(cancellationToken);
     }
 

@@ -39,9 +39,19 @@ public static class AbsencePrivileges
     /// <summary>Sets when additional vacation days (leftover, special leave) expire, for everybody (HR); not scopable.</summary>
     public const string ManageVacationRules = "absence:manage-vacation-rules";
 
-    public static readonly IReadOnlyList<(string Key, bool Scopable)> Catalog =
+    /// <summary>The privileges with what they allow in plain words (German, shown in Access when roles are put together).</summary>
+    public static readonly IReadOnlyList<(string Key, bool Scopable, string Description)> Catalog =
     [
-        (ReadOwn, false), (CreateOwn, false), (UpdateOwn, false),
-        (ReadAvailability, true), (ReadReason, true), (ReadSync, true), (Create, true), (Approve, true), (ManageEntitlement, true), (ManageHolidayOpening, true), (ManageVacationRules, false),
+        (ReadOwn, false, "Eigene Abwesenheiten und das eigene Urlaubskonto ansehen."),
+        (CreateOwn, false, "Eine eigene Krankmeldung erfassen oder Urlaub beantragen."),
+        (UpdateOwn, false, "Einen eigenen Urlaubsantrag zurückziehen oder eine offene Krankmeldung beenden."),
+        (ReadAvailability, true, "Sehen, dass Kolleginnen und Kollegen der Filiale abwesend sind – ohne Grund und ohne Art."),
+        (ReadReason, true, "Zeitraum, Status und Art (Krank oder Urlaub) der Abwesenheiten von Personen in der Reichweite sehen (Vorgesetzte, HR)."),
+        (ReadSync, true, "Den Übertragungsstatus der Abwesenheiten nach Business Central sehen."),
+        (Create, true, "Krankmeldungen für Mitarbeitende in der Reichweite erfassen."),
+        (Approve, true, "Urlaubsanträge von Personen in der Reichweite genehmigen oder ablehnen (nur, wer für das Thema zuständig ist)."),
+        (ManageEntitlement, true, "Den Urlaubsanspruch pflegen: vertraglicher Jahresanspruch und Zusatztage (Resturlaub, Sonderurlaub) von Personen in der Reichweite (HR)."),
+        (ManageHolidayOpening, true, "Festlegen, ob Filialen in der Reichweite an gesetzlichen Feiertagen geöffnet sind (z. B. Bahnhofsfilialen); Feiertage zählen dort als Arbeitstage."),
+        (ManageVacationRules, false, "Die Regel für alle festlegen, ob und bis wann Zusatztage (Resturlaub u. a.) verfallen (HR). Standard: sie verfallen nie."),
     ];
 }

@@ -8,7 +8,7 @@ public sealed record PrivilegeDto(string Key, bool Unrestricted, IReadOnlyList<G
 
 public sealed record MyPrivilegesDto(Guid EmployeeId, IReadOnlyList<string> Roles, IReadOnlyList<PrivilegeDto> Privileges);
 
-public sealed record CatalogEntryDto(string Key, string Owner, bool Scopable);
+public sealed record CatalogEntryDto(string Key, string Owner, bool Scopable, string Description = "");
 
 public sealed record RoleDto(Guid Id, string Name, IReadOnlyList<string> Privileges, bool BuiltIn);
 
@@ -36,11 +36,11 @@ public sealed record CreateResponsibilityRequest(
 
 public sealed record TopicResponsibilityDto(string Topic, IReadOnlyList<Guid> ResponsibleEmployeeIds);
 
-public sealed record CreateCustomPrivilegeRequest(string Key, bool Scopable);
+public sealed record CreateCustomPrivilegeRequest(string Key, bool Scopable, string? Description = null);
 
 public sealed record RegisterCatalogRequest(IReadOnlyList<RegisterCatalogEntry> Privileges);
 
-public sealed record RegisterCatalogEntry(string Key, bool Scopable);
+public sealed record RegisterCatalogEntry(string Key, bool Scopable, string? Description = null);
 
 /// <summary>Current state of one person for rebuilding a copy; apply with the usual version check.</summary>
 public sealed record PermissionStateDto(Guid EmployeeId, long Version, IReadOnlyList<PrivilegeDto> Privileges);

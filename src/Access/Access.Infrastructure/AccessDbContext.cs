@@ -58,6 +58,7 @@ public sealed class AccessDbContext(DbContextOptions<AccessDbContext> options) :
         {
             b.ToTable("catalog_entries");
             b.HasKey(c => c.Key);
+            b.Property(c => c.Description).HasMaxLength(500);
             b.HasIndex(c => c.Owner);
         });
         modelBuilder.Entity<RoleRecord>(b =>

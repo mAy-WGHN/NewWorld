@@ -5,6 +5,7 @@ public sealed class CatalogEntryRecord
     public required string Key { get; set; }
     public required string Owner { get; set; }
     public bool Scopable { get; set; }
+    public string Description { get; set; } = "";
 }
 
 public sealed class RoleRecord

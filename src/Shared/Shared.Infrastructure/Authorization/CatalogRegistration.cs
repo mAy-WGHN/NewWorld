@@ -9,8 +9,8 @@ using Shared.Authorization;
 
 namespace Shared.Infrastructure.Authorization;
 
-/// <summary>A privilege an application brings: <c>resource:action</c>; scopable = can be restricted to stores.</summary>
-public sealed record CatalogPrivilege(string Key, bool Scopable);
+/// <summary>A privilege an application brings: <c>resource:action</c>; scopable = can be restricted to stores; with a description for people.</summary>
+public sealed record CatalogPrivilege(string Key, bool Scopable, string Description = "");
 
 public enum RegistrationResult
 {
@@ -43,7 +43,7 @@ public sealed partial class CatalogRegistrationService(
         {
             using var response = await http.PutAsJsonAsync(
                 $"/internal/apps/{appKey}/catalog",
-                new { privileges = privileges.Select(p => new { key = p.Key, scopable = p.Scopable }) },
+                new { privileges = privileges.Select(p => new { key = p.Key, scopable = p.Scopable, description = p.Description }) },
                 cancellationToken);
             return response.StatusCode switch
             {

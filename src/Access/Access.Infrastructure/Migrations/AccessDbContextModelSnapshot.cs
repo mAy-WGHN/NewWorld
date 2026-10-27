@@ -83,6 +83,12 @@ namespace Access.Infrastructure.Migrations
                         .HasColumnType("text")
                         .HasColumnName("key");
 
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("description");
+
                     b.Property<string>("Owner")
                         .IsRequired()
                         .HasColumnType("text")
