@@ -172,6 +172,7 @@ public static class VacationEntitlement
     /// (default: up to half days) but never exceeds the highest annual days. Before the year of joining there are none.
     /// An unknown entry date counts as employed all year.
     /// </summary>
+    // TODO(Entscheidung): anteiliger Anspruch bei Austritt im Jahr (Regeln der Personalabteilung ausstehend, siehe docs/urlaubsberechnung.md).
     public static decimal Contractual(
         decimal annualDays, DateOnly? entry, int year, VacationRules? rules = null, IReadOnlyList<EntitlementChange>? changes = null)
     {

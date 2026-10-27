@@ -50,6 +50,11 @@ Im Februar verbrauchen die 3 Tage zuerst den Resturlaub (3 von 4); das eine übr
 
 ## Nicht umgesetzt / offen
 
-- Anteiliger Anspruch bei **Austritt** im Jahr ist nicht gebaut (Regeln werden mit der Personalabteilung geklärt).
+- **Offen (wartet auf die Personalabteilung):** Anteiliger Anspruch bei **Austritt** im Jahr ist nicht gebaut. Zu klären:
+  1. Gilt auch beim Austritt Jahresanspruch ÷ 12 × volle Monate, mit der eingestellten Rundung?
+  2. Zählt der Austrittsmonat nur, wenn der Austritt am Monatsletzten liegt?
+  3. Behält jemand, der nach dem 30.6. austritt, den vollen Jahresanspruch (gesetzlicher Mindesturlaub, § 5 BUrlG), oder gilt immer anteilig?
+  4. Was passiert mit bereits mehr genommenem Urlaub: verrechnet oder bleibt er stehen?
+  5. Was geschieht mit Resturlaub und Zusatztagen beim Austritt (Abgeltung)?
 - Die Umrechnung des Anspruchs bei Wechsel der Wochentage (z. B. 6 = 30 / 5 = 25 oder 6 = 28 / 5 = 23,5) rechnet das System nicht selbst: HR trägt den neuen Jahresanspruch als Änderung (Regel 8) ein.
 - Bereits vorhandene Personenkopien haben noch kein Eintrittsdatum, bis BC Integration die Person erneut meldet; bis dahin gilt der volle Jahresanspruch.
