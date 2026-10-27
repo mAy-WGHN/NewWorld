@@ -183,6 +183,19 @@ public sealed class AclGuard(AclData data, DateTimeOffset now, TimeZoneInfo zone
         return allowed ? GuardResult.Allowed : GuardResult.Denied(GuardReason.NotInReach);
     }
 
+    /// <summary>
+    /// Setting or removing the main store of a person (a manual correction of the BC suggestion): reach over the person and, when a
+    /// store is set, over that store too (nobody moves people into stores they do not reach).
+    /// </summary>
+    public GuardResult CanSetMainStore(Guid actor, Guid employeeId, Guid? storeId)
+    {
+        var permissions = Permissions(actor);
+        return permissions.AppliesToEmployee(AccessPrivileges.MainStoreUpdate, employeeId)
+            && (storeId is not { } store || permissions.AppliesToStore(AccessPrivileges.MainStoreUpdate, store))
+            ? GuardResult.Allowed
+            : GuardResult.Denied(GuardReason.NotInReach);
+    }
+
     /// <summary>At least one active person with a valid, permanent, unrestricted assignment of a role containing <c>*</c>.</summary>
     public bool AdministratorsRemain(AclData candidate)
     {

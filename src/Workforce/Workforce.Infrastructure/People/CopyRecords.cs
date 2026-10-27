@@ -5,8 +5,22 @@ public sealed class PersonRecord
 {
     public Guid EmployeeId { get; set; }
     public required string Name { get; set; }
+    /// <summary>The effective main store: the one from Access (<see cref="MainStoreCopyRecord"/>) if it has one, otherwise <see cref="BcHomeStoreId"/>.</summary>
     public Guid? HomeStoreId { get; set; }
+    /// <summary>The suggestion from BC (the "Vorgabefiliale"), from <c>EmployeeChanged</c>.</summary>
+    public Guid? BcHomeStoreId { get; set; }
     public DateOnly? ExitDate { get; set; }
+}
+
+/// <summary>
+/// The main store of a person as Access publishes it (the one maintained there, otherwise BC's suggestion), from <c>PermissionsChanged</c>.
+/// Kept separately so it survives arriving before the person's copy; older versions are ignored.
+/// </summary>
+public sealed class MainStoreCopyRecord
+{
+    public Guid EmployeeId { get; set; }
+    public Guid? StoreId { get; set; }
+    public long Version { get; set; }
 }
 
 /// <summary>Read-only copy of a store.</summary>

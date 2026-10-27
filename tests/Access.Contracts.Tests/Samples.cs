@@ -21,7 +21,8 @@ internal static class Samples
                 [Guid.Parse("0197a000-0000-7000-8000-000000000101"), Guid.Parse("0197a000-0000-7000-8000-000000000102")],
                 [Guid.Parse("0197a000-0000-7000-8000-000000000001"), Guid.Parse("0197a000-0000-7000-8000-000000000002")]),
             new PrivilegeGrant("faq:read", true, [], []),
-        ]);
+        ],
+        MainStoreId: Guid.Parse("0197a000-0000-7000-8000-000000000101"));
 
     public static readonly ResponsibilitiesChanged ResponsibilitiesChanged = new(
         Guid.Parse("11111111-1111-1111-1111-111111111111"),

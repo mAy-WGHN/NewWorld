@@ -1,5 +1,9 @@
 namespace Access.Api;
 
+public sealed record MainStoreDto(Guid? EffectiveStoreId, Guid? OverrideStoreId, Guid? SuggestedStoreId);
+
+public sealed record SetMainStoreRequest(Guid StoreId);
+
 public sealed record PrivilegeDto(string Key, bool Unrestricted, IReadOnlyList<Guid> StoreIds, IReadOnlyList<Guid> EmployeeIds);
 
 public sealed record MyPrivilegesDto(Guid EmployeeId, IReadOnlyList<string> Roles, IReadOnlyList<PrivilegeDto> Privileges);

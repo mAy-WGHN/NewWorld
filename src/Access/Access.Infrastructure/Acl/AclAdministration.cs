@@ -2,6 +2,7 @@ using Access.Core;
 using Access.Core.Acl;
 using Access.Core.Publishing;
 using Access.Core.Responsibilities;
+using Access.Infrastructure.People;
 using Access.Infrastructure.Publishing;
 using Microsoft.EntityFrameworkCore;
 
@@ -188,6 +189,48 @@ public sealed class AclAdministration(AccessDbContext db, IAclReader reader, Rec
 
         var guard = (await Guard(cancellationToken)).CanSetResponsibility(actor, EfAclReader.ToResponsibility(record).Target, AccessPrivileges.ResponsibilityDelete);
         return await Apply(guard, responsibilityId, ct => db.Responsibilities.Where(r => r.Id == responsibilityId).ExecuteDeleteAsync(ct), cancellationToken);
+    }
+
+    /// <summary>
+    /// Sets (<paramref name="storeId"/>) or removes (<c>null</c>) the main store of a person; the BC suggestion applies again after removal.
+    /// The store must be a known, active store.
+    /// </summary>
+    public async Task<AdminResult> SetMainStoreAsync(Guid actor, Guid employeeId, Guid? storeId, CancellationToken cancellationToken)
+    {
+        if (!await db.People.AnyAsync(p => p.EmployeeId == employeeId, cancellationToken))
+        {
+            return AdminResult.Denied(GuardReason.NotFound);
+        }
+
+        if (storeId is { } store && !await db.Stores.AnyAsync(s => s.StoreId == store && s.IsActive, cancellationToken))
+        {
+            return AdminResult.Denied(GuardReason.Invalid);
+        }
+
+        var guard = (await Guard(cancellationToken)).CanSetMainStore(actor, employeeId, storeId);
+        return await Apply(guard, null, async ct =>
+        {
+            var row = await db.MainStoreOverrides.FirstOrDefaultAsync(m => m.EmployeeId == employeeId, ct);
+            if (storeId is not { } newStore)
+            {
+                if (row is not null)
+                {
+                    db.MainStoreOverrides.Remove(row);
+                }
+
+                return;
+            }
+
+            if (row is null)
+            {
+                row = new MainStoreOverrideRecord { EmployeeId = employeeId };
+                db.MainStoreOverrides.Add(row);
+            }
+
+            row.StoreId = newStore;
+            row.SetBy = actor;
+            row.SetAt = time.GetUtcNow();
+        }, cancellationToken);
     }
 
     public async Task<AdminResult> CreateCustomPrivilegeAsync(Guid actor, string key, bool scopable, CancellationToken cancellationToken)

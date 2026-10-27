@@ -38,12 +38,13 @@ public sealed class Recalculator(
             var permissionPrint = Fingerprint.Of(grants
                 .ToDictionary(g => g.Key, g => g.StoreIds.Select(s => "s" + s).Concat(g.EmployeeIds.Select(e => "e" + e)).Append(g.Unrestricted ? "*" : "").ToArray())
                 .Append(new KeyValuePair<string, string[]>("#roles", effective.Roles.ToArray()))
+                .Append(new KeyValuePair<string, string[]>("#main", [person.HomeStoreId?.ToString() ?? ""]))
                 .ToDictionary());
             if (await PublishIfChanged(person.EmployeeId, PublicationKind.Permissions, permissionPrint, published, cancellationToken) is { } permissionVersion)
             {
                 var message = new PermissionsChanged(
                     Guid.CreateVersion7(now), correlationId, now, person.EmployeeId, permissionVersion, [],
-                    effective.StoreIds.Order().ToList(), effective.EmployeeIds.Order().ToList(), effective.Roles, grants);
+                    effective.StoreIds.Order().ToList(), effective.EmployeeIds.Order().ToList(), effective.Roles, grants, person.HomeStoreId);
                 publisher.Publish(message);
                 permissions.Add(message);
             }

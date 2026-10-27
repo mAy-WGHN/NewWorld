@@ -270,6 +270,30 @@ namespace Access.Infrastructure.Migrations
                     b.ToTable("refresh_tokens", "access");
                 });
 
+            modelBuilder.Entity("Access.Infrastructure.People.MainStoreOverrideRecord", b =>
+                {
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("employee_id");
+
+                    b.Property<DateTimeOffset>("SetAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("set_at");
+
+                    b.Property<Guid>("SetBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("set_by");
+
+                    b.Property<Guid>("StoreId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("store_id");
+
+                    b.HasKey("EmployeeId")
+                        .HasName("pk_main_store_overrides");
+
+                    b.ToTable("main_store_overrides", "access");
+                });
+
             modelBuilder.Entity("Access.Infrastructure.People.PersonRecord", b =>
                 {
                     b.Property<Guid>("EmployeeId")

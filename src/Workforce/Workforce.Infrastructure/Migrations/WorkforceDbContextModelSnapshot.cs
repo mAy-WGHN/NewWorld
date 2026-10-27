@@ -536,12 +536,36 @@ namespace Workforce.Infrastructure.Migrations
                     b.ToTable("approver_copies", "workforce");
                 });
 
+            modelBuilder.Entity("Workforce.Infrastructure.People.MainStoreCopyRecord", b =>
+                {
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("employee_id");
+
+                    b.Property<Guid?>("StoreId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("store_id");
+
+                    b.Property<long>("Version")
+                        .HasColumnType("bigint")
+                        .HasColumnName("version");
+
+                    b.HasKey("EmployeeId")
+                        .HasName("pk_main_store_copies");
+
+                    b.ToTable("main_store_copies", "workforce");
+                });
+
             modelBuilder.Entity("Workforce.Infrastructure.People.PersonRecord", b =>
                 {
                     b.Property<Guid>("EmployeeId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("employee_id");
+
+                    b.Property<Guid?>("BcHomeStoreId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("bc_home_store_id");
 
                     b.Property<DateOnly?>("ExitDate")
                         .HasColumnType("date")

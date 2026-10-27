@@ -111,6 +111,74 @@ public sealed class AdministrationFlowTests(PostgresFixture postgres) : IClassFi
     }
 
     [Fact]
+    public async Task The_main_store_is_maintained_in_access_wins_over_bc_and_is_published()
+    {
+        await using var api = await StartAsync(postgres);
+        await api.ReceiveStoreAsync(F017, "0017", "Filiale 17");
+        await api.ReceiveStoreAsync(F018, "0018", "Filiale 18");
+        var url = $"/api/people/{Erika}/main-store";
+
+        var initial = await api.GetAsync<MainStoreDto>(url, As(Admin));
+        (initial.EffectiveStoreId, initial.OverrideStoreId, initial.SuggestedStoreId).ShouldBe((F017, null, F017));
+
+        (await api.SendAsync(HttpMethod.Put, url, As(Admin), new SetMainStoreRequest(F018))).StatusCode.ShouldBe(HttpStatusCode.NoContent);
+        var set = await api.GetAsync<MainStoreDto>(url, As(Admin));
+        (set.EffectiveStoreId, set.OverrideStoreId, set.SuggestedStoreId).ShouldBe((F018, F018, F017));
+        (await LatestPermissionsAsync(api, Erika)).MainStoreId.ShouldBe(F018);
+
+        // A new BC value is only the suggestion: what is maintained here stays.
+        await api.ReceiveAsync(Erika, "10042", "Erika Mustermann", F017);
+        (await api.GetAsync<MainStoreDto>(url, As(Admin))).EffectiveStoreId.ShouldBe(F018);
+
+        (await api.SendAsync(HttpMethod.Delete, url, As(Admin))).StatusCode.ShouldBe(HttpStatusCode.NoContent);
+        var removed = await api.GetAsync<MainStoreDto>(url, As(Admin));
+        (removed.EffectiveStoreId, removed.OverrideStoreId).ShouldBe((F017, null));
+        (await LatestPermissionsAsync(api, Erika)).MainStoreId.ShouldBe(F017);
+    }
+
+    [Fact]
+    public async Task A_person_without_a_bc_suggestion_gets_a_main_store_from_access()
+    {
+        await using var api = await StartAsync(postgres);
+        await api.ReceiveStoreAsync(F018, "0018", "Filiale 18");
+        await api.ReceiveAsync(Tom, "10002", "Tom Tester", null); // BC has no "Vorgabefiliale"
+
+        (await api.GetAsync<MainStoreDto>($"/api/people/{Tom}/main-store", As(Admin))).EffectiveStoreId.ShouldBeNull();
+        (await api.SendAsync(HttpMethod.Put, $"/api/people/{Tom}/main-store", As(Admin), new SetMainStoreRequest(F018))).StatusCode.ShouldBe(HttpStatusCode.NoContent);
+
+        (await LatestPermissionsAsync(api, Tom)).MainStoreId.ShouldBe(F018);
+    }
+
+    [Fact]
+    public async Task The_main_store_endpoints_check_privilege_store_and_person()
+    {
+        await using var api = await StartAsync(postgres);
+        await api.ReceiveStoreAsync(F017, "0017", "Filiale 17");
+        await api.ReceiveStoreAsync(F018, "0018", "Filiale 18", isActive: false);
+        var url = $"/api/people/{Erika}/main-store";
+
+        foreach (var person in new[] { Erika, Max })
+        {
+            (await api.SendAsync(HttpMethod.Put, url, As(person), new SetMainStoreRequest(F017))).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+            (await api.SendAsync(HttpMethod.Delete, url, As(person))).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+            (await api.SendAsync(HttpMethod.Get, url, As(person))).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        }
+
+        (await api.SendAsync(HttpMethod.Put, url, As(Admin), new SetMainStoreRequest(F018))).StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity); // inactive store
+        (await api.SendAsync(HttpMethod.Put, url, As(Admin), new SetMainStoreRequest(Guid.NewGuid()))).StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity); // unknown store
+        (await api.SendAsync(HttpMethod.Put, $"/api/people/{Guid.NewGuid()}/main-store", As(Admin), new SetMainStoreRequest(F017))).StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        (await api.SendAsync(HttpMethod.Get, url, null)).StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+    }
+
+    private static async Task<PermissionsChanged> LatestPermissionsAsync(AccessApi api, Guid employeeId)
+    {
+        await using var scope = api.Services.CreateAsyncScope();
+        var outbox = await scope.ServiceProvider.GetRequiredService<AccessDbContext>().Set<OutboxMessage>()
+            .Where(m => m.MessageType == nameof(PermissionsChanged)).ToListAsync();
+        return outbox.Select(m => MessageJson.Deserialize<PermissionsChanged>(m.Payload)).Where(p => p.EmployeeId == employeeId).MaxBy(p => p.Version)!;
+    }
+
+    [Fact]
     public async Task Responsibility_per_topic_is_maintained_and_published()
     {
         await using var api = await StartAsync(postgres);

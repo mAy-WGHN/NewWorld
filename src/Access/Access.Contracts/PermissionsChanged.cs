@@ -18,6 +18,10 @@ namespace Access.Contracts;
 /// <param name="EmployeeIds">Union of the employees in the reach of all privileges, always including the person themself.</param>
 /// <param name="RoleAdditions">Names of the ACL roles currently assigned to the person (informational, e.g. for display).</param>
 /// <param name="Privileges">Effective privileges with their reach; privileges not listed are not granted.</param>
+/// <param name="MainStoreId">
+/// The effective main store (Hauptfiliale) of the person: the one maintained in Access, otherwise the suggestion from BC; <c>null</c>
+/// if there is none. Added later (additive); older messages do not carry it.
+/// </param>
 [Sensitivity(SensitivityClass.OrganizationData)]
 public sealed record PermissionsChanged(
     Guid MessageId,
@@ -29,7 +33,8 @@ public sealed record PermissionsChanged(
     IReadOnlyList<Guid> StoreIds,
     IReadOnlyList<Guid> EmployeeIds,
     IReadOnlyList<string> RoleAdditions,
-    IReadOnlyList<PrivilegeGrant> Privileges) : IEvent;
+    IReadOnlyList<PrivilegeGrant> Privileges,
+    Guid? MainStoreId = null) : IEvent;
 
 /// <summary>An identity at an identity provider, mapped to an EmployeeId by the Access service.</summary>
 /// <param name="Provider">Identity provider.</param>

@@ -87,6 +87,8 @@ public sealed class EmployeeDataErasureRequestedHandler(AccessDbContext db, Reca
             await db.Publications.Where(p => p.EmployeeId == id).ExecuteDeleteAsync(ct);
             await db.Credentials.Where(c => c.EmployeeId == id).ExecuteDeleteAsync(ct);
             await db.RefreshTokens.Where(t => t.EmployeeId == id).ExecuteDeleteAsync(ct);
+            await db.MainStoreOverrides.Where(m => m.EmployeeId == id).ExecuteDeleteAsync(ct);
+            await db.MainStoreOverrides.Where(m => m.SetBy == id).ExecuteUpdateAsync(s => s.SetProperty(m => m.SetBy, Guid.Empty), ct);
             await db.People.Where(p => p.EmployeeId == id).ExecuteDeleteAsync(ct);
         }, cancellationToken);
         await permissions.EraseAsync(id, cancellationToken);

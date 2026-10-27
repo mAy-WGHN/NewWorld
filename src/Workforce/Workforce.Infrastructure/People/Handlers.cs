@@ -19,7 +19,9 @@ public sealed class EmployeeChangedHandler(WorkforceDbContext db) : IMessageHand
         }
 
         person.Name = message.Name;
-        person.HomeStoreId = message.HomeStoreId;
+        // BC only suggests the main store; if Access has told us one, that one counts.
+        person.BcHomeStoreId = message.HomeStoreId;
+        person.HomeStoreId = (await db.MainStoreCopies.FindAsync([message.EmployeeId], cancellationToken))?.StoreId ?? message.HomeStoreId;
         person.ExitDate = message.ExitDate;
     }
 }
@@ -131,6 +133,7 @@ public sealed class EmployeeDataErasureRequestedHandler(
         await db.Absences.Where(a => a.EmployeeId == id).ExecuteDeleteAsync(cancellationToken);
         await db.Entitlements.Where(e => e.EmployeeId == id).ExecuteDeleteAsync(cancellationToken);
         await db.People.Where(p => p.EmployeeId == id).ExecuteDeleteAsync(cancellationToken);
+        await db.MainStoreCopies.Where(m => m.EmployeeId == id).ExecuteDeleteAsync(cancellationToken);
         await db.ApproverCopies.Where(a => a.EmployeeId == id).ExecuteDeleteAsync(cancellationToken);
         foreach (var copy in await db.ApproverCopies.Where(a => a.ApproverIds.Contains(id)).ToListAsync(cancellationToken))
         {

@@ -29,6 +29,7 @@ public static class AccessPrivileges
     public const string CustomPrivilegeCreate = "access:custom-privilege:create";
     public const string CustomPrivilegeDelete = "access:custom-privilege:delete";
     public const string PersonRead = "access:person:read";
+    public const string MainStoreUpdate = "access:main-store:update";
 
     public static readonly IReadOnlyList<CatalogEntry> Catalog =
     [
@@ -37,6 +38,6 @@ public static class AccessPrivileges
         new(AssignmentRead, Owner, true), new(AssignmentCreate, Owner, true), new(AssignmentDelete, Owner, true),
         new(ResponsibilityRead, Owner, true), new(ResponsibilityCreate, Owner, true), new(ResponsibilityDelete, Owner, true),
         new(CatalogRead, Owner, false), new(CustomPrivilegeCreate, Owner, false), new(CustomPrivilegeDelete, Owner, false),
-        new(PersonRead, Owner, true),
+        new(PersonRead, Owner, true), new(MainStoreUpdate, Owner, true),
     ];
 }

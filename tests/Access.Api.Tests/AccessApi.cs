@@ -69,6 +69,15 @@ public sealed class AccessApi : WebApplicationFactory<ApiMarker>
         });
     }
 
+    /// <summary>Delivers a StoreChanged as BC Integration would.</summary>
+    public async Task ReceiveStoreAsync(Guid storeId, string number, string name, bool isActive = true)
+    {
+        var message = new StoreChanged(Guid.NewGuid(), Guid.NewGuid(), DateTimeOffset.UnixEpoch, storeId, number, name, null, [], isActive);
+        var result = await Services.GetRequiredService<MessageDispatcher>().DispatchAsync(
+            new InboundMessage(message.MessageId.ToString(), nameof(StoreChanged), MessageJson.Serialize(message), 1), CancellationToken.None);
+        result.Outcome.ShouldBe(DispatchOutcome.Completed);
+    }
+
     /// <summary>Delivers an EmployeeChanged as BC Integration would.</summary>
     public async Task ReceiveAsync(Guid employeeId, string personnelNumber, string name, Guid? homeStore, DateOnly? exitDate = null)
     {

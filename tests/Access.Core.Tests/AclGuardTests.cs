@@ -17,11 +17,22 @@ public class AclGuardTests
         _world.Assignments.Add(Assignment.Unrestricted(Admin, Role.AdministratorId));
         // Max may manage assignments in his store.
         _world.Roles.Add(new Role(Guid.Parse("10000000-0000-0000-0000-000000000009"), "Filialverwaltung",
-            new HashSet<string> { "access:assignment:create", "access:assignment:delete", "access:responsibility:create" }, false));
+            new HashSet<string> { "access:assignment:create", "access:assignment:delete", "access:responsibility:create", "access:main-store:update" }, false));
         _world.Assignments.Add(Assignment.Restricted(Max, Guid.Parse("10000000-0000-0000-0000-000000000009"), includeHomeStore: true));
     }
 
     private AclGuard Guard() => new(_world.Data(), Now, Berlin);
+
+    [Fact]
+    public void The_main_store_can_be_set_for_people_and_stores_in_reach_only()
+    {
+        Guard().CanSetMainStore(Max, Erika, F017).ShouldBe(GuardResult.Allowed);
+        Guard().CanSetMainStore(Max, Erika, null).ShouldBe(GuardResult.Allowed); // removal: the BC suggestion applies again
+        Guard().CanSetMainStore(Max, Erika, F018).ShouldBe(GuardResult.Denied(GuardReason.NotInReach)); // store outside the reach
+        Guard().CanSetMainStore(Max, Tom, F017).ShouldBe(GuardResult.Denied(GuardReason.NotInReach)); // person outside the reach
+        Guard().CanSetMainStore(Erika, Erika, F017).ShouldBe(GuardResult.Denied(GuardReason.NotInReach)); // no privilege
+        Guard().CanSetMainStore(Admin, Tom, F017).ShouldBe(GuardResult.Allowed);
+    }
 
     [Fact]
     public void Store_manager_may_grant_his_own_role_within_his_store()

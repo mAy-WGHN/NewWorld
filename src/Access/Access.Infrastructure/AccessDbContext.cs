@@ -15,6 +15,7 @@ public sealed class AccessDbContext(DbContextOptions<AccessDbContext> options) :
 
     public DbSet<PersonRecord> People => Set<PersonRecord>();
     public DbSet<StoreRecord> Stores => Set<StoreRecord>();
+    public DbSet<MainStoreOverrideRecord> MainStoreOverrides => Set<MainStoreOverrideRecord>();
     public DbSet<CatalogEntryRecord> Catalog => Set<CatalogEntryRecord>();
     public DbSet<RoleRecord> Roles => Set<RoleRecord>();
     public DbSet<ScopeRecord> Scopes => Set<ScopeRecord>();
@@ -41,6 +42,12 @@ public sealed class AccessDbContext(DbContextOptions<AccessDbContext> options) :
             b.HasKey(p => p.EmployeeId);
             b.HasIndex(p => p.PersonnelNumber);
             b.HasIndex(p => p.HomeStoreId);
+        });
+        modelBuilder.Entity<MainStoreOverrideRecord>(b =>
+        {
+            b.ToTable("main_store_overrides");
+            b.HasKey(m => m.EmployeeId);
+            b.Property(m => m.EmployeeId).ValueGeneratedNever();
         });
         modelBuilder.Entity<StoreRecord>(b =>
         {

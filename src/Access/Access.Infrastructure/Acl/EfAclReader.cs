@@ -16,9 +16,11 @@ public sealed class EfAclReader(AccessDbContext db) : IAclReader
         var scopes = await db.Scopes.AsNoTracking().ToListAsync(cancellationToken);
         var assignments = await db.Assignments.AsNoTracking().ToListAsync(cancellationToken);
         var responsibilities = await db.Responsibilities.AsNoTracking().ToListAsync(cancellationToken);
+        var mainStores = await db.MainStoreOverrides.AsNoTracking().ToDictionaryAsync(m => m.EmployeeId, m => m.StoreId, cancellationToken);
 
         return new AclData(
-            people.Select(p => new Person(p.EmployeeId, p.PersonnelNumber, p.Name, p.HomeStoreId, p.Position, p.ExitDate)).ToList(),
+            // The main store maintained in Access wins over the suggestion from BC.
+            people.Select(p => new Person(p.EmployeeId, p.PersonnelNumber, p.Name, mainStores.TryGetValue(p.EmployeeId, out var main) ? main : p.HomeStoreId, p.Position, p.ExitDate)).ToList(),
             catalog.Select(c => new CatalogEntry(c.Key, c.Owner, c.Scopable)).ToList(),
             roles.Select(r => new Role(r.Id, r.Name, r.Privileges.ToHashSet(StringComparer.Ordinal), r.BuiltIn)).ToList(),
             scopes.Select(s => new ScopeDefinition(s.Id, s.Name, s.StoreIds.ToHashSet())).ToList(),

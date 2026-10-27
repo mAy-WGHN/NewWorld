@@ -36,6 +36,7 @@ public static class Endpoints
         MapScopes(api);
         MapAssignments(api);
         MapResponsibilities(api);
+        MapMainStore(api);
 
         api.MapPost("/custom-privileges", (CreateCustomPrivilegeRequest request, ClaimsPrincipal user, AclAdministration admin, CancellationToken ct) =>
                 Run(user, actor => admin.CreateCustomPrivilegeAsync(actor, request.Key, request.Scopable, ct), _ => Results.NoContent()))
@@ -97,6 +98,34 @@ public static class Endpoints
         api.MapDelete("/assignments/{assignmentId:guid}", (Guid assignmentId, ClaimsPrincipal user, AclAdministration admin, CancellationToken ct) =>
                 Run(user, actor => admin.RemoveAssignmentAsync(actor, assignmentId, ct), _ => Results.NoContent()))
             .RequireAuthorization(AppPolicies.Privilege(AccessPrivileges.AssignmentDelete));
+    }
+
+    // The main store (Hauptfiliale): BC's "Vorgabefiliale" is only a suggestion; what is maintained here wins.
+    private static void MapMainStore(RouteGroupBuilder api)
+    {
+        api.MapGet("/people/{employeeId:guid}/main-store", async (Guid employeeId, ClaimsPrincipal user, IAuthorizationServiceAdapter auth, AccessDbContext db, CancellationToken ct) =>
+            {
+                if (!await auth.AllowsAsync(user, new EmployeeResource(employeeId), AccessPrivileges.PersonRead))
+                {
+                    return Results.Forbid();
+                }
+
+                var suggested = await db.People.AsNoTracking().Where(p => p.EmployeeId == employeeId).Select(p => new { p.HomeStoreId }).FirstOrDefaultAsync(ct);
+                if (suggested is null)
+                {
+                    return Results.NotFound();
+                }
+
+                var manual = await db.MainStoreOverrides.AsNoTracking().Where(m => m.EmployeeId == employeeId).Select(m => (Guid?)m.StoreId).FirstOrDefaultAsync(ct);
+                return Results.Ok(new MainStoreDto(manual ?? suggested.HomeStoreId, manual, suggested.HomeStoreId));
+            })
+            .RequireAuthorization(AppPolicies.Privilege(AccessPrivileges.PersonRead));
+        api.MapPut("/people/{employeeId:guid}/main-store", (Guid employeeId, SetMainStoreRequest request, ClaimsPrincipal user, AclAdministration admin, CancellationToken ct) =>
+                Run(user, actor => admin.SetMainStoreAsync(actor, employeeId, request.StoreId, ct), _ => Results.NoContent()))
+            .RequireAuthorization(AppPolicies.Privilege(AccessPrivileges.MainStoreUpdate));
+        api.MapDelete("/people/{employeeId:guid}/main-store", (Guid employeeId, ClaimsPrincipal user, AclAdministration admin, CancellationToken ct) =>
+                Run(user, actor => admin.SetMainStoreAsync(actor, employeeId, null, ct), _ => Results.NoContent()))
+            .RequireAuthorization(AppPolicies.Privilege(AccessPrivileges.MainStoreUpdate));
     }
 
     private static void MapResponsibilities(RouteGroupBuilder api)

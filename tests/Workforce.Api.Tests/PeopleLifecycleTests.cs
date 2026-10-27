@@ -30,6 +30,41 @@ public sealed class PeopleLifecycleTests(PostgresFixture postgres) : IClassFixtu
     }
 
     [Fact]
+    public async Task The_main_store_from_access_wins_over_the_suggestion_from_bc_and_older_versions_are_ignored()
+    {
+        await using var api = await StartAsync(postgres);
+        var id = Guid.NewGuid();
+        Task Bc(Guid? store) => api.DeliverAsync(new EmployeeChanged(Guid.NewGuid(), Guid.NewGuid(), Start, id, "4711", "Neu Mitarbeiter", store, null, null, null, null, null));
+        Task Access(long version, Guid? store) => api.DeliverAsync(new PermissionsChanged(Guid.NewGuid(), Guid.NewGuid(), Start, id, version, [], [], [], [], [], store));
+        async Task<(Guid? Store, Guid? Bc)> Person()
+        {
+            using var scope = api.Services.CreateScope();
+            var p = await scope.ServiceProvider.GetRequiredService<WorkforceDbContext>().People.AsNoTracking().SingleAsync(x => x.EmployeeId == id);
+            return (p.HomeStoreId, p.BcHomeStoreId);
+        }
+
+        // Access tells the main store before the person's copy exists: it is used as soon as the copy arrives.
+        await Access(1, StoreB);
+        await Bc(StoreA);
+        (await Person()).ShouldBe((StoreB, StoreA));
+
+        // BC changes its suggestion: the maintained main store stays.
+        await Bc(null);
+        (await Person()).ShouldBe((StoreB, null));
+
+        // An older message from Access is ignored; a newer one is taken over.
+        await Access(0, StoreA);
+        (await Person()).Store.ShouldBe(StoreB);
+        await Access(2, StoreA);
+        (await Person()).Store.ShouldBe(StoreA);
+
+        // Access has no main store at all (null): the suggestion from BC applies.
+        await Bc(StoreB);
+        await Access(3, null);
+        (await Person()).ShouldBe((StoreB, StoreB));
+    }
+
+    [Fact]
     public async Task Employee_left_ends_an_open_sick_note_at_the_exit_date()
     {
         await using var api = await StartAsync(postgres);
@@ -57,6 +92,7 @@ public sealed class PeopleLifecycleTests(PostgresFixture postgres) : IClassFixtu
         (await db.Absences.AnyAsync(a => a.EmployeeId == Erika)).ShouldBeFalse();
         (await db.Entitlements.AnyAsync(e => e.EmployeeId == Erika)).ShouldBeFalse();
         (await db.People.AnyAsync(p => p.EmployeeId == Erika)).ShouldBeFalse();
+        (await db.MainStoreCopies.AnyAsync(m => m.EmployeeId == Erika)).ShouldBeFalse();
         (await db.ApproverCopies.AnyAsync(a => a.EmployeeId == Erika)).ShouldBeFalse();
         (await db.Set<Shared.Approvals.ApprovalRequest>().AnyAsync(r => r.RequesterId == Erika)).ShouldBeFalse();
         (await api.OutboxAsync()).Where(m => m.Payload.Contains(Erika.ToString(), StringComparison.OrdinalIgnoreCase))
