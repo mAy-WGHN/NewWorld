@@ -23,7 +23,7 @@ Stand: 2026-10-23. Build ohne Warnungen; gesamte Solution grün (inkl. drei E2E-
 ## Offene `TODO(BC-Modell)` (Auswahl nach Bereich, Vollständige Liste per `grep -rn "TODO(" src`)
 - **Mitarbeiter/Filialen:** Feldliste, Vornamen/Nachnamen getrennt, Positions- und Beschäftigungsarten-Wertelisten (Filialleitung/Bezirksleitung/HR), Filialadresse, Öffnungszeiten, Quelle der Hauptfiliale.
 - **Abwesenheiten:** API-Seite, Mapping Art → BC-Code (KRANK/URLAUB), Genehmigungsstatus, offenes Ende, Fehlerformat der Validierung (`BcSyncErrorCode`), Rate-Limits des Mandanten.
-- **PIN-Prüfung:** Pfad/Seite statt SOAP-Codeunit des Archivs.
+- **PIN-Prüfung:** (erledigt 2026-10-26, Entscheidung 19) läuft wie im HR-Tool als SOAP `Zeiterfassung.GetStatus`; offen ist nur der Lauf gegen echtes BC.
 - **Urlaubsanspruch:** Herkunft (derzeit manuell).
 - **Entscheidungen:** Bundesland je Filiale (Feiertage), Webhook vs. Polling und Intervall, weitere Rollen-Automatik über Funktion (Entscheidung 13).
 

@@ -55,6 +55,10 @@ Tests: Unit/Integration/Vertrag/Architektur laufen mit `dotnet test`; E2E (`test
 
 Nur nach Rückfrage. Dann: `sealed record` in `<Dienst>.Contracts` mit `[Sensitivity(...)]` und XML-Doku, Eintrag in `tests/Architecture.Tests/ContractRulesTests.cs` (Katalogliste), Verify-Snapshot-Test, Topic/Queue + Subscriptions in der Topologie (siehe oben), Eintrag im Katalog in `CLAUDE.md`. Events sind höchstens `SensitiveNeutralized`; Klasse 3 nie.
 
+## Krankmeldung mit AU
+
+Workforce nimmt die Arbeitsunfähigkeitsbescheinigung als verschlüsselte Datei in einem vom Code und der Datenbank getrennten Speicher entgegen (nur HR und die hochladende Person sehen sie), mit Prüfung durch HR, Erinnerungen, manuellem Löschen und einer von der Personalabteilung einstellbaren Löschfrist: `docs/krankmeldung-au.md`.
+
 ## Neuen Endpunkt hinzufügen
 
 Recht im Katalog des Dienstes (`<Dienst>Privileges`, wird beim Start bei Access angemeldet), Policy `AppPolicies.Privilege(...)` bzw. `AppPolicies.ServiceRole(...)` (eigene Service Role; wer sie hat, steht in `ServiceAuth:Peers` des Empfängers, siehe `docs/service-auth.md`), mindestens ein positiver und ein negativer Berechtigungstest.
