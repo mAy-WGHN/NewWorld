@@ -63,7 +63,7 @@ internal sealed class BcTestHost : IAsyncDisposable
             ["Bc:CompanyName"] = CompanyId,
             ["Bc:Resilience:MaxRetries"] = "2",
             ["Bc:Resilience:BaseDelay"] = "00:00:00.010",
-            ["Bc:Resilience:AttemptTimeout"] = "00:00:01",
+            ["Bc:Resilience:AttemptTimeout"] = "00:00:10", // generous: under load a cold first request can take over a second (the timeout test sets its own)
             ["Bc:Resilience:TotalTimeout"] = "00:00:20",
             ["Bc:RateLimit:PermitsPerSecond"] = "100",
         };
