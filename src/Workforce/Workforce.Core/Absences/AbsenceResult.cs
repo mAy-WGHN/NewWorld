@@ -35,6 +35,7 @@ public enum AbsenceError
 
     /// <summary>The retention period is outside the allowed range.</summary>
     InvalidRetention = 16,
+    InvalidReminderSettings = 17,
 }
 
 public sealed record AbsenceResult(AbsenceError Error, Absence? Absence = null)

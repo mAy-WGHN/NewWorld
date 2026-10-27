@@ -502,7 +502,7 @@ public class CertificateServiceTests
         (await Service().ReadContentAsync(document.Id, Hanna, actorMayReview: true, CancellationToken.None)).Error.ShouldBe(AbsenceError.None);
         (await Service().ReadContentAsync(document.Id, Erika, actorMayReview: false, CancellationToken.None)).Error.ShouldBe(AbsenceError.None);
 
-        _time.Advance(TimeSpan.FromDays(95));
+        _time.Advance(TimeSpan.FromDays(370));
         (await Service().PurgeExpiredAsync(CancellationToken.None)).ShouldBe(1);
 
         (await Service().ReadContentAsync(document.Id, Hanna, actorMayReview: true, CancellationToken.None)).Error.ShouldBe(AbsenceError.NotFound);
@@ -547,15 +547,15 @@ public class CertificateServiceTests
     // ------------------------------------------------------------------ reminders
 
     [Fact]
-    public async Task The_first_reminder_comes_a_few_days_after_the_start_and_only_for_a_missing_certificate()
+    public async Task The_first_reminder_comes_on_the_first_day_back_and_only_for_a_missing_certificate()
     {
-        var sick = await SickNote("2026-07-15", null);
+        var sick = await SickNote("2026-07-15", "2026-07-16");
 
         (await Service().SendRemindersAsync(CancellationToken.None)).ShouldBe(0); // day of the report
         _time.Advance(TimeSpan.FromDays(1));
-        (await Service().SendRemindersAsync(CancellationToken.None)).ShouldBe(0); // day 1 of 2
+        (await Service().SendRemindersAsync(CancellationToken.None)).ShouldBe(0); // last day of the sick note
         _time.Advance(TimeSpan.FromDays(1));
-        (await Service().SendRemindersAsync(CancellationToken.None)).ShouldBe(1);
+        (await Service().SendRemindersAsync(CancellationToken.None)).ShouldBe(1); // first day back
 
         sick.RemindersSent.ShouldBe(1);
         sick.LastReminderAt.ShouldBe(_time.GetUtcNow());
@@ -567,10 +567,43 @@ public class CertificateServiceTests
     }
 
     [Fact]
+    public async Task A_sick_note_without_an_end_is_not_reminded()
+    {
+        await SickNote("2026-07-15", null);
+        _time.Advance(TimeSpan.FromDays(30));
+
+        (await Service().SendRemindersAsync(CancellationToken.None)).ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task HR_sets_the_reminder_rhythm_and_it_never_starts_before_the_first_day_back()
+    {
+        var sick = await SickNote("2026-07-15", "2026-07-16");
+        (await Service().SetReminderSettingsAsync(-1, 2, 5, Hanna, CancellationToken.None)).ShouldBe(AbsenceError.InvalidReminderSettings);
+        (await Service().SetReminderSettingsAsync(0, 0, 5, Hanna, CancellationToken.None)).ShouldBe(AbsenceError.InvalidReminderSettings);
+        (await Service().SetReminderSettingsAsync(0, 2, -1, Hanna, CancellationToken.None)).ShouldBe(AbsenceError.InvalidReminderSettings);
+        (await Service().SetReminderSettingsAsync(0, 2, 1000, Hanna, CancellationToken.None)).ShouldBe(AbsenceError.InvalidReminderSettings);
+        (await Service().GetReminderSettingsAsync(CancellationToken.None)).IsDefault.ShouldBeTrue();
+
+        (await Service().SetReminderSettingsAsync(3, 1, 2, Hanna, CancellationToken.None)).ShouldBe(AbsenceError.None);
+        var set = await Service().GetReminderSettingsAsync(CancellationToken.None);
+        (set.FirstAfterReturnDays, set.EveryDays, set.MaxReminders, set.IsDefault, set.ChangedBy).ShouldBe((3, 1, 2, false, (Guid?)Hanna));
+        _time.Advance(TimeSpan.FromDays(4)); // 2026-07-19: only the 3rd day back is the first possible day
+        (await Service().SendRemindersAsync(CancellationToken.None)).ShouldBe(0);
+        _time.Advance(TimeSpan.FromDays(1));
+        (await Service().SendRemindersAsync(CancellationToken.None)).ShouldBe(1);
+        _time.Advance(TimeSpan.FromDays(1)); // interval 1 day now
+        (await Service().SendRemindersAsync(CancellationToken.None)).ShouldBe(1);
+        _time.Advance(TimeSpan.FromDays(1)); // maximum of 2 reached
+        (await Service().SendRemindersAsync(CancellationToken.None)).ShouldBe(0);
+        sick.RemindersSent.ShouldBe(2);
+    }
+
+    [Fact]
     public async Task Reminders_repeat_at_the_interval_and_stop_at_the_maximum()
     {
         _options.Certificates.MaxReminders = 3;
-        var sick = await SickNote("2026-07-15", null);
+        var sick = await SickNote("2026-07-15", "2026-07-16");
         _time.Advance(TimeSpan.FromDays(2));
 
         var total = 0;
@@ -589,7 +622,7 @@ public class CertificateServiceTests
     [Fact]
     public async Task Reminders_do_not_change_the_version_or_go_to_bc()
     {
-        var sick = await SickNote("2026-07-15", null);
+        var sick = await SickNote("2026-07-15", "2026-07-16");
         _time.Advance(TimeSpan.FromDays(2));
 
         await Service().SendRemindersAsync(CancellationToken.None);
@@ -621,7 +654,7 @@ public class CertificateServiceTests
         var sick = await SickNote("2026-07-15", "2026-07-30");
         var document = await Upload(sick, "2026-07-15", "2026-07-30");
         await Service().RejectAsync(document.Id, Hanna, CertificateRejectionReason.Unreadable, CancellationToken.None);
-        _time.Advance(TimeSpan.FromDays(3));
+        _time.Advance(TimeSpan.FromDays(17)); // the day after the end
 
         (await Service().SendRemindersAsync(CancellationToken.None)).ShouldBe(1);
     }
@@ -631,7 +664,7 @@ public class CertificateServiceTests
     {
         await SickNote("2026-07-15", "2026-07-30");
         _people.People[Erika] = _people.People[Erika] with { ExitDate = D("2026-07-16") };
-        _time.Advance(TimeSpan.FromDays(3));
+        _time.Advance(TimeSpan.FromDays(17));
 
         (await Service().SendRemindersAsync(CancellationToken.None)).ShouldBe(0);
     }
@@ -645,10 +678,10 @@ public class CertificateServiceTests
         var document = await Upload(sick, "2026-07-15", "2026-07-17");
         await Service().VerifyAsync(document.Id, Hanna, CancellationToken.None);
 
-        // The sick note ended on 2026-07-17; 90 days later (2026-10-15) the file goes.
-        _time.Advance(TimeSpan.FromDays(89)); // 2026-10-12
+        // The sick note ended on 2026-07-17; 365 days later (2027-07-17) the file goes.
+        _time.Advance(TimeSpan.FromDays(364)); // 2027-07-14
         (await Service().PurgeExpiredAsync(CancellationToken.None)).ShouldBe(0);
-        _time.Advance(TimeSpan.FromDays(3)); // 2026-10-15
+        _time.Advance(TimeSpan.FromDays(3)); // 2027-07-17
         (await Service().PurgeExpiredAsync(CancellationToken.None)).ShouldBe(1);
 
         _certificates.Contents.ShouldBeEmpty();
@@ -677,7 +710,7 @@ public class CertificateServiceTests
     {
         var retention = await Service().GetRetentionAsync(CancellationToken.None);
 
-        (retention.Days, retention.IsDefault, retention.ChangedAt, retention.ChangedBy).ShouldBe((90, true, null, null));
+        (retention.Days, retention.IsDefault, retention.ChangedAt, retention.ChangedBy).ShouldBe((365, true, null, null));
     }
 
     [Fact]
@@ -694,7 +727,7 @@ public class CertificateServiceTests
         var entry = _certificates.LogEntries.Last();
         (entry.Action, entry.ActorId, entry.DocumentId).ShouldBe((CertificateAction.RetentionChanged, (Guid?)Hanna, Guid.Empty));
 
-        // The sick note ended on 2026-07-17: after 30 days (2026-08-16) the file goes, much earlier than with the default of 90.
+        // The sick note ended on 2026-07-17: after 30 days (2026-08-16) the file goes, much earlier than with the default of 365.
         _time.Advance(TimeSpan.FromDays(32)); // 2026-08-16
         (await Service().PurgeExpiredAsync(CancellationToken.None)).ShouldBe(1);
     }

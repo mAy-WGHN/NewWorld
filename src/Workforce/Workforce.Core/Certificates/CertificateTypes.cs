@@ -59,7 +59,13 @@ public enum CertificateAction
 
     /// <summary>HR changed the retention period (no document involved).</summary>
     RetentionChanged = 8,
+
+    /// <summary>HR changed the reminder rhythm (no document involved).</summary>
+    RemindersChanged = 9,
 }
+
+/// <summary>The reminder rhythm HR has set (see <see cref="CertificateOptions"/> for the meaning).</summary>
+public sealed record CertificateReminderSettings(int FirstAfterReturnDays, int EveryDays, int MaxReminders, DateTimeOffset ChangedAt, Guid ChangedBy);
 
 /// <summary>The retention period HR has set (days after the end of the sick note until the file is deleted).</summary>
 public sealed record CertificateRetention(int DaysAfterEnd, DateTimeOffset ChangedAt, Guid ChangedBy);

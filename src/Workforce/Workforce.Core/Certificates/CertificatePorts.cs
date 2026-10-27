@@ -49,6 +49,12 @@ public interface ICertificateStore
     /// <summary>Saves the retention period HR has set.</summary>
     Task SetRetentionAsync(CertificateRetention retention, CancellationToken cancellationToken);
 
+    /// <summary>The reminder rhythm HR has set, or <c>null</c> if none was set (then the configured default applies).</summary>
+    Task<CertificateReminderSettings?> GetReminderSettingsAsync(CancellationToken cancellationToken);
+
+    /// <summary>Saves the reminder rhythm HR has set.</summary>
+    Task SetReminderSettingsAsync(CertificateReminderSettings settings, CancellationToken cancellationToken);
+
     /// <summary>
     /// Deletes files in the storage that no document with content refers to (left behind by a failed save or a deletion that did not finish)
     /// and that are older than <paramref name="writtenBefore"/> (so uploads in progress are left alone).

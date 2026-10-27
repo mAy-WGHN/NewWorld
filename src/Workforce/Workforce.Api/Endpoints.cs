@@ -231,7 +231,7 @@ public static class Endpoints
             AbsenceError.NotAllowed => StatusCodes.Status403Forbidden,
             AbsenceError.FileTooLarge => StatusCodes.Status413PayloadTooLarge,
             AbsenceError.UnsupportedFileType => StatusCodes.Status415UnsupportedMediaType,
-            AbsenceError.InvalidPeriod or AbsenceError.AfterExit or AbsenceError.NoEntitlement or AbsenceError.InsufficientBalance or AbsenceError.FileRejected or AbsenceError.InvalidRetention => StatusCodes.Status422UnprocessableEntity,
+            AbsenceError.InvalidPeriod or AbsenceError.AfterExit or AbsenceError.NoEntitlement or AbsenceError.InsufficientBalance or AbsenceError.FileRejected or AbsenceError.InvalidRetention or AbsenceError.InvalidReminderSettings => StatusCodes.Status422UnprocessableEntity,
             _ => StatusCodes.Status409Conflict,
         },
         title: error.ToString());

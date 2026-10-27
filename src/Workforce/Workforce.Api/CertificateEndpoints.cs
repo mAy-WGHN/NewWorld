@@ -256,6 +256,31 @@ public static class CertificateEndpoints
             })
             .RequireAuthorization(AppPolicies.Privilege(CertificatePrivileges.ManageRetention));
 
+        // When people are reminded to hand in the certificate: HR sets it, the default applies until then. Same privilege as the retention.
+        static async Task<IResult> ReminderSettings(CertificateService service, CancellationToken ct)
+        {
+            var s = await service.GetReminderSettingsAsync(ct);
+            return Results.Ok(new CertificateReminderSettingsDto(s.FirstAfterReturnDays, s.EveryDays, s.MaxReminders, s.IsDefault, s.ChangedAt, s.ChangedBy));
+        }
+
+        app.MapGet("/api/certificates/reminders", ReminderSettings)
+            .RequireAuthorization(AppPolicies.Privilege(CertificatePrivileges.ManageRetention));
+
+        app.MapPut("/api/certificates/reminders", async (
+                SetCertificateReminderSettingsRequest request, ClaimsPrincipal user, CertificateService service, WorkforceUnitOfWork uow, CancellationToken ct) =>
+            {
+                if (Endpoints.Me(user) is not { } me)
+                {
+                    return Results.Forbid();
+                }
+
+                var error = await uow.RunAsync(
+                    () => service.SetReminderSettingsAsync(request.FirstReminderAfterReturnDays, request.ReminderEveryDays, request.MaxReminders, me, ct),
+                    e => e == AbsenceError.None, ct);
+                return error != AbsenceError.None ? Endpoints.Problem(error) : await ReminderSettings(service, ct);
+            })
+            .RequireAuthorization(AppPolicies.Privilege(CertificatePrivileges.ManageRetention));
+
         // Oversight: who uploaded, opened or decided what and when. Never the content.
         app.MapGet("/api/certificates/access-log", async (
                 Guid? absenceId, Guid? employeeId, DateTimeOffset? from, DateTimeOffset? to, int? page, int? pageSize, WorkforceDbContext db, CancellationToken ct) =>

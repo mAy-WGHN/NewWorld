@@ -458,6 +458,38 @@ namespace Workforce.Infrastructure.Migrations
                     b.ToTable("vacation_entitlements", "workforce");
                 });
 
+            modelBuilder.Entity("Workforce.Infrastructure.Certificates.CertificateReminderSettingsRecord", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("ChangedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("changed_at");
+
+                    b.Property<Guid>("ChangedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("changed_by");
+
+                    b.Property<int>("EveryDays")
+                        .HasColumnType("integer")
+                        .HasColumnName("every_days");
+
+                    b.Property<int>("FirstAfterReturnDays")
+                        .HasColumnType("integer")
+                        .HasColumnName("first_after_return_days");
+
+                    b.Property<int>("MaxReminders")
+                        .HasColumnType("integer")
+                        .HasColumnName("max_reminders");
+
+                    b.HasKey("Id")
+                        .HasName("pk_certificate_reminder_settings");
+
+                    b.ToTable("certificate_reminder_settings", "workforce");
+                });
+
             modelBuilder.Entity("Workforce.Infrastructure.Certificates.CertificateSettingsRecord", b =>
                 {
                     b.Property<int>("Id")

@@ -270,6 +270,39 @@ public sealed class CertificateService(
         return AbsenceError.None;
     }
 
+    // ------------------------------------------------------------------ reminder rhythm (set by HR)
+
+    /// <summary>The reminder rhythm in force: the value HR has set, otherwise the configured default.</summary>
+    public async Task<(int FirstAfterReturnDays, int EveryDays, int MaxReminders, bool IsDefault, DateTimeOffset? ChangedAt, Guid? ChangedBy)> GetReminderSettingsAsync(
+        CancellationToken cancellationToken) =>
+        await certificates.GetReminderSettingsAsync(cancellationToken) is { } set
+            ? (set.FirstAfterReturnDays, set.EveryDays, set.MaxReminders, false, set.ChangedAt, set.ChangedBy)
+            : (options.Certificates.FirstReminderAfterReturnDays, options.Certificates.ReminderEveryDays, options.Certificates.MaxReminders, true, null, null);
+
+    /// <summary>
+    /// HR sets the reminder rhythm. The first reminder is counted from the first day back, so it can never come earlier than that day
+    /// (<paramref name="firstAfterReturnDays"/> is at least 0); the interval is at least one day; 0 reminders switch them off.
+    /// </summary>
+    public async Task<AbsenceError> SetReminderSettingsAsync(int firstAfterReturnDays, int everyDays, int maxReminders, Guid actorId, CancellationToken cancellationToken)
+    {
+        var limit = options.Certificates.MaxReminderSettingDays;
+        if (firstAfterReturnDays < 0 || firstAfterReturnDays > limit || everyDays < 1 || everyDays > limit || maxReminders < 0 || maxReminders > limit)
+        {
+            return AbsenceError.InvalidReminderSettings;
+        }
+
+        var now = time.GetUtcNow();
+        await certificates.SetReminderSettingsAsync(new CertificateReminderSettings(firstAfterReturnDays, everyDays, maxReminders, now, actorId), cancellationToken);
+        certificates.Log(new CertificateAccessEntry
+        {
+            Id = Guid.CreateVersion7(now),
+            At = now,
+            ActorId = actorId,
+            Action = CertificateAction.RemindersChanged,
+        });
+        return AbsenceError.None;
+    }
+
     // ------------------------------------------------------------------ reading
 
     /// <summary>
@@ -305,21 +338,27 @@ public sealed class CertificateService(
     // ------------------------------------------------------------------ reminders and retention (background)
 
     /// <summary>
-    /// Reminds people who have not uploaded a certificate (missing or rejected): first reminder a few days after the start, then at an
-    /// interval, up to a maximum. The reminder contains no data; the text says that something is waiting in the portal.
+    /// Reminds people who have not uploaded a certificate (missing or rejected): the first reminder at the earliest on the first day
+    /// back (the day after the sick note ends, plus the days HR has set), then at an interval, up to a maximum. A sick note without an
+    /// end is not reminded yet. The reminder contains no data; the text says that something is waiting in the portal.
     /// </summary>
     /// <returns>How many reminders were created.</returns>
     public async Task<int> SendRemindersAsync(CancellationToken cancellationToken)
     {
-        var limits = options.Certificates;
+        var settings = await GetReminderSettingsAsync(cancellationToken);
         var now = time.GetUtcNow();
         var today = absenceService.TodayLocal;
         var sent = 0;
-        foreach (var absence in await certificates.WithoutCertificateAsync(limits.MaxReminders, cancellationToken))
+        foreach (var absence in await certificates.WithoutCertificateAsync(settings.MaxReminders, cancellationToken))
         {
+            if (absence.To is not { } end)
+            {
+                continue; // no end yet: the person may still be ill, so nobody is reminded before the return
+            }
+
             var due = absence.LastReminderAt is { } last
-                ? now - last >= TimeSpan.FromDays(limits.ReminderEveryDays)
-                : today >= absence.From.AddDays(limits.FirstReminderAfterDays);
+                ? now - last >= TimeSpan.FromDays(settings.EveryDays)
+                : today >= end.AddDays(1 + settings.FirstAfterReturnDays);
             if (!due || await people.GetAsync(absence.EmployeeId, cancellationToken) is not { } person || person.ExitDate is { } exit && exit < today)
             {
                 continue;

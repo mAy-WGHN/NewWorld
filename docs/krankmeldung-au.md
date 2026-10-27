@@ -13,8 +13,8 @@ Krankmeldungen gibt es in BC nicht in dieser Form. Wir bilden sie in Workforce a
    - Formular (`multipart/form-data`): `file` (PDF, JPEG oder PNG, bis 10 MB), `certifiedFrom`, `certifiedTo` (`yyyy-MM-dd`, erster und letzter Tag der Arbeitsunfähigkeit laut AU). Das ist der „Dialog“, den das Frontend zeigt; beide Daten sind Pflicht.
    - Status: `Submitted`.
 3. **HR prüft**: öffnet die Datei, bestätigt (`…/verify`, Status `Verified`) oder lehnt mit festem Grund ab (`…/reject`, Status `Rejected`; Gründe: `Unreadable`, `WrongPerson`, `WrongPeriod`, `NotACertificate`, kein Freitext). Bei Ablehnung bleibt die Datei erhalten (HR und die hochladende Person können sie weiter öffnen) und wird wie jede andere durch die Aufbewahrungsfrist gelöscht; die Person und die Hochladende werden benachrichtigt und laden neu hoch.
-4. **Erinnerungen:** Fehlt die AU (`Missing` oder `Rejected`), erinnert das System die Person (Standard: erste Erinnerung 2 Tage nach Beginn, dann alle 2 Tage, höchstens 5). Die Erinnerung enthält keine Daten, nur den Hinweis im Portal (InApp, Push mit generischem Text).
-5. **Löschen:** Die Datei wird nach Ende der Krankmeldung + Löschfrist automatisch gelöscht. **Die Personalabteilung stellt die Frist selbst ein** (siehe unten, Standard 90 Tage). Außerdem kann die Personalabteilung jede AU von Hand löschen, und die hochladende Person kann einen noch ungeprüften Upload zurücknehmen. Die Metadaten und der Status bleiben, wenn eine geprüfte AU gelöscht wird.
+4. **Erinnerungen:** Fehlt die AU (`Missing` oder `Rejected`), erinnert das System die Person (Standard: erste Erinnerung am ersten Tag zurück, also am Tag nach dem Ende der Krankmeldung, dann alle 2 Tage, höchstens 5; die Personalabteilung kann den Rhythmus ändern, aber nie vor den ersten Tag zurück legen; eine Krankmeldung ohne Ende wird nicht erinnert). Die Erinnerung enthält keine Daten, nur den Hinweis im Portal (InApp, Push mit generischem Text).
+5. **Löschen:** Die Datei wird nach Ende der Krankmeldung + Löschfrist automatisch gelöscht. **Die Personalabteilung stellt die Frist selbst ein** (siehe unten, Standard 365 Tage). Außerdem kann die Personalabteilung jede AU von Hand löschen, und die hochladende Person kann einen noch ungeprüften Upload zurücknehmen. Die Metadaten und der Status bleiben, wenn eine geprüfte AU gelöscht wird.
 
 ## Zeitraum pflegt die Abwesenheit automatisch
 
@@ -58,9 +58,13 @@ Alle Rechte werden einzeln in Access vergeben (Rollen, Scopes, Laufzeit). Standa
 
 Liefert je Krankmeldung: Person, Filiale, Zeitraum, AU-Status, „AU gültig bis“, Anzahl und Zeitpunkt der letzten Erinnerung. Nur Personen im Bereich des Rechts `read-status` erscheinen.
 
+## Erinnerungsrhythmus (von der Personalabteilung einstellbar)
+
+`GET /api/certificates/reminders` und `PUT /api/certificates/reminders` mit `{"firstReminderAfterReturnDays": 0, "reminderEveryDays": 2, "maxReminders": 5}` (gleiches Recht wie die Löschfrist, `certificate:manage-retention`). Die erste Erinnerung kommt frühestens am **ersten Tag zurück** (Tag nach dem Ende der Krankmeldung) plus die eingestellten Tage; negative Werte und ein Intervall unter 1 Tag sind 422, 0 Erinnerungen schaltet sie ab. Eine Krankmeldung ohne Ende („bis auf Weiteres“) wird nicht erinnert. Die Änderung steht im Zugriffsprotokoll (`RemindersChanged`).
+
 ## Löschfrist (von der Personalabteilung einstellbar)
 
-`GET /api/certificates/retention` und `PUT /api/certificates/retention` mit `{"retentionAfterEndDays": 30}` (Recht `certificate:manage-retention`). Bis die Personalabteilung einen Wert setzt, gilt der Standard aus der Konfiguration (90 Tage). Erlaubt sind 0 (am letzten Tag der Krankmeldung) bis 3650 Tage, sonst 422. Der Wert gilt **auch für bereits gespeicherte Dateien**: bei jeder Prüfung (stündlich) wird „Ende der Krankmeldung + Frist“ mit dem heutigen Wert verglichen. Wer den Wert wann geändert hat, steht im Zugriffsprotokoll (`RetentionChanged`) und in der Antwort. Eine Krankmeldung ohne Ende („bis auf Weiteres“) wird nie automatisch gelöscht.
+`GET /api/certificates/retention` und `PUT /api/certificates/retention` mit `{"retentionAfterEndDays": 30}` (Recht `certificate:manage-retention`). Bis die Personalabteilung einen Wert setzt, gilt der Standard aus der Konfiguration (365 Tage). Erlaubt sind 0 (am letzten Tag der Krankmeldung) bis 3650 Tage, sonst 422. Der Wert gilt **auch für bereits gespeicherte Dateien**: bei jeder Prüfung (stündlich) wird „Ende der Krankmeldung + Frist“ mit dem heutigen Wert verglichen. Wer den Wert wann geändert hat, steht im Zugriffsprotokoll (`RetentionChanged`) und in der Antwort. Eine Krankmeldung ohne Ende („bis auf Weiteres“) wird nie automatisch gelöscht.
 
 ## Datenschutz
 
@@ -70,7 +74,7 @@ Liefert je Krankmeldung: Person, Filiale, Zeitraum, AU-Status, „AU gültig bis
 - **Kein Dateiname** wird gespeichert, der Typ kommt aus dem Inhalt (nicht aus Name oder Header). Download immer als neutrale Datei (`certificate.pdf`), `Cache-Control: no-store`, `nosniff`, `CSP: sandbox`.
 - **Kein Temp-File auf der Platte:** Formulare werden im Speicher gepuffert.
 - **Zugriffsprotokoll:** Jeder Upload, Download, jede Bestätigung, Ablehnung, Rücknahme und Löschung wird mit Zeit, Person, Abwesenheit und Dokument protokolliert, nie mit Inhalt. Aufbewahrung 365 Tage. Lesen nur mit `certificate:read-access-log`: `GET /api/certificates/access-log`.
-- **Löschung:** nach Ende der Krankmeldung + Frist (von der Personalabteilung eingestellt, Standard 90 Tage, gilt auch für abgelehnte Dateien), von Hand durch die Personalabteilung (`certificate:delete`) oder die hochladende Person vor der Prüfung, und bei `EmployeeDataErasureRequested` (Dateien, Metadaten und Protokoll der Person; wo die Person nur hochgeladen oder geprüft hat, wird ihre ID unkenntlich gemacht).
+- **Löschung:** nach Ende der Krankmeldung + Frist (von der Personalabteilung eingestellt, Standard 365 Tage, gilt auch für abgelehnte Dateien), von Hand durch die Personalabteilung (`certificate:delete`) oder die hochladende Person vor der Prüfung, und bei `EmployeeDataErasureRequested` (Dateien, Metadaten und Protokoll der Person; wo die Person nur hochgeladen oder geprüft hat, wird ihre ID unkenntlich gemacht).
 - **Keine Inhalte lesen:** Die Datei wird nicht ausgelesen (kein OCR). Der Zeitraum wird von der Person eingetragen.
 
 ## Konfiguration
@@ -82,8 +86,8 @@ Abschnitt `Workforce:Certificates` (Standardwerte in Klammern, alles pro Umgebun
 | `MaxFileBytes` (10 MB) | größte Datei |
 | `MaxDocumentsPerAbsence` (5) | Dokumente je Krankmeldung (abgelehnte zählen nicht) |
 | `BackdatingDays` (3) | wie weit die AU vor der Meldung beginnen darf |
-| `FirstReminderAfterDays` (2), `ReminderEveryDays` (2), `MaxReminders` (5) | Erinnerungen |
-| `RetentionAfterEndDays` (90) | Standard der Löschfrist, bis die Personalabteilung einen Wert setzt |
+| `FirstReminderAfterReturnDays` (0), `ReminderEveryDays` (2), `MaxReminders` (5), `MaxReminderSettingDays` (90) | Standard des Erinnerungsrhythmus (Tage nach dem ersten Tag zurück, Intervall, Anzahl) und Obergrenze für die Werte der Personalabteilung |
+| `RetentionAfterEndDays` (365) | Standard der Löschfrist, bis die Personalabteilung einen Wert setzt |
 | `MaxRetentionAfterEndDays` (3650) | größte Frist, die die Personalabteilung einstellen darf |
 | `OrphanGraceMinutes` (60) | Dateien ohne Dokument werden erst danach gelöscht (laufende Uploads) |
 | `StoragePath` | Verzeichnis der Dateien (siehe Datenschutz); in Development/Testing ein temporäres Verzeichnis, das mit dem Neustart verloren geht |

@@ -412,7 +412,7 @@ public sealed class CertificateEndpointTests(PostgresFixture postgres) : IClassF
         await api.UploadOkAsync(Own(absence.Id), Erika, Pdf, "2026-10-23", "2026-10-25");
 
         var initial = await api.GetAsync<CertificateRetentionDto>("/api/certificates/retention", Hanna);
-        (initial.RetentionAfterEndDays, initial.IsDefault).ShouldBe((90, true));
+        (initial.RetentionAfterEndDays, initial.IsDefault).ShouldBe((365, true));
         foreach (var person in new Guid?[] { Max, Erika, null })
         {
             var expected = person is null ? HttpStatusCode.Unauthorized : HttpStatusCode.Forbidden;
@@ -521,7 +521,7 @@ public sealed class CertificateEndpointTests(PostgresFixture postgres) : IClassF
         await maintenance.RunOnceAsync(CancellationToken.None);
         (await api.OutboxAsync()).Count(m => m.Payload.Contains("certificate-reminder")).ShouldBe(0); // too early
 
-        api.Services.GetRequiredService<FakeTimeProvider>().Advance(TimeSpan.FromDays(3));
+        api.Services.GetRequiredService<FakeTimeProvider>().Advance(TimeSpan.FromDays(4)); // first day back: the day after the sick note ends
         await maintenance.RunOnceAsync(CancellationToken.None);
         await maintenance.RunOnceAsync(CancellationToken.None); // the second round the same day does not repeat it
 
@@ -535,6 +535,30 @@ public sealed class CertificateEndpointTests(PostgresFixture postgres) : IClassF
     }
 
     [Fact]
+    public async Task Only_HR_with_the_privilege_reads_and_sets_the_reminder_rhythm()
+    {
+        await using var api = await StartAsync(postgres);
+
+        var initial = await api.GetAsync<CertificateReminderSettingsDto>("/api/certificates/reminders", Hanna);
+        (initial.FirstReminderAfterReturnDays, initial.ReminderEveryDays, initial.MaxReminders, initial.IsDefault).ShouldBe((0, 2, 5, true));
+        foreach (var person in new Guid?[] { Max, Erika, null })
+        {
+            var expected = person is null ? HttpStatusCode.Unauthorized : HttpStatusCode.Forbidden;
+            (await api.SendAsync(HttpMethod.Get, "/api/certificates/reminders", person)).StatusCode.ShouldBe(expected);
+            (await api.SendAsync(HttpMethod.Put, "/api/certificates/reminders", person, new { firstReminderAfterReturnDays = 1, reminderEveryDays = 1, maxReminders = 1 })).StatusCode.ShouldBe(expected);
+        }
+
+        // Before the first day back is not possible: negative values and an interval of 0 are rejected.
+        (await api.SendAsync(HttpMethod.Put, "/api/certificates/reminders", Hanna, new { firstReminderAfterReturnDays = -1, reminderEveryDays = 2, maxReminders = 5 })).StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+        (await api.SendAsync(HttpMethod.Put, "/api/certificates/reminders", Hanna, new { firstReminderAfterReturnDays = 0, reminderEveryDays = 0, maxReminders = 5 })).StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+        using var set = await api.SendAsync(HttpMethod.Put, "/api/certificates/reminders", Hanna, new { firstReminderAfterReturnDays = 2, reminderEveryDays = 3, maxReminders = 4 });
+        set.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var saved = (await set.Content.ReadFromJsonAsync<CertificateReminderSettingsDto>())!;
+        (saved.FirstReminderAfterReturnDays, saved.ReminderEveryDays, saved.MaxReminders, saved.IsDefault, saved.ChangedBy).ShouldBe((2, 3, 4, false, (Guid?)Hanna));
+        (await api.GetAsync<PageDto<CertificateAccessEntryDto>>("/api/certificates/access-log", Hanna)).Items.ShouldContain(e => e.Action == "RemindersChanged" && e.ActorId == Hanna);
+    }
+
+    [Fact]
     public async Task Files_are_deleted_after_the_retention_period()
     {
         await using var api = await StartAsync(postgres);
@@ -543,7 +567,7 @@ public sealed class CertificateEndpointTests(PostgresFixture postgres) : IClassF
         await api.SendAsync(HttpMethod.Post, $"{Docs(absence.Id)}/{document.Id}/verify", Hanna);
         var maintenance = api.Services.GetServices<IHostedService>().OfType<CertificateMaintenanceService>().Single();
 
-        api.Services.GetRequiredService<FakeTimeProvider>().Advance(TimeSpan.FromDays(95));
+        api.Services.GetRequiredService<FakeTimeProvider>().Advance(TimeSpan.FromDays(370));
         await maintenance.RunOnceAsync(CancellationToken.None);
 
         (await GetAsync(api, $"{Docs(absence.Id)}/{document.Id}/content", Hanna)).StatusCode.ShouldBe(HttpStatusCode.NotFound);

@@ -43,6 +43,10 @@ public sealed record CertificateRetentionDto(int RetentionAfterEndDays, bool IsD
 
 public sealed record SetCertificateRetentionRequest(int RetentionAfterEndDays);
 
+public sealed record CertificateReminderSettingsDto(int FirstReminderAfterReturnDays, int ReminderEveryDays, int MaxReminders, bool IsDefault, DateTimeOffset? ChangedAt, Guid? ChangedBy);
+
+public sealed record SetCertificateReminderSettingsRequest(int FirstReminderAfterReturnDays, int ReminderEveryDays, int MaxReminders);
+
 /// <summary>One sick note in the HR overview: whether the certificate is missing, submitted, verified or rejected.</summary>
 public sealed record SickNoteOverviewDto(
     Guid AbsenceId, Guid EmployeeId, string EmployeeName, Guid? StoreId, DateOnly From, DateOnly? To, string CertificateStatus,

@@ -22,6 +22,7 @@ public sealed class WorkforceDbContext(DbContextOptions<WorkforceDbContext> opti
     public DbSet<ApproverCopyRecord> ApproverCopies => Set<ApproverCopyRecord>();
     public DbSet<CertificateDocument> CertificateDocuments => Set<CertificateDocument>();
     public DbSet<CertificateSettingsRecord> CertificateSettings => Set<CertificateSettingsRecord>();
+    public DbSet<CertificateReminderSettingsRecord> CertificateReminderSettings => Set<CertificateReminderSettingsRecord>();
     public DbSet<CertificateAccessEntry> CertificateAccessLog => Set<CertificateAccessEntry>();
 
     /// <summary>Provider settings shared by runtime and design time (migrations).</summary>
@@ -90,6 +91,12 @@ public sealed class WorkforceDbContext(DbContextOptions<WorkforceDbContext> opti
         modelBuilder.Entity<CertificateSettingsRecord>(b =>
         {
             b.ToTable("certificate_settings");
+            b.HasKey(s => s.Id);
+            b.Property(s => s.Id).ValueGeneratedNever();
+        });
+        modelBuilder.Entity<CertificateReminderSettingsRecord>(b =>
+        {
+            b.ToTable("certificate_reminder_settings");
             b.HasKey(s => s.Id);
             b.Property(s => s.Id).ValueGeneratedNever();
         });

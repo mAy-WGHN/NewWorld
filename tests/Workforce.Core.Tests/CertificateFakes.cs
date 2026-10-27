@@ -10,6 +10,16 @@ internal sealed class FakeCertificateStore(FakeStore absences) : ICertificateSto
     public List<CertificateAccessEntry> LogEntries { get; } = [];
     public int PurgedLogCalls { get; private set; }
     public CertificateRetention? Retention { get; set; }
+
+    public CertificateReminderSettings? ReminderSettings { get; set; }
+
+    public Task<CertificateReminderSettings?> GetReminderSettingsAsync(CancellationToken cancellationToken) => Task.FromResult(ReminderSettings);
+
+    public Task SetReminderSettingsAsync(CertificateReminderSettings settings, CancellationToken cancellationToken)
+    {
+        ReminderSettings = settings;
+        return Task.CompletedTask;
+    }
     public List<DateTimeOffset> OrphanSweeps { get; } = [];
 
     public Task<IReadOnlyList<CertificateDocument>> ForAbsenceAsync(Guid absenceId, CancellationToken cancellationToken) =>

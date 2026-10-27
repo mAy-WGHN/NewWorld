@@ -17,6 +17,22 @@ public sealed class CertificateSettingsRecord
     public Guid ChangedBy { get; set; }
 }
 
+/// <summary>The one row with the reminder rhythm HR has set.</summary>
+public sealed class CertificateReminderSettingsRecord
+{
+    public int Id { get; set; } = 1;
+
+    public int FirstAfterReturnDays { get; set; }
+
+    public int EveryDays { get; set; }
+
+    public int MaxReminders { get; set; }
+
+    public DateTimeOffset ChangedAt { get; set; }
+
+    public Guid ChangedBy { get; set; }
+}
+
 /// <summary>
 /// Files to delete once the unit of work has been saved. Deleting before would lose the file if the save failed; deleting never would
 /// leave files behind. What this misses (a crash in between) the orphan sweep of the maintenance service removes.
@@ -103,6 +119,27 @@ public sealed class EfCertificateStore(
         row.RetentionAfterEndDays = retention.DaysAfterEnd;
         row.ChangedAt = retention.ChangedAt;
         row.ChangedBy = retention.ChangedBy;
+    }
+
+    public async Task<CertificateReminderSettings?> GetReminderSettingsAsync(CancellationToken cancellationToken) =>
+        await db.CertificateReminderSettings.AsNoTracking().Where(s => s.Id == 1)
+            .Select(s => new CertificateReminderSettings(s.FirstAfterReturnDays, s.EveryDays, s.MaxReminders, s.ChangedAt, s.ChangedBy))
+            .FirstOrDefaultAsync(cancellationToken);
+
+    public async Task SetReminderSettingsAsync(CertificateReminderSettings settings, CancellationToken cancellationToken)
+    {
+        var row = await db.CertificateReminderSettings.FirstOrDefaultAsync(s => s.Id == 1, cancellationToken);
+        if (row is null)
+        {
+            row = new CertificateReminderSettingsRecord();
+            db.CertificateReminderSettings.Add(row);
+        }
+
+        row.FirstAfterReturnDays = settings.FirstAfterReturnDays;
+        row.EveryDays = settings.EveryDays;
+        row.MaxReminders = settings.MaxReminders;
+        row.ChangedAt = settings.ChangedAt;
+        row.ChangedBy = settings.ChangedBy;
     }
 
     public async Task<int> RemoveOrphanedFilesAsync(DateTimeOffset writtenBefore, CancellationToken cancellationToken)
