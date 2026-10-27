@@ -165,6 +165,8 @@ public sealed class WorkforceDbContext(DbContextOptions<WorkforceDbContext> opti
             b.ToTable("personnel_number_series");
             b.HasKey(s => s.Id);
             b.Property(s => s.Id).ValueGeneratedNever();
+            b.Property(s => s.StartNumber).HasDefaultValue(1001L);
+            b.Property(s => s.EndNumber).HasDefaultValue(99999L);
         });
         modelBuilder.Entity<StoreSettingsRecord>(b =>
         {

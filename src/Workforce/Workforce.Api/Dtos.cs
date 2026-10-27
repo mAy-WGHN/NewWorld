@@ -155,9 +155,11 @@ public sealed record EmployeePrivateDto(string Gender, DateOnly? BirthDate, stri
 
 public sealed record EmployeeWageDto(Guid? WageTypeId);
 
-public sealed record NumberSeriesDto(long? LastNumber);
+/// <summary>The number series of the personnel numbers: last number given out, range and how many numbers are left; all empty until HR has entered the last number.</summary>
+public sealed record NumberSeriesDto(long? LastNumber, long? StartNumber = null, long? EndNumber = null, long? Remaining = null);
 
-public sealed record SetNumberSeriesRequest(long LastNumber);
+/// <summary>The last number given out so far and, optionally, the range (kept if left out; at the first entry 1001 to 99999).</summary>
+public sealed record SetNumberSeriesRequest(long LastNumber, long? StartNumber = null, long? EndNumber = null);
 
 public sealed record ReferenceEntryDto(Guid Id, string Kind, string Code, string Name, bool IsActive);
 

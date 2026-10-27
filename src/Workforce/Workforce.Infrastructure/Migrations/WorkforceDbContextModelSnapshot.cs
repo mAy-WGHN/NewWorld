@@ -865,9 +865,21 @@ namespace Workforce.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("changed_by");
 
+                    b.Property<long>("EndNumber")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasDefaultValue(99999L)
+                        .HasColumnName("end_number");
+
                     b.Property<long>("LastNumber")
                         .HasColumnType("bigint")
                         .HasColumnName("last_number");
+
+                    b.Property<long>("StartNumber")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasDefaultValue(1001L)
+                        .HasColumnName("start_number");
 
                     b.HasKey("Id")
                         .HasName("pk_personnel_number_series");

@@ -30,17 +30,28 @@ public interface IReferenceLists
     void Add(ReferenceEntry entry);
 }
 
+/// <summary>The number series of the personnel numbers: the range and the last number given out.</summary>
+/// <param name="Start">First number of the range.</param>
+/// <param name="End">Last number of the range.</param>
+/// <param name="Last">Last number given out (the next person gets one more); one below <paramref name="Start"/> if none was given out yet.</param>
+public sealed record NumberSeriesState(long Start, long End, long Last)
+{
+    /// <summary>How many numbers are left in the range.</summary>
+    public long Remaining => Math.Max(0, End - Last);
+}
+
 /// <summary>The number series of the personnel numbers.</summary>
 public interface IPersonnelNumberSeries
 {
-    /// <summary>The last number given out, or <c>null</c> if HR has not entered one yet.</summary>
-    Task<long?> LastAsync(CancellationToken cancellationToken);
+    /// <summary>The series, or <c>null</c> if HR has not entered the last used number yet.</summary>
+    Task<NumberSeriesState?> GetAsync(CancellationToken cancellationToken);
 
-    /// <summary>HR sets the last given-out number (the next person gets one more).</summary>
-    Task SetLastAsync(long last, Guid changedBy, DateTimeOffset at, CancellationToken cancellationToken);
+    /// <summary>HR sets range and last given-out number.</summary>
+    Task SetAsync(NumberSeriesState state, Guid changedBy, DateTimeOffset at, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Takes the next number. Atomic: two parallel creations never get the same number; if the unit of work fails the number is not used up.
+    /// Takes the next number, <c>null</c> if the range is used up. Atomic: any number of parallel creations get distinct, consecutive numbers
+    /// (they queue up on one row); if the unit of work fails the number is not used up.
     /// </summary>
-    Task<long> NextAsync(DateTimeOffset at, CancellationToken cancellationToken);
+    Task<long?> NextAsync(DateTimeOffset at, CancellationToken cancellationToken);
 }

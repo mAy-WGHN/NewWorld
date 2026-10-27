@@ -97,7 +97,7 @@ public static class EmployeeEndpoints
             .RequireAuthorization();
 
         app.MapGet("/api/personnel-number-series", async (EmployeeService service, CancellationToken ct) =>
-                Results.Ok(new NumberSeriesDto(await service.LastNumberAsync(ct))))
+                Results.Ok(ToDto(await service.GetNumberSeriesAsync(ct))))
             .RequireAuthorization(AppPolicies.Privilege(EmployeePrivileges.ManageNumberSeries));
 
         // HR enters the last personnel number used so far; the next new employee gets one more.
@@ -108,8 +108,8 @@ public static class EmployeeEndpoints
                     return Results.Forbid();
                 }
 
-                var error = await uow.RunAsync(async () => await service.SetLastNumberAsync(request.LastNumber, me, ct), e => e == EmployeeError.None, ct);
-                return error == EmployeeError.None ? Results.Ok(new NumberSeriesDto(request.LastNumber)) : Problem(error);
+                var error = await uow.RunAsync(async () => await service.SetNumberSeriesAsync(request.LastNumber, request.StartNumber, request.EndNumber, me, ct), e => e == EmployeeError.None, ct);
+                return error == EmployeeError.None ? Results.Ok(ToDto(await service.GetNumberSeriesAsync(ct))) : Problem(error);
             })
             .RequireAuthorization(AppPolicies.Privilege(EmployeePrivileges.ManageNumberSeries));
     }
@@ -173,6 +173,8 @@ public static class EmployeeEndpoints
         includePrivate ? new EmployeePrivateDto(c.Gender.ToString(), c.BirthDate, c.Street, c.PostalCode, c.City, c.PrivatePhone, c.PrivateEmail) : null,
         includeWage ? new EmployeeWageDto(c.WageTypeId) : null);
 
+    private static NumberSeriesDto ToDto(NumberSeriesState? s) => s is null ? new NumberSeriesDto(null) : new(s.Last, s.Start, s.End, s.Remaining);
+
     private static ReferenceEntryDto ToDto(ReferenceEntry e) => new(e.Id, e.Kind.ToString(), e.Code, e.Name, e.IsActive);
 
     private static IResult Problem(EmployeeError error) => Results.Problem(
@@ -180,7 +182,7 @@ public static class EmployeeEndpoints
         {
             EmployeeError.NotFound => StatusCodes.Status404NotFound,
             EmployeeError.NotAllowed => StatusCodes.Status403Forbidden,
-            EmployeeError.NumberSeriesNotSet or EmployeeError.DuplicateNumber or EmployeeError.DuplicateCode => StatusCodes.Status409Conflict,
+            EmployeeError.NumberSeriesNotSet or EmployeeError.NumberSeriesExhausted or EmployeeError.DuplicateNumber or EmployeeError.DuplicateCode => StatusCodes.Status409Conflict,
             _ => StatusCodes.Status422UnprocessableEntity,
         },
         title: error.ToString());

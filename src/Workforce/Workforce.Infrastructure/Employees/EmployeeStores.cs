@@ -9,6 +9,8 @@ public sealed class PersonnelNumberSeriesRecord
 {
     public int Id { get; set; } = 1;
     public long LastNumber { get; set; }
+    public long StartNumber { get; set; } = 1001;
+    public long EndNumber { get; set; } = 99999;
     public Guid ChangedBy { get; set; }
     public DateTimeOffset ChangedAt { get; set; }
 }
@@ -74,10 +76,11 @@ public sealed class EfReferenceLists(WorkforceDbContext db) : IReferenceLists
 
 public sealed class EfPersonnelNumberSeries(WorkforceDbContext db) : IPersonnelNumberSeries
 {
-    public async Task<long?> LastAsync(CancellationToken cancellationToken) =>
-        await db.PersonnelNumberSeries.AsNoTracking().Where(s => s.Id == 1).Select(s => (long?)s.LastNumber).FirstOrDefaultAsync(cancellationToken);
+    public async Task<NumberSeriesState?> GetAsync(CancellationToken cancellationToken) =>
+        await db.PersonnelNumberSeries.AsNoTracking().Where(s => s.Id == 1)
+            .Select(s => new NumberSeriesState(s.StartNumber, s.EndNumber, s.LastNumber)).FirstOrDefaultAsync(cancellationToken);
 
-    public async Task SetLastAsync(long last, Guid changedBy, DateTimeOffset at, CancellationToken cancellationToken)
+    public async Task SetAsync(NumberSeriesState state, Guid changedBy, DateTimeOffset at, CancellationToken cancellationToken)
     {
         var row = await db.PersonnelNumberSeries.FirstOrDefaultAsync(s => s.Id == 1, cancellationToken);
         if (row is null)
@@ -86,13 +89,16 @@ public sealed class EfPersonnelNumberSeries(WorkforceDbContext db) : IPersonnelN
             db.PersonnelNumberSeries.Add(row);
         }
 
-        row.LastNumber = last;
+        (row.StartNumber, row.EndNumber, row.LastNumber) = (state.Start, state.End, state.Last);
         row.ChangedBy = changedBy;
         row.ChangedAt = at;
     }
 
-    /// <summary>One statement: the row is locked until the transaction ends, so parallel creations queue up and never get the same number.</summary>
-    public async Task<long> NextAsync(DateTimeOffset at, CancellationToken cancellationToken) =>
-        (await db.Database.SqlQuery<long>($"UPDATE workforce.personnel_number_series SET last_number = last_number + 1 WHERE id = 1 RETURNING last_number AS \"Value\"")
-            .ToListAsync(cancellationToken)).Single();
+    /// <summary>
+    /// One statement: the row is locked until the transaction ends, so any number of parallel creations queue up and each gets the next number;
+    /// after the end of the range no row is returned. A rolled-back creation gives its number back.
+    /// </summary>
+    public async Task<long?> NextAsync(DateTimeOffset at, CancellationToken cancellationToken) =>
+        (await db.Database.SqlQuery<long>($"UPDATE workforce.personnel_number_series SET last_number = last_number + 1 WHERE id = 1 AND last_number < end_number RETURNING last_number AS \"Value\"")
+            .ToListAsync(cancellationToken)) is [var number] ? number : null;
 }

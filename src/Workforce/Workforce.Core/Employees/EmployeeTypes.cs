@@ -181,4 +181,7 @@ public enum EmployeeError
 
     /// <summary>The caller lacks a right the change needs (e.g. the wage type).</summary>
     NotAllowed = 9,
+
+    /// <summary>All numbers of the range are given out; HR has to widen the range.</summary>
+    NumberSeriesExhausted = 10,
 }

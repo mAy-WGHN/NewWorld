@@ -44,7 +44,7 @@ Abschnitte so, wie HR sie ausfüllt. „Q“ = Quelle: **P** Personalplanung, **
 ## Personalnummer und Nummernkreis
 
 Ja, den bestehenden Nummernkreis weiterführen. Vorschlag:
-- Im Tool liegt ein **Nummernkreis** mit der **zuletzt vergebenen Nummer**, den HR von Hand pflegen kann (Startwert, kein Import aus BC).
+- Im Tool liegt ein **Nummernkreis** (Bereich 1001 bis 99999, pflegbar) mit der **zuletzt vergebenen Nummer**, den HR von Hand pflegen kann (kein Import aus BC). Am Ende des Bereichs wird niemand mehr angelegt, bis HR den Bereich erweitert.
 - Neue Nummer = letzte + 1, **atomar** (zwei gleichzeitige Anlagen bekommen nie dieselbe), nie wiederverwendet, Lücken sind erlaubt (angelegt, dann verworfen).
 - Meldet BC eine höhere Nummer (jemand wurde direkt in BC angelegt), hebt das Tool die „letzte Nummer“ automatisch an, damit nichts kollidiert; HR kann sie weiterhin von Hand setzen.
 - Die Nummer wird gegen alle bekannten Personen geprüft (Kopien aus BC); ein Duplikat wird abgelehnt.
@@ -119,7 +119,7 @@ Regeln, alle von HR pflegbar:
 
 ## Offene Fragen
 
-1. **Format der Personalnummer** und der aktuelle Startwert des Nummernkreises. Bis dahin: nur Ziffern, ohne Auffüllen, der Startwert ist leer und HR trägt die zuletzt vergebene Nummer ein; ohne ihn lässt sich niemand anlegen.
+1. ~~Format und Startwert des Nummernkreises~~ **geklärt:** Bereich 1001 bis 99999, nur Ziffern ohne Auffüllen, zuletzt vergeben 15301 (Stand 2026-10-27). **Vor dem Go-live prüfen**, ob 15301 noch die aktuellste Nummer ist; HR trägt sie im Tool ein, ohne sie lässt sich niemand anlegen.
 2. **Vorgesetzter:** Die Karte speichert ihn über die Personalnummer. Die Zuständigkeit für Genehmigungen bleibt in Access; soll der Vorgesetzte der Karte zusätzlich etwas steuern?
 3. **Rolle** (Mitarbeiterliste): Was bedeutet sie fachlich? (Nicht die Rolle in Access.)
 4. **Lohnart:** Klasse 2 oder 3 (mit dem Datenschutzbeauftragten).

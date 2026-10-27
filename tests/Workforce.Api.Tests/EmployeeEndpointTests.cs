@@ -50,6 +50,9 @@ public sealed class EmployeeEndpointTests(PostgresFixture postgres) : IClassFixt
     private static async Task SetSeriesAsync(WorkforceApi api, long last) =>
         (await api.SendAsync(HttpMethod.Put, "/api/personnel-number-series", Hanna, new { lastNumber = last })).StatusCode.ShouldBe(HttpStatusCode.OK);
 
+    private static async Task<HttpResponseMessage> SetRangeAsync(WorkforceApi api, long last, long? start, long? end) =>
+        await api.SendAsync(HttpMethod.Put, "/api/personnel-number-series", Hanna, new { lastNumber = last, startNumber = start, endNumber = end });
+
     // ---------------------------------------------------------------- creating
 
     [Fact]
@@ -66,7 +69,7 @@ public sealed class EmployeeEndpointTests(PostgresFixture postgres) : IClassFixt
         var second = await CreateAsync(api, Card(lists, c => c["firstName"] = "Max"), Hanna);
 
         (first.PersonnelNumber, second.PersonnelNumber).ShouldBe(("10042", "10043"));
-        (await api.GetAsync<NumberSeriesDto>("/api/personnel-number-series", Hanna)).LastNumber.ShouldBe(10043);
+        (await api.GetAsync<NumberSeriesDto>("/api/personnel-number-series", Hanna)).LastNumber.ShouldBe(10043L);
     }
 
     [Fact]
@@ -80,6 +83,69 @@ public sealed class EmployeeEndpointTests(PostgresFixture postgres) : IClassFixt
 
         created.Select(c => c.PersonnelNumber).Distinct().Count().ShouldBe(8);
         created.Select(c => long.Parse(c.PersonnelNumber, System.Globalization.CultureInfo.InvariantCulture)).Order().ShouldBe(Enumerable.Range(10042, 8).Select(n => (long)n));
+    }
+
+    [Fact]
+    public async Task The_number_range_is_1001_to_99999_by_default_and_the_numbers_follow_on_from_the_last_one()
+    {
+        await using var api = await StartAsync(postgres);
+        var lists = await SeedListsAsync(api);
+
+        await SetSeriesAsync(api, 15301);
+        var series = await api.GetAsync<NumberSeriesDto>("/api/personnel-number-series", Hanna);
+        (series.LastNumber, series.StartNumber, series.EndNumber, series.Remaining).ShouldBe((15301L, 1001L, 99999L, 84698L));
+
+        (await CreateAsync(api, Card(lists), Hanna)).PersonnelNumber.ShouldBe("15302");
+        (await api.GetAsync<NumberSeriesDto>("/api/personnel-number-series", Hanna)).Remaining.ShouldBe(84697L);
+    }
+
+    [Fact]
+    public async Task Many_people_creating_at_the_same_time_get_distinct_consecutive_numbers_without_gaps()
+    {
+        await using var api = await StartAsync(postgres);
+        var lists = await SeedListsAsync(api);
+        await SetSeriesAsync(api, 15301);
+
+        // Three HR clerks entering several new employees each, all at once.
+        var created = await Task.WhenAll(Enumerable.Range(0, 24).Select(i => CreateAsync(api, Card(lists, c => c["firstName"] = "P" + i), i % 2 == 0 ? Hanna : Hanna)));
+
+        var numbers = created.Select(c => long.Parse(c.PersonnelNumber, System.Globalization.CultureInfo.InvariantCulture)).Order().ToList();
+        numbers.ShouldBe(Enumerable.Range(15302, 24).Select(n => (long)n));
+        created.Select(c => c.EmployeeId).Distinct().Count().ShouldBe(24);
+        (await api.GetAsync<NumberSeriesDto>("/api/personnel-number-series", Hanna)).LastNumber.ShouldBe(15325L);
+    }
+
+    [Fact]
+    public async Task At_the_end_of_the_range_exactly_the_remaining_numbers_are_given_out_and_the_rest_is_refused()
+    {
+        await using var api = await StartAsync(postgres);
+        var lists = await SeedListsAsync(api);
+        (await SetRangeAsync(api, 10040, 1001, 10045)).StatusCode.ShouldBe(HttpStatusCode.OK); // 10041 .. 10045 are left
+
+        var results = await Task.WhenAll(Enumerable.Range(0, 9).Select(async i =>
+        {
+            using var response = await api.SendAsync(HttpMethod.Post, "/api/employees", Hanna, Card(lists, c => c["firstName"] = "P" + i));
+            return (response.StatusCode, Number: response.IsSuccessStatusCode ? (await response.Content.ReadFromJsonAsync<CreatedEmployeeDto>())!.PersonnelNumber : null);
+        }));
+
+        results.Count(r => r.StatusCode == HttpStatusCode.OK).ShouldBe(5);
+        results.Count(r => r.StatusCode == HttpStatusCode.Conflict).ShouldBe(4);
+        results.Where(r => r.Number is not null).Select(r => r.Number).Order().ShouldBe(["10041", "10042", "10043", "10044", "10045"]);
+        (await api.GetAsync<NumberSeriesDto>("/api/personnel-number-series", Hanna)).Remaining.ShouldBe(0L);
+        // HR widens the range and the numbers go on, the refused creations did not use up numbers.
+        (await SetRangeAsync(api, 10045, null, 20000)).StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await CreateAsync(api, Card(lists), Hanna)).PersonnelNumber.ShouldBe("10046");
+    }
+
+    [Fact]
+    public async Task A_last_number_or_range_that_does_not_fit_is_refused()
+    {
+        await using var api = await StartAsync(postgres);
+
+        (await SetRangeAsync(api, 100000, null, null)).StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+        (await SetRangeAsync(api, 500, null, null)).StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+        (await SetRangeAsync(api, 5000, 3000, 2000)).StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+        (await api.GetAsync<NumberSeriesDto>("/api/personnel-number-series", Hanna)).LastNumber.ShouldBeNull();
     }
 
     [Fact]
@@ -122,8 +188,10 @@ public sealed class EmployeeEndpointTests(PostgresFixture postgres) : IClassFixt
 
         await api.DeliverAsync(new EmployeeChanged(Guid.NewGuid(), Guid.NewGuid(), Start, Guid.NewGuid(), "10100", "Direkt In BC", StoreA, null, null, null, new DateOnly(2026, 10, 1), null));
         await api.DeliverAsync(new EmployeeChanged(Guid.NewGuid(), Guid.NewGuid(), Start, Guid.NewGuid(), "9000", "Alt", StoreA, null, null, null, new DateOnly(2010, 1, 1), null));
+        // A number outside the range (e.g. a test or foreign number) does not move the series.
+        await api.DeliverAsync(new EmployeeChanged(Guid.NewGuid(), Guid.NewGuid(), Start, Guid.NewGuid(), "123456", "Ausserhalb", StoreA, null, null, null, new DateOnly(2010, 1, 1), null));
 
-        (await api.GetAsync<NumberSeriesDto>("/api/personnel-number-series", Hanna)).LastNumber.ShouldBe(10100);
+        (await api.GetAsync<NumberSeriesDto>("/api/personnel-number-series", Hanna)).LastNumber.ShouldBe(10100L);
         (await CreateAsync(api, Card(lists), Hanna)).PersonnelNumber.ShouldBe("10101");
     }
 

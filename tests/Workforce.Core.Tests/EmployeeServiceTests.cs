@@ -49,20 +49,28 @@ internal sealed class FakeLists : IReferenceLists
 
 internal sealed class FakeSeries : IPersonnelNumberSeries
 {
+    public long Start { get; set; } = 1001;
+    public long End { get; set; } = 99999;
     public long? Last { get; set; }
 
-    public Task<long?> LastAsync(CancellationToken cancellationToken) => Task.FromResult(Last);
+    public Task<NumberSeriesState?> GetAsync(CancellationToken cancellationToken) =>
+        Task.FromResult(Last is { } last ? new NumberSeriesState(Start, End, last) : null);
 
-    public Task SetLastAsync(long last, Guid changedBy, DateTimeOffset at, CancellationToken cancellationToken)
+    public Task SetAsync(NumberSeriesState state, Guid changedBy, DateTimeOffset at, CancellationToken cancellationToken)
     {
-        Last = last;
+        (Start, End, Last) = (state.Start, state.End, state.Last);
         return Task.CompletedTask;
     }
 
-    public Task<long> NextAsync(DateTimeOffset at, CancellationToken cancellationToken)
+    public Task<long?> NextAsync(DateTimeOffset at, CancellationToken cancellationToken)
     {
-        Last = (Last ?? 0) + 1;
-        return Task.FromResult(Last.Value);
+        if (Last is not { } last || last + 1 > End)
+        {
+            return Task.FromResult<long?>(null);
+        }
+
+        Last = last + 1;
+        return Task.FromResult<long?>(Last);
     }
 }
 
@@ -328,17 +336,77 @@ public class EmployeeServiceTests
     // ---------------------------------------------------------------- number series
 
     [Fact]
-    public async Task HR_sets_the_last_used_number()
+    public async Task HR_sets_the_last_used_number_and_the_range_defaults_to_1001_up_to_99999()
     {
-        (await Service().SetLastNumberAsync(20000, Hr, CancellationToken.None)).ShouldBe(EmployeeError.None);
+        _series.Last = null;
 
-        (await Service().LastNumberAsync(CancellationToken.None)).ShouldBe(20000);
-        (await Service().CreateAsync(Data(), null, Hr, CancellationToken.None)).Card!.PersonnelNumber.ShouldBe("20001");
+        (await Service().SetNumberSeriesAsync(15301, null, null, Hr, CancellationToken.None)).ShouldBe(EmployeeError.None);
+
+        (await Service().GetNumberSeriesAsync(CancellationToken.None)).ShouldBe(new NumberSeriesState(1001, 99999, 15301));
+        (await Service().CreateAsync(Data(), null, Hr, CancellationToken.None)).Card!.PersonnelNumber.ShouldBe("15302");
+    }
+
+    [Fact]
+    public async Task A_changed_last_number_keeps_the_range_unless_HR_gives_a_new_one()
+    {
+        await Service().SetNumberSeriesAsync(15301, 2000, 50000, Hr, CancellationToken.None);
+        await Service().SetNumberSeriesAsync(15400, null, null, Hr, CancellationToken.None);
+
+        (await Service().GetNumberSeriesAsync(CancellationToken.None)).ShouldBe(new NumberSeriesState(2000, 50000, 15400));
+    }
+
+    [Theory]
+    [InlineData(1000, 1001L, 99999L)]    // the last number may be one below the start (nobody given out yet) ...
+    [InlineData(1001, 1001L, 99999L)]
+    [InlineData(99999, 1001L, 99999L)]   // ... and the end itself
+    public async Task A_last_number_inside_the_range_is_accepted(long last, long start, long end) =>
+        (await Service().SetNumberSeriesAsync(last, start, end, Hr, CancellationToken.None)).ShouldBe(EmployeeError.None);
+
+    [Theory]
+    [InlineData(999, 1001L, 99999L)]      // below the range
+    [InlineData(100000, 1001L, 99999L)]   // above the range
+    [InlineData(5000, 3000L, 2000L)]      // end before the start
+    [InlineData(5000, 0L, 99999L)]        // start below 1
+    [InlineData(5000, 1001L, 1000000000L)] // too long for a personnel number
+    public async Task A_last_number_or_range_that_does_not_fit_is_refused_and_changes_nothing(long last, long start, long end)
+    {
+        _series.Last = 10041;
+
+        (await Service().SetNumberSeriesAsync(last, start, end, Hr, CancellationToken.None)).ShouldBe(EmployeeError.Invalid);
+        (_series.Start, _series.End, _series.Last).ShouldBe((1001L, 99999L, 10041L));
+    }
+
+    [Fact]
+    public async Task When_the_range_is_used_up_nobody_is_created_and_nothing_is_stored()
+    {
+        _series.Last = 99999;
+
+        var (error, card) = await Service().CreateAsync(Data(), null, Hr, CancellationToken.None);
+
+        (error, card).ShouldBe((EmployeeError.NumberSeriesExhausted, null));
+        _cards.Cards.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task The_very_last_number_of_the_range_can_still_be_given_out()
+    {
+        _series.Last = 99998;
+
+        (await Service().CreateAsync(Data(), null, Hr, CancellationToken.None)).Card!.PersonnelNumber.ShouldBe("99999");
+        (await Service().CreateAsync(Data(), null, Hr, CancellationToken.None)).Error.ShouldBe(EmployeeError.NumberSeriesExhausted);
+    }
+
+    [Fact]
+    public async Task The_numbers_start_at_the_start_of_the_range_when_HR_has_entered_the_number_before_it()
+    {
+        _series.Last = 1000;
+
+        (await Service().CreateAsync(Data(), null, Hr, CancellationToken.None)).Card!.PersonnelNumber.ShouldBe("1001");
     }
 
     [Fact]
     public async Task The_last_number_cannot_be_negative() =>
-        (await Service().SetLastNumberAsync(-1, Hr, CancellationToken.None)).ShouldBe(EmployeeError.Invalid);
+        (await Service().SetNumberSeriesAsync(-1, null, null, Hr, CancellationToken.None)).ShouldBe(EmployeeError.Invalid);
 
     // ---------------------------------------------------------------- selection lists
 

@@ -48,13 +48,18 @@ public sealed partial class EmployeeService(
             return (referenceError, null);
         }
 
-        if (await series.LastAsync(cancellationToken) is null)
+        if (await series.GetAsync(cancellationToken) is null)
         {
             return (EmployeeError.NumberSeriesNotSet, null);
         }
 
         var now = time.GetUtcNow();
-        var number = (await series.NextAsync(now, cancellationToken)).ToString(CultureInfo.InvariantCulture);
+        if (await series.NextAsync(now, cancellationToken) is not { } next)
+        {
+            return (EmployeeError.NumberSeriesExhausted, null);
+        }
+
+        var number = next.ToString(CultureInfo.InvariantCulture);
         if (await cards.PersonnelNumberExistsAsync(number, cancellationToken))
         {
             return (EmployeeError.DuplicateNumber, null);
@@ -207,17 +212,31 @@ public sealed partial class EmployeeService(
 
     // ------------------------------------------------------------------ number series
 
-    public async Task<long?> LastNumberAsync(CancellationToken cancellationToken) => await series.LastAsync(cancellationToken);
+    /// <summary>The default range of the personnel numbers (the existing number series).</summary>
+    public const long DefaultStart = 1001;
 
-    /// <summary>HR enters the last personnel number used so far (or corrects it); the next person gets one more.</summary>
-    public async Task<EmployeeError> SetLastNumberAsync(long last, Guid actorId, CancellationToken cancellationToken)
+    public const long DefaultEnd = 99999;
+
+    /// <summary>A personnel number has at most nine digits.</summary>
+    private const long HighestNumber = 999_999_999;
+
+    public async Task<NumberSeriesState?> GetNumberSeriesAsync(CancellationToken cancellationToken) => await series.GetAsync(cancellationToken);
+
+    /// <summary>
+    /// HR enters the last personnel number used so far (or corrects it) and, if needed, the range. Without a range the existing one stays
+    /// (at the first entry 1001 to 99999). The last number lies inside the range or one below its start.
+    /// </summary>
+    public async Task<EmployeeError> SetNumberSeriesAsync(long last, long? start, long? end, Guid actorId, CancellationToken cancellationToken)
     {
-        if (last < 0)
+        var existing = await series.GetAsync(cancellationToken);
+        var from = start ?? existing?.Start ?? DefaultStart;
+        var to = end ?? existing?.End ?? DefaultEnd;
+        if (from < 1 || to < from || to > HighestNumber || last < from - 1 || last > to)
         {
             return EmployeeError.Invalid;
         }
 
-        await series.SetLastAsync(last, actorId, time.GetUtcNow(), cancellationToken);
+        await series.SetAsync(new NumberSeriesState(from, to, last), actorId, time.GetUtcNow(), cancellationToken);
         return EmployeeError.None;
     }
 

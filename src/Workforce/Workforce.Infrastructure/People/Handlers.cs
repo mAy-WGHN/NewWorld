@@ -23,7 +23,7 @@ public sealed class EmployeeChangedHandler(WorkforceDbContext db) : IMessageHand
         person.PersonnelNumber = message.PersonnelNumber;
         // A number from BC above the last one given out raises the series, so that new employees never collide with people created in BC.
         if (long.TryParse(message.PersonnelNumber, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var number)
-            && await db.PersonnelNumberSeries.FirstOrDefaultAsync(s => s.Id == 1, cancellationToken) is { } series && number > series.LastNumber)
+            && await db.PersonnelNumberSeries.FirstOrDefaultAsync(s => s.Id == 1, cancellationToken) is { } series && number > series.LastNumber && number <= series.EndNumber)
         {
             series.LastNumber = number;
         }
