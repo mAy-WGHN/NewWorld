@@ -175,10 +175,48 @@ public static class Endpoints
         static async Task<IResult> Rules(AbsenceService service, CancellationToken ct)
         {
             var r = await service.GetVacationRulesAsync(ct);
-            return Results.Ok(new VacationRulesDto(r.Rules.ExpiryMonth, r.Rules.ExpiryDay, r.IsDefault, r.ChangedAt, r.ChangedBy));
+            return Results.Ok(new VacationRulesDto(
+                r.Rules.ExpiryMonth, r.Rules.ExpiryDay, r.Rules.WaitingPeriodMonths, r.Rules.WaitingMode.ToString(), r.Rules.Rounding.ToString(), r.Rules.RoundingStep, r.IsDefault, r.ChangedAt, r.ChangedBy));
         }
 
-        // When additional days expire: HR sets it for everybody; by default they never expire.
+        // Changes of the annual entitlement during a year (other working days per week etc.): HR enters them per person.
+        static EntitlementChangeDto ToChangeDto(EntitlementChange c) => new(c.Id, c.EffectiveFrom, c.AnnualDays);
+
+        api.MapGet("/employees/{employeeId:guid}/vacation-entitlement-changes", async (Guid employeeId, ClaimsPrincipal user, IAuthorizationService auth, AbsenceService service, CancellationToken ct) =>
+                !await Allows(auth, user, new EmployeeResource(employeeId), AbsencePrivileges.ManageEntitlement)
+                    ? Results.Forbid()
+                    : Results.Ok((await service.ListEntitlementChangesAsync(employeeId, ct)).Select(ToChangeDto)))
+            .RequireAuthorization();
+
+        api.MapPost("/employees/{employeeId:guid}/vacation-entitlement-changes", async (
+                Guid employeeId, AddEntitlementChangeRequest request, ClaimsPrincipal user, IAuthorizationService auth, AbsenceService service, WorkforceUnitOfWork uow, CancellationToken ct) =>
+            {
+                if (Me(user) is not { } me || !await Allows(auth, user, new EmployeeResource(employeeId), AbsencePrivileges.ManageEntitlement))
+                {
+                    return Results.Forbid();
+                }
+
+                var result = await uow.RunAsync(() => service.AddEntitlementChangeAsync(employeeId, request.EffectiveFrom, request.AnnualDays, me, ct), r => r.Error == AbsenceError.None, ct);
+                return result.Error != AbsenceError.None
+                    ? Problem(result.Error)
+                    : Results.Ok(ToChangeDto((await service.ListEntitlementChangesAsync(employeeId, ct)).Single(c => c.Id == result.Id)));
+            })
+            .RequireAuthorization();
+
+        api.MapDelete("/employees/{employeeId:guid}/vacation-entitlement-changes/{changeId:guid}", async (
+                Guid employeeId, Guid changeId, ClaimsPrincipal user, IAuthorizationService auth, AbsenceService service, WorkforceUnitOfWork uow, CancellationToken ct) =>
+            {
+                if (!await Allows(auth, user, new EmployeeResource(employeeId), AbsencePrivileges.ManageEntitlement))
+                {
+                    return Results.Forbid();
+                }
+
+                var error = await uow.RunAsync(async () => AbsenceResult.Fail(await service.RemoveEntitlementChangeAsync(employeeId, changeId, ct)), r => r.Error == AbsenceError.None, ct);
+                return error.Error == AbsenceError.None ? Results.NoContent() : Problem(error.Error);
+            })
+            .RequireAuthorization();
+
+        // The rules for everybody: when additional days expire (default: never), waiting period (default: none), rounding of pro rata days (default: up to half days).
         api.MapGet("/vacation-rules", Rules).RequireAuthorization(AppPolicies.Privilege(AbsencePrivileges.ManageVacationRules));
         api.MapPut("/vacation-rules", async (SetVacationRulesRequest request, ClaimsPrincipal user, AbsenceService service, WorkforceUnitOfWork uow, CancellationToken ct) =>
             {
@@ -187,7 +225,20 @@ public static class Endpoints
                     return Results.Forbid();
                 }
 
-                var error = await uow.RunAsync(async () => AbsenceResult.Fail(await service.SetVacationRulesAsync(request.ExtraDaysExpiryMonth, request.ExtraDaysExpiryDay, me, ct)), r => r.Error == AbsenceError.None, ct);
+                var defaults = VacationRules.NeverExpire;
+                if ((request.WaitingPeriodMode is { } mode && !Enum.TryParse<WaitingPeriodMode>(mode, ignoreCase: true, out _))
+                    || (request.ProRataRounding is { } rounding && !Enum.TryParse<ProRataRounding>(rounding, ignoreCase: true, out _)))
+                {
+                    return Problem(AbsenceError.InvalidVacationRules);
+                }
+
+                var rules = new VacationRules(
+                    request.ExtraDaysExpiryMonth, request.ExtraDaysExpiryDay,
+                    request.WaitingPeriodMonths ?? defaults.WaitingPeriodMonths,
+                    request.WaitingPeriodMode is { } m ? Enum.Parse<WaitingPeriodMode>(m, ignoreCase: true) : defaults.WaitingMode,
+                    request.ProRataRounding is { } rd ? Enum.Parse<ProRataRounding>(rd, ignoreCase: true) : defaults.Rounding,
+                    request.ProRataRoundingStep ?? defaults.RoundingStep);
+                var error = await uow.RunAsync(async () => AbsenceResult.Fail(await service.SetVacationRulesAsync(rules, me, ct)), r => r.Error == AbsenceError.None, ct);
                 return error.Error == AbsenceError.None ? await Rules(service, ct) : Problem(error.Error);
             })
             .RequireAuthorization(AppPolicies.Privilege(AbsencePrivileges.ManageVacationRules));
@@ -402,7 +453,7 @@ public static class Endpoints
             AbsenceError.NotAllowed => StatusCodes.Status403Forbidden,
             AbsenceError.FileTooLarge => StatusCodes.Status413PayloadTooLarge,
             AbsenceError.UnsupportedFileType => StatusCodes.Status415UnsupportedMediaType,
-            AbsenceError.InvalidPeriod or AbsenceError.AfterExit or AbsenceError.NoEntitlement or AbsenceError.InsufficientBalance or AbsenceError.FileRejected or AbsenceError.InvalidRetention or AbsenceError.InvalidReminderSettings or AbsenceError.InvalidVacationRules => StatusCodes.Status422UnprocessableEntity,
+            AbsenceError.InvalidPeriod or AbsenceError.AfterExit or AbsenceError.NoEntitlement or AbsenceError.InsufficientBalance or AbsenceError.FileRejected or AbsenceError.InvalidRetention or AbsenceError.InvalidReminderSettings or AbsenceError.InvalidVacationRules or AbsenceError.WaitingPeriod => StatusCodes.Status422UnprocessableEntity,
             _ => StatusCodes.Status409Conflict,
         },
         title: error.ToString());

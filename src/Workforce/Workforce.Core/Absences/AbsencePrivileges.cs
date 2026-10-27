@@ -50,8 +50,8 @@ public static class AbsencePrivileges
         (ReadSync, true, "Den Übertragungsstatus der Abwesenheiten nach Business Central sehen."),
         (Create, true, "Krankmeldungen für Mitarbeitende in der Reichweite erfassen."),
         (Approve, true, "Urlaubsanträge von Personen in der Reichweite genehmigen oder ablehnen (nur, wer für das Thema zuständig ist)."),
-        (ManageEntitlement, true, "Den Urlaubsanspruch pflegen: vertraglicher Jahresanspruch und Zusatztage (Resturlaub, Sonderurlaub) von Personen in der Reichweite (HR)."),
+        (ManageEntitlement, true, "Den Urlaubsanspruch pflegen: vertraglicher Jahresanspruch, Änderungen des Anspruchs im Jahr (z. B. andere Wochentage) und Zusatztage (Resturlaub, Sonderurlaub) von Personen in der Reichweite (HR)."),
         (ManageHolidayOpening, true, "Festlegen, ob Filialen in der Reichweite an gesetzlichen Feiertagen geöffnet sind (z. B. Bahnhofsfilialen); Feiertage zählen dort als Arbeitstage."),
-        (ManageVacationRules, false, "Die Regel für alle festlegen, ob und bis wann Zusatztage (Resturlaub u. a.) verfallen (HR). Standard: sie verfallen nie."),
+        (ManageVacationRules, false, "Die Urlaubsregeln für alle festlegen (HR): ob und bis wann Zusatztage verfallen (Standard: nie), Wartezeit für neue Mitarbeitende (Standard: keine) und Rundung anteiliger Tage (Standard: auf halbe Tage auf)."),
     ];
 }

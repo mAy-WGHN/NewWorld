@@ -19,6 +19,7 @@ public sealed class WorkforceDbContext(DbContextOptions<WorkforceDbContext> opti
     public DbSet<EntitlementRecord> Entitlements => Set<EntitlementRecord>();
     public DbSet<ExtraVacationRecord> ExtraVacation => Set<ExtraVacationRecord>();
     public DbSet<VacationRulesRecord> VacationRules => Set<VacationRulesRecord>();
+    public DbSet<EntitlementChangeRecord> EntitlementChanges => Set<EntitlementChangeRecord>();
     public DbSet<PersonRecord> People => Set<PersonRecord>();
     public DbSet<StoreRecord> Stores => Set<StoreRecord>();
     public DbSet<ApproverCopyRecord> ApproverCopies => Set<ApproverCopyRecord>();
@@ -55,11 +56,22 @@ public sealed class WorkforceDbContext(DbContextOptions<WorkforceDbContext> opti
             b.HasIndex(a => new { a.Type, a.Status, a.CertificateStatus });
             b.HasIndex(a => a.ApprovalRequestId);
         });
+        modelBuilder.Entity<EntitlementChangeRecord>(b =>
+        {
+            b.ToTable("entitlement_changes");
+            b.HasKey(e => e.Id);
+            b.Property(e => e.Id).ValueGeneratedNever();
+            b.Property(e => e.AnnualDays).HasPrecision(6, 2);
+            b.HasIndex(e => e.EmployeeId);
+        });
         modelBuilder.Entity<VacationRulesRecord>(b =>
         {
             b.ToTable("vacation_rules");
             b.HasKey(v => v.Id);
             b.Property(v => v.Id).ValueGeneratedNever();
+            b.Property(v => v.WaitingMode).HasConversion<string>().HasMaxLength(20).HasDefaultValue(Workforce.Core.Absences.WaitingPeriodMode.Accrued);
+            b.Property(v => v.Rounding).HasConversion<string>().HasMaxLength(20).HasDefaultValue(Workforce.Core.Absences.ProRataRounding.Up);
+            b.Property(v => v.RoundingStep).HasPrecision(3, 1).HasDefaultValue(0.5m);
         });
         modelBuilder.Entity<ExtraVacationRecord>(b =>
         {

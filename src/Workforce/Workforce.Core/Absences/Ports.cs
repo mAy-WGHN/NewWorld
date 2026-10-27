@@ -57,6 +57,14 @@ public interface IExtraVacationStore
     Task<VacationRulesSetting?> GetRulesAsync(CancellationToken cancellationToken);
 
     Task SetRulesAsync(VacationRulesSetting setting, CancellationToken cancellationToken);
+
+    /// <summary>Changes of the annual entitlement during a year (e.g. other working days per week), entered by HR.</summary>
+    Task<IReadOnlyList<EntitlementChange>> ChangesAsync(Guid employeeId, CancellationToken cancellationToken);
+
+    void AddChange(Guid employeeId, EntitlementChange change, Guid createdBy, DateTimeOffset at);
+
+    /// <returns><c>false</c> if the person has no such change.</returns>
+    Task<bool> RemoveChangeAsync(Guid employeeId, Guid id, CancellationToken cancellationToken);
 }
 
 /// <summary>The persons responsible for a person for absences (topic <c>absence.approval</c>, copy of Access's responsibilities).</summary>

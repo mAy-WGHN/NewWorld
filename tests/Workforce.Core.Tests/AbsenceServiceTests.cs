@@ -571,7 +571,7 @@ public class AbsenceServiceTests
     {
         _time = new FakeTimeProvider(new DateTimeOffset(2026, 2, 2, 9, 0, 0, TimeSpan.Zero));
         _entitlements.Days[(Erika, 2026)] = 2;
-        await Service().SetVacationRulesAsync(3, 31, Max, CancellationToken.None);
+        await Service().SetVacationRulesAsync(VacationRules.EndOfFirstQuarter, Max, CancellationToken.None);
         await AddExtra(ExtraVacationKind.CarryOver, 2025, 2.5m); // usable until 31 March 2026
 
         (await Service().RequestVacationAsync(Erika, D("2026-04-13"), D("2026-04-15"), CancellationToken.None)).Error.ShouldBe(AbsenceError.InsufficientBalance); // 3 > 2
@@ -583,7 +583,7 @@ public class AbsenceServiceTests
     {
         // Today is 15 July 2026: the leftover of 2025 expired on 31 March.
         _entitlements.Days[(Erika, 2026)] = 2;
-        await Service().SetVacationRulesAsync(3, 31, Max, CancellationToken.None);
+        await Service().SetVacationRulesAsync(VacationRules.EndOfFirstQuarter, Max, CancellationToken.None);
         await AddExtra(ExtraVacationKind.CarryOver, 2025, 2.5m);
 
         (await Service().RequestVacationAsync(Erika, D("2026-09-07"), D("2026-09-09"), CancellationToken.None)).Error.ShouldBe(AbsenceError.InsufficientBalance);
@@ -621,11 +621,11 @@ public class AbsenceServiceTests
     [Fact]
     public async Task HR_sets_and_resets_the_expiry_rule()
     {
-        (await Service().SetVacationRulesAsync(3, 31, Max, CancellationToken.None)).ShouldBe(AbsenceError.None);
+        (await Service().SetVacationRulesAsync(VacationRules.EndOfFirstQuarter, Max, CancellationToken.None)).ShouldBe(AbsenceError.None);
         var set = await Service().GetVacationRulesAsync(CancellationToken.None);
         (set.Rules, set.IsDefault, set.ChangedBy, set.ChangedAt).ShouldBe((VacationRules.EndOfFirstQuarter, false, (Guid?)Max, (DateTimeOffset?)_time.GetUtcNow()));
 
-        (await Service().SetVacationRulesAsync(null, null, Max, CancellationToken.None)).ShouldBe(AbsenceError.None);
+        (await Service().SetVacationRulesAsync(VacationRules.NeverExpire, Max, CancellationToken.None)).ShouldBe(AbsenceError.None);
         (await Service().GetVacationRulesAsync(CancellationToken.None)).Rules.ShouldBe(VacationRules.NeverExpire);
     }
 
@@ -636,8 +636,81 @@ public class AbsenceServiceTests
     [InlineData(4, 31)]
     public async Task An_invalid_expiry_rule_is_refused_and_changes_nothing(int? month, int? day)
     {
-        (await Service().SetVacationRulesAsync(month, day, Max, CancellationToken.None)).ShouldBe(AbsenceError.InvalidVacationRules);
+        (await Service().SetVacationRulesAsync(new VacationRules(month, day), Max, CancellationToken.None)).ShouldBe(AbsenceError.InvalidVacationRules);
         (await Service().GetVacationRulesAsync(CancellationToken.None)).IsDefault.ShouldBeTrue();
+    }
+
+    // ---------------------------------------------------------------- waiting period, changes during the year, rounding (all maintained by HR)
+
+    [Fact]
+    public async Task During_a_blocked_waiting_period_no_vacation_may_be_requested_afterwards_it_may()
+    {
+        _people.People[Erika] = _people.People[Erika] with { EntryDate = D("2026-06-01") };
+        await Service().SetVacationRulesAsync(new VacationRules(null, null, 6, WaitingPeriodMode.Blocked), Max, CancellationToken.None);
+
+        (await Service().RequestVacationAsync(Erika, D("2026-08-10"), D("2026-08-12"), CancellationToken.None)).Error.ShouldBe(AbsenceError.WaitingPeriod);
+        (await Service().RequestVacationAsync(Erika, D("2026-12-07"), D("2026-12-08"), CancellationToken.None)).Error.ShouldBe(AbsenceError.None); // six months after 1 June
+    }
+
+    [Fact]
+    public async Task During_an_accrued_waiting_period_only_the_days_earned_so_far_may_be_requested()
+    {
+        _people.People[Erika] = _people.People[Erika] with { EntryDate = D("2026-04-01") };
+        _entitlements.Days[(Erika, 2026)] = 24;
+        await Service().SetVacationRulesAsync(new VacationRules(null, null, 6, WaitingPeriodMode.Accrued), Max, CancellationToken.None);
+
+        // 24 days a year = 2 per month; three months are complete in July: 6 days are earned.
+        (await Service().RequestVacationAsync(Erika, D("2026-07-20"), D("2026-07-27"), CancellationToken.None)).Error.ShouldBe(AbsenceError.WaitingPeriod); // 7 days
+        (await Service().RequestVacationAsync(Erika, D("2026-07-20"), D("2026-07-25"), CancellationToken.None)).Error.ShouldBe(AbsenceError.None);          // 6 days
+    }
+
+    [Fact]
+    public async Task Without_a_waiting_period_in_the_rules_a_new_colleague_may_take_the_pro_rata_days_at_once()
+    {
+        _people.People[Erika] = _people.People[Erika] with { EntryDate = D("2026-06-01") };
+
+        (await Service().RequestVacationAsync(Erika, D("2026-08-10"), D("2026-08-12"), CancellationToken.None)).Error.ShouldBe(AbsenceError.None);
+    }
+
+    [Fact]
+    public async Task A_change_during_the_year_enters_the_contractual_days_of_that_year()
+    {
+        _entitlements.Days[(Erika, 2026)] = 25;
+        var added = await Service().AddEntitlementChangeAsync(Erika, D("2026-07-01"), 20, Max, CancellationToken.None);
+        added.Error.ShouldBe(AbsenceError.None);
+
+        var breakdown = (await Service().BreakdownAsync(Erika, 2026, CancellationToken.None))!;
+        (breakdown.ContractualAnnualDays, breakdown.ContractualDays, breakdown.EffectiveDays).ShouldBe((25m, 22.5m, 22.5m));
+        (await Service().ListEntitlementChangesAsync(Erika, CancellationToken.None)).ShouldHaveSingleItem().ShouldBe(new EntitlementChange(added.Id!.Value, D("2026-07-01"), 20));
+
+        (await Service().RemoveEntitlementChangeAsync(Erika, added.Id.Value, CancellationToken.None)).ShouldBe(AbsenceError.None);
+        (await Service().RemoveEntitlementChangeAsync(Erika, added.Id.Value, CancellationToken.None)).ShouldBe(AbsenceError.NotFound);
+        (await Service().BreakdownAsync(Erika, 2026, CancellationToken.None))!.EffectiveDays.ShouldBe(25m);
+    }
+
+    [Theory]
+    [InlineData(-1, 2026)]
+    [InlineData(400, 2026)]
+    [InlineData(20, 1999)]
+    public async Task A_change_of_the_entitlement_must_be_sensible(int days, int year) =>
+        (await Service().AddEntitlementChangeAsync(Erika, new DateOnly(year, 7, 1), days, Max, CancellationToken.None)).Error.ShouldBe(AbsenceError.InvalidPeriod);
+
+    [Fact]
+    public async Task A_change_of_the_entitlement_of_an_unknown_person_is_refused() =>
+        (await Service().AddEntitlementChangeAsync(Guid.NewGuid(), D("2026-07-01"), 20, Max, CancellationToken.None)).Error.ShouldBe(AbsenceError.UnknownPerson);
+
+    [Fact]
+    public async Task The_rounding_rule_from_HR_decides_the_pro_rata_days_of_the_year_of_joining()
+    {
+        _time = new FakeTimeProvider(new DateTimeOffset(2026, 12, 1, 9, 0, 0, TimeSpan.Zero));
+        _people.People[Erika] = _people.People[Erika] with { EntryDate = D("2026-12-01") };
+        _entitlements.Days[(Erika, 2026)] = 25;
+
+        (await Service().BreakdownAsync(Erika, 2026, CancellationToken.None))!.ContractualDays.ShouldBe(2.5m); // 2.083 rounded up to half days (default)
+        await Service().SetVacationRulesAsync(new VacationRules(null, null, 0, WaitingPeriodMode.Accrued, ProRataRounding.Down, 0.5m), Max, CancellationToken.None);
+        (await Service().BreakdownAsync(Erika, 2026, CancellationToken.None))!.ContractualDays.ShouldBe(2m);
+        await Service().SetVacationRulesAsync(new VacationRules(null, null, 0, WaitingPeriodMode.Accrued, ProRataRounding.Up, 1m), Max, CancellationToken.None);
+        (await Service().BreakdownAsync(Erika, 2026, CancellationToken.None))!.ContractualDays.ShouldBe(3m);
     }
 
     [Fact]

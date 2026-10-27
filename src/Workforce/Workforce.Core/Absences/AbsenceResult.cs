@@ -37,6 +37,7 @@ public enum AbsenceError
     InvalidRetention = 16,
     InvalidReminderSettings = 17,
     InvalidVacationRules = 18,
+    WaitingPeriod = 19,
 }
 
 public sealed record AbsenceResult(AbsenceError Error, Absence? Absence = null)

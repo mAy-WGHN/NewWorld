@@ -19,8 +19,23 @@ public sealed class VacationRulesRecord
     public int Id { get; set; } = 1;
     public int? ExpiryMonth { get; set; }
     public int? ExpiryDay { get; set; }
+    public int WaitingPeriodMonths { get; set; }
+    public Workforce.Core.Absences.WaitingPeriodMode WaitingMode { get; set; } = Workforce.Core.Absences.WaitingPeriodMode.Accrued;
+    public Workforce.Core.Absences.ProRataRounding Rounding { get; set; } = Workforce.Core.Absences.ProRataRounding.Up;
+    public decimal RoundingStep { get; set; } = 0.5m;
     public DateTimeOffset ChangedAt { get; set; }
     public Guid ChangedBy { get; set; }
+}
+
+/// <summary>A change of the annual entitlement during a year (other working days per week etc.), entered by HR.</summary>
+public sealed class EntitlementChangeRecord
+{
+    public Guid Id { get; set; }
+    public Guid EmployeeId { get; set; }
+    public DateOnly EffectiveFrom { get; set; }
+    public decimal AnnualDays { get; set; }
+    public Guid CreatedBy { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
 }
 
 public sealed class EntitlementRecord

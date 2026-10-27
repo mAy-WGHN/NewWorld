@@ -36,10 +36,23 @@ public sealed record ExtraDaysLineDto(Guid Id, string Kind, int Year, decimal Da
 /// <summary>Additional vacation days (leftover or special leave) of a person.</summary>
 public sealed record ExtraVacationDto(Guid Id, string Kind, int Year, decimal Days, DateOnly UsableFrom, DateOnly? ExpiresOn);
 
-/// <summary>When additional vacation days expire; month and day empty = they never expire (the default).</summary>
-public sealed record VacationRulesDto(int? ExtraDaysExpiryMonth, int? ExtraDaysExpiryDay, bool IsDefault, DateTimeOffset? ChangedAt, Guid? ChangedBy);
+/// <summary>
+/// The vacation rules HR maintains for everybody. Expiry of additional days: month and day empty = they never expire (default).
+/// Waiting period: months after the entry (0 = none) and mode <c>Accrued</c> (only days earned so far) or <c>Blocked</c> (no vacation).
+/// Rounding of pro rata days: <c>Up</c> (default), <c>Nearest</c>, <c>Down</c>, <c>None</c>, in steps of 0.5 or 1 day.
+/// </summary>
+public sealed record VacationRulesDto(
+    int? ExtraDaysExpiryMonth, int? ExtraDaysExpiryDay, int WaitingPeriodMonths, string WaitingPeriodMode, string ProRataRounding, decimal ProRataRoundingStep,
+    bool IsDefault, DateTimeOffset? ChangedAt, Guid? ChangedBy);
 
-public sealed record SetVacationRulesRequest(int? ExtraDaysExpiryMonth, int? ExtraDaysExpiryDay);
+/// <summary>Replaces all rules; what is left out gets the default (nothing expires, no waiting period, rounding up to half days).</summary>
+public sealed record SetVacationRulesRequest(
+    int? ExtraDaysExpiryMonth, int? ExtraDaysExpiryDay, int? WaitingPeriodMonths, string? WaitingPeriodMode, string? ProRataRounding, decimal? ProRataRoundingStep);
+
+/// <summary>A change of the annual vacation entitlement during a year (e.g. other working days per week); applies from the month after the date, or from the date if it is the first of a month.</summary>
+public sealed record EntitlementChangeDto(Guid Id, DateOnly EffectiveFrom, decimal AnnualDays);
+
+public sealed record AddEntitlementChangeRequest(DateOnly EffectiveFrom, decimal AnnualDays);
 
 public sealed record AddExtraVacationRequest(string Kind, int Year, decimal Days);
 

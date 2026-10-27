@@ -68,6 +68,7 @@ public static class VacationAccount
     /// requested period when a request is checked (days that expire before it cannot cover it).
     /// </param>
     /// <param name="calendar">Working days of the person.</param>
+    /// <param name="changes">Changes of the annual entitlement during the year (other working days per week etc.).</param>
     public static VacationBreakdown Compute(
         int year,
         decimal contractualAnnualDays,
@@ -77,11 +78,12 @@ public static class VacationAccount
         IEnumerable<VacationBooking> bookings,
         DateOnly today,
         DateOnly asOf,
-        WorkCalendar calendar)
+        WorkCalendar calendar,
+        IReadOnlyList<EntitlementChange>? changes = null)
     {
         var yearStart = new DateOnly(year, 1, 1);
         var yearEnd = new DateOnly(year, 12, 31);
-        var contractual = VacationEntitlement.Contractual(contractualAnnualDays, entryDate, year);
+        var contractual = VacationEntitlement.Contractual(contractualAnnualDays, entryDate, year, rules, changes);
 
         // Additional days whose usable window touches the year, the earlier expiring ones first.
         var relevant = extras

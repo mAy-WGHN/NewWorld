@@ -18,7 +18,10 @@ Stand 2026-10-27, Entscheidung 24 in `CLAUDE.md`. Code: `Workforce.Core/Absences
 4. **Effektive Urlaubstage** = vertragliche Tage + Zusatztage, die noch zählen (zu Jahresbeginn vorhanden, abzüglich verfallener Reste).
 5. **Genommen** = genehmigter Urlaub vor heute, **geplant** = genehmigt ab heute plus beantragt; **Rest** = effektive Tage − genommen − geplant (kann negativ werden, wenn der Vertrag nachträglich gesenkt wird).
 6. **Antrag prüfen**: Der Antrag wird wie gebucht gerechnet; Zusatztage, die vor dem Ende des beantragten Zeitraums verfallen, zählen für ihn nicht (der unverbrauchte Rest ist dann verloren). Ein Antrag im April kann also nicht auf Resturlaub bauen, der am 31.3. verfällt.
-7. Arbeitstage zählen nach dem Kalender der Person (Mo–Sa, Feiertage je Bundesland/Filiale, Filialen mit Feiertagsöffnung siehe Entscheidung 23).
+7. **Rundung anteiliger Tage** (Eintrittsjahr, Änderungen im Jahr): Standard aufrunden auf halbe Tage; HR kann `Up`, `Nearest`, `Down` oder `None` mit Schritt 0,5 oder 1 wählen. Ein volles Jahr ohne Änderung bleibt, wie eingegeben, ungerundet.
+8. **Änderung des Jahresanspruchs im Jahr** (z. B. 30 → 25 bei Wechsel von 6 auf 5 Tage): HR trägt Datum und neuen Jahresanspruch ein (`vacation-entitlement-changes`). Ab dem 1. des Monats; liegt das Datum mitten im Monat, ab dem Folgemonat; nur im Jahr des Datums. Anspruch des Jahres = Summe der jeweils geltenden Jahreswerte je Monat ÷ 12 (nur Monate der Beschäftigung), gerundet nach Regel 7, höchstens der höchste Jahreswert. Beispiel: 25 bis Juni, 20 ab Juli → (25 × 6 + 20 × 6) / 12 = 22,5.
+9. **Wartezeit** (HR: Monate, Modus): Vor Ablauf (Eintritt + Monate) prüft ein Antrag: `Blocked` = kein Urlaub; `Accrued` = beantragte plus bereits gebuchte Tage dürfen die bis dahin erworbenen nicht übersteigen (Jahresanspruch ÷ 12 × vollendete Monate seit Eintritt, Monat vollendet am Tag des Eintrittstages, gerundet nach Regel 7). Standard: keine Wartezeit. Das angezeigte Konto bleibt unverändert.
+10. Arbeitstage zählen nach dem Kalender der Person (Mo–Sa, Feiertage je Bundesland/Filiale, Filialen mit Feiertagsöffnung siehe Entscheidung 23).
 
 ## Beispiele (aus dem Code berechnet)
 
@@ -47,6 +50,6 @@ Im Februar verbrauchen die 3 Tage zuerst den Resturlaub (3 von 4); das eine übr
 
 ## Nicht umgesetzt / offen
 
-- Anteiliger Anspruch bei **Austritt** im Jahr und **Wartezeit** (BUrlG) sind nicht gebaut.
-- Die Umrechnung des Anspruchs bei Wechsel der Wochentage (z. B. 6 = 30 / 5 = 25 oder 6 = 28 / 5 = 23,5) trägt HR als fertigen Jahresanspruch ein.
+- Anteiliger Anspruch bei **Austritt** im Jahr ist nicht gebaut (Regeln werden mit der Personalabteilung geklärt).
+- Die Umrechnung des Anspruchs bei Wechsel der Wochentage (z. B. 6 = 30 / 5 = 25 oder 6 = 28 / 5 = 23,5) rechnet das System nicht selbst: HR trägt den neuen Jahresanspruch als Änderung (Regel 8) ein.
 - Bereits vorhandene Personenkopien haben noch kein Eintrittsdatum, bis BC Integration die Person erneut meldet; bis dahin gilt der volle Jahresanspruch.

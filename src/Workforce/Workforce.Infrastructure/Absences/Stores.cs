@@ -66,9 +66,28 @@ public sealed class EfExtraVacationStore(WorkforceDbContext db) : IExtraVacation
         return true;
     }
 
+    public async Task<IReadOnlyList<EntitlementChange>> ChangesAsync(Guid employeeId, CancellationToken cancellationToken) =>
+        (await db.EntitlementChanges.AsNoTracking().Where(e => e.EmployeeId == employeeId).OrderBy(e => e.EffectiveFrom).ThenBy(e => e.Id).ToListAsync(cancellationToken))
+            .Select(e => new EntitlementChange(e.Id, e.EffectiveFrom, e.AnnualDays)).ToList();
+
+    public void AddChange(Guid employeeId, EntitlementChange change, Guid createdBy, DateTimeOffset at) =>
+        db.EntitlementChanges.Add(new EntitlementChangeRecord { Id = change.Id, EmployeeId = employeeId, EffectiveFrom = change.EffectiveFrom, AnnualDays = change.AnnualDays, CreatedBy = createdBy, CreatedAt = at });
+
+    public async Task<bool> RemoveChangeAsync(Guid employeeId, Guid id, CancellationToken cancellationToken)
+    {
+        var row = await db.EntitlementChanges.FirstOrDefaultAsync(e => e.Id == id && e.EmployeeId == employeeId, cancellationToken);
+        if (row is null)
+        {
+            return false;
+        }
+
+        db.EntitlementChanges.Remove(row);
+        return true;
+    }
+
     public async Task<VacationRulesSetting?> GetRulesAsync(CancellationToken cancellationToken) =>
         await db.VacationRules.AsNoTracking().Where(v => v.Id == 1)
-            .Select(v => new VacationRulesSetting(new VacationRules(v.ExpiryMonth, v.ExpiryDay), v.ChangedAt, v.ChangedBy))
+            .Select(v => new VacationRulesSetting(new VacationRules(v.ExpiryMonth, v.ExpiryDay, v.WaitingPeriodMonths, v.WaitingMode, v.Rounding, v.RoundingStep), v.ChangedAt, v.ChangedBy))
             .FirstOrDefaultAsync(cancellationToken);
 
     public async Task SetRulesAsync(VacationRulesSetting setting, CancellationToken cancellationToken)
@@ -82,6 +101,10 @@ public sealed class EfExtraVacationStore(WorkforceDbContext db) : IExtraVacation
 
         row.ExpiryMonth = setting.Rules.ExpiryMonth;
         row.ExpiryDay = setting.Rules.ExpiryDay;
+        row.WaitingPeriodMonths = setting.Rules.WaitingPeriodMonths;
+        row.WaitingMode = setting.Rules.WaitingMode;
+        row.Rounding = setting.Rules.Rounding;
+        row.RoundingStep = setting.Rules.RoundingStep;
         row.ChangedAt = setting.ChangedAt;
         row.ChangedBy = setting.ChangedBy;
     }

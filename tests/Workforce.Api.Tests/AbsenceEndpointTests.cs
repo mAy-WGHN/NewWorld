@@ -113,6 +113,70 @@ public sealed class AbsenceEndpointTests(PostgresFixture postgres) : IClassFixtu
     }
 
     [Fact]
+    public async Task HR_maintains_waiting_period_and_rounding_through_the_rules()
+    {
+        await using var api = await StartAsync(postgres);
+        (await api.GetAsync<VacationRulesDto>("/api/vacation-rules", Hanna)).ShouldSatisfyAllConditions(
+            r => r.WaitingPeriodMonths.ShouldBe(0), r => r.WaitingPeriodMode.ShouldBe("Accrued"), r => r.ProRataRounding.ShouldBe("Up"), r => r.ProRataRoundingStep.ShouldBe(0.5m));
+
+        foreach (var invalid in new object[]
+        {
+            new { waitingPeriodMonths = 30 }, new { waitingPeriodMonths = -1 }, new { waitingPeriodMode = "Nonsense" },
+            new { proRataRounding = "Sideways" }, new { proRataRoundingStep = 0.25 }, new { proRataRoundingStep = 2 },
+        })
+        {
+            (await api.SendAsync(HttpMethod.Put, "/api/vacation-rules", Hanna, invalid)).StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+        }
+
+        using var set = await api.SendAsync(HttpMethod.Put, "/api/vacation-rules", Hanna, new { waitingPeriodMonths = 6, waitingPeriodMode = "Blocked", proRataRounding = "Nearest", proRataRoundingStep = 1 });
+        set.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var saved = (await set.Content.ReadFromJsonAsync<VacationRulesDto>())!;
+        (saved.WaitingPeriodMonths, saved.WaitingPeriodMode, saved.ProRataRounding, saved.ProRataRoundingStep, saved.IsDefault).ShouldBe((6, "Blocked", "Nearest", 1m, false));
+
+        // Erika joins on 1 October: rounding to whole days (25 / 12 * 3 = 6.25 -> 6) and no vacation during the first six months.
+        await api.DeliverAsync(new BcIntegration.Contracts.EmployeeChanged(
+            Guid.NewGuid(), Guid.NewGuid(), Start, Erika, "10042", "Erika Mustermann", StoreA, null, null, null, new DateOnly(2026, 10, 1), null));
+        (await api.SendAsync(HttpMethod.Put, $"/api/employees/{Erika}/vacation-entitlements/2026", Hanna, new SetEntitlementRequest(25))).StatusCode.ShouldBe(HttpStatusCode.NoContent);
+        (await api.GetAsync<VacationBalanceDto>("/api/me/vacation-balance?year=2026", Erika)).Entitlement.ShouldBe(6m);
+        (await api.SendAsync(HttpMethod.Post, "/api/me/absences/vacation", Erika, new RequestVacationRequest(new DateOnly(2026, 11, 2), new DateOnly(2026, 11, 3)))).StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+
+        // HR drops the waiting period: the same request goes through.
+        (await api.SendAsync(HttpMethod.Put, "/api/vacation-rules", Hanna, new { proRataRounding = "Nearest", proRataRoundingStep = 1 })).StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await api.SendAsync(HttpMethod.Post, "/api/me/absences/vacation", Erika, new RequestVacationRequest(new DateOnly(2026, 11, 2), new DateOnly(2026, 11, 3)))).StatusCode.ShouldBe(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task Changes_of_the_annual_entitlement_are_maintained_by_HR_and_change_the_contractual_days()
+    {
+        await using var api = await StartAsync(postgres);
+        var url = $"/api/employees/{Erika}/vacation-entitlement-changes";
+        (await api.SendAsync(HttpMethod.Put, $"/api/employees/{Erika}/vacation-entitlements/2026", Hanna, new SetEntitlementRequest(25))).StatusCode.ShouldBe(HttpStatusCode.NoContent);
+
+        foreach (var person in new Guid?[] { Max, Erika, null })
+        {
+            var expected = person is null ? HttpStatusCode.Unauthorized : HttpStatusCode.Forbidden;
+            (await api.SendAsync(HttpMethod.Get, url, person)).StatusCode.ShouldBe(expected);
+            (await api.SendAsync(HttpMethod.Post, url, person, new { effectiveFrom = "2026-07-01", annualDays = 20 })).StatusCode.ShouldBe(expected);
+            (await api.SendAsync(HttpMethod.Delete, $"{url}/{Guid.NewGuid()}", person)).StatusCode.ShouldBe(expected);
+        }
+
+        (await api.SendAsync(HttpMethod.Post, url, Hanna, new { effectiveFrom = "2026-07-01", annualDays = -1 })).StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+        using var created = await api.SendAsync(HttpMethod.Post, url, Hanna, new { effectiveFrom = "2026-07-01", annualDays = 20 });
+        created.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var change = (await created.Content.ReadFromJsonAsync<EntitlementChangeDto>())!;
+        (change.EffectiveFrom, change.AnnualDays).ShouldBe((new DateOnly(2026, 7, 1), 20m));
+        (await api.GetAsync<List<EntitlementChangeDto>>(url, Hanna)).ShouldHaveSingleItem().Id.ShouldBe(change.Id);
+
+        // 25 days until June, 20 from July: (25 * 6 + 20 * 6) / 12 = 22.5
+        var balance = await api.GetAsync<VacationBalanceDto>("/api/me/vacation-balance?year=2026", Erika);
+        (balance.ContractualAnnualDays, balance.ContractualDays, balance.Entitlement).ShouldBe((25m, 22.5m, 22.5m));
+
+        (await api.SendAsync(HttpMethod.Delete, $"{url}/{change.Id}", Hanna)).StatusCode.ShouldBe(HttpStatusCode.NoContent);
+        (await api.SendAsync(HttpMethod.Delete, $"{url}/{change.Id}", Hanna)).StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        (await api.GetAsync<VacationBalanceDto>("/api/me/vacation-balance?year=2026", Erika)).Entitlement.ShouldBe(25m);
+    }
+
+    [Fact]
     public async Task The_year_of_joining_is_pro_rata_from_the_entry_date_in_bc()
     {
         await using var api = await StartAsync(postgres);

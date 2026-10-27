@@ -437,6 +437,42 @@ namespace Workforce.Infrastructure.Migrations
                     b.ToTable("certificate_documents", "workforce");
                 });
 
+            modelBuilder.Entity("Workforce.Infrastructure.Absences.EntitlementChangeRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal>("AnnualDays")
+                        .HasPrecision(6, 2)
+                        .HasColumnType("numeric(6,2)")
+                        .HasColumnName("annual_days");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateOnly>("EffectiveFrom")
+                        .HasColumnType("date")
+                        .HasColumnName("effective_from");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("employee_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_entitlement_changes");
+
+                    b.HasIndex("EmployeeId")
+                        .HasDatabaseName("ix_entitlement_changes_employee_id");
+
+                    b.ToTable("entitlement_changes", "workforce");
+                });
+
             modelBuilder.Entity("Workforce.Infrastructure.Absences.EntitlementRecord", b =>
                 {
                     b.Property<Guid>("EmployeeId")
@@ -521,6 +557,33 @@ namespace Workforce.Infrastructure.Migrations
                     b.Property<int?>("ExpiryMonth")
                         .HasColumnType("integer")
                         .HasColumnName("expiry_month");
+
+                    b.Property<string>("Rounding")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("Up")
+                        .HasColumnName("rounding");
+
+                    b.Property<decimal>("RoundingStep")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(3, 1)
+                        .HasColumnType("numeric(3,1)")
+                        .HasDefaultValue(0.5m)
+                        .HasColumnName("rounding_step");
+
+                    b.Property<string>("WaitingMode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("Accrued")
+                        .HasColumnName("waiting_mode");
+
+                    b.Property<int>("WaitingPeriodMonths")
+                        .HasColumnType("integer")
+                        .HasColumnName("waiting_period_months");
 
                     b.HasKey("Id")
                         .HasName("pk_vacation_rules");
