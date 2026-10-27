@@ -1,6 +1,6 @@
 # Mitarbeiterkarte (Entwurf)
 
-Stand 2026-10-27. **Entwurf, nichts davon ist gebaut.** Ziel: neue Mitarbeitende werden künftig im neuen Tool angelegt, mit **einer** gesammelten Mitarbeiterkarte statt zwei getrennter Listen. Danach müssen die Daten nach BC fließen; das wird jetzt nur mitgedacht, nicht gebaut.
+Stand 2026-10-27. **Entscheidungen vom Projektverantwortlichen sind eingearbeitet (siehe „Entschieden“); gebaut wird in Schritten (unten).** Ziel: neue Mitarbeitende werden künftig im neuen Tool angelegt, mit **einer** gesammelten Mitarbeiterkarte statt zwei getrennter Listen. Danach müssen die Daten nach BC fließen; das wird jetzt nur mitgedacht, nicht gebaut.
 
 ## Quellen
 
@@ -36,11 +36,10 @@ Abschnitte so, wie HR sie ausfüllt. „Q“ = Quelle: **P** Personalplanung, **
 | | Anstellungsdatum, Austrittsdatum | D | Anstellungsdatum steuert den anteiligen Urlaub |
 | | Vorgesetzter | D | per Personalnummer; die Zuständigkeiten für Genehmigungen bleiben in Access (Entscheidung 13) |
 | | Bemerkung | P | Freitext, **keine** Gesundheitsangaben (Datenschutz-Regel) |
-| Kasse | Kasse Schnittstellenprofil, Kasse Menüprofil, POS Stilprofil, Manager Benutzerrechte | K | in deiner Aufzählung nicht genannt; übernehmen? |
-| | Berechtigungsgruppe | K, D | |
+| Beschäftigung | Berechtigungsgruppe | K, D | Auswahlliste |
 | Zeiterfassung / Export | Web-Zeiterfassung erlaubt | D | Standard **ja** (das HR-Tool braucht das Flag für die Stempelung) |
 | | QTrado-Export | D | Flag |
-| Anmeldung | Passwort, „Passwort muss geändert werden“ | D | **Konflikt** mit Entscheidung 13/19, siehe offene Fragen |
+| Anmeldung | „Kennwort ändern“ | D | nur das Flag (Standard ja); das Kennwort selbst wird nie gespeichert (Entschieden 2) |
 
 ## Personalnummer und Nummernkreis
 
@@ -68,13 +67,60 @@ Jede Person bekommt beim Anlegen drei Konten:
 - **Rechte:** Anlegen und Ändern nur mit eigenen Rechten (z. B. `employee:create`, `employee:update`, `employee:read-private`), je mit Beschreibung und Filial-Scope, Vergabe später in Access.
 - **Fluss nach BC (später):** Karte angelegt → Zustand `PendingBc` → Befehl an BC Integration (neue Nachricht, **braucht Freigabe**, Queue nur von BC Integration lesbar) → BC legt die Person mit der vergebenen Nummer an → `BcSyncSucceeded`/`BcSyncFailed` → danach fließt `EmployeeChanged` wie bisher. Voraussetzung in BC: Nummer von außen vorgebbar, Feldliste für die Anlage (`TODO(BC-Modell)`).
 
+## Entschieden (2026-10-27)
+
+1. **Workforce besitzt die Karte** (eigener Bereich `Employees/`). Bestehende Personen bleiben BC-Kopien, neu angelegte sind bis zur Übernahme durch BC im Tool die Quelle.
+2. **Passwort:** Es wird nirgends gespeichert, auch nicht verschlüsselt. In BC ist das Kennwort ein reines Überschreiben-Feld; das Tool verhält sich gleich: die Karte führt nur das Flag „Kennwort ändern“ (Standard ja). Wie die Start-PIN beim Übertragen nach BC gesetzt wird, ohne dass sie je in der Datenbank oder im Outbox-Eintrag steht, wird beim Bau des BC-Flusses entschieden (zum Beispiel erzeugt BC Integration sie bei der Anlage und zeigt sie HR einmalig).
+3. **Kassenprofile** (Schnittstellen-, Menü-, Stilprofil, Manager-Benutzerrechte) kommen **nicht** auf die Karte: bei Benutzern sind sie nicht gepflegt. Später additiv möglich.
+4. **Auswahlfelder:** Funktion, Rolle, Region, Arbeitsort, Beschäftigungsverhältniscode, Arbeitsverhältnis, Berechtigungsgruppe und Lohnart sind **Auswahllisten**, die HR pflegt (Einträge nur deaktivieren, nicht löschen). In BC sind einige davon heute Freitext.
+5. **Sichtbarkeit:** Die **Lohnart** sehen nur HR, Admin und Geschäftsführung (eigenes Recht). **Private Daten** (Adresse, Telefon, private E-Mail, Geburtsdatum, Geschlecht) sehen dieselben **und die Person selbst**; die Person kann Änderungen **beantragen**, HR wird benachrichtigt und entscheidet (Schritt 2).
+6. **Nicht-Verfügbarkeit** ist die Liste, an der die Dienstpläne hängen (siehe unten), **Urlaubskonto** nur der Anspruch und sein Verbrauch.
+7. Das **Überstundenkonto** heißt **Arbeitszeitkonto** (siehe unten).
+
+## Nicht-Verfügbarkeit
+
+Die Liste „Nichtverfügbarkeitsarten“ hat 25 Einträge mit den Spalten **Code, Beschreibung, Bezahlte Zeit (0/1), Zeitplan Zeichen, Arbeitscode setzen** (leer): zum Beispiel KRANK (K), URLAUB (U), KRANK I URLAUB (KU), ELTERNZEIT (EZ), FREI (FT), MUTTERSCHUTZ (MS, bezahlt), UB (unwiderruflich bezahlte Freistellung, bezahlt), UNENTSCHULDIGT (UE), UNBEZ. U (UBE), SONDERURLAUB (SU), FORTBILDUNG (FB), PRÜFUNG (P, bezahlt) und weitere. Sie sind die **Ursachen, weshalb jemand nicht zur Arbeit erscheint**.
+
+Sie beeinflussen den Dienstplan (Dienstplanung selbst ist noch nicht gebaut, die Schnittstelle ist vorbereitet):
+- Hat eine Person für einen Tag eine Nicht-Verfügbarkeit **und** dort eine Schicht, wird die Schicht als **nicht abgedeckt** markiert (`ShiftUncovered`, im Katalog) und HR benachrichtigt.
+- Nach dem Tag steht im Dienstplan **nicht „leer“, sondern das Zeitplan-Zeichen** („war krank“: K), weil die Lohnabrechnung es braucht. Die Art trägt dafür „bezahlte Zeit“.
+- Die bestehenden Abwesenheiten (Krankmeldung, Urlaub) werden zu Nicht-Verfügbarkeiten dieser Arten; die Arten selbst werden als von HR pflegbare Liste geführt (Start: die 25 Einträge der Datei).
+
+## Arbeitszeitkonto
+
+Statt „Überstundenkonto“. Ein Konto je Person mit diesen Bestandteilen:
+
+| Bestandteil | Bedeutung |
+| --- | --- |
+| Sollarbeitszeit | vertraglich vereinbarte Stunden, z. B. 40 h/Woche |
+| Ist-Arbeitszeit | tatsächlich geleistete Stunden |
+| Überstunden | Stunden oberhalb der Sollarbeitszeit |
+| Minusstunden | Stunden unterhalb der Sollarbeitszeit |
+| Zeitguthaben | aktueller Saldo aus Plus- und Minusstunden |
+| Freizeitausgleich | Abbau durch freie Stunden oder Tage |
+| Auszahlung | vergütete Überstunden, vom Guthaben abgezogen |
+| Korrekturbuchungen | nachträgliche Änderungen, z. B. bei fehlerhafter Zeiterfassung |
+| Übertrag | Saldo aus dem vorherigen Abrechnungszeitraum |
+
+Regeln, alle von HR pflegbar:
+- **Auszahlungsschwelle:** Ab diesem Guthaben können Überstunden ausbezahlt werden. Bei **Austritt** wird das Restguthaben **immer** ausbezahlt, auch unter der Schwelle.
+- **Verfall:** Überstunden tragen das **Datum ihrer Erfassung**, damit sie verfallen können. Die Frist ist ein pflegbarer Schwellwert, **Standard: nichts verfällt**. Verbrauch wie bei Zusatzurlaub: ältere zuerst.
+- Ist- und Sollzeit kommen später aus der Zeiterfassung (nicht Teil dieses Vorhabens); bis dahin gibt es das Konto mit **Anfangsbestand** und manuellen Buchungen.
+
+## Schritte
+
+| Schritt | Inhalt | Stand |
+| --- | --- | --- |
+| 1 | Karte: Felder, Anlegen mit Personalnummer aus dem Nummernkreis, Auswahllisten, Lesen mit Datenschutz-Stufen, Urlaubsanspruch beim Anlegen | **gebaut** (Entscheidung 29) |
+| 2 | Änderungsanträge der Person für private Daten, HR-Benachrichtigung und Entscheidung | geplant |
+| 3 | Nicht-Verfügbarkeit: pflegbare Arten (Start: 25 aus der Liste), Einträge je Person, Anbindung der Abwesenheiten, Hinweis „nicht abgedeckt“ | geplant |
+| 4 | Arbeitszeitkonto mit Schwellen für Auszahlung und Verfall | geplant |
+| 5 | Übertragung nach BC (neue Nachricht, Start-PIN, Feldliste) | braucht Freigabe und BC-Modell |
+
 ## Offene Fragen
 
-1. **Passwort/PIN:** Die Anmeldung läuft über Personalnummer + BC-PIN, die BC selbst prüft (Entscheidung 19). Ein Passwort im Tool zu speichern widerspricht dem; ich würde **kein Passwort speichern**. Wo wird die Start-PIN einer neuen Person gesetzt (in BC), und wo ändert die Person sie später? Das Flag „muss geändert werden“ kann nur gelten, wenn es dafür einen Ort gibt.
-2. **Besitz:** Workforce als Besitzer der Karte für neue Personen, wie oben?
-3. **Kassendaten:** Kommen die vier Kassen-Felder (Schnittstellenprofil, Menüprofil, POS Stilprofil, Manager Benutzerrechte) mit auf die Karte?
-4. **Nicht-Verfügbarkeitskonto:** Was genau wird darauf geführt?
-5. **Überstundenkonto:** Nur Konto mit Anfangsbestand und manueller Buchung?
-6. **Region, Rolle, Arbeitsort, Beschäftigungsverhältniscode, Lohnart:** Sind das freie Texte, Auswahllisten aus BC oder von HR gepflegte Listen? (Auswahllisten würde ich als pflegbare Stammlisten bauen.)
-7. **Status:** nur abgeleitet (aktiv/ausgetreten) oder gibt es weitere Werte?
-8. **Format der Personalnummer** und der aktuelle Startwert des Nummernkreises.
+1. **Format der Personalnummer** und der aktuelle Startwert des Nummernkreises. Bis dahin: nur Ziffern, ohne Auffüllen, der Startwert ist leer und HR trägt die zuletzt vergebene Nummer ein; ohne ihn lässt sich niemand anlegen.
+2. **Vorgesetzter:** Die Karte speichert ihn über die Personalnummer. Die Zuständigkeit für Genehmigungen bleibt in Access; soll der Vorgesetzte der Karte zusätzlich etwas steuern?
+3. **Rolle** (Mitarbeiterliste): Was bedeutet sie fachlich? (Nicht die Rolle in Access.)
+4. **Lohnart:** Klasse 2 oder 3 (mit dem Datenschutzbeauftragten).
+5. **Arbeitszeitkonto:** Gilt der Verfall und die Auszahlungsschwelle für alle gleich, oder je Arbeitsverhältnis?

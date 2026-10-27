@@ -20,6 +20,14 @@ public sealed class EmployeeChangedHandler(WorkforceDbContext db) : IMessageHand
 
         person.Name = message.Name;
         // BC only suggests the main store; if Access has told us one, that one counts.
+        person.PersonnelNumber = message.PersonnelNumber;
+        // A number from BC above the last one given out raises the series, so that new employees never collide with people created in BC.
+        if (long.TryParse(message.PersonnelNumber, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var number)
+            && await db.PersonnelNumberSeries.FirstOrDefaultAsync(s => s.Id == 1, cancellationToken) is { } series && number > series.LastNumber)
+        {
+            series.LastNumber = number;
+        }
+
         person.BcHomeStoreId = message.HomeStoreId;
         person.HomeStoreId = (await db.MainStoreCopies.FindAsync([message.EmployeeId], cancellationToken))?.StoreId ?? message.HomeStoreId;
         person.ExitDate = message.ExitDate;
@@ -140,6 +148,10 @@ public sealed class EmployeeDataErasureRequestedHandler(
         await db.VacationRules.Where(v => v.ChangedBy == id).ExecuteUpdateAsync(s => s.SetProperty(v => v.ChangedBy, Guid.Empty), cancellationToken);
         await db.People.Where(p => p.EmployeeId == id).ExecuteDeleteAsync(cancellationToken);
         await db.MainStoreCopies.Where(m => m.EmployeeId == id).ExecuteDeleteAsync(cancellationToken);
+        await db.EmployeeCards.Where(c => c.EmployeeId == id).ExecuteDeleteAsync(cancellationToken);
+        await db.EmployeeCards.Where(c => c.CreatedBy == id).ExecuteUpdateAsync(s => s.SetProperty(c => c.CreatedBy, Guid.Empty), cancellationToken);
+        await db.EmployeeCards.Where(c => c.SupervisorId == id).ExecuteUpdateAsync(s => s.SetProperty(c => c.SupervisorId, (Guid?)null), cancellationToken);
+        await db.PersonnelNumberSeries.Where(s => s.ChangedBy == id).ExecuteUpdateAsync(s => s.SetProperty(x => x.ChangedBy, Guid.Empty), cancellationToken);
         await db.StoreSettings.Where(s => s.ChangedBy == id).ExecuteUpdateAsync(s => s.SetProperty(x => x.ChangedBy, Guid.Empty), cancellationToken);
         await db.ApproverCopies.Where(a => a.EmployeeId == id).ExecuteDeleteAsync(cancellationToken);
         foreach (var copy in await db.ApproverCopies.Where(a => a.ApproverIds.Contains(id)).ToListAsync(cancellationToken))

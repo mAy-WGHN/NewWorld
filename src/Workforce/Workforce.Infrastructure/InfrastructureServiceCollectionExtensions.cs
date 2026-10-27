@@ -45,6 +45,10 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IAbsenceStore, EfAbsenceStore>();
         services.AddScoped<IPeopleDirectory, EfPeopleDirectory>();
         services.AddScoped<IEntitlementStore, EfEntitlementStore>();
+        services.AddScoped<Workforce.Core.Employees.IEmployeeCardStore, Employees.EfEmployeeCardStore>();
+        services.AddScoped<Workforce.Core.Employees.IReferenceLists, Employees.EfReferenceLists>();
+        services.AddScoped<Workforce.Core.Employees.IPersonnelNumberSeries, Employees.EfPersonnelNumberSeries>();
+        services.AddScoped<Workforce.Core.Employees.EmployeeService>();
         services.AddScoped<IExtraVacationStore, EfExtraVacationStore>();
         services.AddScoped<IResponsibilityDirectory, EfResponsibilityDirectory>();
         services.AddScoped<IWorkforceMessages, OutboxWorkforceMessages>();
@@ -94,7 +98,7 @@ public static class InfrastructureServiceCollectionExtensions
         {
             services.AddCatalogRegistration(
                 configuration, AbsencePrivileges.AppKey,
-                [.. AbsencePrivileges.Catalog.Concat(CertificatePrivileges.Catalog).Select(p => new CatalogPrivilege(p.Key, p.Scopable, p.Description))]);
+                [.. AbsencePrivileges.Catalog.Concat(CertificatePrivileges.Catalog).Concat(Workforce.Core.Employees.EmployeePrivileges.Catalog).Select(p => new CatalogPrivilege(p.Key, p.Scopable, p.Description))]);
         }
 
         // Copies and results: subscriptions "workforce" on the topics (purpose: employee/store copies, approvers, BC sync status, erasure).

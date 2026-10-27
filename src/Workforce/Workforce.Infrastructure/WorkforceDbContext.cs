@@ -24,6 +24,9 @@ public sealed class WorkforceDbContext(DbContextOptions<WorkforceDbContext> opti
     public DbSet<StoreRecord> Stores => Set<StoreRecord>();
     public DbSet<ApproverCopyRecord> ApproverCopies => Set<ApproverCopyRecord>();
     public DbSet<StoreSettingsRecord> StoreSettings => Set<StoreSettingsRecord>();
+    public DbSet<Workforce.Core.Employees.EmployeeCard> EmployeeCards => Set<Workforce.Core.Employees.EmployeeCard>();
+    public DbSet<Workforce.Core.Employees.ReferenceEntry> ReferenceEntries => Set<Workforce.Core.Employees.ReferenceEntry>();
+    public DbSet<Employees.PersonnelNumberSeriesRecord> PersonnelNumberSeries => Set<Employees.PersonnelNumberSeriesRecord>();
     public DbSet<MainStoreCopyRecord> MainStoreCopies => Set<MainStoreCopyRecord>();
     public DbSet<CertificateDocument> CertificateDocuments => Set<CertificateDocument>();
     public DbSet<CertificateSettingsRecord> CertificateSettings => Set<CertificateSettingsRecord>();
@@ -122,6 +125,44 @@ public sealed class WorkforceDbContext(DbContextOptions<WorkforceDbContext> opti
         modelBuilder.Entity<CertificateSettingsRecord>(b =>
         {
             b.ToTable("certificate_settings");
+            b.HasKey(s => s.Id);
+            b.Property(s => s.Id).ValueGeneratedNever();
+        });
+        modelBuilder.Entity<Workforce.Core.Employees.EmployeeCard>(b =>
+        {
+            b.ToTable("employee_cards");
+            b.HasKey(c => c.EmployeeId);
+            b.Property(c => c.EmployeeId).ValueGeneratedNever();
+            b.Property(c => c.PersonnelNumber).HasMaxLength(20);
+            b.HasIndex(c => c.PersonnelNumber).IsUnique();
+            b.Property(c => c.FirstName).HasMaxLength(100);
+            b.Property(c => c.LastName).HasMaxLength(100);
+            b.Property(c => c.ReceiptName).HasMaxLength(100);
+            b.Property(c => c.Gender).HasConversion<string>().HasMaxLength(20);
+            b.Property(c => c.State).HasConversion<string>().HasMaxLength(20);
+            b.Property(c => c.Street).HasMaxLength(200);
+            b.Property(c => c.PostalCode).HasMaxLength(10);
+            b.Property(c => c.City).HasMaxLength(100);
+            b.Property(c => c.PrivatePhone).HasMaxLength(30);
+            b.Property(c => c.PrivateEmail).HasMaxLength(200);
+            b.Property(c => c.BusinessEmail).HasMaxLength(200);
+            b.Property(c => c.Note).HasMaxLength(1000);
+            b.Ignore(c => c.FullName);
+            b.HasIndex(c => c.MainStoreId);
+        });
+        modelBuilder.Entity<Workforce.Core.Employees.ReferenceEntry>(b =>
+        {
+            b.ToTable("reference_entries");
+            b.HasKey(e => e.Id);
+            b.Property(e => e.Id).ValueGeneratedNever();
+            b.Property(e => e.Kind).HasConversion<string>().HasMaxLength(30);
+            b.Property(e => e.Code).HasMaxLength(30);
+            b.Property(e => e.Name).HasMaxLength(100);
+            b.HasIndex(e => new { e.Kind, e.Code }).IsUnique();
+        });
+        modelBuilder.Entity<Employees.PersonnelNumberSeriesRecord>(b =>
+        {
+            b.ToTable("personnel_number_series");
             b.HasKey(s => s.Id);
             b.Property(s => s.Id).ValueGeneratedNever();
         });

@@ -2,6 +2,7 @@ using Access.Core.Acl;
 using Notifications.Core;
 using Workforce.Core.Absences;
 using Workforce.Core.Certificates;
+using Workforce.Core.Employees;
 
 namespace Architecture.Tests;
 
@@ -12,7 +13,7 @@ public class PrivilegeRulesTests
     public void Every_privilege_of_every_service_has_a_description()
     {
         var missing = AccessPrivileges.Catalog.Select(c => (c.Key, c.Description))
-            .Concat(AbsencePrivileges.Catalog.Concat(CertificatePrivileges.Catalog).Select(c => (c.Key, c.Description)))
+            .Concat(AbsencePrivileges.Catalog.Concat(CertificatePrivileges.Catalog).Concat(EmployeePrivileges.Catalog).Select(c => (c.Key, c.Description)))
             .Concat(NotificationPrivileges.Catalog.Select(c => (c.Key, c.Description)))
             .Where(c => string.IsNullOrWhiteSpace(c.Description))
             .Select(c => c.Key)
@@ -25,7 +26,7 @@ public class PrivilegeRulesTests
     public void Descriptions_fit_the_column_and_keys_are_unique()
     {
         var all = AccessPrivileges.Catalog.Select(c => (c.Key, c.Description))
-            .Concat(AbsencePrivileges.Catalog.Concat(CertificatePrivileges.Catalog).Select(c => (c.Key, c.Description)))
+            .Concat(AbsencePrivileges.Catalog.Concat(CertificatePrivileges.Catalog).Concat(EmployeePrivileges.Catalog).Select(c => (c.Key, c.Description)))
             .Concat(NotificationPrivileges.Catalog.Select(c => (c.Key, c.Description)))
             .ToList();
 

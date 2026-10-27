@@ -90,7 +90,7 @@ public sealed class WorkforceApi : WebApplicationFactory<ApiMarker>
         Grant(Max, StoreManager(StoreA, Erika, Ben, Max));
         Grant(Lena, StoreManager(StoreB, Lena));
         // HR: everywhere.
-        Grant(Hanna, [.. AbsencePrivileges.Catalog.Concat(CertificatePrivileges.Catalog).Select(c => TestGrant.Everywhere(c.Key))]);
+        Grant(Hanna, [.. AbsencePrivileges.Catalog.Concat(CertificatePrivileges.Catalog).Concat(Workforce.Core.Employees.EmployeePrivileges.Catalog).Select(c => TestGrant.Everywhere(c.Key))]);
     }
 
     private static TestGrant[] StoreManager(Guid store, params Guid[] employees) =>

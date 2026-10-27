@@ -437,6 +437,210 @@ namespace Workforce.Infrastructure.Migrations
                     b.ToTable("certificate_documents", "workforce");
                 });
 
+            modelBuilder.Entity("Workforce.Core.Employees.EmployeeCard", b =>
+                {
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("employee_id");
+
+                    b.Property<Guid?>("AuthorizationGroupId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("authorization_group_id");
+
+                    b.Property<DateOnly?>("BirthDate")
+                        .HasColumnType("date")
+                        .HasColumnName("birth_date");
+
+                    b.Property<string>("BusinessEmail")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("business_email");
+
+                    b.Property<string>("City")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("city");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<Guid?>("EmploymentCodeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("employment_code_id");
+
+                    b.Property<Guid?>("EmploymentRelationshipId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("employment_relationship_id");
+
+                    b.Property<DateOnly?>("ExitDate")
+                        .HasColumnType("date")
+                        .HasColumnName("exit_date");
+
+                    b.Property<string>("FirstName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("first_name");
+
+                    b.Property<Guid?>("FunctionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("function_id");
+
+                    b.Property<string>("Gender")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("gender");
+
+                    b.Property<DateOnly>("HireDate")
+                        .HasColumnType("date")
+                        .HasColumnName("hire_date");
+
+                    b.Property<string>("LastName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("last_name");
+
+                    b.Property<Guid?>("MainStoreId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("main_store_id");
+
+                    b.Property<DateTimeOffset>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("modified_at");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("note");
+
+                    b.Property<bool>("PasswordChangeRequired")
+                        .HasColumnType("boolean")
+                        .HasColumnName("password_change_required");
+
+                    b.Property<string>("PersonnelNumber")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("personnel_number");
+
+                    b.Property<string>("PostalCode")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("postal_code");
+
+                    b.Property<string>("PrivateEmail")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("private_email");
+
+                    b.Property<string>("PrivatePhone")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("private_phone");
+
+                    b.Property<bool>("QtradoExport")
+                        .HasColumnType("boolean")
+                        .HasColumnName("qtrado_export");
+
+                    b.Property<string>("ReceiptName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("receipt_name");
+
+                    b.Property<Guid?>("RegionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("region_id");
+
+                    b.Property<Guid?>("RoleId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("role_id");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("state");
+
+                    b.Property<string>("Street")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("street");
+
+                    b.Property<Guid?>("SupervisorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("supervisor_id");
+
+                    b.Property<Guid?>("WageTypeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("wage_type_id");
+
+                    b.Property<bool>("WebTimeTrackingAllowed")
+                        .HasColumnType("boolean")
+                        .HasColumnName("web_time_tracking_allowed");
+
+                    b.Property<Guid?>("WorkplaceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("workplace_id");
+
+                    b.HasKey("EmployeeId")
+                        .HasName("pk_employee_cards");
+
+                    b.HasIndex("MainStoreId")
+                        .HasDatabaseName("ix_employee_cards_main_store_id");
+
+                    b.HasIndex("PersonnelNumber")
+                        .IsUnique()
+                        .HasDatabaseName("ix_employee_cards_personnel_number");
+
+                    b.ToTable("employee_cards", "workforce");
+                });
+
+            modelBuilder.Entity("Workforce.Core.Employees.ReferenceEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("code");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.HasKey("Id")
+                        .HasName("pk_reference_entries");
+
+                    b.HasIndex("Kind", "Code")
+                        .IsUnique()
+                        .HasDatabaseName("ix_reference_entries_kind_code");
+
+                    b.ToTable("reference_entries", "workforce");
+                });
+
             modelBuilder.Entity("Workforce.Infrastructure.Absences.EntitlementChangeRecord", b =>
                 {
                     b.Property<Guid>("Id")
@@ -647,6 +851,30 @@ namespace Workforce.Infrastructure.Migrations
                     b.ToTable("certificate_settings", "workforce");
                 });
 
+            modelBuilder.Entity("Workforce.Infrastructure.Employees.PersonnelNumberSeriesRecord", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("ChangedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("changed_at");
+
+                    b.Property<Guid>("ChangedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("changed_by");
+
+                    b.Property<long>("LastNumber")
+                        .HasColumnType("bigint")
+                        .HasColumnName("last_number");
+
+                    b.HasKey("Id")
+                        .HasName("pk_personnel_number_series");
+
+                    b.ToTable("personnel_number_series", "workforce");
+                });
+
             modelBuilder.Entity("Workforce.Infrastructure.People.ApproverCopyRecord", b =>
                 {
                     b.Property<Guid>("EmployeeId")
@@ -716,6 +944,10 @@ namespace Workforce.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("name");
+
+                    b.Property<string>("PersonnelNumber")
+                        .HasColumnType("text")
+                        .HasColumnName("personnel_number");
 
                     b.HasKey("EmployeeId")
                         .HasName("pk_people");

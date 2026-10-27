@@ -5,6 +5,8 @@ public sealed class PersonRecord
 {
     public Guid EmployeeId { get; set; }
     public required string Name { get; set; }
+    /// <summary>Personnel number (from BC, or assigned when the card was created here).</summary>
+    public string? PersonnelNumber { get; set; }
     /// <summary>The effective main store: the one from Access (<see cref="MainStoreCopyRecord"/>) if it has one, otherwise <see cref="BcHomeStoreId"/>.</summary>
     public Guid? HomeStoreId { get; set; }
     /// <summary>The suggestion from BC (the "Vorgabefiliale"), from <c>EmployeeChanged</c>.</summary>

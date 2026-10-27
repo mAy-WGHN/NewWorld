@@ -96,3 +96,71 @@ public sealed record PageDto<T>(IReadOnlyList<T> Items, int Total, int Page, int
 /// <summary>An entry of the certificate access log: who did what to which document, when.</summary>
 public sealed record CertificateAccessEntryDto(
     Guid Id, DateTimeOffset At, Guid? ActorId, string Action, Guid AbsenceId, Guid DocumentId, Guid EmployeeId);
+
+// ---------------------------------------------------------------- employee card
+
+/// <summary>
+/// The data HR enters on the card (creating and changing). The personnel number is assigned, the password is never part of the card.
+/// <see cref="Gender"/> is `Female`, `Male` or `Diverse`. Selections (function, role, ...) are ids of entries of the selection lists.
+/// </summary>
+public sealed record EmployeeRequest(
+    string FirstName,
+    string LastName,
+    string? ReceiptName,
+    string Gender,
+    DateOnly? BirthDate,
+    string? Street,
+    string? PostalCode,
+    string? City,
+    string? PrivatePhone,
+    string? PrivateEmail,
+    string? BusinessEmail,
+    Guid? MainStoreId,
+    Guid? FunctionId,
+    Guid? RoleId,
+    Guid? RegionId,
+    Guid? WorkplaceId,
+    Guid? EmploymentRelationshipId,
+    Guid? EmploymentCodeId,
+    Guid? AuthorizationGroupId,
+    Guid? WageTypeId,
+    DateOnly HireDate,
+    DateOnly? ExitDate,
+    string? SupervisorPersonnelNumber,
+    bool QtradoExport,
+    bool WebTimeTrackingAllowed = true,
+    bool PasswordChangeRequired = true,
+    string? Note = null,
+    decimal? VacationDaysPerYear = null)
+{
+    public Workforce.Core.Employees.EmployeeData ToData(Workforce.Core.Employees.Gender gender) => new(
+        FirstName, LastName, ReceiptName, gender, BirthDate, Street, PostalCode, City, PrivatePhone, PrivateEmail, BusinessEmail, MainStoreId, FunctionId, RoleId, RegionId,
+        WorkplaceId, EmploymentRelationshipId, EmploymentCodeId, AuthorizationGroupId, WageTypeId, HireDate, ExitDate, SupervisorPersonnelNumber, QtradoExport,
+        WebTimeTrackingAllowed, PasswordChangeRequired, Note);
+}
+
+public sealed record CreatedEmployeeDto(Guid EmployeeId, string PersonnelNumber);
+
+/// <summary>
+/// The card as its viewer may see it: <see cref="Private"/> only for those with the private-data privilege and the person themself,
+/// <see cref="Wage"/> only for those with the wage type privilege (never the person).
+/// </summary>
+public sealed record EmployeeCardDto(
+    Guid EmployeeId, string PersonnelNumber, string FirstName, string LastName, string ReceiptName, string? BusinessEmail, Guid? MainStoreId, Guid? FunctionId, Guid? RoleId,
+    Guid? RegionId, Guid? WorkplaceId, Guid? EmploymentRelationshipId, Guid? EmploymentCodeId, Guid? AuthorizationGroupId, DateOnly HireDate, DateOnly? ExitDate,
+    Guid? SupervisorId, bool QtradoExport, bool WebTimeTrackingAllowed, bool PasswordChangeRequired, string? Note, string State,
+    EmployeePrivateDto? Private, EmployeeWageDto? Wage);
+
+public sealed record EmployeePrivateDto(string Gender, DateOnly? BirthDate, string? Street, string? PostalCode, string? City, string? PrivatePhone, string? PrivateEmail);
+
+public sealed record EmployeeWageDto(Guid? WageTypeId);
+
+public sealed record NumberSeriesDto(long? LastNumber);
+
+public sealed record SetNumberSeriesRequest(long LastNumber);
+
+public sealed record ReferenceEntryDto(Guid Id, string Kind, string Code, string Name, bool IsActive);
+
+public sealed record AddReferenceEntryRequest(string Code, string Name);
+
+public sealed record UpdateReferenceEntryRequest(string Name, bool IsActive);

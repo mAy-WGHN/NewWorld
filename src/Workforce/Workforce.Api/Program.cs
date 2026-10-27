@@ -50,5 +50,6 @@ app.UseAuthorization();
 app.MapDefaultEndpoints();
 app.MapAbsenceEndpoints();
 app.MapCertificateEndpoints();
+app.MapEmployeeEndpoints();
 
 app.Run();
