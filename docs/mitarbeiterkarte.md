@@ -105,7 +105,7 @@ Statt „Überstundenkonto“. Ein Konto je Person mit diesen Bestandteilen:
 Regeln, alle von HR pflegbar und **für alle gleich** (nicht je Arbeitsverhältnis, Entscheidung 31):
 - **Auszahlungsschwelle:** Ab diesem Guthaben können Überstunden ausbezahlt werden. **Standard: 0 Stunden, also immer.** Trägt HR einen anderen Wert ein, gilt er für alle, unabhängig vom Arbeitsverhältnis. Bei **Austritt** wird das Restguthaben **immer** ausbezahlt, auch unter der Schwelle.
 - **Verfall:** Überstunden tragen das **Datum ihrer Erfassung**, damit sie verfallen können. Die Frist ist ein pflegbarer Schwellwert, **Standard: nichts verfällt**, ebenfalls für alle gleich. Verbrauch wie bei Zusatzurlaub: ältere zuerst.
-- **Arbeitsverhältnis:** Es wirkt sich nur darauf aus, **wie schnell Überstunden anfallen** (Annahme: ein von HR je Arbeitsverhältnis gepflegter Faktor, Standard 1,0; zu bestätigen). Schwellen und Fristen hängen nicht daran.
+- **Arbeitsverhältnis:** Es legt **implizit fest, was als Überstunden gilt**: je Arbeitsverhältnis gibt es eine **Monatsschwelle** (Stunden pro Monat, von HR gepflegt). Ab dem Punkt im Monat, an dem sie erreicht ist, werden die weiteren Stunden **1:1** gezählt und im Arbeitszeitkonto als Überstunden erfasst (kein Faktor). Beispiel: Schwelle 160 h, gearbeitet 172 h → 12 Überstunden für den Monat. Auszahlungsschwelle und Verfall hängen **nicht** am Arbeitsverhältnis.
 - Ist- und Sollzeit kommen später aus der Zeiterfassung (nicht Teil dieses Vorhabens); bis dahin gibt es das Konto mit **Anfangsbestand** und manuellen Buchungen.
 
 ## Schritte
@@ -124,4 +124,4 @@ Regeln, alle von HR pflegbar und **für alle gleich** (nicht je Arbeitsverhältn
 2. **Vorgesetzter:** Die Karte speichert ihn über die Personalnummer. Die Zuständigkeit für Genehmigungen bleibt in Access; soll der Vorgesetzte der Karte zusätzlich etwas steuern?
 3. **Rolle** (Mitarbeiterliste): Was bedeutet sie fachlich? (Nicht die Rolle in Access.)
 4. **Lohnart:** Klasse 2 oder 3 (mit dem Datenschutzbeauftragten).
-5. ~~Schwellen je Arbeitsverhältnis?~~ **geklärt:** für alle gleich. **Offen:** Wie genau wirkt das Arbeitsverhältnis auf das Anhäufen (Faktor auf die Überstunden, anderer Beginn der Überstunden, anderes)?
+5. ~~Schwellen je Arbeitsverhältnis?~~ **geklärt:** für alle gleich. **Geklärt:** Das Arbeitsverhältnis bestimmt die Monatsschwelle, ab der Überstunden 1:1 gezählt werden. **Offen:** Werden Stunden **unter** der Monatsschwelle als Minusstunden gebucht (Soll = Schwelle), oder entstehen keine Minusstunden?
