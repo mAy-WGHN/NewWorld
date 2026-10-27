@@ -62,10 +62,9 @@ internal sealed record BcErrorDto([property: JsonPropertyName("error")] BcErrorD
 
 internal sealed record BcErrorDetail([property: JsonPropertyName("code")] string? Code);
 
-/// <summary>
-/// Body of the PIN check. TODO(BC-Modell): the archived BC-Anbindung calls the SOAP codeunit Zeiterfassung.GetStatus; a REST/OData
-/// action with this shape is assumed here. The PIN is only ever in this request body.
-/// </summary>
-internal sealed record BcPinVerifyRequest(string EmployeeNumber, string Pin);
+/// <summary>JSON in <c>return_value</c> of <c>Zeiterfassung.GetStatus</c>; only these two fields are read (the answer has more, e.g. the status of the day).</summary>
+internal sealed record BcGetStatusDto(
+    [property: JsonPropertyName("success")] bool Success,
+    [property: JsonPropertyName("employeeName")] string? EmployeeName);
 
 internal sealed record BcPinVerifyResponse(bool Authenticated, string? EmployeeName);

@@ -1,0 +1,22 @@
+{
+  "Request": {
+    "Path": {
+      "Matchers": [
+        {
+          "Name": "ExactMatcher",
+          "Pattern": "/WS/test-company/Codeunit/Zeiterfassung"
+        }
+      ]
+    },
+    "Methods": [
+      "POST"
+    ]
+  },
+  "Response": {
+    "StatusCode": 200,
+    "Headers": {
+      "Content-Type": "text/xml; charset=utf-8"
+    },
+    "Body": "<?xml version=\"1.0\" encoding=\"utf-8\"?><Soap:Envelope xmlns:Soap=\"http://schemas.xmlsoap.org/soap/envelope/\"><Soap:Body><Soap:Fault><faultcode>Soap:Server</faultcode><faultstring>PIN 4711 of Erika Mustermann secret detail</faultstring></Soap:Fault></Soap:Body></Soap:Envelope>"
+  }
+}

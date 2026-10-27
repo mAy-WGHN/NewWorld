@@ -1,6 +1,10 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Security;
+using System.Text;
 using System.Text.Json;
+using System.Xml;
+using System.Xml.Linq;
 using BcIntegration.Core.Errors;
 using BcIntegration.Core.MasterData;
 using Microsoft.Extensions.Options;
@@ -15,8 +19,12 @@ namespace BcIntegration.Infrastructure.BusinessCentral;
 /// token are handled by the HTTP pipeline; this class translates BC answers into results or exceptions without
 /// passing on any content of BC answers.
 /// </summary>
-public sealed class BcClient(HttpClient http, IOptions<BcClientOptions> options) : IBcMasterDataSource
+public sealed class BcClient(HttpClient http, IOptions<BcClientOptions> options, TimeProvider time) : IBcMasterDataSource
 {
+    /// <summary>Codeunit and function of the PIN check: the same SOAP call the HR tool and the archived BC-Anbindung make.</summary>
+    private const string PinCodeunit = "Zeiterfassung";
+    private const string PinFunction = "GetStatus";
+
     internal static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
     private readonly BcClientOptions _options = options.Value;
@@ -72,21 +80,71 @@ public sealed class BcClient(HttpClient http, IOptions<BcClientOptions> options)
         }
     }
 
-    /// <summary>Asks BC to compare the PIN. The request is a write-like call: it is not repeated on unclear outcomes.</summary>
+    /// <summary>
+    /// Asks BC to compare the PIN: SOAP call of <c>Zeiterfassung.GetStatus(employeeNo, queryDate, password)</c>, as the HR tool does. BC answers
+    /// <c>{"success":bool,"employeeName":...}</c> inside <c>return_value</c>; wrong PIN and unknown number are <c>success:false</c> (HTTP 200).
+    /// The request is write-like: it is not repeated on unclear outcomes. The PIN is only in this request and never in an exception or log.
+    /// </summary>
     internal async Task<BcPinVerifyResponse> VerifyPinAsync(string personnelNumber, string pin, CancellationToken cancellationToken)
     {
-        var request = new HttpRequestMessage(HttpMethod.Post, Path(_options.PinVerifyPath, "PinVerifyPath"))
-        {
-            Content = JsonContent.Create(new BcPinVerifyRequest(personnelNumber, pin), options: Json),
-        };
+        var url = SoapUrl(PinCodeunit);
+        var queryDate = DateOnly.FromDateTime(time.GetUtcNow().UtcDateTime).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+        var ns = $"urn:microsoft-dynamics-schemas/codeunit/{PinCodeunit}";
+        var envelope =
+            "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
+            + "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap:Body>"
+            + $"<{PinFunction} xmlns=\"{ns}\">"
+            + $"<employeeNo>{SecurityElement.Escape(personnelNumber)}</employeeNo>"
+            + $"<queryDate>{queryDate}</queryDate>"
+            + $"<password>{SecurityElement.Escape(pin)}</password>"
+            + $"</{PinFunction}></soap:Body></soap:Envelope>";
+        var request = new HttpRequestMessage(HttpMethod.Post, url) { Content = new StringContent(envelope, Encoding.UTF8, "text/xml") };
+        request.Headers.TryAddWithoutValidation("SOAPAction", $"\"{ns}:{PinFunction}\"");
         try
         {
-            return await SendAsync<BcPinVerifyResponse>(request, BcPriority.High, cancellationToken);
+            return await SendAsync(request, BcPriority.High, ReadPinAnswerAsync, cancellationToken);
         }
         catch (BcRejectedException)
         {
-            // A business rejection of the request itself (not of the PIN) means the assumed action does not match BC.
+            // A business rejection of the request itself (not of the PIN) means the call does not match BC.
             throw new BcTechnicalFailureException("BcPinRequestRejected");
+        }
+    }
+
+    /// <summary>Reads <c>return_value</c> of the SOAP answer. No DTD processing; neither fault text nor body is passed on.</summary>
+    private static async Task<BcPinVerifyResponse> ReadPinAnswerAsync(HttpContent content, CancellationToken cancellationToken)
+    {
+        var xml = await content.ReadAsStringAsync(cancellationToken);
+        string? returnValue;
+        try
+        {
+            using var reader = XmlReader.Create(new StringReader(xml), new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null });
+            var document = XDocument.Load(reader);
+            if (document.Descendants().Any(e => e.Name.LocalName == "Fault"))
+            {
+                throw new BcTechnicalFailureException("BcSoapFault");
+            }
+
+            returnValue = document.Descendants().FirstOrDefault(e => e.Name.LocalName == "return_value")?.Value;
+        }
+        catch (XmlException)
+        {
+            throw new BcTechnicalFailureException("BcInvalidResponse");
+        }
+
+        if (string.IsNullOrWhiteSpace(returnValue))
+        {
+            throw new BcTechnicalFailureException("BcEmptyResponse");
+        }
+
+        try
+        {
+            var status = JsonSerializer.Deserialize<BcGetStatusDto>(returnValue, Json) ?? throw new BcTechnicalFailureException("BcEmptyResponse");
+            return new BcPinVerifyResponse(status.Success, status.EmployeeName);
+        }
+        catch (JsonException)
+        {
+            throw new BcTechnicalFailureException("BcInvalidResponse");
         }
     }
 
@@ -113,7 +171,23 @@ public sealed class BcClient(HttpClient http, IOptions<BcClientOptions> options)
         return items;
     }
 
-    private async Task<T> SendAsync<T>(HttpRequestMessage request, BcPriority priority, CancellationToken cancellationToken)
+    private Task<T> SendAsync<T>(HttpRequestMessage request, BcPriority priority, CancellationToken cancellationToken) =>
+        SendAsync(request, priority, ReadJsonAsync<T>, cancellationToken);
+
+    private static async Task<T> ReadJsonAsync<T>(HttpContent content, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await content.ReadFromJsonAsync<T>(Json, cancellationToken) ?? throw new BcTechnicalFailureException("BcEmptyResponse");
+        }
+        catch (JsonException)
+        {
+            throw new BcTechnicalFailureException("BcInvalidResponse");
+        }
+    }
+
+    private async Task<T> SendAsync<T>(
+        HttpRequestMessage request, BcPriority priority, Func<HttpContent, CancellationToken, Task<T>> read, CancellationToken cancellationToken)
     {
         using (request)
         {
@@ -133,15 +207,7 @@ public sealed class BcClient(HttpClient http, IOptions<BcClientOptions> options)
             {
                 if (response.IsSuccessStatusCode)
                 {
-                    try
-                    {
-                        return await response.Content.ReadFromJsonAsync<T>(Json, cancellationToken)
-                            ?? throw new BcTechnicalFailureException("BcEmptyResponse");
-                    }
-                    catch (JsonException)
-                    {
-                        throw new BcTechnicalFailureException("BcInvalidResponse");
-                    }
+                    return await read(response.Content, cancellationToken);
                 }
 
                 var error = BcErrorClassifier.Classify((int)response.StatusCode, await ReadErrorCodeAsync(response, cancellationToken));
@@ -162,10 +228,27 @@ public sealed class BcClient(HttpClient http, IOptions<BcClientOptions> options)
         {
             return (await response.Content.ReadFromJsonAsync<BcErrorDto>(Json, cancellationToken))?.Error?.Code;
         }
-        catch (JsonException)
+        catch (Exception ex) when (ex is JsonException or NotSupportedException)
         {
+            // Not a JSON error body (e.g. a SOAP fault): only the status is used.
             return null;
         }
+    }
+
+    private Uri SoapUrl(string codeunit)
+    {
+        if (_options.SoapBaseUrl is null)
+        {
+            throw new BcTechnicalFailureException("BcNotConfigured:SoapBaseUrl");
+        }
+
+        if (string.IsNullOrWhiteSpace(_options.CompanyName))
+        {
+            throw new BcTechnicalFailureException("BcNotConfigured:CompanyName");
+        }
+
+        var root = _options.SoapBaseUrl.AbsoluteUri;
+        return new Uri((root.EndsWith('/') ? root : root + "/") + $"{Uri.EscapeDataString(_options.CompanyName)}/Codeunit/{codeunit}");
     }
 
     private string Path(string template, string setting) =>

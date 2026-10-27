@@ -4,7 +4,7 @@
       "Matchers": [
         {
           "Name": "ExactMatcher",
-          "Pattern": "/test/employeeauth/v1.0/companies(test-company)/verifyPin"
+          "Pattern": "/WS/test-company/Codeunit/Zeiterfassung"
         }
       ]
     },
@@ -13,11 +13,10 @@
     ],
     "Body": {
       "Matcher": {
-        "Name": "JsonPartialWildcardMatcher",
-        "Pattern": {
-          "employeeNumber": "10099",
-          "pin": "4711"
-        }
+        "Name": "WildcardMatcher",
+        "Patterns": [
+          "*<employeeNo>10099</employeeNo>*<password>4711</password>*"
+        ]
       }
     }
   },
@@ -25,11 +24,8 @@
   "Response": {
     "StatusCode": 200,
     "Headers": {
-      "Content-Type": "application/json"
+      "Content-Type": "text/xml; charset=utf-8"
     },
-    "BodyAsJson": {
-      "authenticated": true,
-      "employeeName": "Anna Admin"
-    }
+    "Body": "<?xml version=\"1.0\" encoding=\"utf-8\"?><Soap:Envelope xmlns:Soap=\"http://schemas.xmlsoap.org/soap/envelope/\"><Soap:Body><GetStatus_Result xmlns=\"urn:microsoft-dynamics-schemas/codeunit/Zeiterfassung\"><return_value>{\"success\":true,\"employeeName\":\"Anna Admin\"}</return_value></GetStatus_Result></Soap:Body></Soap:Envelope>"
   }
 }

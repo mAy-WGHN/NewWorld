@@ -16,8 +16,12 @@ Die Tests in `tests/BcIntegration.Infrastructure.Tests` laden je Test genau ein 
 | `employees-expired-token` | 401 für das alte Token, Erfolg mit neuem Token |
 | `employees-unauthorized` | immer 401 |
 | `master-data` | eine Filiale und die zwei Mitarbeitenden aus `employees-success` |
-| `pin-verify` | PIN-Prüfung: Personalnummer 10042 mit PIN 4711 ist gültig, alles andere nicht |
-| `pin-verify-server-error` | PIN-Prüfung antwortet 500 (Fehlertext enthält absichtlich PIN und Namen) |
+| `pin-verify` | PIN-Prüfung als SOAP-Aufruf `Zeiterfassung.GetStatus` (wie im HR-Tool): Personalnummer 10042 mit PIN 4711 ist gültig (`success:true` im `return_value`), alles andere `success:false` |
+| `pin-verify-server-error` | PIN-Prüfung antwortet 500 mit SOAP-Fault (Text enthält absichtlich PIN und Namen) |
+| `pin-verify-soap-fault` | SOAP-Fault in einer 200-Antwort (Text enthält absichtlich PIN und Namen) |
+| `pin-verify-plain-text` | `return_value` ist kein JSON |
+| `pin-verify-nameless` | `success:true`, aber leerer Name (gilt nicht als angemeldet) |
+| `pin-verify-doctype` | Antwort mit DOCTYPE/externer Entität (wird abgelehnt) |
 | `absence-create` / `absence-update` | Upsert über die externe ID (POST bzw. PATCH mit ETag) |
 | `absence-validation-error` | BC-Validierungsfehler (400) |
 | `absence-throttled-write` | 429 auf POST, danach Erfolg |

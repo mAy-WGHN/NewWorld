@@ -4,7 +4,7 @@
       "Matchers": [
         {
           "Name": "ExactMatcher",
-          "Pattern": "/test/employeeauth/v1.0/companies(test-company)/verifyPin"
+          "Pattern": "/WS/test-company/Codeunit/Zeiterfassung"
         }
       ]
     },
@@ -15,13 +15,8 @@
   "Response": {
     "StatusCode": 500,
     "Headers": {
-      "Content-Type": "application/json"
+      "Content-Type": "text/xml; charset=utf-8"
     },
-    "BodyAsJson": {
-      "error": {
-        "code": "Internal_ServerError",
-        "message": "PIN 4711 of Erika Mustermann secret detail"
-      }
-    }
+    "Body": "<?xml version=\"1.0\" encoding=\"utf-8\"?><Soap:Envelope xmlns:Soap=\"http://schemas.xmlsoap.org/soap/envelope/\"><Soap:Body><Soap:Fault><faultcode>Soap:Server</faultcode><faultstring>PIN 4711 of Erika Mustermann secret detail</faultstring></Soap:Fault></Soap:Body></Soap:Envelope>"
   }
 }
