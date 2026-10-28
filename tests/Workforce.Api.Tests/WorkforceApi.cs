@@ -78,7 +78,7 @@ public sealed class WorkforceApi : WebApplicationFactory<ApiMarker>
         }
 
         var cache = Services.GetRequiredService<IPermissionCache>();
-        string[] own = [AbsencePrivileges.ReadOwn, AbsencePrivileges.CreateOwn, AbsencePrivileges.UpdateOwn, CertificatePrivileges.UploadOwn];
+        string[] own = [AbsencePrivileges.ReadOwn, AbsencePrivileges.CreateOwn, AbsencePrivileges.UpdateOwn, CertificatePrivileges.UploadOwn, Workforce.Core.WorkingTime.WorkingTimePrivileges.ReadOwn];
         foreach (var person in new[] { Erika, Ben, Max, Lena, Hanna, Sven })
         {
             cache.Grant(person, own.Select(k => new TestGrant(k)).ToArray());
@@ -90,7 +90,7 @@ public sealed class WorkforceApi : WebApplicationFactory<ApiMarker>
         Grant(Max, StoreManager(StoreA, Erika, Ben, Max));
         Grant(Lena, StoreManager(StoreB, Lena));
         // HR: everywhere.
-        Grant(Hanna, [.. AbsencePrivileges.Catalog.Concat(CertificatePrivileges.Catalog).Concat(Workforce.Core.Employees.EmployeePrivileges.Catalog).Concat(Workforce.Core.Unavailability.UnavailabilityPrivileges.Catalog).Select(c => TestGrant.Everywhere(c.Key))]);
+        Grant(Hanna, [.. AbsencePrivileges.Catalog.Concat(CertificatePrivileges.Catalog).Concat(Workforce.Core.Employees.EmployeePrivileges.Catalog).Concat(Workforce.Core.Unavailability.UnavailabilityPrivileges.Catalog).Concat(Workforce.Core.WorkingTime.WorkingTimePrivileges.Catalog).Select(c => TestGrant.Everywhere(c.Key))]);
     }
 
     private static TestGrant[] StoreManager(Guid store, params Guid[] employees) =>
@@ -102,7 +102,7 @@ public sealed class WorkforceApi : WebApplicationFactory<ApiMarker>
     /// <summary>Own privileges stay, the given ones are added.</summary>
     public void Grant(Guid person, params TestGrant[] grants)
     {
-        string[] own = [AbsencePrivileges.ReadOwn, AbsencePrivileges.CreateOwn, AbsencePrivileges.UpdateOwn, CertificatePrivileges.UploadOwn];
+        string[] own = [AbsencePrivileges.ReadOwn, AbsencePrivileges.CreateOwn, AbsencePrivileges.UpdateOwn, CertificatePrivileges.UploadOwn, Workforce.Core.WorkingTime.WorkingTimePrivileges.ReadOwn];
         Services.GetRequiredService<IPermissionCache>().Grant(person, [.. own.Where(k => grants.All(g => g.Key != k)).Select(k => new TestGrant(k)), .. grants]);
     }
 

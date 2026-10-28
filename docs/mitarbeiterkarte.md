@@ -108,6 +108,7 @@ Regeln, alle von HR pflegbar und **für alle gleich** (nicht je Arbeitsverhältn
 - **Auszahlungsschwelle:** Ab diesem Guthaben können Überstunden ausbezahlt werden. **Standard: 0 Stunden, also immer.** Trägt HR einen anderen Wert ein, gilt er für alle, unabhängig vom Arbeitsverhältnis. Bei **Austritt** wird das Restguthaben **immer** ausbezahlt, auch unter der Schwelle.
 - **Verfall:** Überstunden tragen das **Datum ihrer Erfassung**, damit sie verfallen können. Die Frist ist ein pflegbarer Schwellwert, **Standard: nichts verfällt**, ebenfalls für alle gleich. Verbrauch wie bei Zusatzurlaub: ältere zuerst.
 - **Arbeitsverhältnis:** Es legt **implizit fest, was als Überstunden gilt**: je Arbeitsverhältnis gibt es eine **Monatsschwelle** (Stunden pro Monat, von HR gepflegt). Ab dem Punkt im Monat, an dem sie erreicht ist, werden die weiteren Stunden **1:1** gezählt und im Arbeitszeitkonto als Überstunden erfasst (kein Faktor). Beispiel: Schwelle 160 h, gearbeitet 172 h → 12 Überstunden für den Monat. Auszahlungsschwelle und Verfall hängen **nicht** am Arbeitsverhältnis.
+- **Gebaut (Schritt 4, Entscheidung 34):** `Workforce.Core/WorkingTime/`, Endpunkte `WorkingTimeEndpoints.cs`, Migration `WorkingTimeAccount`. Offen: Minusstunden unter der Monatsschwelle (keine gebucht), Spiegelung nach BC, automatische Auszahlung bei Austritt.
 - Ist- und Sollzeit kommen später aus der Zeiterfassung (nicht Teil dieses Vorhabens); bis dahin gibt es das Konto mit **Anfangsbestand** und manuellen Buchungen.
 
 ## Schritte
@@ -117,7 +118,7 @@ Regeln, alle von HR pflegbar und **für alle gleich** (nicht je Arbeitsverhältn
 | 1 | Karte: Felder, Anlegen mit Personalnummer aus dem Nummernkreis, Auswahllisten, Lesen mit Datenschutz-Stufen, Urlaubsanspruch beim Anlegen | **gebaut** (Entscheidung 29) |
 | 2 | Änderungsanträge der Person für private Daten, HR-Benachrichtigung und Entscheidung | **gebaut** (Entscheidung 30) |
 | 3 | Nicht-Verfügbarkeit: pflegbare Arten (Start: 24 aus der BC-Liste), Einträge je Person, Anbindung der Abwesenheiten, KU, Hinweis „nicht abgedeckt“ | **gebaut** (Entscheidung 32) |
-| 4 | Arbeitszeitkonto mit Schwellen für Auszahlung und Verfall | geplant |
+| 4 | Arbeitszeitkonto mit Schwellen für Auszahlung und Verfall | **gebaut** (Entscheidung 34) |
 | 5 | Übertragung nach BC (neue Nachricht, Start-PIN, Feldliste) | braucht Freigabe und BC-Modell |
 
 ## Offene Fragen

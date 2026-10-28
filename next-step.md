@@ -1,8 +1,8 @@
 # Nächste Schritte (Mitarbeiterkarte)
 
-Stand 2026-10-28. Gebaut sind Schritt 1 (Karte, Nummernkreis, Auswahllisten, Datenschutzstufen), Schritt 2 (Änderungsanträge) und Schritt 3 (Nicht-Verfügbarkeit). Ausstehend ist **Schritt 4**; dazu Schritt 5 als Ausblick. Entwurf und Entscheidungen: `docs/mitarbeiterkarte.md`, `CLAUDE.md` (Entscheidungen 29 bis 31).
+Stand 2026-10-28. Gebaut sind Schritt 1 (Karte, Nummernkreis, Auswahllisten, Datenschutzstufen), Schritt 2 (Änderungsanträge) und Schritt 3 (Nicht-Verfügbarkeit). Gebaut ist auch Schritt 4 (Arbeitszeitkonto); dazu Schritt 5 als Ausblick. Entwurf und Entscheidungen: `docs/mitarbeiterkarte.md`, `CLAUDE.md` (Entscheidungen 29 bis 31).
 
-Als Nächstes: **Schritt 4** (Arbeitszeitkonto), vorher die offene Frage zu den Minusstunden klären.
+Als Nächstes: **Schritt 5** (braucht Freigabe und BC-Modell) oder die offenen Punkte unten.
 
 ---
 
@@ -17,27 +17,14 @@ Arten (24 aus BC), Einträge von HR, Zeitleiste mit KU, Sichtbarkeit nach Art/Ve
 
 ---
 
-## Schritt 4: Arbeitszeitkonto (ausstehend)
+## Schritt 4: Arbeitszeitkonto (gebaut 2026-10-28, Entscheidung 34)
 
-**Ziel:** Ein Konto je Person (heißt „Arbeitszeitkonto“, nicht Überstundenkonto), das Überstunden und Ausgleich führt.
+Buchungskonto, Saldo aus Buchungen, Monatsabschluss gegen die Monatsschwelle des Arbeitsverhältnisses, Freizeitausgleich, Auszahlung, Auszahlung bei Austritt, Korrekturen, Verfall nach Erfassungsdatum, Regeln und Schwellen von HR pflegbar.
 
-**Bestandteile:** Sollarbeitszeit, Ist-Arbeitszeit, Überstunden, Minusstunden, Zeitguthaben (Saldo), Freizeitausgleich, Auszahlung, Korrekturbuchungen, Übertrag.
-
-**Regeln (entschieden, Entscheidung 31)**
-- **Auszahlungsschwelle:** von HR pflegbar, **einmal für alle**, Standard **0 Stunden** (also immer). Ein anderer Wert gilt für alle, unabhängig vom Arbeitsverhältnis.
-- **Verfall:** Überstunden tragen das Datum ihrer Erfassung. Die Frist ist ein von HR pflegbarer Schwellwert, einmal für alle, Standard **nichts verfällt**. Ältere Überstunden werden zuerst verbraucht (wie bei Zusatzurlaub).
-- **Austritt:** Das Restguthaben wird **immer** ausbezahlt, auch unter der Schwelle.
-- **Arbeitsverhältnis:** legt **implizit fest, was Überstunden sind**. Je Arbeitsverhältnis gibt es eine **Monatsschwelle** (Stunden pro Monat, von HR gepflegt). Ab dem Punkt im Monat, an dem sie erreicht ist, werden die weiteren Stunden **1:1** gezählt und im Konto als Überstunden erfasst (kein Faktor). Beispiel: Schwelle 160 h, gearbeitet 172 h ergibt 12 Überstunden.
-- Die Monatsschwellen hängen an den Einträgen der Auswahlliste „Arbeitsverhältnis“ (bereits gebaut).
-
-**Zu bauen**
-- Buchungskonto mit Einträgen (Art, Stunden, Datum, Urheber), Saldo und Anfangsbestand (manuell durch HR).
-- **Monatsabschluss:** nimmt die gearbeiteten Stunden eines Monats entgegen, rechnet gegen die Monatsschwelle des Arbeitsverhältnisses und bucht Überstunden (und eventuell Minusstunden). Die Zeiterfassung selbst (Stempelungen) ist nicht Teil des Vorhabens; die Stunden kommen später von dort, bis dahin von Hand.
-- Freizeitausgleich, Auszahlung (mit Schwelle), Auszahlung bei Austritt, Korrekturbuchungen, Übertrag, Verfall nach Erfassungsdatum.
-- Regeln von HR pflegbar (Endpunkte wie bei `/api/vacation-rules`), Rechte mit Beschreibung, Tests zuerst (Zeit-/Datumsfälle), Migration, Doku.
-
-**Offene Frage vor dem Bau**
-- Werden Stunden **unter** der Monatsschwelle als **Minusstunden** gebucht (Schwelle = Soll), oder entstehen keine Minusstunden? Bis zur Antwort ist das eine Annahme.
+**Offen aus Schritt 4**
+- **Minusstunden:** Werden Stunden unter der Monatsschwelle als Minusstunden gebucht (Schwelle = Soll)? Bis zur Antwort bucht der Monatsabschluss keine (`TODO(Entscheidung)` in `WorkingTimeService`).
+- **Austritt:** Die Auszahlung des Restguthabens ist eine HR-Aktion; automatisch bei `EmployeeLeft` ist nicht gebaut.
+- **BC-Spiegelung** des Kontos (`TODO(BC-Modell)`), **Stunden aus der Zeiterfassung** statt von Hand, Rechte `workingtime:*` in Access an HR vergeben, Monatsschwellen je Arbeitsverhältnis eintragen.
 
 ---
 

@@ -142,6 +142,12 @@ public sealed class EmployeeDataErasureRequestedHandler(
         await db.CertificateDocuments.Where(d => d.ReviewedBy == id).ExecuteUpdateAsync(s => s.SetProperty(d => d.ReviewedBy, Guid.Empty), cancellationToken);
         await db.CertificateAccessLog.Where(e => e.ActorId == id).ExecuteUpdateAsync(s => s.SetProperty(e => e.ActorId, Guid.Empty), cancellationToken);
         await db.Absences.Where(a => a.EmployeeId == id).ExecuteDeleteAsync(cancellationToken);
+        await db.TimeBookings.Where(t => t.EmployeeId == id).ExecuteDeleteAsync(cancellationToken);
+        await db.TimeBookings.Where(t => t.CreatedBy == id).ExecuteUpdateAsync(s => s.SetProperty(t => t.CreatedBy, Guid.Empty), cancellationToken);
+        await db.MonthCloses.Where(c => c.EmployeeId == id).ExecuteDeleteAsync(cancellationToken);
+        await db.MonthCloses.Where(c => c.ClosedBy == id).ExecuteUpdateAsync(s => s.SetProperty(c => c.ClosedBy, Guid.Empty), cancellationToken);
+        await db.WorkingTimeRules.Where(r => r.ChangedBy == id).ExecuteUpdateAsync(s => s.SetProperty(r => r.ChangedBy, Guid.Empty), cancellationToken);
+        await db.MonthlyThresholds.Where(t => t.ChangedBy == id).ExecuteUpdateAsync(s => s.SetProperty(t => t.ChangedBy, Guid.Empty), cancellationToken);
         await db.UnavailabilityEntries.Where(e => e.EmployeeId == id).ExecuteDeleteAsync(cancellationToken);
         await db.UnavailabilityEntries.Where(e => e.CreatedBy == id).ExecuteUpdateAsync(s => s.SetProperty(e => e.CreatedBy, Guid.Empty), cancellationToken);
         await db.Entitlements.Where(e => e.EmployeeId == id).ExecuteDeleteAsync(cancellationToken);

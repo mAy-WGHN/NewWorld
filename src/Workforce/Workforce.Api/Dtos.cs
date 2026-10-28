@@ -201,3 +201,31 @@ public sealed record UnavailabilityDto(
 
 /// <summary>What colleagues in a store see (name and period); the kind only with the reason privilege.</summary>
 public sealed record StoreUnavailabilityDto(string EmployeeName, UnavailabilityDto Period);
+
+public sealed record BookHoursRequest(decimal Hours, DateOnly Date);
+
+public sealed record CloseMonthRequest(int Year, int Month, decimal WorkedHours);
+
+/// <summary>Both left out = the defaults: payout at any balance, nothing expires.</summary>
+public sealed record SetWorkingTimeRulesRequest(decimal? PayoutThresholdHours, int? ExpiryMonths);
+
+public sealed record WorkingTimeRulesDto(decimal PayoutThresholdHours, int? ExpiryMonths, bool IsDefault, DateTimeOffset? ChangedAt, Guid? ChangedBy);
+
+public sealed record SetThresholdRequest(decimal? Hours);
+
+public sealed record MonthlyThresholdDto(Guid RelationshipId, decimal Hours);
+
+public sealed record TimeBookingDto(Guid Id, string Kind, decimal Hours, DateOnly Date, Guid? MonthCloseId, DateTimeOffset CreatedAt);
+
+public sealed record MonthCloseDto(Guid Id, int Year, int Month, decimal WorkedHours, decimal ThresholdHours, decimal OvertimeHours, DateTimeOffset ClosedAt);
+
+public sealed record AccountBucketDto(DateOnly EarnedOn, decimal Remaining, DateOnly? ExpiresOn);
+
+/// <summary>
+/// The working time account of a person: <c>Balance</c> today (hours still there minus <c>Deficit</c>), what expired (<c>Forfeited</c>), the hours still there
+/// by earning date, the bookings (newest first) and the month closes. Class 2 data: only the person themself and holders of the read privilege.
+/// </summary>
+public sealed record WorkingTimeDto(
+    decimal Balance, decimal Deficit, decimal Forfeited, IReadOnlyList<AccountBucketDto> Buckets, IReadOnlyList<TimeBookingDto> Bookings, IReadOnlyList<MonthCloseDto> Closes, WorkingTimeRulesDto Rules);
+
+public sealed record MonthCloseResultDto(MonthCloseDto Close, TimeBookingDto? Booking);

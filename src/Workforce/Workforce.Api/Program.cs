@@ -50,6 +50,7 @@ app.UseAuthorization();
 app.MapDefaultEndpoints();
 app.MapAbsenceEndpoints();
 app.MapUnavailabilityEndpoints();
+app.MapWorkingTimeEndpoints();
 app.MapCertificateEndpoints();
 app.MapEmployeeEndpoints();
 

@@ -3,6 +3,8 @@ using Shared.Infrastructure.Approvals;
 using Workforce.Core.Absences;
 using Workforce.Core.Certificates;
 using Workforce.Core.Unavailability;
+using Workforce.Core.WorkingTime;
+using Workforce.Infrastructure.WorkingTime;
 using Workforce.Infrastructure.Certificates;
 using Workforce.Infrastructure.Absences;
 using Workforce.Infrastructure.People;
@@ -17,6 +19,10 @@ public sealed class WorkforceDbContext(DbContextOptions<WorkforceDbContext> opti
     public const string Schema = "workforce";
 
     public DbSet<Absence> Absences => Set<Absence>();
+    public DbSet<TimeBooking> TimeBookings => Set<TimeBooking>();
+    public DbSet<MonthClose> MonthCloses => Set<MonthClose>();
+    public DbSet<WorkingTimeRulesRecord> WorkingTimeRules => Set<WorkingTimeRulesRecord>();
+    public DbSet<MonthlyThresholdRecord> MonthlyThresholds => Set<MonthlyThresholdRecord>();
     public DbSet<UnavailabilityKind> UnavailabilityKinds => Set<UnavailabilityKind>();
     public DbSet<UnavailabilityEntry> UnavailabilityEntries => Set<UnavailabilityEntry>();
     public DbSet<EntitlementRecord> Entitlements => Set<EntitlementRecord>();
@@ -63,6 +69,41 @@ public sealed class WorkforceDbContext(DbContextOptions<WorkforceDbContext> opti
             b.HasIndex(a => new { a.Type, a.Status, a.CertificateStatus });
             b.HasIndex(a => a.ApprovalRequestId);
         });
+        // Arbeitszeitkonto: bookings, month closes, the rules HR sets for everybody and the monthly threshold per employment relationship.
+        modelBuilder.Entity<TimeBooking>(b =>
+        {
+            b.ToTable("time_bookings");
+            b.HasKey(t => t.Id);
+            b.Property(t => t.Id).ValueGeneratedNever();
+            b.Property(t => t.Kind).HasConversion<string>().HasMaxLength(20);
+            b.Property(t => t.Hours).HasPrecision(8, 2);
+            b.HasIndex(t => new { t.EmployeeId, t.Date });
+        });
+        modelBuilder.Entity<MonthClose>(b =>
+        {
+            b.ToTable("month_closes");
+            b.HasKey(c => c.Id);
+            b.Property(c => c.Id).ValueGeneratedNever();
+            b.Property(c => c.WorkedHours).HasPrecision(8, 2);
+            b.Property(c => c.ThresholdHours).HasPrecision(8, 2);
+            b.Property(c => c.OvertimeHours).HasPrecision(8, 2);
+            b.HasIndex(c => new { c.EmployeeId, c.Year, c.Month }).IsUnique();
+        });
+        modelBuilder.Entity<WorkingTimeRulesRecord>(b =>
+        {
+            b.ToTable("working_time_rules");
+            b.HasKey(r => r.Id);
+            b.Property(r => r.Id).ValueGeneratedNever();
+            b.Property(r => r.PayoutThresholdHours).HasPrecision(8, 2);
+        });
+        modelBuilder.Entity<MonthlyThresholdRecord>(b =>
+        {
+            b.ToTable("monthly_thresholds");
+            b.HasKey(t => t.RelationshipId);
+            b.Property(t => t.RelationshipId).ValueGeneratedNever();
+            b.Property(t => t.Hours).HasPrecision(8, 2);
+        });
+
         // Nicht-Verfügbarkeit: the kinds (BC list, maintained by HR, seeded with the 24 of BC) and the entries (HR, and KU days from sick notes).
         modelBuilder.Entity<UnavailabilityKind>(b =>
         {

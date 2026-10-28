@@ -58,6 +58,9 @@ public static class InfrastructureServiceCollectionExtensions
         services.TryAddScoped<Workforce.Core.Unavailability.IShiftLookup, Unavailability.NoShiftPlanning>();
         services.AddScoped<Workforce.Core.Unavailability.ShiftCoverage>();
         services.AddScoped<Workforce.Core.Unavailability.UnavailabilityService>();
+        services.AddScoped<Workforce.Core.WorkingTime.IWorkingTimeStore, WorkingTime.EfWorkingTimeStore>();
+        services.AddScoped<Workforce.Core.WorkingTime.IEmploymentLookup, WorkingTime.EfEmploymentLookup>();
+        services.AddScoped<Workforce.Core.WorkingTime.WorkingTimeService>();
         services.AddScoped<AbsenceService>();
 
         // Medical certificates: encrypted in a separate storage (key from configuration), checked by type and size, reminders and retention in the background.
@@ -104,7 +107,7 @@ public static class InfrastructureServiceCollectionExtensions
         {
             services.AddCatalogRegistration(
                 configuration, AbsencePrivileges.AppKey,
-                [.. AbsencePrivileges.Catalog.Concat(CertificatePrivileges.Catalog).Concat(Workforce.Core.Employees.EmployeePrivileges.Catalog).Concat(Workforce.Core.Unavailability.UnavailabilityPrivileges.Catalog).Select(p => new CatalogPrivilege(p.Key, p.Scopable, p.Description))]);
+                [.. AbsencePrivileges.Catalog.Concat(CertificatePrivileges.Catalog).Concat(Workforce.Core.Employees.EmployeePrivileges.Catalog).Concat(Workforce.Core.Unavailability.UnavailabilityPrivileges.Catalog).Concat(Workforce.Core.WorkingTime.WorkingTimePrivileges.Catalog).Select(p => new CatalogPrivilege(p.Key, p.Scopable, p.Description))]);
         }
 
         // Copies and results: subscriptions "workforce" on the topics (purpose: employee/store copies, approvers, BC sync status, erasure).

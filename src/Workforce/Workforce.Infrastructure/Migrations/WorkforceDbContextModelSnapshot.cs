@@ -1059,6 +1059,103 @@ namespace Workforce.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Workforce.Core.WorkingTime.MonthClose", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("ClosedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("closed_at");
+
+                    b.Property<Guid>("ClosedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("closed_by");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("employee_id");
+
+                    b.Property<int>("Month")
+                        .HasColumnType("integer")
+                        .HasColumnName("month");
+
+                    b.Property<decimal>("OvertimeHours")
+                        .HasPrecision(8, 2)
+                        .HasColumnType("numeric(8,2)")
+                        .HasColumnName("overtime_hours");
+
+                    b.Property<decimal>("ThresholdHours")
+                        .HasPrecision(8, 2)
+                        .HasColumnType("numeric(8,2)")
+                        .HasColumnName("threshold_hours");
+
+                    b.Property<decimal>("WorkedHours")
+                        .HasPrecision(8, 2)
+                        .HasColumnType("numeric(8,2)")
+                        .HasColumnName("worked_hours");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("integer")
+                        .HasColumnName("year");
+
+                    b.HasKey("Id")
+                        .HasName("pk_month_closes");
+
+                    b.HasIndex("EmployeeId", "Year", "Month")
+                        .IsUnique()
+                        .HasDatabaseName("ix_month_closes_employee_id_year_month");
+
+                    b.ToTable("month_closes", "workforce");
+                });
+
+            modelBuilder.Entity("Workforce.Core.WorkingTime.TimeBooking", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date")
+                        .HasColumnName("date");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("employee_id");
+
+                    b.Property<decimal>("Hours")
+                        .HasPrecision(8, 2)
+                        .HasColumnType("numeric(8,2)")
+                        .HasColumnName("hours");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("kind");
+
+                    b.Property<Guid?>("MonthCloseId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("month_close_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_time_bookings");
+
+                    b.HasIndex("EmployeeId", "Date")
+                        .HasDatabaseName("ix_time_bookings_employee_id_date");
+
+                    b.ToTable("time_bookings", "workforce");
+                });
+
             modelBuilder.Entity("Workforce.Infrastructure.Absences.EntitlementChangeRecord", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1451,6 +1548,60 @@ namespace Workforce.Infrastructure.Migrations
                         .HasName("pk_store_settings");
 
                     b.ToTable("store_settings", "workforce");
+                });
+
+            modelBuilder.Entity("Workforce.Infrastructure.WorkingTime.MonthlyThresholdRecord", b =>
+                {
+                    b.Property<Guid>("RelationshipId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("relationship_id");
+
+                    b.Property<DateTimeOffset>("ChangedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("changed_at");
+
+                    b.Property<Guid>("ChangedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("changed_by");
+
+                    b.Property<decimal>("Hours")
+                        .HasPrecision(8, 2)
+                        .HasColumnType("numeric(8,2)")
+                        .HasColumnName("hours");
+
+                    b.HasKey("RelationshipId")
+                        .HasName("pk_monthly_thresholds");
+
+                    b.ToTable("monthly_thresholds", "workforce");
+                });
+
+            modelBuilder.Entity("Workforce.Infrastructure.WorkingTime.WorkingTimeRulesRecord", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("ChangedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("changed_at");
+
+                    b.Property<Guid>("ChangedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("changed_by");
+
+                    b.Property<int?>("ExpiryMonths")
+                        .HasColumnType("integer")
+                        .HasColumnName("expiry_months");
+
+                    b.Property<decimal>("PayoutThresholdHours")
+                        .HasPrecision(8, 2)
+                        .HasColumnType("numeric(8,2)")
+                        .HasColumnName("payout_threshold_hours");
+
+                    b.HasKey("Id")
+                        .HasName("pk_working_time_rules");
+
+                    b.ToTable("working_time_rules", "workforce");
                 });
 
             modelBuilder.Entity("Shared.Approvals.ApprovalStep", b =>
