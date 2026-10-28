@@ -79,12 +79,14 @@ Jede Person bekommt beim Anlegen drei Konten:
 
 ## Nicht-Verfügbarkeit
 
-Die Liste „Nichtverfügbarkeitsarten“ hat 25 Einträge mit den Spalten **Code, Beschreibung, Bezahlte Zeit (0/1), Zeitplan Zeichen, Arbeitscode setzen** (leer): zum Beispiel KRANK (K), URLAUB (U), KRANK I URLAUB (KU), ELTERNZEIT (EZ), FREI (FT), MUTTERSCHUTZ (MS, bezahlt), UB (unwiderruflich bezahlte Freistellung, bezahlt), UNENTSCHULDIGT (UE), UNBEZ. U (UBE), SONDERURLAUB (SU), FORTBILDUNG (FB), PRÜFUNG (P, bezahlt) und weitere. Sie sind die **Ursachen, weshalb jemand nicht zur Arbeit erscheint**.
+Die Liste „Nichtverfügbarkeitsarten“ hat 24 Einträge (Stand BC-Screenshot 2026-10-28; früher als 25 notiert) mit den Spalten **Code, Beschreibung, Bezahlte Zeit (0/1), Zeitplan Zeichen, Arbeitscode setzen** (leer): zum Beispiel KRANK (K), URLAUB (U), KRANK I URLAUB (KU), ELTERNZEIT (EZ), FREI (FT), MUTTERSCHUTZ (MS, bezahlt), UB (unwiderruflich bezahlte Freistellung, bezahlt), UNENTSCHULDIGT (UE), UNBEZ. U (UBE), SONDERURLAUB (SU), FORTBILDUNG (FB), PRÜFUNG (P, bezahlt) und weitere. Sie sind die **Ursachen, weshalb jemand nicht zur Arbeit erscheint**.
 
 Sie beeinflussen den Dienstplan (Dienstplanung selbst ist noch nicht gebaut, die Schnittstelle ist vorbereitet):
 - Hat eine Person für einen Tag eine Nicht-Verfügbarkeit **und** dort eine Schicht, wird die Schicht als **nicht abgedeckt** markiert (`ShiftUncovered`, im Katalog) und HR benachrichtigt.
 - Nach dem Tag steht im Dienstplan **nicht „leer“, sondern das Zeitplan-Zeichen** („war krank“: K), weil die Lohnabrechnung es braucht. Die Art trägt dafür „bezahlte Zeit“.
-- Die bestehenden Abwesenheiten (Krankmeldung, Urlaub) werden zu Nicht-Verfügbarkeiten dieser Arten; die Arten selbst werden als von HR pflegbare Liste geführt (Start: die 25 Einträge der Datei).
+- Die bestehenden Abwesenheiten (Krankmeldung, Urlaub) werden zu Nicht-Verfügbarkeiten dieser Arten; die Arten selbst werden als von HR pflegbare Liste geführt (Start: die 24 Einträge der BC-Liste).
+
+**Gebaut (Schritt 3, Entscheidung 32):** `Workforce.Core/Unavailability/` (Arten, Einträge, Zeitleiste, `ShiftCoverage`), Endpunkte `UnavailabilityEndpoints.cs`, Migration `Unavailability`. Krank im genehmigten Urlaub wird als KU geführt; Sichtbarkeit: Person und Inhaber von `absence:read-reason` sehen die Art; Inhaber von `absence:read-availability` (selber Dienstplan) sehen Krank, Urlaub und KU als solche, jede andere Art nur als „nicht verfügbar“; die Dienstplanung selbst fehlt, `IShiftLookup` liefert vorerst keine Schichten. Offen: Pflege des Hinweistextes durch HR, BC-Spiegelung der Einträge, Teiltage (Uhrzeiten), Einrichtung in Access.
 
 ## Arbeitszeitkonto
 
@@ -114,7 +116,7 @@ Regeln, alle von HR pflegbar und **für alle gleich** (nicht je Arbeitsverhältn
 | --- | --- | --- |
 | 1 | Karte: Felder, Anlegen mit Personalnummer aus dem Nummernkreis, Auswahllisten, Lesen mit Datenschutz-Stufen, Urlaubsanspruch beim Anlegen | **gebaut** (Entscheidung 29) |
 | 2 | Änderungsanträge der Person für private Daten, HR-Benachrichtigung und Entscheidung | **gebaut** (Entscheidung 30) |
-| 3 | Nicht-Verfügbarkeit: pflegbare Arten (Start: 25 aus der Liste), Einträge je Person, Anbindung der Abwesenheiten, Hinweis „nicht abgedeckt“ | geplant |
+| 3 | Nicht-Verfügbarkeit: pflegbare Arten (Start: 24 aus der BC-Liste), Einträge je Person, Anbindung der Abwesenheiten, KU, Hinweis „nicht abgedeckt“ | **gebaut** (Entscheidung 32) |
 | 4 | Arbeitszeitkonto mit Schwellen für Auszahlung und Verfall | geplant |
 | 5 | Übertragung nach BC (neue Nachricht, Start-PIN, Feldliste) | braucht Freigabe und BC-Modell |
 

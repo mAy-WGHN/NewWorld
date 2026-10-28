@@ -1,28 +1,19 @@
 # Nächste Schritte (Mitarbeiterkarte)
 
-Stand 2026-10-27. Gebaut sind Schritt 1 (Karte, Nummernkreis, Auswahllisten, Datenschutzstufen) und Schritt 2 (Änderungsanträge). Ausstehend sind **Schritt 3** und **Schritt 4**; dazu Schritt 5 als Ausblick. Entwurf und Entscheidungen: `docs/mitarbeiterkarte.md`, `CLAUDE.md` (Entscheidungen 29 bis 31).
+Stand 2026-10-28. Gebaut sind Schritt 1 (Karte, Nummernkreis, Auswahllisten, Datenschutzstufen), Schritt 2 (Änderungsanträge) und Schritt 3 (Nicht-Verfügbarkeit). Ausstehend ist **Schritt 4**; dazu Schritt 5 als Ausblick. Entwurf und Entscheidungen: `docs/mitarbeiterkarte.md`, `CLAUDE.md` (Entscheidungen 29 bis 31).
 
-Reihenfolge: **Schritt 3 zuerst** (kleiner, Grundlage für die Dienstplanung), dann Schritt 4.
+Als Nächstes: **Schritt 4** (Arbeitszeitkonto), vorher die offene Frage zu den Minusstunden klären.
 
 ---
 
-## Schritt 3: Nicht-Verfügbarkeit (ausstehend)
+## Schritt 3: Nicht-Verfügbarkeit (gebaut 2026-10-28, Entscheidung 32)
 
-**Ziel:** Alles, weshalb eine Person nicht zur Arbeit erscheint, als eine Liste führen. Sie hängt später an den Dienstplänen und wirkt direkt auf sie.
+Arten (24 aus BC), Einträge von HR, Zeitleiste mit KU, Sichtbarkeit nach Art/Verfügbarkeit, Schichthinweis an die HR-Gruppe. Details: `docs/mitarbeiterkarte.md`, `CLAUDE.md` (Entscheidung 32).
 
-**Zu bauen**
-- **Arten** als von HR pflegbare Liste. Start sind die 25 Einträge aus `Archiv/hr-tool-API/docs/spreadsheets/Nichtverfügbarkeitsarten.xlsx` (Spalten: Code, Beschreibung, Bezahlte Zeit 0/1, Zeitplan-Zeichen, Arbeitscode setzen (leer)), zum Beispiel KRANK (K), URLAUB (U), KRANK I URLAUB (KU), ELTERNZEIT (EZ), FREI (FT), MUTTERSCHUTZ (MS, bezahlt), UB (bezahlt), UNENTSCHULDIGT (UE), UNBEZ. U (UBE), SONDERURLAUB (SU), FORTBILDUNG (FB), PRÜFUNG (P, bezahlt). Einträge nur deaktivieren, nicht löschen.
-- **Einträge je Person:** Zeitraum und Art, mit Plausibilitätsprüfungen (keine unmöglichen Überschneidungen, Zeitraum vor Eintritt und nach Austritt).
-- **Anbindung der bestehenden Abwesenheiten** (Entscheidung: „wie bisher“): Krankmeldung wird zu KRANK, Urlaub zu URLAUB, intern auf die Art abgebildet. Die anderen Arten werden zunächst nicht von Mitarbeitenden selbst beantragt, sondern von HR erfasst.
-- **Dienstplan-Wirkung, soweit ohne Dienstplan möglich:**
-  - Hat die Person an dem Tag eine Schicht, wird sie als **nicht abgedeckt** markiert (Nachricht `ShiftUncovered`, steht im Katalog, ist vorbereitet) und HR wird benachrichtigt.
-  - Nach dem Tag steht im Dienstplan **nicht „leer“**, sondern das **Zeitplan-Zeichen** („war krank“: K), weil die Lohnabrechnung es braucht.
-  - Die Dienstplanung selbst ist nicht Teil dieses Vorhabens; gebaut wird nur die Schnittstelle.
-- **Rechte** mit Beschreibung (neue `employee:`- oder `absence:`-Rechte, Vergabe später in Access), Tests zuerst, Migration, Doku.
-
-**Zu beachten**
-- Datenschutz: Die Art kann Klasse 2 sein (Krank). Auf dem Bus nur neutralisiert („nicht verfügbar“, ohne Grund), wie bei `EmployeeAvailabilityChanged`.
-- Jede Regel mit Datumsbezug braucht die Pflichtfälle: Monats- und Jahreswechsel, Sommer-/Winterzeit, Schaltjahr, Feiertag, Zeitraum über Mitternacht.
+**Offen aus Schritt 3**
+- **Benachrichtigungstexte** sind gebaut (Entscheidung 33). Offen: Oberfläche, HR die Rechte `template:manage` und `unavailability:*` in Access geben, Datenschutzbeauftragter zum Mail-Anbieter, Bezirksleiter-Vermerk, ausgeschiedene Personen überspringen, BC soll Vor- und Nachnamen getrennt liefern.
+- **Einrichtung in Access:** HR-Gruppe als Zuständigkeit zum Thema `schedule.adjustment` (sechs Personen, pflegbar), Rechte `unavailability:*` für HR, Leserechte der Rollen.
+- **BC-Spiegelung** der Einträge (`TODO(BC-Modell)`), **Dienstplan** als Quelle für `IShiftLookup`, **Teiltage** (Uhrzeiten) später, Einträge mit offenem Ende (bisher nicht), Einträge nach Austritt (bisher nur beim Anlegen geprüft).
 
 ---
 
