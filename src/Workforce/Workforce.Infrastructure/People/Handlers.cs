@@ -87,6 +87,7 @@ public sealed class ResponsibilitiesChangedHandler(WorkforceDbContext db) : IMes
         copy.Version = message.Version;
         copy.ApproverIds = [.. message.Responsibilities.Where(r => r.Topic == ApproverCopyRecord.Topic).SelectMany(r => r.ResponsibleEmployeeIds).Distinct()];
         copy.ChangeRequestHandlerIds = [.. message.Responsibilities.Where(r => r.Topic == ApproverCopyRecord.ChangeRequestTopic).SelectMany(r => r.ResponsibleEmployeeIds).Distinct()];
+        copy.ScheduleAdjustmentHandlerIds = [.. message.Responsibilities.Where(r => r.Topic == ApproverCopyRecord.ScheduleAdjustmentTopic).SelectMany(r => r.ResponsibleEmployeeIds).Distinct()];
     }
 }
 
@@ -141,6 +142,8 @@ public sealed class EmployeeDataErasureRequestedHandler(
         await db.CertificateDocuments.Where(d => d.ReviewedBy == id).ExecuteUpdateAsync(s => s.SetProperty(d => d.ReviewedBy, Guid.Empty), cancellationToken);
         await db.CertificateAccessLog.Where(e => e.ActorId == id).ExecuteUpdateAsync(s => s.SetProperty(e => e.ActorId, Guid.Empty), cancellationToken);
         await db.Absences.Where(a => a.EmployeeId == id).ExecuteDeleteAsync(cancellationToken);
+        await db.UnavailabilityEntries.Where(e => e.EmployeeId == id).ExecuteDeleteAsync(cancellationToken);
+        await db.UnavailabilityEntries.Where(e => e.CreatedBy == id).ExecuteUpdateAsync(s => s.SetProperty(e => e.CreatedBy, Guid.Empty), cancellationToken);
         await db.Entitlements.Where(e => e.EmployeeId == id).ExecuteDeleteAsync(cancellationToken);
         await db.ExtraVacation.Where(e => e.EmployeeId == id).ExecuteDeleteAsync(cancellationToken);
         await db.ExtraVacation.Where(e => e.CreatedBy == id).ExecuteUpdateAsync(s => s.SetProperty(e => e.CreatedBy, Guid.Empty), cancellationToken);
@@ -157,10 +160,11 @@ public sealed class EmployeeDataErasureRequestedHandler(
         await db.PersonnelNumberSeries.Where(s => s.ChangedBy == id).ExecuteUpdateAsync(s => s.SetProperty(x => x.ChangedBy, Guid.Empty), cancellationToken);
         await db.StoreSettings.Where(s => s.ChangedBy == id).ExecuteUpdateAsync(s => s.SetProperty(x => x.ChangedBy, Guid.Empty), cancellationToken);
         await db.ApproverCopies.Where(a => a.EmployeeId == id).ExecuteDeleteAsync(cancellationToken);
-        foreach (var copy in await db.ApproverCopies.Where(a => a.ApproverIds.Contains(id) || a.ChangeRequestHandlerIds.Contains(id)).ToListAsync(cancellationToken))
+        foreach (var copy in await db.ApproverCopies.Where(a => a.ApproverIds.Contains(id) || a.ChangeRequestHandlerIds.Contains(id) || a.ScheduleAdjustmentHandlerIds.Contains(id)).ToListAsync(cancellationToken))
         {
             copy.ApproverIds = [.. copy.ApproverIds.Where(a => a != id)];
             copy.ChangeRequestHandlerIds = [.. copy.ChangeRequestHandlerIds.Where(a => a != id)];
+            copy.ScheduleAdjustmentHandlerIds = [.. copy.ScheduleAdjustmentHandlerIds.Where(a => a != id)];
         }
 
         foreach (var step in await db.Set<Shared.Approvals.ApprovalStep>().Where(s => s.ApproverIds.Contains(id)).ToListAsync(cancellationToken))

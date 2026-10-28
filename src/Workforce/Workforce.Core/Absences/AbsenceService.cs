@@ -3,6 +3,7 @@ using Notifications.Contracts;
 using Shared.Approvals;
 using Workforce.Contracts;
 using Workforce.Core.Certificates;
+using Workforce.Core.Unavailability;
 
 namespace Workforce.Core.Absences;
 
@@ -20,7 +21,9 @@ public sealed class AbsenceService(
     IWorkforceMessages messages,
     TimeProvider time,
     WorkforceOptions options,
-    IHolidayCalendar holidays)
+    IHolidayCalendar holidays,
+    IUnavailabilityStore? unavailability = null,
+    ShiftCoverage? coverage = null)
 {
     private const string SickNoteTemplate = "workforce.sick-note.store-manager";
     private const string VacationRequestTemplate = "workforce.vacation-request.supervisor";
@@ -70,11 +73,12 @@ public sealed class AbsenceService(
 
         foreach (var vacation in existing.Where(a => a.Type == AbsenceType.Vacation && a.Status is AbsenceStatus.Requested or AbsenceStatus.Approved && a.Range.Overlaps(range)))
         {
-            await AdjustVacationAsync(vacation, range, now, correlationId, cancellationToken);
+            await AdjustVacationAsync(vacation, sick.Id, range, now, correlationId, cancellationToken);
         }
 
         Sync(sick, correlationId, now);
         Availability(employeeId, from, to, AvailabilityStatus.Unavailable, correlationId, now);
+        await ReportUncoveredAsync(sick, range, correlationId, cancellationToken);
         Notify(
             SickNoteTemplate, await ApproversAsync(employeeId, cancellationToken), sick, correlationId, now,
             new Dictionary<string, string> { ["employeeName"] = person.Name, ["from"] = Iso(from), ["to"] = to is { } t ? Iso(t) : "unbefristet" });
@@ -148,7 +152,7 @@ public sealed class AbsenceService(
         var correlationId = Guid.CreateVersion7(now);
         foreach (var vacation in existing.Where(a => a.Type == AbsenceType.Vacation && a.Status is AbsenceStatus.Requested or AbsenceStatus.Approved && a.Range.Overlaps(range)).ToList())
         {
-            await AdjustVacationAsync(vacation, range, now, correlationId, cancellationToken);
+            await AdjustVacationAsync(vacation, sick.Id, range, now, correlationId, cancellationToken);
         }
 
         sick.From = from;
@@ -156,6 +160,7 @@ public sealed class AbsenceService(
         sick.Touch(now);
         Sync(sick, correlationId, now);
         Availability(sick.EmployeeId, from, to, AvailabilityStatus.Unavailable, correlationId, now);
+        await ReportUncoveredAsync(sick, range, correlationId, cancellationToken);
         return AbsenceError.None;
     }
 
@@ -182,7 +187,8 @@ public sealed class AbsenceService(
         await store.LockEmployeeAsync(employeeId, cancellationToken);
         var existing = await store.ForEmployeeAsync(employeeId, cancellationToken);
         var range = DateRange.Of(from, to);
-        if (existing.Any(a => a.IsActive && a.Range.Overlaps(range)))
+        if (existing.Any(a => a.IsActive && a.Range.Overlaps(range))
+            || (unavailability is not null && (await unavailability.EntriesAsync(employeeId, cancellationToken)).Any(e => e.Source == EntrySource.Manual && e.Range.Overlaps(range))))
         {
             return AbsenceResult.Fail(AbsenceError.Overlap);
         }
@@ -514,7 +520,7 @@ public sealed class AbsenceService(
 
     // ------------------------------------------------------------------ helpers
 
-    private async Task AdjustVacationAsync(Absence vacation, DateRange sickness, DateTimeOffset now, Guid correlationId, CancellationToken cancellationToken)
+    private async Task AdjustVacationAsync(Absence vacation, Guid sickAbsenceId, DateRange sickness, DateTimeOffset now, Guid correlationId, CancellationToken cancellationToken)
     {
         if (vacation.Status == AbsenceStatus.Requested)
         {
@@ -526,6 +532,7 @@ public sealed class AbsenceService(
             return;
         }
 
+        await RecordSickInVacationAsync(vacation, sickAbsenceId, sickness, now, cancellationToken);
         var plan = SicknessAdjustment.Plan(vacation.Range, sickness, await CalendarForAsync(vacation.EmployeeId, cancellationToken));
         if (plan.IsCompletelyCancelled)
         {
@@ -550,6 +557,40 @@ public sealed class AbsenceService(
 
         vacation.Touch(now);
         Sync(vacation, correlationId, now);
+    }
+
+    /// <summary>
+    /// The sick days inside an approved vacation are recorded as "krank im Urlaub" (KU): the vacation days are credited back, the days keep
+    /// their own kind for the schedule and payroll. The days are the overlap of vacation and sick note (calendar days).
+    /// </summary>
+    private async Task RecordSickInVacationAsync(Absence vacation, Guid sickAbsenceId, DateRange sickness, DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        if (unavailability is null || vacation.To is not { } vacationEnd
+            || await unavailability.KindByCodeAsync(UnavailabilityKinds.SickInVacation, cancellationToken) is not { } kind)
+        {
+            return;
+        }
+
+        var from = sickness.From > vacation.From ? sickness.From : vacation.From;
+        var to = sickness.To is { } sickEnd && sickEnd < vacationEnd ? sickEnd : vacationEnd;
+        if (to < from)
+        {
+            return;
+        }
+
+        unavailability.AddEntry(new UnavailabilityEntry
+        {
+            Id = Guid.CreateVersion7(now), EmployeeId = vacation.EmployeeId, KindId = kind.Id, From = from, To = to,
+            Source = EntrySource.System, SourceAbsenceId = sickAbsenceId, CreatedBy = vacation.EmployeeId, CreatedAt = now,
+        });
+    }
+
+    private async Task ReportUncoveredAsync(Absence sick, DateRange range, Guid correlationId, CancellationToken cancellationToken)
+    {
+        if (coverage is not null)
+        {
+            await coverage.ReportAsync(sick.EmployeeId, range, UncoveredReason.Sickness, sick.Id, correlationId, cancellationToken, sick.Version);
+        }
     }
 
     private async Task CloseApprovalAsync(Absence vacation, CancellationToken cancellationToken)

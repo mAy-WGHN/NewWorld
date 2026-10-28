@@ -60,8 +60,14 @@ public sealed class ApproverCopyRecord
     /// <summary>The persons in HR who decide change requests of the employee card of this person.</summary>
     public const string ChangeRequestTopic = "employee.change-request";
 
+    /// <summary>The HR team that adjusts the schedule when a person becomes unavailable.</summary>
+    public const string ScheduleAdjustmentTopic = "schedule.adjustment";
+
     public Guid EmployeeId { get; set; }
     public long Version { get; set; }
     public List<Guid> ApproverIds { get; set; } = [];
     public List<Guid> ChangeRequestHandlerIds { get; set; } = [];
+
+    /// <summary>The persons (HR team) who adjust the schedule when a person becomes unavailable.</summary>
+    public List<Guid> ScheduleAdjustmentHandlerIds { get; set; } = [];
 }

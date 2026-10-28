@@ -180,3 +180,24 @@ public sealed record EmployeeChangeRequestDto(
     DateTimeOffset CreatedAt, DateTimeOffset? DecidedAt, string? RejectionReason);
 
 public sealed record RejectChangeRequestBody(string? Reason);
+
+/// <summary>A kind of unavailability (BC list "Nichtverfügbarkeitsarten").</summary>
+public sealed record UnavailabilityKindDto(Guid Id, string Code, string Description, bool PaidTime, string? ScheduleSymbol, string? WorkCode, bool IsActive, bool IsSystem);
+
+public sealed record AddUnavailabilityKindRequest(string Code, string Description, bool PaidTime, string? ScheduleSymbol, string? WorkCode);
+
+/// <summary>Everything but the code. <see cref="IsActive"/> left out keeps the state.</summary>
+public sealed record UpdateUnavailabilityKindRequest(string Description, bool PaidTime, string? ScheduleSymbol, string? WorkCode, bool? IsActive);
+
+public sealed record AddUnavailabilityRequest(Guid KindId, DateOnly From, DateOnly To);
+
+/// <summary>
+/// A period in which a person is not available, as its viewer may see it: the kind (<see cref="Kind"/> and the fields after it) only for the person
+/// themself and holders of the reason privilege (HR, supervisors); colleagues with the availability privilege see the kind for sickness, vacation and
+/// KU (what the schedule shows anyway) and otherwise only <c>Status</c> = <c>Unavailable</c> and the period (no <see cref="Id"/>, <see cref="PaidTime"/>, <see cref="Origin"/>). <see cref="Origin"/> is <c>Absence</c>, <c>Manual</c> or <c>System</c>.
+/// </summary>
+public sealed record UnavailabilityDto(
+    Guid EmployeeId, DateOnly From, DateOnly? To, string Status, Guid? Id = null, string? Kind = null, string? Description = null, string? ScheduleSymbol = null, bool? PaidTime = null, string? Origin = null);
+
+/// <summary>What colleagues in a store see (name and period); the kind only with the reason privilege.</summary>
+public sealed record StoreUnavailabilityDto(string EmployeeName, UnavailabilityDto Period);

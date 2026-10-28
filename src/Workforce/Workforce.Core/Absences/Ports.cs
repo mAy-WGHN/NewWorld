@@ -74,6 +74,9 @@ public interface IResponsibilityDirectory
 
     /// <summary>The persons in HR who decide change requests of the employee card of this person.</summary>
     Task<IReadOnlyList<Guid>> ChangeRequestHandlersAsync(Guid employeeId, CancellationToken cancellationToken);
+
+    /// <summary>The persons in HR who adjust the schedule when a person becomes unavailable (the "HR team", maintained in Access under the topic <c>schedule.adjustment</c>).</summary>
+    Task<IReadOnlyList<Guid>> ScheduleAdjustmentHandlersAsync(Guid employeeId, CancellationToken cancellationToken);
 }
 
 /// <summary>Publishes messages together with the current unit of work (outbox).</summary>

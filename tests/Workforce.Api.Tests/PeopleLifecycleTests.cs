@@ -1,3 +1,4 @@
+using System.Net;
 using Access.Contracts;
 using BcIntegration.Contracts;
 using Microsoft.EntityFrameworkCore;
@@ -83,6 +84,8 @@ public sealed class PeopleLifecycleTests(PostgresFixture postgres) : IClassFixtu
         await api.SetEntitlementAsync(Erika, 2026, 30);
         await api.PostAbsenceAsync("/api/me/absences/sick", Erika, new ReportSickRequest(new DateOnly(2026, 10, 23), new DateOnly(2026, 10, 24)));
         await api.PostAbsenceAsync("/api/me/absences/vacation", Erika, new RequestVacationRequest(new DateOnly(2026, 11, 2), new DateOnly(2026, 11, 3)));
+        var special = (await api.GetAsync<List<UnavailabilityKindDto>>("/api/unavailability-kinds", Hanna)).Single(k => k.Code == "SONDERURLAUB");
+        (await api.SendAsync(HttpMethod.Post, $"/api/employees/{Erika}/unavailabilities", Hanna, new AddUnavailabilityRequest(special.Id, new DateOnly(2026, 12, 1), new DateOnly(2026, 12, 2)))).StatusCode.ShouldBe(HttpStatusCode.OK);
 
         var result = await api.DeliverAsync(new EmployeeDataErasureRequested(Guid.NewGuid(), Guid.NewGuid(), Start, Erika));
 
@@ -90,6 +93,8 @@ public sealed class PeopleLifecycleTests(PostgresFixture postgres) : IClassFixtu
         using var scope = api.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<WorkforceDbContext>();
         (await db.Absences.AnyAsync(a => a.EmployeeId == Erika)).ShouldBeFalse();
+        (await db.UnavailabilityEntries.AnyAsync(e => e.EmployeeId == Erika)).ShouldBeFalse();
+        (await db.UnavailabilityEntries.AnyAsync(e => e.CreatedBy == Erika)).ShouldBeFalse();
         (await db.Entitlements.AnyAsync(e => e.EmployeeId == Erika)).ShouldBeFalse();
         (await db.People.AnyAsync(p => p.EmployeeId == Erika)).ShouldBeFalse();
         (await db.MainStoreCopies.AnyAsync(m => m.EmployeeId == Erika)).ShouldBeFalse();
@@ -99,6 +104,19 @@ public sealed class PeopleLifecycleTests(PostgresFixture postgres) : IClassFixtu
             .Select(m => m.MessageType).ShouldBeEmpty("outgoing messages about the person are deleted too");
         // Colleagues still exist.
         (await db.People.AnyAsync(p => p.EmployeeId == Ben)).ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task The_HR_team_for_schedule_adjustments_comes_from_the_responsibilities_of_Access()
+    {
+        await using var api = await StartAsync(postgres);
+
+        await api.DeliverAsync(new ResponsibilitiesChanged(Guid.NewGuid(), Guid.NewGuid(), Start, Erika, 7, [new TopicResponsibility("schedule.adjustment", [Hanna, Sven]), new TopicResponsibility("absence.approval", [Max])]));
+
+        using var scope = api.Services.CreateScope();
+        var copy = await scope.ServiceProvider.GetRequiredService<WorkforceDbContext>().ApproverCopies.AsNoTracking().SingleAsync(a => a.EmployeeId == Erika);
+        copy.ScheduleAdjustmentHandlerIds.ShouldBe([Hanna, Sven], ignoreOrder: true);
+        copy.ApproverIds.ShouldBe([Max]);
     }
 
     [Fact]

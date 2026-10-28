@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Shared.Infrastructure.Approvals;
 using Workforce.Core.Absences;
 using Workforce.Core.Certificates;
+using Workforce.Core.Unavailability;
 using Workforce.Infrastructure.Certificates;
 using Workforce.Infrastructure.Absences;
 using Workforce.Infrastructure.People;
@@ -16,6 +17,8 @@ public sealed class WorkforceDbContext(DbContextOptions<WorkforceDbContext> opti
     public const string Schema = "workforce";
 
     public DbSet<Absence> Absences => Set<Absence>();
+    public DbSet<UnavailabilityKind> UnavailabilityKinds => Set<UnavailabilityKind>();
+    public DbSet<UnavailabilityEntry> UnavailabilityEntries => Set<UnavailabilityEntry>();
     public DbSet<EntitlementRecord> Entitlements => Set<EntitlementRecord>();
     public DbSet<ExtraVacationRecord> ExtraVacation => Set<ExtraVacationRecord>();
     public DbSet<VacationRulesRecord> VacationRules => Set<VacationRulesRecord>();
@@ -59,6 +62,29 @@ public sealed class WorkforceDbContext(DbContextOptions<WorkforceDbContext> opti
             b.HasIndex(a => new { a.EmployeeId, a.From });
             b.HasIndex(a => new { a.Type, a.Status, a.CertificateStatus });
             b.HasIndex(a => a.ApprovalRequestId);
+        });
+        // Nicht-Verfügbarkeit: the kinds (BC list, maintained by HR, seeded with the 24 of BC) and the entries (HR, and KU days from sick notes).
+        modelBuilder.Entity<UnavailabilityKind>(b =>
+        {
+            b.ToTable("unavailability_kinds");
+            b.HasKey(k => k.Id);
+            b.Property(k => k.Id).ValueGeneratedNever();
+            b.Property(k => k.Code).HasMaxLength(40);
+            b.Property(k => k.Description).HasMaxLength(100);
+            b.Property(k => k.ScheduleSymbol).HasMaxLength(10);
+            b.Property(k => k.WorkCode).HasMaxLength(20);
+            b.HasIndex(k => k.Code).IsUnique();
+            b.HasData(UnavailabilityKindSeed.All.Select(s => s.ToKind()));
+        });
+        modelBuilder.Entity<UnavailabilityEntry>(b =>
+        {
+            b.ToTable("unavailability_entries");
+            b.HasKey(e => e.Id);
+            b.Property(e => e.Id).ValueGeneratedNever();
+            b.Ignore(e => e.Range);
+            b.Property(e => e.Source).HasConversion<string>().HasMaxLength(20);
+            b.HasIndex(e => new { e.EmployeeId, e.From });
+            b.HasIndex(e => e.SourceAbsenceId);
         });
         modelBuilder.Entity<EntitlementChangeRecord>(b =>
         {

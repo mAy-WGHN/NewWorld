@@ -716,6 +716,349 @@ namespace Workforce.Infrastructure.Migrations
                     b.ToTable("reference_entries", "workforce");
                 });
 
+            modelBuilder.Entity("Workforce.Core.Unavailability.UnavailabilityEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("employee_id");
+
+                    b.Property<DateOnly>("From")
+                        .HasColumnType("date")
+                        .HasColumnName("from");
+
+                    b.Property<Guid>("KindId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("kind_id");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("source");
+
+                    b.Property<Guid?>("SourceAbsenceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("source_absence_id");
+
+                    b.Property<DateOnly>("To")
+                        .HasColumnType("date")
+                        .HasColumnName("to");
+
+                    b.HasKey("Id")
+                        .HasName("pk_unavailability_entries");
+
+                    b.HasIndex("SourceAbsenceId")
+                        .HasDatabaseName("ix_unavailability_entries_source_absence_id");
+
+                    b.HasIndex("EmployeeId", "From")
+                        .HasDatabaseName("ix_unavailability_entries_employee_id_from");
+
+                    b.ToTable("unavailability_entries", "workforce");
+                });
+
+            modelBuilder.Entity("Workforce.Core.Unavailability.UnavailabilityKind", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("code");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("description");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<bool>("IsSystem")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_system");
+
+                    b.Property<bool>("PaidTime")
+                        .HasColumnType("boolean")
+                        .HasColumnName("paid_time");
+
+                    b.Property<string>("ScheduleSymbol")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("schedule_symbol");
+
+                    b.Property<string>("WorkCode")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("work_code");
+
+                    b.HasKey("Id")
+                        .HasName("pk_unavailability_kinds");
+
+                    b.HasIndex("Code")
+                        .IsUnique()
+                        .HasDatabaseName("ix_unavailability_kinds_code");
+
+                    b.ToTable("unavailability_kinds", "workforce");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("69159e9c-ad43-2b25-959b-39685c7ad2dc"),
+                            Code = "BESCHÄFTIGUNGSVERBOT",
+                            Description = "Beschäftigungsverbot",
+                            IsActive = true,
+                            IsSystem = false,
+                            PaidTime = false,
+                            ScheduleSymbol = "BV"
+                        },
+                        new
+                        {
+                            Id = new Guid("fd8d0414-c465-9c27-778e-c7545e41f9fc"),
+                            Code = "ELTERNZEIT",
+                            Description = "Elternzeit",
+                            IsActive = true,
+                            IsSystem = false,
+                            PaidTime = false,
+                            ScheduleSymbol = "EZ"
+                        },
+                        new
+                        {
+                            Id = new Guid("6d060a5e-d50a-9bb9-129c-fb1af1497bb7"),
+                            Code = "FORTBILDUNG",
+                            Description = "Fortbildung",
+                            IsActive = true,
+                            IsSystem = false,
+                            PaidTime = false,
+                            ScheduleSymbol = "FB"
+                        },
+                        new
+                        {
+                            Id = new Guid("8215f40e-1589-ea9d-3a9d-fd5d43aa8c51"),
+                            Code = "FREI",
+                            Description = "Freier Tag",
+                            IsActive = true,
+                            IsSystem = false,
+                            PaidTime = false,
+                            ScheduleSymbol = "FT"
+                        },
+                        new
+                        {
+                            Id = new Guid("896ccbbb-9f9e-9544-4f2b-1b35e5888bee"),
+                            Code = "KINDKRANK",
+                            Description = "krank Kind mit Bescheinig",
+                            IsActive = true,
+                            IsSystem = false,
+                            PaidTime = true,
+                            ScheduleSymbol = "KK"
+                        },
+                        new
+                        {
+                            Id = new Guid("434a8137-970b-a4c7-d000-db2d06cbb4e0"),
+                            Code = "KLASSENFAHRT",
+                            Description = "unbezahlt Info Klassenfahrt",
+                            IsActive = true,
+                            IsSystem = false,
+                            PaidTime = false
+                        },
+                        new
+                        {
+                            Id = new Guid("6db1b26f-3c23-7402-1e60-16740c2316a6"),
+                            Code = "KRANK",
+                            Description = "Krank",
+                            IsActive = true,
+                            IsSystem = true,
+                            PaidTime = true,
+                            ScheduleSymbol = "K"
+                        },
+                        new
+                        {
+                            Id = new Guid("9d69add9-692b-870d-3a44-7eb11ad7a421"),
+                            Code = "KRANK I URLAUB",
+                            Description = "Krank im urlaub",
+                            IsActive = true,
+                            IsSystem = true,
+                            PaidTime = true,
+                            ScheduleSymbol = "KU"
+                        },
+                        new
+                        {
+                            Id = new Guid("90c1a3e4-d7cc-ee95-d813-70164a8f010b"),
+                            Code = "MEHRARBEITSABBAU",
+                            Description = "Abbau von Mehrarbeit",
+                            IsActive = true,
+                            IsSystem = false,
+                            PaidTime = false,
+                            ScheduleSymbol = "MA"
+                        },
+                        new
+                        {
+                            Id = new Guid("f32697e5-fc86-f6d5-d54a-4f8e9a747207"),
+                            Code = "MUTTERSCHUTZ",
+                            Description = "Mutterschutz",
+                            IsActive = true,
+                            IsSystem = false,
+                            PaidTime = false,
+                            ScheduleSymbol = "MS"
+                        },
+                        new
+                        {
+                            Id = new Guid("2e76b6ee-4f1b-9d17-f66e-ba864f7769af"),
+                            Code = "PFLEGE ANGEHÖRIGE",
+                            Description = "Pflege od. Betreuung von Ang.",
+                            IsActive = true,
+                            IsSystem = false,
+                            PaidTime = false,
+                            ScheduleSymbol = "PA"
+                        },
+                        new
+                        {
+                            Id = new Guid("c8b57c0f-18e3-0cbc-dc78-f6dc1703c862"),
+                            Code = "PRÜFUNG",
+                            Description = "Prüfung",
+                            IsActive = true,
+                            IsSystem = false,
+                            PaidTime = true,
+                            ScheduleSymbol = "P"
+                        },
+                        new
+                        {
+                            Id = new Guid("2156e40d-a9a9-c606-9343-c09312fd2c7a"),
+                            Code = "PRÜFUNGSVORBEREITUNG",
+                            Description = "PRÜFUNGSVORBEREITUNG",
+                            IsActive = true,
+                            IsSystem = false,
+                            PaidTime = true,
+                            ScheduleSymbol = "PV"
+                        },
+                        new
+                        {
+                            Id = new Guid("7a9002c3-7f0b-16ad-61c4-1dcea4162d43"),
+                            Code = "QUARANTÄNE",
+                            Description = "Quarantäne",
+                            IsActive = true,
+                            IsSystem = false,
+                            PaidTime = false,
+                            ScheduleSymbol = "Q"
+                        },
+                        new
+                        {
+                            Id = new Guid("4fe6d2cd-eed6-96b3-0833-ca447ab437ef"),
+                            Code = "REHA",
+                            Description = "Reha-Maßnahme",
+                            IsActive = true,
+                            IsSystem = false,
+                            PaidTime = false,
+                            ScheduleSymbol = "Reh"
+                        },
+                        new
+                        {
+                            Id = new Guid("410e9df8-5347-69cc-6062-2373c8fe2b5b"),
+                            Code = "ROTATIONSFREI",
+                            Description = "Feiertag Rotation",
+                            IsActive = true,
+                            IsSystem = false,
+                            PaidTime = false,
+                            ScheduleSymbol = "RF"
+                        },
+                        new
+                        {
+                            Id = new Guid("244f5502-e60c-cbbd-7983-4f470ccb888b"),
+                            Code = "SONDERURLAUB",
+                            Description = "Sonder-Urlaub",
+                            IsActive = true,
+                            IsSystem = false,
+                            PaidTime = false,
+                            ScheduleSymbol = "SU"
+                        },
+                        new
+                        {
+                            Id = new Guid("eb3e1cb5-6e9c-1146-9319-d4a3d24a025f"),
+                            Code = "TOD",
+                            Description = "Tod",
+                            IsActive = true,
+                            IsSystem = false,
+                            PaidTime = true,
+                            ScheduleSymbol = "Tod"
+                        },
+                        new
+                        {
+                            Id = new Guid("f078f3e2-9174-7bb7-0067-03ffe157b43c"),
+                            Code = "UB",
+                            Description = "unwiderr. bezahlt Freistellung",
+                            IsActive = true,
+                            IsSystem = false,
+                            PaidTime = true,
+                            ScheduleSymbol = "UB"
+                        },
+                        new
+                        {
+                            Id = new Guid("5fec69e0-6d51-a835-4263-01a9e142c06a"),
+                            Code = "UNBEZ. U",
+                            Description = "Unbezahlter Urlaub",
+                            IsActive = true,
+                            IsSystem = false,
+                            PaidTime = false,
+                            ScheduleSymbol = "UBE"
+                        },
+                        new
+                        {
+                            Id = new Guid("0cc15a10-6a9e-114f-323c-07b05a51d0fd"),
+                            Code = "UNENTSCHULDIGT",
+                            Description = "Unentschuldigt gefehlt",
+                            IsActive = true,
+                            IsSystem = false,
+                            PaidTime = false,
+                            ScheduleSymbol = "UE"
+                        },
+                        new
+                        {
+                            Id = new Guid("133f5fe9-25e4-8e76-9f43-8a5386427cff"),
+                            Code = "URLAUB",
+                            Description = "Urlaub",
+                            IsActive = true,
+                            IsSystem = true,
+                            PaidTime = true,
+                            ScheduleSymbol = "U"
+                        },
+                        new
+                        {
+                            Id = new Guid("52880e1e-bd34-567d-cd0e-21fef328cf57"),
+                            Code = "URLAUBSANTRAGSZEITRAUM",
+                            Description = "Urlaubsantrags Zeitraum",
+                            IsActive = true,
+                            IsSystem = false,
+                            PaidTime = false,
+                            ScheduleSymbol = "UZ"
+                        },
+                        new
+                        {
+                            Id = new Guid("bc70dade-b242-a8a2-3629-cf2b04aa19c4"),
+                            Code = "WIEDEREINGLIEDERUNG",
+                            Description = "Wiedereingliederung",
+                            IsActive = true,
+                            IsSystem = false,
+                            PaidTime = false,
+                            ScheduleSymbol = "WG"
+                        });
+                });
+
             modelBuilder.Entity("Workforce.Infrastructure.Absences.EntitlementChangeRecord", b =>
                 {
                     b.Property<Guid>("Id")
@@ -978,6 +1321,11 @@ namespace Workforce.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("uuid[]")
                         .HasColumnName("change_request_handler_ids");
+
+                    b.PrimitiveCollection<List<Guid>>("ScheduleAdjustmentHandlerIds")
+                        .IsRequired()
+                        .HasColumnType("uuid[]")
+                        .HasColumnName("schedule_adjustment_handler_ids");
 
                     b.Property<long>("Version")
                         .HasColumnType("bigint")

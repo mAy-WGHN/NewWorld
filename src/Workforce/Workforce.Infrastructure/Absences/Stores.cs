@@ -136,6 +136,10 @@ public sealed class EfResponsibilityDirectory(WorkforceDbContext db) : IResponsi
 
     public async Task<IReadOnlyList<Guid>> ChangeRequestHandlersAsync(Guid employeeId, CancellationToken cancellationToken) =>
         await db.ApproverCopies.AsNoTracking().Where(a => a.EmployeeId == employeeId).Select(a => a.ChangeRequestHandlerIds).FirstOrDefaultAsync(cancellationToken) ?? [];
+
+    /// <summary>The HR team is the same for everybody, but Access publishes responsibilities per person; the copy of this person says who it is.</summary>
+    public async Task<IReadOnlyList<Guid>> ScheduleAdjustmentHandlersAsync(Guid employeeId, CancellationToken cancellationToken) =>
+        await db.ApproverCopies.AsNoTracking().Where(a => a.EmployeeId == employeeId).Select(a => a.ScheduleAdjustmentHandlerIds).FirstOrDefaultAsync(cancellationToken) ?? [];
 }
 
 /// <summary>Publishes through the outbox: in the same transaction as the change.</summary>
