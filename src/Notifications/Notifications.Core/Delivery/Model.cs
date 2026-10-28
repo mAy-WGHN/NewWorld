@@ -2,7 +2,7 @@ using Notifications.Contracts;
 
 namespace Notifications.Core.Delivery;
 
-/// <summary>Generic message for push and mail: static template text and the deep link, never data.</summary>
+/// <summary>Text for push and mail with the deep link. It holds only what the template allows for the channel (class 1; class 2 only in the mail text of templates that allow it).</summary>
 public sealed record GenericMessage(Guid EmployeeId, string Title, string Body, string? DeepLink);
 
 /// <summary>A notification in the portal ("meine Benachrichtigungen").</summary>

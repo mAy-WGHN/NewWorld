@@ -2,7 +2,16 @@
   "key": "workforce.employee-change-request.hr",
   "mandatory": true,
   "placeholders": {},
-  "inApp": { "title": "Änderungsantrag zu Mitarbeiterdaten", "body": "Eine Person hat eine Änderung ihrer Daten beantragt. Bitte prüfen und entscheiden." },
-  "push": { "title": "Neue Mitteilung im Portal", "body": "Öffnen, um die Mitteilung zu lesen." },
-  "email": { "title": "Neue Mitteilung im Portal", "body": "Es liegt eine neue Mitteilung für Sie im Portal bereit." }
+  "inApp": {
+    "title": "Änderungsantrag zu Mitarbeiterdaten",
+    "body": "Eine Person hat eine Änderung ihrer Daten beantragt. Bitte prüfen und entscheiden."
+  },
+  "push": {
+    "title": "Neue Mitteilung im Portal",
+    "body": "Öffnen, um die Mitteilung zu lesen."
+  },
+  "email": {
+    "title": "Neue Mitteilung im Portal",
+    "body": "Es liegt eine neue Mitteilung für Sie im Portal bereit."
+  }
 }

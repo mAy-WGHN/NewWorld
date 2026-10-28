@@ -14,7 +14,7 @@ public class TemplateCatalogTests
         catalog.TryGet("portal.news.employee", out var template).ShouldBeTrue();
         template!.Mandatory.ShouldBeFalse();
         catalog.TryGet("portal.unknown.employee", out _).ShouldBeFalse();
-        catalog.Keys.Count.ShouldBe(2);
+        catalog.Keys.Count.ShouldBe(3);
     }
 
     [Theory]

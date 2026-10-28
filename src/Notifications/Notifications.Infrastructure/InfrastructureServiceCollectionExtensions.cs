@@ -56,6 +56,9 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<EfPreferenceStore>();
         services.AddScoped<IPreferenceStore>(sp => sp.GetRequiredService<EfPreferenceStore>());
         services.AddScoped<IPreferenceWriter>(sp => sp.GetRequiredService<EfPreferenceStore>());
+        services.AddScoped<IRecipientDirectory, EfRecipientDirectory>();
+        services.AddScoped<ITemplateOverrides, EfTemplateOverrides>();
+        services.AddScoped<TemplateAdminService>();
         services.AddScoped<NotificationDispatcher>();
         services.AddScoped<PreferenceService>();
         services.AddScoped<NotificationCleaner>();
@@ -65,6 +68,9 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddMessageHandler<NotificationsDbContext, SendNotification, SendNotificationHandler>(MessageSource.Queue(MessagingNames.For(typeof(SendNotification))));
         services.AddMessageHandler<NotificationsDbContext, EmployeeDataErasureRequested, EmployeeDataErasureRequestedHandler>(
             MessageSource.Subscription(MessagingNames.For(typeof(EmployeeDataErasureRequested)), "notifications"));
+        // Copy of the names for $USER.firstName. Subscription "notifications" on the EmployeeChanged topic.
+        services.AddMessageHandler<NotificationsDbContext, EmployeeChanged, EmployeeChangedHandler>(
+            MessageSource.Subscription(MessagingNames.For(typeof(EmployeeChanged)), "notifications"));
         services.AddMessageHandler<NotificationsDbContext, PermissionsChanged, PermissionsChangedConsumer>(
             MessageSource.Subscription(MessagingNames.For(typeof(PermissionsChanged)), "notifications"));
         return services;

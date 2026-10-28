@@ -1,8 +1,18 @@
 {
   "key": "workforce.sick-note-certificate-reminder.employee",
   "mandatory": true,
+  "sensitiveText": true,
   "placeholders": {},
-  "inApp": { "title": "Krankmeldung: Bescheinigung fehlt", "body": "Für Ihre Krankmeldung liegt noch keine Arbeitsunfähigkeitsbescheinigung vor. Bitte laden Sie sie hoch, sobald sie vorliegt." },
-  "push": { "title": "Neue Mitteilung im Portal", "body": "Öffnen, um die Mitteilung zu lesen." },
-  "email": { "title": "Neue Mitteilung im Portal", "body": "Es liegt eine neue Mitteilung für Sie im Portal bereit." }
+  "inApp": {
+    "title": "Krankmeldung: Bescheinigung fehlt",
+    "body": "Für Ihre Krankmeldung liegt noch keine Arbeitsunfähigkeitsbescheinigung vor. Bitte laden Sie sie hoch, sobald sie vorliegt."
+  },
+  "push": {
+    "title": "Neue Mitteilung im Portal",
+    "body": "Öffnen, um die Mitteilung zu lesen."
+  },
+  "email": {
+    "title": "Neue Mitteilung im Portal",
+    "body": "Es liegt eine neue Mitteilung für Sie im Portal bereit."
+  }
 }

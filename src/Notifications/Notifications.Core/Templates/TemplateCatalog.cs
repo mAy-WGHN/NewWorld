@@ -37,23 +37,9 @@ public sealed partial class TemplateCatalog
             throw new TemplateException($"Template key '{template.Key}' must look like <service>.<occasion>.<recipient role>.");
         }
 
-        foreach (var text in new[] { template.InApp, template.Push, template.Email })
+        if (TemplateRules.Check(template) is var problem and not TemplateProblem.None)
         {
-            if (string.IsNullOrWhiteSpace(text.Title) || string.IsNullOrWhiteSpace(text.Body))
-            {
-                throw new TemplateException($"Template '{template.Key}' has an empty text.");
-            }
-        }
-
-        // Push and mail go to systems outside our control: generic text only, the content is loaded after opening.
-        if (new[] { template.Push.Title, template.Push.Body, template.Email.Title, template.Email.Body }.Any(TemplateText.HasBraces))
-        {
-            throw new TemplateException($"Template '{template.Key}': push and mail texts must be generic (no placeholders).");
-        }
-
-        if (template.RequiredPlaceholders.FirstOrDefault(p => !template.Placeholders.ContainsKey(p)) is { } undeclared)
-        {
-            throw new TemplateException($"Template '{template.Key}': placeholder '{undeclared}' is not declared.");
+            throw new TemplateException($"Template '{template.Key}': {problem}.");
         }
     }
 }

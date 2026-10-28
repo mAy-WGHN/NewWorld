@@ -1,0 +1,23 @@
+{
+  "key": "workforce.shift-uncovered-sickness.hr",
+  "mandatory": true,
+  "mailMayContainSensitive": true,
+  "sensitiveText": true,
+  "placeholders": {
+    "DP.store": "public",
+    "DP.month": "public",
+    "DP.year": "public"
+  },
+  "inApp": {
+    "title": "Dienstplan anpassen",
+    "body": "Anpassung im DP $DP.store $DP.month $DP.year aufgrund von Krankheit nötig!"
+  },
+  "push": {
+    "title": "Neue Mitteilung im Portal",
+    "body": "Öffnen, um die Mitteilung zu lesen."
+  },
+  "email": {
+    "title": "Dienstplan: Anpassung nötig",
+    "body": "Anpassung im DP $DP.store $DP.month $DP.year aufgrund von Krankheit nötig!"
+  }
+}

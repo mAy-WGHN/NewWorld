@@ -57,6 +57,38 @@ namespace Notifications.Infrastructure.Migrations
                     b.ToTable("deliveries", "notifications");
                 });
 
+            modelBuilder.Entity("Notifications.Infrastructure.Delivery.EmployeeNameRecord", b =>
+                {
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("employee_id");
+
+                    b.Property<DateTimeOffset>("ChangedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("changed_at");
+
+                    b.Property<DateOnly?>("ExitDate")
+                        .HasColumnType("date")
+                        .HasColumnName("exit_date");
+
+                    b.Property<string>("FirstName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("first_name");
+
+                    b.Property<string>("LastName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("last_name");
+
+                    b.HasKey("EmployeeId")
+                        .HasName("pk_employee_names");
+
+                    b.ToTable("employee_names", "notifications");
+                });
+
             modelBuilder.Entity("Notifications.Infrastructure.Delivery.InAppNotificationRecord", b =>
                 {
                     b.Property<Guid>("Id")
@@ -139,6 +171,57 @@ namespace Notifications.Infrastructure.Migrations
                         .HasName("pk_preferences");
 
                     b.ToTable("preferences", "notifications");
+                });
+
+            modelBuilder.Entity("Notifications.Infrastructure.Delivery.TemplateOverrideRecord", b =>
+                {
+                    b.Property<string>("TemplateKey")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("template_key");
+
+                    b.Property<DateTimeOffset>("ChangedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("changed_at");
+
+                    b.Property<Guid>("ChangedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("changed_by");
+
+                    b.Property<string>("EmailBody")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("email_body");
+
+                    b.Property<string>("EmailTitle")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("email_title");
+
+                    b.Property<string>("InAppBody")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("in_app_body");
+
+                    b.Property<string>("InAppTitle")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("in_app_title");
+
+                    b.Property<string>("PushBody")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("push_body");
+
+                    b.Property<string>("PushTitle")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("push_title");
+
+                    b.HasKey("TemplateKey")
+                        .HasName("pk_template_overrides");
+
+                    b.ToTable("template_overrides", "notifications");
                 });
 
             modelBuilder.Entity("Shared.Infrastructure.Authorization.PermissionSnapshotRecord", b =>

@@ -1,0 +1,22 @@
+{
+  "key": "workforce.shift-uncovered-absence.hr",
+  "mandatory": true,
+  "mailMayContainSensitive": true,
+  "placeholders": {
+    "DP.store": "public",
+    "DP.month": "public",
+    "DP.year": "public"
+  },
+  "inApp": {
+    "title": "Dienstplan anpassen",
+    "body": "Anpassung im DP $DP.store $DP.month $DP.year aufgrund von Abwesenheit nötig!"
+  },
+  "push": {
+    "title": "Neue Mitteilung im Portal",
+    "body": "Öffnen, um die Mitteilung zu lesen."
+  },
+  "email": {
+    "title": "Dienstplan: Anpassung nötig",
+    "body": "Anpassung im DP $DP.store $DP.month $DP.year aufgrund von Abwesenheit nötig!"
+  }
+}

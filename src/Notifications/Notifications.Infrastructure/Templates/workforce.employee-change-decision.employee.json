@@ -2,7 +2,16 @@
   "key": "workforce.employee-change-decision.employee",
   "mandatory": true,
   "placeholders": {},
-  "inApp": { "title": "Ihr Änderungsantrag wurde bearbeitet", "body": "Über Ihren Antrag zur Änderung Ihrer Daten wurde entschieden. Das Ergebnis sehen Sie in Ihrer Mitarbeiterkarte." },
-  "push": { "title": "Neue Mitteilung im Portal", "body": "Öffnen, um die Mitteilung zu lesen." },
-  "email": { "title": "Neue Mitteilung im Portal", "body": "Es liegt eine neue Mitteilung für Sie im Portal bereit." }
+  "inApp": {
+    "title": "Ihr Änderungsantrag wurde bearbeitet",
+    "body": "Über Ihren Antrag zur Änderung Ihrer Daten wurde entschieden. Das Ergebnis sehen Sie in Ihrer Mitarbeiterkarte."
+  },
+  "push": {
+    "title": "Neue Mitteilung im Portal",
+    "body": "Öffnen, um die Mitteilung zu lesen."
+  },
+  "email": {
+    "title": "Neue Mitteilung im Portal",
+    "body": "Es liegt eine neue Mitteilung für Sie im Portal bereit."
+  }
 }

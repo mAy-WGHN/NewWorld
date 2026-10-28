@@ -67,6 +67,18 @@
                 }
               },
               {
+                "Name": "notifications",
+                "Properties": {
+                  "DeadLetteringOnMessageExpiration": false,
+                  "DefaultMessageTimeToLive": "PT1H",
+                  "LockDuration": "PT1M",
+                  "MaxDeliveryCount": 5,
+                  "ForwardDeadLetteredMessagesTo": "",
+                  "ForwardTo": "",
+                  "RequiresSession": false
+                }
+              },
+              {
                 "Name": "access",
                 "Properties": {
                   "DeadLetteringOnMessageExpiration": false,

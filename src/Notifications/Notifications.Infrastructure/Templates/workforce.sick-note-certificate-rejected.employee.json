@@ -1,8 +1,18 @@
 {
   "key": "workforce.sick-note-certificate-rejected.employee",
   "mandatory": true,
+  "sensitiveText": true,
   "placeholders": {},
-  "inApp": { "title": "Krankmeldung: Bescheinigung nicht bestätigt", "body": "Ihre hochgeladene Arbeitsunfähigkeitsbescheinigung konnte nicht bestätigt werden. Bitte laden Sie sie erneut hoch." },
-  "push": { "title": "Neue Mitteilung im Portal", "body": "Öffnen, um die Mitteilung zu lesen." },
-  "email": { "title": "Neue Mitteilung im Portal", "body": "Es liegt eine neue Mitteilung für Sie im Portal bereit." }
+  "inApp": {
+    "title": "Krankmeldung: Bescheinigung nicht bestätigt",
+    "body": "Ihre hochgeladene Arbeitsunfähigkeitsbescheinigung konnte nicht bestätigt werden. Bitte laden Sie sie erneut hoch."
+  },
+  "push": {
+    "title": "Neue Mitteilung im Portal",
+    "body": "Öffnen, um die Mitteilung zu lesen."
+  },
+  "email": {
+    "title": "Neue Mitteilung im Portal",
+    "body": "Es liegt eine neue Mitteilung für Sie im Portal bereit."
+  }
 }

@@ -17,7 +17,7 @@ public enum Rejection
     MissingData = 7,
     DataTooLong = 8,
 
-    /// <summary>The plan's protection rule: class 2 data only when in-app is the only channel.</summary>
+    /// <summary>The protection rule: class 2 data never with push, by mail only for templates that allow it, otherwise in-app only.</summary>
     SensitiveDataOnNonInAppChannel = 9,
 }
 
@@ -30,7 +30,7 @@ public sealed class NotificationRejectedException(Rejection reason) : Exception(
 
 /// <summary>
 /// Checks a <see cref="SendNotification"/> before anything is stored or sent. The rule of the plan: data the template marks as class 2
-/// is only accepted if the command asks for in-app delivery and nothing else. Data keys the template does not declare are refused:
+/// is only accepted for in-app delivery, and by mail only if the template allows it; never with push. Data keys the template does not declare are refused:
 /// their class is unknown and the stricter class applies.
 /// </summary>
 public static partial class NotificationPolicy
@@ -41,13 +41,12 @@ public static partial class NotificationPolicy
     [GeneratedRegex("^/[A-Za-z0-9._~!$&'()*+,;=:@%/?#\\-\\[\\]]*$")]
     private static partial Regex RelativePath();
 
-    public static PolicyResult Check(SendNotification command, TemplateCatalog catalog)
-    {
-        if (!catalog.TryGet(command.TemplateKey, out var template))
-        {
-            return Reject(Rejection.UnknownTemplate);
-        }
+    public static PolicyResult Check(SendNotification command, TemplateCatalog catalog) =>
+        catalog.TryGet(command.TemplateKey, out var template) ? Check(command, template!) : Reject(Rejection.UnknownTemplate);
 
+    /// <summary>Checks the command against the template in force (the file, with the texts HR changed).</summary>
+    public static PolicyResult Check(SendNotification command, Template template)
+    {
         if (command.RecipientEmployeeIds.Count == 0 || command.RecipientEmployeeIds.Any(id => id == Guid.Empty))
         {
             return Reject(Rejection.NoRecipients);
@@ -68,7 +67,7 @@ public static partial class NotificationPolicy
             return Reject(Rejection.InvalidDeepLink);
         }
 
-        if (command.Data.Keys.Any(key => !template!.Placeholders.ContainsKey(key)))
+        if (command.Data.Keys.Any(key => !template.Placeholders.ContainsKey(key)))
         {
             return Reject(Rejection.UnknownDataKey);
         }
@@ -78,14 +77,14 @@ public static partial class NotificationPolicy
             return Reject(Rejection.DataTooLong);
         }
 
-        var inAppOnly = command.Channels.All(c => c == NotificationChannel.InApp);
-        if (!inAppOnly && command.Data.Any(d => template!.Placeholders[d.Key] && !string.IsNullOrWhiteSpace(d.Value)))
+        // Class 2 data never goes to push; by mail only if the template allows it (recipients such as HR).
+        var sensitive = command.Data.Any(d => template.Placeholders[d.Key] && !string.IsNullOrWhiteSpace(d.Value));
+        if (sensitive && (command.Channels.Contains(NotificationChannel.Push) || (command.Channels.Contains(NotificationChannel.Email) && !template.MailMayContainSensitive)))
         {
             return Reject(Rejection.SensitiveDataOnNonInAppChannel);
         }
 
-        if (command.Channels.Contains(NotificationChannel.InApp)
-            && template!.RequiredPlaceholders.Any(p => !command.Data.TryGetValue(p, out var value) || string.IsNullOrWhiteSpace(value)))
+        if (command.Channels.Distinct().Any(c => template.RequiredFor(c).Any(p => !command.Data.TryGetValue(p, out var value) || string.IsNullOrWhiteSpace(value))))
         {
             return Reject(Rejection.MissingData);
         }

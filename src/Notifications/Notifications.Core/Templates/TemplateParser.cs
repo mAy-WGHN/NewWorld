@@ -31,7 +31,9 @@ public static class TemplateParser
                 placeholders,
                 Text(root, "inApp"),
                 Text(root, "push"),
-                Text(root, "email"));
+                Text(root, "email"),
+                root.TryGetProperty("sensitiveText", out var sensitiveText) && sensitiveText.GetBoolean(),
+                root.TryGetProperty("mailMayContainSensitive", out var mailSensitive) && mailSensitive.GetBoolean());
         }
         catch (Exception ex) when (ex is JsonException or KeyNotFoundException or InvalidOperationException)
         {

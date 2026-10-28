@@ -27,5 +27,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapDefaultEndpoints();
 app.MapNotificationEndpoints();
+app.MapTemplateEndpoints();
 
 app.Run();

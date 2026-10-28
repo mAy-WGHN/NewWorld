@@ -62,3 +62,31 @@ internal sealed class FakeEmail : IEmailSender
         return Task.CompletedTask;
     }
 }
+
+internal sealed class FakeOverrides : Notifications.Core.Templates.ITemplateOverrides
+{
+    public List<Notifications.Core.Templates.TemplateOverride> Items { get; } = [];
+
+    public Task<Notifications.Core.Templates.TemplateOverride?> GetAsync(string key, CancellationToken cancellationToken) =>
+        Task.FromResult(Items.FirstOrDefault(i => i.Key == key));
+
+    public Task<IReadOnlyList<Notifications.Core.Templates.TemplateOverride>> ListAsync(CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<Notifications.Core.Templates.TemplateOverride>>([.. Items]);
+
+    public Task SaveAsync(Notifications.Core.Templates.TemplateOverride change, CancellationToken cancellationToken)
+    {
+        Items.RemoveAll(i => i.Key == change.Key);
+        Items.Add(change);
+        return Task.CompletedTask;
+    }
+
+    public Task<bool> DeleteAsync(string key, CancellationToken cancellationToken) => Task.FromResult(Items.RemoveAll(i => i.Key == key) > 0);
+}
+
+internal sealed class FakeRecipients : Notifications.Core.Templates.IRecipientDirectory
+{
+    public Dictionary<Guid, Notifications.Core.Templates.RecipientName> Names { get; } = [];
+
+    public Task<IReadOnlyDictionary<Guid, Notifications.Core.Templates.RecipientName>> NamesAsync(IReadOnlyCollection<Guid> employeeIds, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyDictionary<Guid, Notifications.Core.Templates.RecipientName>>(Names.Where(n => employeeIds.Contains(n.Key)).ToDictionary(n => n.Key, n => n.Value));
+}

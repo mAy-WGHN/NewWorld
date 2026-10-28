@@ -22,6 +22,9 @@ public sealed class NotificationsApi : WebApplicationFactory<ApiMarker>
     public static readonly Guid Max = Guid.Parse("00000000-0000-0000-0000-0000000000a1");
     public static readonly Guid Erika = Guid.Parse("00000000-0000-0000-0000-0000000000e1");
 
+    /// <summary>HR: may maintain the texts of the notifications.</summary>
+    public static readonly Guid Hanna = Guid.Parse("00000000-0000-0000-0000-0000000000d1");
+
     private readonly string _connectionString;
     private readonly ILoggerProvider _logs;
 
@@ -40,8 +43,10 @@ public sealed class NotificationsApi : WebApplicationFactory<ApiMarker>
         var cache = api.Services.GetRequiredService<IPermissionCache>();
         foreach (var person in new[] { Max, Erika })
         {
-            cache.Grant(person, NotificationPrivileges.All.Select(k => new TestGrant(k)).ToArray());
+            cache.Grant(person, NotificationPrivileges.All.Where(k => k != NotificationPrivileges.TemplateManage).Select(k => new TestGrant(k)).ToArray());
         }
+
+        cache.Grant(Hanna, [new TestGrant(NotificationPrivileges.TemplateManage)]);
 
         return api;
     }
@@ -60,6 +65,11 @@ public sealed class NotificationsApi : WebApplicationFactory<ApiMarker>
     public async Task<DispatchResult> DeliverAsync(SendNotification command) =>
         await Services.GetRequiredService<MessageDispatcher>().DispatchAsync(
             new InboundMessage(command.MessageId.ToString(), nameof(SendNotification), MessageJson.Serialize(command), 1), CancellationToken.None);
+
+    /// <summary>Delivers any message of the service like the bus would.</summary>
+    public async Task<DispatchResult> DeliverMessageAsync<T>(T message) where T : IMessage =>
+        await Services.GetRequiredService<MessageDispatcher>().DispatchAsync(
+            new InboundMessage(message.MessageId.ToString(), typeof(T).Name, MessageJson.Serialize(message), 1), CancellationToken.None);
 
     public static SendNotification Command(
         Guid? notificationId = null, string template = "workforce.sick-note.store-manager", IReadOnlyList<NotificationChannel>? channels = null,

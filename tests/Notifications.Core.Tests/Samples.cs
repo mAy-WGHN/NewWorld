@@ -24,7 +24,18 @@ internal static class Samples
         Push: new TextPair("Neue Mitteilung im Portal", "Öffnen, um die Mitteilung zu lesen."),
         Email: new TextPair("Neue Mitteilung im Portal", "Es liegt eine neue Mitteilung für Sie bereit."));
 
-    public static TemplateCatalog Catalog() => new([SickNote, News]);
+    /// <summary>Welcome text for HR: class 1 variables everywhere, class 2 data (the reason) only in-app and in the mail text (HR may receive it).</summary>
+    public static readonly Template HrNotice = new(
+        "workforce.shift-uncovered-sickness.hr",
+        Mandatory: true,
+        Placeholders: new Dictionary<string, bool> { ["DP.store"] = false, ["DP.month"] = false, ["DP.year"] = false, ["reason"] = true },
+        InApp: new TextPair("Dienstplan anpassen", "Hallo $USER.firstName, Anpassung im DP $DP.store $DP.month $DP.year aufgrund von $reason nötig!"),
+        Push: new TextPair("Neue Mitteilung im Portal", "Öffnen, um die Mitteilung zu lesen."),
+        Email: new TextPair("Dienstplan: Anpassung nötig", "Hallo $USER.firstName, im DP $DP.store $DP.month $DP.year ist wegen $reason eine Anpassung nötig."),
+        SensitiveText: true,
+        MailMayContainSensitive: true);
+
+    public static TemplateCatalog Catalog() => new([SickNote, News, HrNotice]);
 
     public static SendNotification Command(
         string templateKey = "workforce.sick-note.store-manager",

@@ -113,6 +113,27 @@ resource read_employee_changed_portal 'Microsoft.Authorization/roleAssignments@2
   }
 }
 
+// Subscription employee-changed/notifications. Purpose: Copy of the employee names (first and last name only) for $USER.firstName in notification texts.
+resource sub_employee_changed_notifications 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2024-01-01' = {
+  parent: topic_employee_changed
+  name: 'notifications'
+  properties: {
+    maxDeliveryCount: 5
+    lockDuration: 'PT1M'
+    defaultMessageTimeToLive: 'P1D'
+  }
+}
+
+resource read_employee_changed_notifications 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: sub_employee_changed_notifications
+  name: guid(sub_employee_changed_notifications.id, notificationsPrincipalId, receiverRoleId)
+  properties: {
+    roleDefinitionId: receiverRole.id
+    principalId: notificationsPrincipalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
 // Subscription employee-changed/access. Purpose: Copy of employees for derived permissions and the login.
 resource sub_employee_changed_access 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2024-01-01' = {
   parent: topic_employee_changed

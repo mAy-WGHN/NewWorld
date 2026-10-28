@@ -6,7 +6,7 @@ namespace BcIntegration.Contracts;
 /// Full current state of an employee from the Business Central employee card. Published only on a real change
 /// (compared with the last known state), so consumers can keep their read-only copy up to date.
 /// </summary>
-/// <remarks>Publisher: BC Integration. Consumers: Workforce, Portal, Access.</remarks>
+/// <remarks>Publisher: BC Integration. Consumers: Workforce, Portal, Access, Notifications (only the name, for notification texts).</remarks>
 /// <param name="MessageId">Unique message ID (idempotency).</param>
 /// <param name="CorrelationId">Correlates all messages of one flow.</param>
 /// <param name="OccurredAt">Time of the change detection (TimeProvider).</param>
