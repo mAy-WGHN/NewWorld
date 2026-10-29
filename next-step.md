@@ -22,7 +22,7 @@ Arten (24 aus BC), Einträge von HR, Zeitleiste mit KU, Sichtbarkeit nach Art/Ve
 Buchungskonto, Saldo aus Buchungen, Monatsabschluss gegen die Monatsschwelle des Arbeitsverhältnisses, Freizeitausgleich, Auszahlung, Auszahlung bei Austritt, Korrekturen, Verfall nach Erfassungsdatum, Regeln und Schwellen von HR pflegbar.
 
 **Offen aus Schritt 4**
-- **Minusstunden** sind von HR schaltbar (`bookMinusHours`, Standard aus, Entscheidung 35); eine Untergrenze für den Fehlbetrag ist nicht gebaut.
+- **Minusstunden** sind von HR schaltbar (`bookMinusHours`, Standard aus, Entscheidung 35); die Untergrenze für den Fehlbetrag (`maxMinusHours`) ist gebaut.
 - **Austritt:** Die Auszahlung des Restguthabens ist eine HR-Aktion; automatisch bei `EmployeeLeft` ist nicht gebaut.
 - **BC-Spiegelung** des Kontos (`TODO(BC-Modell)`), **Stunden aus der Zeiterfassung** statt von Hand, Rechte `workingtime:*` in Access an HR vergeben, Monatsschwellen je Arbeitsverhältnis eintragen.
 

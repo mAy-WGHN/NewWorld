@@ -153,7 +153,8 @@ public sealed class WorkingTimeService(
     /// <summary>
     /// Closes a month that is over: hours above the monthly threshold of the person's employment relationship become overtime, 1:1, booked for the
     /// last day of the month (that date decides when they expire). Below the threshold nothing is booked, unless HR switched minus hours on: then the
-    /// missing hours are booked as minus hours, also for the last day of the month.
+    /// missing hours are booked as minus hours, also for the last day of the month, as far as the lowest balance HR allows (if set); what is
+    /// left out is kept on the close (<see cref="MonthClose.MinusHoursSkipped"/>) so HR sees it.
     /// </summary>
     public async Task<MonthCloseResult> CloseMonthAsync(Guid employeeId, int year, int month, decimal workedHours, Guid actorId, CancellationToken cancellationToken)
     {
@@ -196,11 +197,21 @@ public sealed class WorkingTimeService(
 
         var now = time.GetUtcNow();
         var overtime = Math.Max(0, workedHours - threshold);
-        var minus = (await GetRulesAsync(cancellationToken)).Rules.BookMinusHours ? Math.Max(0, threshold - workedHours) : 0;
+        var rules = (await GetRulesAsync(cancellationToken)).Rules;
+        var minus = rules.BookMinusHours ? Math.Max(0, threshold - workedHours) : 0;
+        var skipped = 0m;
+        if (minus > 0 && rules.MaxMinusHours is { } limit)
+        {
+            // The balance may not fall below -limit: only as much is booked as keeps it there; the rest is reported to HR.
+            var room = Math.Max(0, (await StateAsync(employeeId, lastDay, cancellationToken)).Balance + limit);
+            skipped = Math.Max(0, minus - room);
+            minus -= skipped;
+        }
+
         var close = new MonthClose
         {
             Id = Guid.CreateVersion7(now), EmployeeId = employeeId, Year = year, Month = month, WorkedHours = workedHours,
-            ThresholdHours = threshold, OvertimeHours = overtime, MinusHours = minus, ClosedBy = actorId, ClosedAt = now,
+            ThresholdHours = threshold, OvertimeHours = overtime, MinusHours = minus, MinusHoursSkipped = skipped, ClosedBy = actorId, ClosedAt = now,
         };
         store.AddClose(close);
         var booking = overtime > 0 ? Add(employeeId, BookingKind.Overtime, overtime, lastDay, close.Id, actorId)

@@ -1084,6 +1084,13 @@ namespace Workforce.Infrastructure.Migrations
                         .HasDefaultValue(0m)
                         .HasColumnName("minus_hours");
 
+                    b.Property<decimal>("MinusHoursSkipped")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(8, 2)
+                        .HasColumnType("numeric(8,2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("minus_hours_skipped");
+
                     b.Property<int>("Month")
                         .HasColumnType("integer")
                         .HasColumnName("month");
@@ -1605,6 +1612,11 @@ namespace Workforce.Infrastructure.Migrations
                     b.Property<int?>("ExpiryMonths")
                         .HasColumnType("integer")
                         .HasColumnName("expiry_months");
+
+                    b.Property<decimal?>("MaxMinusHours")
+                        .HasPrecision(8, 2)
+                        .HasColumnType("numeric(8,2)")
+                        .HasColumnName("max_minus_hours");
 
                     b.Property<decimal>("PayoutThresholdHours")
                         .HasPrecision(8, 2)

@@ -256,6 +256,89 @@ public class WorkingTimeServiceTests
         (result.Error, result.Booking!.Date).ShouldBe((WorkingTimeError.None, D(expectedDate)));
     }
 
+    // ---------------------------------------------------------------- the lower limit of the balance (HR, default: none)
+
+    private Task<WorkingTimeError> MinusOn(decimal? limit) => Service().SetRulesAsync(new WorkingTimeRules(0, null, BookMinusHours: true, MaxMinusHours: limit), Hanna, CancellationToken.None);
+
+    [Fact]
+    public async Task Without_a_limit_the_balance_can_go_as_far_into_the_minus_as_the_months_say()
+    {
+        await MinusOn(null);
+
+        var result = await Service().CloseMonthAsync(Erika, 2026, 9, 0, Hanna, CancellationToken.None);
+
+        (result.Close!.MinusHours, result.Close.MinusHoursSkipped).ShouldBe((160m, 0m));
+    }
+
+    [Fact]
+    public async Task A_limit_stops_the_minus_hours_at_the_lowest_balance_HR_allows_and_reports_what_was_not_booked()
+    {
+        await MinusOn(20);
+
+        var result = await Service().CloseMonthAsync(Erika, 2026, 9, 130, Hanna, CancellationToken.None); // 30 missing
+
+        (result.Close!.MinusHours, result.Close.MinusHoursSkipped).ShouldBe((20m, 10m));
+        result.Booking!.Hours.ShouldBe(-20m);
+        (await Service().GetAsync(Erika, CancellationToken.None))!.State.Balance.ShouldBe(-20m);
+    }
+
+    [Fact]
+    public async Task The_limit_counts_from_the_balance_so_a_positive_balance_leaves_room()
+    {
+        await MinusOn(20);
+        await Overtime("2026-07-31", 5);
+
+        var result = await Service().CloseMonthAsync(Erika, 2026, 9, 130, Hanna, CancellationToken.None); // 30 missing, room: 5 + 20
+
+        (result.Close!.MinusHours, result.Close.MinusHoursSkipped).ShouldBe((25m, 5m));
+        (await Service().GetAsync(Erika, CancellationToken.None))!.State.Balance.ShouldBe(-20m);
+    }
+
+    [Fact]
+    public async Task At_the_limit_nothing_is_booked_but_the_month_is_closed_and_the_gap_reported()
+    {
+        await MinusOn(20);
+        await Service().CloseMonthAsync(Erika, 2026, 8, 130, Hanna, CancellationToken.None); // -20, at the limit
+
+        var result = await Service().CloseMonthAsync(Erika, 2026, 9, 150, Hanna, CancellationToken.None); // 10 missing
+
+        result.Error.ShouldBe(WorkingTimeError.None);
+        (result.Close!.MinusHours, result.Close.MinusHoursSkipped, result.Booking).ShouldBe((0m, 10m, null));
+        _store.Closes.Count.ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task A_limit_of_zero_allows_minus_hours_only_up_to_the_positive_balance()
+    {
+        await MinusOn(0);
+        await Overtime("2026-07-31", 8);
+
+        var result = await Service().CloseMonthAsync(Erika, 2026, 9, 150, Hanna, CancellationToken.None); // 10 missing, 8 available
+
+        (result.Close!.MinusHours, result.Close.MinusHoursSkipped).ShouldBe((8m, 2m));
+        (await Service().GetAsync(Erika, CancellationToken.None))!.State.Balance.ShouldBe(0m);
+    }
+
+    [Fact]
+    public async Task A_limit_without_minus_hours_switched_on_does_nothing()
+    {
+        await Service().SetRulesAsync(new WorkingTimeRules(0, null, BookMinusHours: false, MaxMinusHours: 5), Hanna, CancellationToken.None);
+
+        var result = await Service().CloseMonthAsync(Erika, 2026, 9, 130, Hanna, CancellationToken.None);
+
+        (result.Close!.MinusHours, result.Close.MinusHoursSkipped, result.Booking).ShouldBe((0m, 0m, null));
+    }
+
+    [Theory]
+    [InlineData(0, true)]
+    [InlineData(20, true)]
+    [InlineData(1000, true)]
+    [InlineData(-1, false)]
+    [InlineData(1000.5, false)]
+    [InlineData(1.005, false)]
+    public void The_limit_must_be_sensible(double limit, bool valid) =>
+        new WorkingTimeRules(0, null, true, (decimal)limit).IsValid.ShouldBe(valid);
+
     [Fact]
     public async Task The_minus_hours_switch_is_stored_with_the_rules_by_HR_for_everybody()
     {

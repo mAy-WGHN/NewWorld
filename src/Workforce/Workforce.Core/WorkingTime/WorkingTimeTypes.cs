@@ -73,6 +73,9 @@ public sealed class MonthClose
     /// <summary>Hours below the threshold, booked as minus hours; 0 if HR has not switched minus hours on (then nothing is booked below the threshold).</summary>
     public decimal MinusHours { get; set; }
 
+    /// <summary>Minus hours that were not booked because the balance would have fallen below the limit HR set (0 if there is no limit or it was not reached).</summary>
+    public decimal MinusHoursSkipped { get; set; }
+
     public Guid ClosedBy { get; set; }
 
     public DateTimeOffset ClosedAt { get; set; }
@@ -85,11 +88,13 @@ public sealed class MonthClose
 /// <param name="PayoutThresholdHours">Balance from which overtime may be paid out; 0 = always.</param>
 /// <param name="ExpiryMonths">Overtime expires this many months after it was earned; <c>null</c> = never.</param>
 /// <param name="BookMinusHours">The month close books the hours below the monthly threshold as minus hours (the threshold is then the target).</param>
-public sealed record WorkingTimeRules(decimal PayoutThresholdHours, int? ExpiryMonths, bool BookMinusHours = false)
+/// <param name="MaxMinusHours">The lowest balance HR allows (a limit of 20 means the balance does not go below -20 hours); <c>null</c> = no limit. Only matters with minus hours on.</param>
+public sealed record WorkingTimeRules(decimal PayoutThresholdHours, int? ExpiryMonths, bool BookMinusHours = false, decimal? MaxMinusHours = null)
 {
     public static readonly WorkingTimeRules Default = new(0, null);
 
-    public bool IsValid => PayoutThresholdHours is >= 0 and <= 1000 && (ExpiryMonths is null || ExpiryMonths is >= 1 and <= 120);
+    public bool IsValid => PayoutThresholdHours is >= 0 and <= 1000 && (ExpiryMonths is null || ExpiryMonths is >= 1 and <= 120)
+        && (MaxMinusHours is null || (MaxMinusHours is >= 0 and <= 1000 && decimal.Round(MaxMinusHours.Value, 2) == MaxMinusHours));
 }
 
 public sealed record WorkingTimeRulesSetting(WorkingTimeRules Rules, DateTimeOffset ChangedAt, Guid ChangedBy);

@@ -191,6 +191,24 @@ public sealed class WorkingTimeEndpointTests(PostgresFixture postgres) : IClassF
     }
 
     [Fact]
+    public async Task A_limit_for_the_minus_hours_set_by_HR_stops_the_booking_and_tells_what_was_left_out()
+    {
+        await using var api = await StartAsync(postgres);
+        await SeedRelationshipAsync(api);
+        (await api.SendAsync(HttpMethod.Put, "/api/working-time-rules", Hanna, new SetWorkingTimeRulesRequest(0, null, true, 20))).StatusCode.ShouldBe(HttpStatusCode.NoContent);
+        var rules = await api.GetAsync<WorkingTimeRulesDto>("/api/working-time-rules", Hanna);
+        (rules.BookMinusHours, rules.MaxMinusHours).ShouldBe((true, 20m));
+        (await api.SendAsync(HttpMethod.Put, "/api/working-time-rules", Hanna, new SetWorkingTimeRulesRequest(0, null, true, -1))).StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+
+        using var closed = await Post(api, "month-closes", Hanna, new CloseMonthRequest(2026, 9, 130)); // 30 missing, 20 allowed
+        closed.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var result = (await closed.Content.ReadFromJsonAsync<MonthCloseResultDto>())!;
+
+        (result.Close.MinusHours, result.Close.MinusHoursNotBooked, result.Booking!.Hours).ShouldBe((20m, 10m, -20m));
+        (await api.GetAsync<WorkingTimeDto>($"/api/employees/{Erika}/working-time", Hanna)).Balance.ShouldBe(-20m);
+    }
+
+    [Fact]
     public async Task HR_sets_the_rules_for_everybody_and_they_apply_to_everything_already_booked()
     {
         await using var api = await StartAsync(postgres);

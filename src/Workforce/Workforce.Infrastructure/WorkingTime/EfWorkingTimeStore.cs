@@ -11,6 +11,7 @@ public sealed class WorkingTimeRulesRecord
     public decimal PayoutThresholdHours { get; set; }
     public int? ExpiryMonths { get; set; }
     public bool BookMinusHours { get; set; }
+    public decimal? MaxMinusHours { get; set; }
     public DateTimeOffset ChangedAt { get; set; }
     public Guid ChangedBy { get; set; }
 }
@@ -41,7 +42,7 @@ public sealed class EfWorkingTimeStore(WorkforceDbContext db) : IWorkingTimeStor
 
     public async Task<WorkingTimeRulesSetting?> GetRulesAsync(CancellationToken cancellationToken) =>
         await db.WorkingTimeRules.AsNoTracking().Where(r => r.Id == 1)
-            .Select(r => new WorkingTimeRulesSetting(new WorkingTimeRules(r.PayoutThresholdHours, r.ExpiryMonths, r.BookMinusHours), r.ChangedAt, r.ChangedBy))
+            .Select(r => new WorkingTimeRulesSetting(new WorkingTimeRules(r.PayoutThresholdHours, r.ExpiryMonths, r.BookMinusHours, r.MaxMinusHours), r.ChangedAt, r.ChangedBy))
             .FirstOrDefaultAsync(cancellationToken);
 
     public async Task SetRulesAsync(WorkingTimeRulesSetting setting, CancellationToken cancellationToken)
@@ -56,6 +57,7 @@ public sealed class EfWorkingTimeStore(WorkforceDbContext db) : IWorkingTimeStor
         row.PayoutThresholdHours = setting.Rules.PayoutThresholdHours;
         row.ExpiryMonths = setting.Rules.ExpiryMonths;
         row.BookMinusHours = setting.Rules.BookMinusHours;
+        row.MaxMinusHours = setting.Rules.MaxMinusHours;
         row.ChangedAt = setting.ChangedAt;
         row.ChangedBy = setting.ChangedBy;
     }
