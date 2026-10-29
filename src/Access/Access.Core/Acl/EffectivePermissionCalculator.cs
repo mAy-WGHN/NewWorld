@@ -4,24 +4,26 @@ namespace Access.Core.Acl;
 /// Computes the effective privileges of a person (port of the Rollen-Rechte rules): union over all assignments valid at the
 /// moment, plus the public user role for every active person. Wildcards expand to registered privileges only. A restricted
 /// assignment reaches the stores of its scopes (and the home store, if chosen); non-scopable privileges take effect only in
-/// unrestricted assignments. After the exit date nothing applies.
+/// unrestricted assignments. After the exit date nothing applies except the role for former employees (decision 36).
 /// </summary>
 public static class EffectivePermissionCalculator
 {
     public static EffectivePermissions Calculate(Guid employeeId, AclData data, DateTimeOffset at, TimeZoneInfo zone)
     {
         var person = data.People.FirstOrDefault(p => p.EmployeeId == employeeId);
-        if (person is null || !person.IsActiveAt(at, zone))
+        if (person is null)
         {
             return EffectivePermissions.None(employeeId);
         }
+
+        var exited = !person.IsActiveAt(at, zone);
 
         var context = new Context(data, at, zone);
         var unrestricted = new HashSet<string>(StringComparer.Ordinal);
         var stores = new Dictionary<string, HashSet<Guid>>(StringComparer.Ordinal);
         var roleNames = new List<string>();
 
-        foreach (var (role, assignment) in EffectiveAssignments(person.EmployeeId, context))
+        foreach (var (role, assignment) in exited ? FormerEmployeeAssignments(person.EmployeeId, context) : EffectiveAssignments(person.EmployeeId, context))
         {
             roleNames.Add(role.Name);
             foreach (var (key, reachedStores) in context.Grants(role, assignment.Reach, person.HomeStoreId))
@@ -52,6 +54,15 @@ public static class EffectivePermissionCalculator
         var overviewStores = privileges.Values.Where(r => !r.Unrestricted).SelectMany(r => r.StoreIds).ToHashSet();
         var overviewEmployees = privileges.Values.Where(r => !r.Unrestricted).SelectMany(r => r.EmployeeIds).Append(employeeId).ToHashSet();
         return new EffectivePermissions(privileges, roleNames.Distinct().ToList(), overviewStores, overviewEmployees);
+    }
+
+    /// <summary>After the exit only the role for former employees (unrestricted, so the own payroll statements and nothing else).</summary>
+    private static IEnumerable<(Role Role, Assignment Assignment)> FormerEmployeeAssignments(Guid employeeId, Context context)
+    {
+        if (context.RolesById.TryGetValue(Role.FormerEmployeeId, out var former))
+        {
+            yield return (former, new Assignment(Guid.Empty, employeeId, Role.FormerEmployeeId, AssignmentReach.Everywhere, null, null, AssignmentSource.Unknown));
+        }
     }
 
     /// <summary>

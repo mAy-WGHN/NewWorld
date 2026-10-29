@@ -7,6 +7,11 @@ internal sealed class FakeDirectory(IEnumerable<Person> people) : IPersonDirecto
 {
     private readonly List<Person> _people = [.. people];
 
+    /// <summary>Whether the role for former employees holds a privilege (then they may still log in).</summary>
+    public bool FormerEmployeesMayLogin { get; set; }
+
+    public Task<bool> FormerEmployeesMayLoginAsync(CancellationToken cancellationToken) => Task.FromResult(FormerEmployeesMayLogin);
+
     public Task<Person?> FindByPersonnelNumberAsync(string personnelNumber, CancellationToken cancellationToken) =>
         Task.FromResult(_people.FirstOrDefault(p => p.PersonnelNumber == personnelNumber));
 

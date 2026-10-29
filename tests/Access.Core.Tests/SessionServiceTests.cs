@@ -10,8 +10,9 @@ public class SessionServiceTests
     private readonly FakeTimeProvider _time = new(new DateTimeOffset(2028, 2, 29, 23, 0, 0, TimeSpan.Zero));
     private readonly FakeRefreshTokens _tokens = new();
     private readonly List<Person> _people = new World().People;
+    private bool _formerMayLogin;
 
-    private SessionService Service() => new(_tokens, new FakeDirectory(_people), _time, new LoginOptions { RefreshTokenLifetime = TimeSpan.FromDays(7) },
+    private SessionService Service() => new(_tokens, new FakeDirectory(_people) { FormerEmployeesMayLogin = _formerMayLogin }, _time, new LoginOptions { RefreshTokenLifetime = TimeSpan.FromDays(7) },
         TimeZoneInfo.FindSystemTimeZoneById("Europe/Berlin"));
 
     [Fact]
@@ -84,5 +85,17 @@ public class SessionServiceTests
 
         (await Service().RefreshAsync(token, CancellationToken.None)).Status.ShouldBe(RefreshStatus.Rejected);
         _tokens.Rows.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task A_former_employee_can_refresh_when_the_role_for_former_employees_holds_a_privilege()
+    {
+        _formerMayLogin = true;
+        var token = await Service().StartAsync(Erika, CancellationToken.None);
+        _people[0] = _people[0] with { ExitDate = new DateOnly(2028, 3, 1) };
+
+        _time.Advance(TimeSpan.FromHours(25)); // after the end of the exit date
+
+        (await Service().RefreshAsync(token, CancellationToken.None)).Status.ShouldBe(RefreshStatus.Refreshed);
     }
 }

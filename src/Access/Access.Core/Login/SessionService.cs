@@ -49,7 +49,8 @@ public sealed class SessionService(IRefreshTokenStore store, IPersonDirectory di
             return RefreshResult.Rejected;
         }
 
-        if (await directory.FindAsync(entry.EmployeeId, cancellationToken) is not { } person || !person.IsActiveAt(time.GetUtcNow(), zone))
+        if (await directory.FindAsync(entry.EmployeeId, cancellationToken) is not { } person
+            || (!person.IsActiveAt(time.GetUtcNow(), zone) && !await directory.FormerEmployeesMayLoginAsync(cancellationToken)))
         {
             await store.RevokeAllAsync(entry.EmployeeId, cancellationToken);
             return RefreshResult.Rejected;

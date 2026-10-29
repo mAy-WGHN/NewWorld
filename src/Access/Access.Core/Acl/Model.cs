@@ -8,8 +8,10 @@ public sealed record Role(Guid Id, string Name, IReadOnlySet<string> Privileges,
 {
     public static readonly Guid AdministratorId = Guid.Parse("a0000000-0000-0000-0000-000000000001");
     public static readonly Guid PublicUserId = Guid.Parse("a0000000-0000-0000-0000-000000000002");
+    public static readonly Guid FormerEmployeeId = Guid.Parse("a0000000-0000-0000-0000-000000000003");
     public const string AdministratorName = "Administrator";
     public const string PublicUserName = "Public User";
+    public const string FormerEmployeeName = "Former Employee";
 
     /// <summary>Built in: all privileges; cannot be changed or deleted.</summary>
     public static readonly Role Administrator = new(AdministratorId, AdministratorName, new HashSet<string> { PrivilegePattern.Everything }, true);
@@ -19,6 +21,13 @@ public sealed record Role(Guid Id, string Name, IReadOnlySet<string> Privileges,
     /// only harmless privileges; its privileges can be edited, the role cannot be deleted.
     /// </summary>
     public static readonly Role PublicUser = new(PublicUserId, PublicUserName, new HashSet<string>(), true);
+
+    /// <summary>
+    /// Built in: all that a person has after the exit date (decision 36). Every other role, assignment and the public user role end with the exit;
+    /// only this role applies, unrestricted. It holds nothing by default; HR gives it the privilege to reach the payroll statements (the privilege is
+    /// registered where the payroll is built). Its privileges can be edited, the role cannot be deleted. Everybody with a privilege in it may still log in.
+    /// </summary>
+    public static readonly Role FormerEmployee = new(FormerEmployeeId, FormerEmployeeName, new HashSet<string>(), true);
 }
 
 /// <summary>A named set of stores ("where"): definitions per store, region or district.</summary>

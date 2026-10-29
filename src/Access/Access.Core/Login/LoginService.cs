@@ -28,7 +28,7 @@ public sealed record LoginResult(LoginStatus Status, Guid? EmployeeId = null, Da
 /// <summary>
 /// Login with personnel number and BC PIN. BC compares the PIN; after every success a salted hash and (with key) the encrypted PIN
 /// are stored, so an outage of BC does not lock everybody out: the last verified PIN is accepted for a limited time. Failures are
-/// throttled per account and per client. Only active people can log in. The PIN is never logged and never leaves this service
+/// throttled per account and per client. Only active people can log in, and people who have left only if the role for former employees holds a privilege. The PIN is never logged and never leaves this service
 /// except towards BC Integration.
 /// </summary>
 public sealed class LoginService(
@@ -58,7 +58,7 @@ public sealed class LoginService(
 
         if (number.Length == 0 || string.IsNullOrWhiteSpace(pin)
             || await directory.FindByPersonnelNumberAsync(number, cancellationToken) is not { } person
-            || !person.IsActiveAt(time.GetUtcNow(), zone))
+            || (!person.IsActiveAt(time.GetUtcNow(), zone) && !await directory.FormerEmployeesMayLoginAsync(cancellationToken)))
         {
             return Fail(accountKey, clientThrottleKey);
         }

@@ -21,6 +21,9 @@ public interface IPersonDirectory
     Task<Person?> FindByPersonnelNumberAsync(string personnelNumber, CancellationToken cancellationToken);
 
     Task<Person?> FindAsync(Guid employeeId, CancellationToken cancellationToken);
+
+    /// <summary>Whether the role for former employees holds a privilege: then a person who has left may still log in (to reach only that), otherwise not.</summary>
+    Task<bool> FormerEmployeesMayLoginAsync(CancellationToken cancellationToken);
 }
 
 /// <summary>PIN of a person as stored for the offline login: salted hash plus (if a key is configured) the encrypted PIN.</summary>

@@ -1,3 +1,4 @@
+using Access.Core.Acl;
 using Access.Core.Login;
 using Access.Core.People;
 using Microsoft.EntityFrameworkCore;
@@ -11,6 +12,9 @@ public sealed class EfPersonDirectory(AccessDbContext db) : IPersonDirectory
 
     public async Task<Person?> FindAsync(Guid employeeId, CancellationToken cancellationToken) =>
         ToPerson(await db.People.AsNoTracking().FirstOrDefaultAsync(p => p.EmployeeId == employeeId, cancellationToken));
+
+    public async Task<bool> FormerEmployeesMayLoginAsync(CancellationToken cancellationToken) =>
+        await db.Roles.AsNoTracking().AnyAsync(r => r.Id == Role.FormerEmployeeId && r.Privileges.Count > 0, cancellationToken);
 
     private static Person? ToPerson(People.PersonRecord? p) =>
         p is null ? null : new Person(p.EmployeeId, p.PersonnelNumber, p.Name, p.HomeStoreId, p.Position, p.ExitDate);

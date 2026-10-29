@@ -14,6 +14,7 @@ public class LoginServiceTests
     private readonly FakeCredentials _credentials = new();
     private readonly List<Person> _people;
     private readonly LoginThrottle _throttle;
+    private bool _formerMayLogin;
 
     public LoginServiceTests()
     {
@@ -24,7 +25,7 @@ public class LoginServiceTests
     }
 
     private LoginService Service(LoginOptions? options = null) => new(
-        new FakeDirectory(_people), _bc, _credentials, new PinHasher(1000), new PinProtector(Key),
+        new FakeDirectory(_people) { FormerEmployeesMayLogin = _formerMayLogin }, _bc, _credentials, new PinHasher(1000), new PinProtector(Key),
         _throttle, _time, options ?? new LoginOptions { MaxFailuresPerAccount = 3 }, TimeZoneInfo.FindSystemTimeZoneById("Europe/Berlin"));
 
     [Fact]
@@ -70,6 +71,15 @@ public class LoginServiceTests
         (await Service().LoginAsync("10042", "4711", "client-a", CancellationToken.None)).ShouldBe(LoginResult.InvalidCredentials);
 
         _bc.Calls.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task A_former_employee_can_still_log_in_when_the_role_for_former_employees_holds_a_privilege()
+    {
+        _formerMayLogin = true; // e.g. to reach the payroll statements
+        _people[0] = _people[0] with { ExitDate = new DateOnly(2026, 3, 28) };
+
+        (await Service().LoginAsync("10042", "4711", "client-a", CancellationToken.None)).ShouldBe(LoginResult.Success(Erika));
     }
 
     [Fact]

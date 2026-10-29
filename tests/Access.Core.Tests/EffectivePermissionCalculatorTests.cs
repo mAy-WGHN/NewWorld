@@ -108,6 +108,70 @@ public class EffectivePermissionCalculatorTests
         For(Max, DateTimeOffset.Parse(withdrawn, System.Globalization.CultureInfo.InvariantCulture)).Privileges.ShouldBeEmpty();
     }
 
+    // ---------------------------------------------------------------- after the exit: only the role for former employees
+
+    private void FormerEmployeeMayRead(params string[] privileges) =>
+        _world.Roles.Add(Role.FormerEmployee with { Privileges = new HashSet<string>(privileges) });
+
+    [Fact]
+    public void After_the_exit_a_person_keeps_only_what_the_role_for_former_employees_holds()
+    {
+        FormerEmployeeMayRead("absence:read-own");
+        _world.People[0] = _world.People[0] with { ExitDate = new DateOnly(2026, 6, 30) };
+
+        var erika = For(Erika, July);
+
+        erika.Privileges.Keys.ShouldBe(["absence:read-own"]);   // not the public user privileges (faq:read), nothing else
+        erika.Roles.ShouldBe([Role.FormerEmployeeName]);
+        erika.Privileges["absence:read-own"].Unrestricted.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Without_privileges_in_that_role_a_former_employee_has_nothing()
+    {
+        _world.Roles.Add(Role.FormerEmployee);
+        _world.People[0] = _world.People[0] with { ExitDate = new DateOnly(2026, 6, 30) };
+
+        For(Erika, July).Privileges.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Assignments_of_a_former_employee_no_longer_apply_not_even_the_store_reach()
+    {
+        FormerEmployeeMayRead("absence:read-own");
+        _world.People[1] = _world.People[1] with { ExitDate = new DateOnly(2026, 6, 30) }; // Max, store manager
+
+        var max = For(Max, July);
+
+        max.Privileges.Keys.ShouldBe(["absence:read-own"]);
+        max.StoreIds.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void The_role_for_former_employees_does_not_apply_before_the_exit_and_is_not_added_for_active_people()
+    {
+        FormerEmployeeMayRead("absence:read-own", "absence:approve");
+
+        var erika = For(Erika, July);
+
+        erika.Roles.ShouldNotContain(Role.FormerEmployeeName);
+        erika.Privileges.ContainsKey("absence:approve").ShouldBeFalse();
+    }
+
+    [Theory]
+    [InlineData(2026, 3, 28, "2026-03-28T22:59:59Z", "2026-03-28T23:00:00Z")] // last day before summer time
+    [InlineData(2026, 10, 24, "2026-10-24T21:59:59Z", "2026-10-24T22:00:00Z")] // last day before winter time
+    [InlineData(2028, 2, 28, "2028-02-28T22:59:59Z", "2028-02-28T23:00:00Z")] // leap year
+    [InlineData(2026, 12, 31, "2026-12-31T22:59:59Z", "2026-12-31T23:00:00Z")] // year end
+    public void The_switch_to_the_former_employee_role_happens_at_the_end_of_the_exit_date_local_time(int year, int month, int day, string stillActive, string former)
+    {
+        FormerEmployeeMayRead("absence:read-own");
+        _world.People[1] = _world.People[1] with { ExitDate = new DateOnly(year, month, day) };
+
+        For(Max, DateTimeOffset.Parse(stillActive, System.Globalization.CultureInfo.InvariantCulture)).Privileges.ContainsKey("absence:approve").ShouldBeTrue();
+        For(Max, DateTimeOffset.Parse(former, System.Globalization.CultureInfo.InvariantCulture)).Privileges.Keys.ShouldBe(["absence:read-own"]);
+    }
+
     [Fact]
     public void Exit_date_known_in_advance_does_not_withdraw_on_receipt()
     {

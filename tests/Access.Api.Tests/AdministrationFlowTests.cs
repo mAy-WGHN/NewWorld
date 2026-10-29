@@ -124,6 +124,30 @@ public sealed class AdministrationFlowTests(PostgresFixture postgres) : IClassFi
     }
 
     [Fact]
+    public async Task After_the_exit_a_person_keeps_only_what_HR_gave_the_role_for_former_employees()
+    {
+        await using var api = await StartAsync(postgres);
+        await api.RegisterWorkforceCatalogAsync();
+        await api.ReceiveAsync(Erika, "10042", "Erika Mustermann", F017, new DateOnly(2026, 1, 1)); // left long ago
+
+        // The role exists, is built in and cannot be deleted; without privileges a former employee has nothing.
+        var role = (await api.GetAsync<List<RoleDto>>("/api/roles", As(Admin))).Single(r => r.Name == Role.FormerEmployeeName);
+        role.BuiltIn.ShouldBeTrue();
+        role.Privileges.ShouldBeEmpty();
+        (await api.SendAsync(HttpMethod.Delete, $"/api/roles/{role.Id}", As(Admin))).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        (await api.GetAsync<MyPrivilegesDto>("/api/me/privileges", As(Erika))).Privileges.ShouldBeEmpty();
+
+        // HR (here the administrator) lets former employees reach only the one privilege of the payroll.
+        (await api.SendAsync(HttpMethod.Put, $"/api/roles/{role.Id}", As(Admin), new UpdateRoleRequest(["absence:read-own"]))).StatusCode.ShouldBe(HttpStatusCode.NoContent);
+
+        var erika = await api.GetAsync<MyPrivilegesDto>("/api/me/privileges", As(Erika));
+        erika.Privileges.Select(p => p.Key).ShouldBe(["absence:read-own"]);
+        erika.Roles.ShouldBe([Role.FormerEmployeeName]);
+        // Somebody who is still employed is not affected: the former employee role is not added for them.
+        (await api.GetAsync<MyPrivilegesDto>("/api/me/privileges", As(Max))).Roles.ShouldNotContain(Role.FormerEmployeeName);
+    }
+
+    [Fact]
     public async Task The_main_store_is_maintained_in_access_wins_over_bc_and_is_published()
     {
         await using var api = await StartAsync(postgres);

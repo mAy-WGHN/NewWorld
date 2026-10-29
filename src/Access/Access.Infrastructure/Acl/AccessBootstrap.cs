@@ -17,7 +17,7 @@ public sealed class AccessBootstrap(IServiceScopeFactory scopes) : IHostedServic
             return; // readiness reports the database; the next start completes the bootstrap
         }
 
-        foreach (var role in new[] { Role.Administrator, Role.PublicUser })
+        foreach (var role in new[] { Role.Administrator, Role.PublicUser, Role.FormerEmployee })
         {
             if (await db.Roles.FindAsync([role.Id], cancellationToken) is null)
             {
