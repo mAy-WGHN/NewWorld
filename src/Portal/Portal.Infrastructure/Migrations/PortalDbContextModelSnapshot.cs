@@ -148,6 +148,131 @@ namespace Portal.Infrastructure.Migrations
                     b.ToTable("stores", "portal");
                 });
 
+            modelBuilder.Entity("Portal.Infrastructure.Reports.ReportLocationRecord", b =>
+                {
+                    b.Property<Guid>("ReportId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("report_id");
+
+                    b.Property<Guid>("LocationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("location_id");
+
+                    b.HasKey("ReportId", "LocationId")
+                        .HasName("pk_report_locations");
+
+                    b.HasIndex("LocationId")
+                        .HasDatabaseName("ix_report_locations_location_id");
+
+                    b.ToTable("report_locations", "portal");
+                });
+
+            modelBuilder.Entity("Portal.Infrastructure.Reports.ReportRecipientRecord", b =>
+                {
+                    b.Property<string>("Category")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("category");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("employee_id");
+
+                    b.HasKey("Category", "EmployeeId")
+                        .HasName("pk_report_recipients");
+
+                    b.ToTable("report_recipients", "portal");
+                });
+
+            modelBuilder.Entity("Portal.Infrastructure.Reports.ReportRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("Archived")
+                        .HasColumnType("boolean")
+                        .HasColumnName("archived");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("category");
+
+                    b.Property<string>("Comment")
+                        .HasColumnType("text")
+                        .HasColumnName("comment");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("description");
+
+                    b.Property<string>("Device")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("device");
+
+                    b.Property<DateTime?>("NoticedAt")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("noticed_at");
+
+                    b.Property<string>("NoticedHow")
+                        .HasColumnType("text")
+                        .HasColumnName("noticed_how");
+
+                    b.Property<Guid?>("ParentReportId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("parent_report_id");
+
+                    b.Property<int>("PersonnelNumber")
+                        .HasColumnType("integer")
+                        .HasColumnName("personnel_number");
+
+                    b.Property<string>("PriorActivity")
+                        .HasColumnType("text")
+                        .HasColumnName("prior_activity");
+
+                    b.Property<string>("Severity")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("severity");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("source");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("status");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_reports");
+
+                    b.HasIndex("CreatedAt")
+                        .HasDatabaseName("ix_reports_created_at");
+
+                    b.HasIndex("ParentReportId")
+                        .HasDatabaseName("ix_reports_parent_report_id");
+
+                    b.ToTable("reports", "portal");
+                });
+
             modelBuilder.Entity("Shared.Infrastructure.Authorization.PermissionSnapshotRecord", b =>
                 {
                     b.Property<Guid>("EmployeeId")
@@ -256,6 +381,21 @@ namespace Portal.Infrastructure.Migrations
                         .HasForeignKey("FaqId")
                         .OnDelete(DeleteBehavior.SetNull)
                         .HasConstraintName("fk_faq_images_faqs_faq_id");
+                });
+
+            modelBuilder.Entity("Portal.Infrastructure.Reports.ReportLocationRecord", b =>
+                {
+                    b.HasOne("Portal.Infrastructure.Reports.ReportRecord", null)
+                        .WithMany("Locations")
+                        .HasForeignKey("ReportId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_report_locations_reports_report_id");
+                });
+
+            modelBuilder.Entity("Portal.Infrastructure.Reports.ReportRecord", b =>
+                {
+                    b.Navigation("Locations");
                 });
 #pragma warning restore 612, 618
         }

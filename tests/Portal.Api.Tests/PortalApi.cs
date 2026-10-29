@@ -3,11 +3,15 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Portal.Infrastructure.Messaging;
+using Shared.Infrastructure.Messaging;
 using Portal.Api;
 using Portal.Core;
 using Portal.Infrastructure;
 using Shared.Authorization;
+using Shared.Messaging;
 using Shared.Testing;
 
 namespace Portal.Api.Tests;
@@ -21,9 +25,14 @@ public sealed class PortalApi : WebApplicationFactory<ApiMarker>
     public static readonly Guid StoreA = Guid.Parse("00000000-0000-0000-0000-00000000a017");
     public static readonly Guid StoreB = Guid.Parse("00000000-0000-0000-0000-00000000b018");
     public static readonly Guid StoreC = Guid.Parse("00000000-0000-0000-0000-00000000c019");
+
+    /// <summary>Closed store: reports cannot be filed for it any more.</summary>
+    public static readonly Guid StoreD = Guid.Parse("00000000-0000-0000-0000-00000000d020");
     public static readonly Guid Hanna = Guid.Parse("00000000-0000-0000-0000-0000000000d1");
     public static readonly Guid Erika = Guid.Parse("00000000-0000-0000-0000-0000000000e1");
     public static readonly Guid Ben = Guid.Parse("00000000-0000-0000-0000-0000000000b1");
+    public static readonly Guid Revisor = Guid.Parse("00000000-0000-0000-0000-0000000000f1");
+    public static readonly Guid It = Guid.Parse("00000000-0000-0000-0000-0000000000f2");
 
     public static readonly DateTimeOffset Start = new(2026, 10, 23, 12, 0, 0, TimeSpan.Zero);
 
@@ -72,9 +81,46 @@ public sealed class PortalApi : WebApplicationFactory<ApiMarker>
 
     private async Task SeedAsync()
     {
+        using (var scope = Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<PortalDbContext>();
+            db.Stores.AddRange(
+                new StoreRecord { StoreId = StoreA, StoreNumber = "017", Name = "Store A", IsActive = true },
+                new StoreRecord { StoreId = StoreB, StoreNumber = "018", Name = "Store B", IsActive = true },
+                new StoreRecord { StoreId = StoreC, StoreNumber = "019", Name = "Store C", IsActive = true },
+                new StoreRecord { StoreId = StoreD, StoreNumber = "020", Name = "Store D", IsActive = false });
+            db.People.AddRange(
+                new PersonRecord { EmployeeId = Hanna, Name = "Hanna Admin", HomeStoreId = StoreA },
+                new PersonRecord { EmployeeId = Erika, Name = "Erika Mustermann", HomeStoreId = StoreA },
+                new PersonRecord { EmployeeId = Ben, Name = "Ben Beispiel", HomeStoreId = StoreB },
+                new PersonRecord { EmployeeId = Revisor, Name = "Rita Revisorin", HomeStoreId = StoreA },
+                new PersonRecord { EmployeeId = It, Name = "Ingo IT", HomeStoreId = StoreA });
+            await db.SaveChangesAsync();
+        }
+
         var cache = Services.GetRequiredService<IPermissionCache>();
         cache.Grant(Hanna, [.. PortalPrivileges.Catalog.Select(c => TestGrant.Everywhere(c.Key))]);
         await Task.CompletedTask;
+    }
+
+    public async Task<List<OutboxMessage>> OutboxAsync()
+    {
+        using var scope = Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PortalDbContext>();
+        return await db.Set<OutboxMessage>().AsNoTracking().OrderBy(m => m.OccurredAt).ToListAsync();
+    }
+
+    public async Task<DispatchResult> DeliverAsync<T>(T message)
+        where T : IMessage =>
+        await Services.GetRequiredService<MessageDispatcher>().DispatchAsync(
+            new InboundMessage(message.MessageId.ToString(), typeof(T).Name, MessageJson.Serialize(message), 1), CancellationToken.None);
+
+    /// <summary>Files a report the way the public form does; returns the <c>data</c> of the answer.</summary>
+    public async Task<System.Text.Json.JsonElement> ReportAsync(object body, Guid? person = null)
+    {
+        using var response = await SendAsync(HttpMethod.Post, "/api/reports", person, body);
+        response.StatusCode.ShouldBe(System.Net.HttpStatusCode.Created, await response.Content.ReadAsStringAsync());
+        return await DataAsync(response);
     }
 
     /// <summary>Sets the privileges of a person (replacing the former ones).</summary>

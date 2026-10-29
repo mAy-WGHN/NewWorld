@@ -1,5 +1,6 @@
 using BcIntegration.Contracts;
 using Microsoft.EntityFrameworkCore;
+using Portal.Infrastructure.Reports;
 using Shared.Authorization;
 using Shared.Infrastructure.Messaging;
 using Workforce.Contracts;
@@ -64,6 +65,7 @@ public sealed class EmployeeDataErasureRequestedHandler(PortalDbContext db, Perm
     public async Task HandleAsync(EmployeeDataErasureRequested message, CancellationToken cancellationToken)
     {
         await db.People.Where(p => p.EmployeeId == message.EmployeeId).ExecuteDeleteAsync(cancellationToken);
+        await db.ReportRecipients.Where(r => r.EmployeeId == message.EmployeeId).ExecuteDeleteAsync(cancellationToken);
         await permissions.EraseAsync(message.EmployeeId, cancellationToken);
     }
 }

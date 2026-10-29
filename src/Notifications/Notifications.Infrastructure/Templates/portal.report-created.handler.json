@@ -1,0 +1,17 @@
+{
+  "key": "portal.report-created.handler",
+  "mandatory": false,
+  "placeholders": {},
+  "inApp": {
+    "title": "Neue Meldung",
+    "body": "Es liegt eine neue Meldung im Portal vor."
+  },
+  "push": {
+    "title": "Neue Mitteilung im Portal",
+    "body": "Öffnen, um die Mitteilung zu lesen."
+  },
+  "email": {
+    "title": "Neue Mitteilung im Portal",
+    "body": "Es liegt eine neue Mitteilung für Sie im Portal bereit."
+  }
+}

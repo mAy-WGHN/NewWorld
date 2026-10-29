@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Routing;
 using Portal.Api.Faqs;
 using Portal.Api.Http;
+using Portal.Api.Reports;
 using Portal.Core.Faqs;
 using Portal.Infrastructure;
 using Shared.Authorization;
@@ -17,6 +18,7 @@ builder.Services.AddSharedAuthorization();
 builder.Services.AddPortalJson();
 builder.Services.AddPortalRateLimiting(builder.Configuration);
 builder.Services.AddProblemDetails();
+builder.Services.AddScoped<ReportAccess>();
 builder.Services.AddExceptionHandler<ApiExceptionHandler>();
 builder.Services.AddSingleton<IAuthorizationMiddlewareResultHandler, EnvelopeAuthorizationResultHandler>();
 
@@ -76,5 +78,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapDefaultEndpoints();
 app.MapFaqEndpoints();
+app.MapReportEndpoints();
+app.MapReportRecipientEndpoints();
 
 app.Run();

@@ -757,6 +757,17 @@ resource read_send_notification 'Microsoft.Authorization/roleAssignments@2022-04
   }
 }
 
+// Portal sends the notification about new reports (no report content, only a link).
+resource send_send_notification_portal 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: queue_send_notification
+  name: guid(queue_send_notification.id, portalPrincipalId, senderRoleId)
+  properties: {
+    roleDefinitionId: senderRole.id
+    principalId: portalPrincipalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
 resource send_send_notification_workforce 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   scope: queue_send_notification
   name: guid(queue_send_notification.id, workforcePrincipalId, senderRoleId)

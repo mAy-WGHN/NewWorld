@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
+using Portal.Core.Reports;
 using Portal.Infrastructure.Faqs;
 using Portal.Infrastructure.Messaging;
+using Portal.Infrastructure.Reports;
 using Shared.Infrastructure.Authorization;
 using Shared.Infrastructure.Messaging;
 
@@ -15,6 +17,9 @@ public sealed class PortalDbContext(DbContextOptions<PortalDbContext> options) :
     public DbSet<StoreRecord> Stores => Set<StoreRecord>();
     public DbSet<FaqRecord> Faqs => Set<FaqRecord>();
     public DbSet<FaqImageRecord> FaqImages => Set<FaqImageRecord>();
+    public DbSet<ReportRecord> Reports => Set<ReportRecord>();
+    public DbSet<ReportLocationRecord> ReportLocations => Set<ReportLocationRecord>();
+    public DbSet<ReportRecipientRecord> ReportRecipients => Set<ReportRecipientRecord>();
 
     /// <summary>Provider settings shared by runtime and design time (migrations).</summary>
     public static DbContextOptionsBuilder Configure(DbContextOptionsBuilder options, string connectionString) => options
@@ -36,6 +41,34 @@ public sealed class PortalDbContext(DbContextOptions<PortalDbContext> options) :
         {
             b.ToTable("stores");
             b.HasKey(s => s.StoreId);
+        });
+        modelBuilder.Entity<ReportRecord>(b =>
+        {
+            b.ToTable("reports");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Status).HasConversion(new LowerCaseEnumConverter<ReportStatus>()).HasMaxLength(255);
+            b.Property(x => x.Source).HasConversion(new LowerCaseEnumConverter<ReportSource>()).HasMaxLength(255);
+            b.Property(x => x.Category).HasConversion(new LowerCaseEnumConverter<ReportCategory>()).HasMaxLength(255);
+            b.Property(x => x.Severity).HasConversion(new LowerCaseEnumConverter<ReportSeverity>()).HasMaxLength(255);
+            b.Property(x => x.Device).HasMaxLength(120);
+            b.Property(x => x.NoticedAt).HasColumnType("timestamp without time zone").HasConversion(new NullableUnspecifiedDateTimeConverter());
+            b.Property(x => x.CreatedAt).HasColumnType("timestamp without time zone").HasConversion(new UnspecifiedDateTimeConverter());
+            b.Property(x => x.UpdatedAt).HasColumnType("timestamp without time zone").HasConversion(new UnspecifiedDateTimeConverter());
+            b.HasIndex(x => x.CreatedAt);
+            b.HasIndex(x => x.ParentReportId);
+            b.HasMany(x => x.Locations).WithOne().HasForeignKey(l => l.ReportId).OnDelete(DeleteBehavior.Cascade);
+        });
+        modelBuilder.Entity<ReportLocationRecord>(b =>
+        {
+            b.ToTable("report_locations");
+            b.HasKey(x => new { x.ReportId, x.LocationId });
+            b.HasIndex(x => x.LocationId);
+        });
+        modelBuilder.Entity<ReportRecipientRecord>(b =>
+        {
+            b.ToTable("report_recipients");
+            b.HasKey(x => new { x.Category, x.EmployeeId });
+            b.Property(x => x.Category).HasConversion(new LowerCaseEnumConverter<ReportCategory>()).HasMaxLength(255);
         });
         modelBuilder.Entity<FaqRecord>(b =>
         {
