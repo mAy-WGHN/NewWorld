@@ -34,7 +34,7 @@ Buchungskonto, Saldo aus Buchungen, Monatsabschluss gegen die Monatsschwelle des
 
 ## Weitere offene Punkte (unabhängig von den Schritten)
 
-- Austritt im Jahr: anteiliger Urlaubsanspruch, wartet auf die Personalabteilung (fünf Fragen in `docs/urlaubsberechnung.md`).
+- Austritt im Jahr: anteiliger Urlaubsanspruch ist umgesetzt (Entscheidung 39); nicht gebaut sind Abgeltung von Resturlaub und Zusatztagen und der gesetzliche Mindesturlaub.
 - **Vor dem Go-live prüfen:** Ob 15301 noch die zuletzt vergebene Personalnummer ist (Bereich 1001 bis 99999).
 - Rechte und Zuständigkeiten in Access zum Schluss in der Oberfläche vergeben (u. a. Thema `employee.change-request`).
 - Portal-Gerüst übernimmt die Hauptfiliale noch nicht.

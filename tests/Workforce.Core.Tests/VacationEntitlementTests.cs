@@ -74,6 +74,61 @@ public class VacationEntitlementTests
         VacationEntitlement.Contractual(23.5m, D("2026-09-01"), 2026).ShouldBe(8m);
     }
 
+    // ---------------------------------------------------------------- leaving during the year: the same formula as joining
+
+    [Theory]
+    [InlineData("2026-03-31", 6.5)]    // Jan-Mar: 3 full months, 25 / 12 * 3 = 6.25 -> 6.5
+    [InlineData("2026-03-30", 4.5)]    // March is not complete: 2 months, 4.17 -> 4.5
+    [InlineData("2026-01-31", 2.5)]    // 1 month: 2.083 -> 2.5
+    [InlineData("2026-01-30", 0)]      // January is not complete
+    [InlineData("2026-12-31", 25)]     // the whole year: the entered value
+    [InlineData("2026-12-30", 23)]     // 11 months: 22.92 -> 23
+    [InlineData("2028-02-29", 4.5)]    // leap day is the last day of February: 2 months, 4.17 -> 4.5
+    [InlineData("2028-02-28", 2.5)]    // in a leap year the 28th is not the last day: 1 month
+    [InlineData("2026-02-28", 4.5)]    // in a normal year the 28th is the last day: 2 months
+    public void On_leaving_the_contractual_days_are_annual_days_divided_by_12_times_the_full_months_rounded_up(string exit, double expected)
+    {
+        var year = int.Parse(exit[..4], CultureInfo.InvariantCulture);
+
+        VacationEntitlement.Contractual(25, null, year, exit: D(exit)).ShouldBe((decimal)expected);
+    }
+
+    [Fact]
+    public void After_the_year_of_leaving_there_are_none_and_before_it_the_full_entitlement()
+    {
+        VacationEntitlement.Contractual(25, null, 2027, exit: D("2026-06-30")).ShouldBe(0m);
+        VacationEntitlement.Contractual(25, null, 2025, exit: D("2026-06-30")).ShouldBe(25m);
+        VacationEntitlement.Contractual(25, null, 2026, exit: null).ShouldBe(25m);
+    }
+
+    [Fact]
+    public void Joining_and_leaving_in_the_same_year_count_the_months_between()
+    {
+        // 1 March to 31 August: March to August, 6 months, 12.5 days
+        VacationEntitlement.Contractual(25, D("2026-03-01"), 2026, exit: D("2026-08-31")).ShouldBe(12.5m);
+        // joining on the 15th: April to August, 5 months, 10.42 -> 10.5
+        VacationEntitlement.Contractual(25, D("2026-03-15"), 2026, exit: D("2026-08-31")).ShouldBe(10.5m);
+        // in and out within one month: no full month
+        VacationEntitlement.Contractual(25, D("2026-05-01"), 2026, exit: D("2026-05-20")).ShouldBe(0m);
+    }
+
+    [Fact]
+    public void A_change_during_the_year_and_leaving_are_combined_and_the_rounding_rule_applies()
+    {
+        // 25 until June (6 months), 20 from July until the end of September (3 months): (150 + 60) / 12 = 17.5
+        VacationEntitlement.Contractual(25, null, 2026, null, [new EntitlementChange(Guid.NewGuid(), D("2026-07-01"), 20)], D("2026-09-30")).ShouldBe(17.5m);
+        // rounding down instead of up (HR's rule): 25 / 12 * 3 = 6.25 -> 6
+        VacationEntitlement.Contractual(25, null, 2026, new VacationRules(null, null, 0, WaitingPeriodMode.Accrued, ProRataRounding.Down, 1m), null, D("2026-03-31")).ShouldBe(6m);
+    }
+
+    [Fact]
+    public void The_account_of_the_year_of_leaving_uses_the_pro_rata_days()
+    {
+        var account = VacationAccount.Compute(2026, 25, null, [], VacationRules.NeverExpire, [], D("2026-02-01"), D("2026-02-01"), Calendar, null, D("2026-03-31"));
+
+        (account.ContractualAnnualDays, account.ContractualDays, account.EffectiveDays).ShouldBe((25m, 6.5m, 6.5m));
+    }
+
     // ---------------------------------------------------------------- additional days: window and expiry
 
     [Fact]

@@ -169,28 +169,35 @@ public static class VacationEntitlement
     /// Contractual days of <paramref name="year"/>. Without joining in the year and without changes: the annual days as entered. Otherwise
     /// the annual days are spread over the months (1/12 each, the annual days in force at the start of the month, see
     /// <see cref="EntitlementChange"/>), only the full months of employment count, and the sum is rounded as <paramref name="rules"/> say
-    /// (default: up to half days) but never exceeds the highest annual days. Before the year of joining there are none.
-    /// An unknown entry date counts as employed all year.
+    /// (default: up to half days) but never exceeds the highest annual days. Before the year of joining and after the year of leaving there are none.
+    /// Leaving works like joining (decision of the project owner, 2026-10-29): the month of leaving counts only if the person leaves on its last day.
+    /// An unknown entry date counts as employed from the start of the year, no exit date as employed to its end.
     /// </summary>
-    // TODO(Entscheidung): anteiliger Anspruch bei Austritt im Jahr (Regeln der Personalabteilung ausstehend, siehe docs/urlaubsberechnung.md).
     public static decimal Contractual(
-        decimal annualDays, DateOnly? entry, int year, VacationRules? rules = null, IReadOnlyList<EntitlementChange>? changes = null)
+        decimal annualDays, DateOnly? entry, int year, VacationRules? rules = null, IReadOnlyList<EntitlementChange>? changes = null, DateOnly? exit = null)
     {
-        if (entry is { } joinedLater && joinedLater.Year > year)
+        if ((entry is { } joinedLater && joinedLater.Year > year) || (exit is { } left && left.Year < year))
         {
             return 0m;
         }
 
         var inYear = (changes ?? []).Where(c => c.EffectiveFrom.Year == year).OrderBy(c => c.EffectiveFrom).ToList();
         var joinedThisYear = entry is { } e && e.Year == year;
-        if (!joinedThisYear && inYear.Count == 0)
+        var leavesThisYear = exit is { } x && x.Year == year;
+        if (!joinedThisYear && !leavesThisYear && inYear.Count == 0)
         {
             return annualDays;
         }
 
         var firstMonth = joinedThisYear ? (entry!.Value.Day == 1 ? entry.Value.Month : entry.Value.Month + 1) : 1;
+        var lastMonth = leavesThisYear ? LastFullMonthInExitYear(exit!.Value) : 12;
+        if (firstMonth == 1 && lastMonth == 12 && inYear.Count == 0)
+        {
+            return annualDays; // employed the whole year: the entered value as it is
+        }
+
         decimal sumOfAnnualDays = 0;
-        for (var month = firstMonth; month <= 12; month++)
+        for (var month = firstMonth; month <= lastMonth; month++)
         {
             sumOfAnnualDays += AnnualDaysIn(annualDays, inYear, new DateOnly(year, month, 1));
         }
@@ -198,6 +205,9 @@ public static class VacationEntitlement
         var highest = Math.Max(annualDays, inYear.Count == 0 ? 0m : inYear.Max(c => c.AnnualDays));
         return Math.Min(highest, (rules ?? VacationRules.NeverExpire).Round(sumOfAnnualDays / 12m));
     }
+
+    /// <summary>The last month of the exit year that counts: the month of leaving only if the person leaves on its last day, otherwise the month before.</summary>
+    public static int LastFullMonthInExitYear(DateOnly exit) => exit.Day == DateTime.DaysInMonth(exit.Year, exit.Month) ? exit.Month : exit.Month - 1;
 
     /// <summary>The annual days in force on <paramref name="day"/>: the latest change up to then, otherwise the base value.</summary>
     private static decimal AnnualDaysIn(decimal annualDays, IReadOnlyList<EntitlementChange> changesOfTheYear, DateOnly day) =>

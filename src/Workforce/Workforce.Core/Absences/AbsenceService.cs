@@ -216,7 +216,7 @@ public sealed class AbsenceService(
 
             var lastDayInYear = to < new DateOnly(year, 12, 31) ? to : new DateOnly(year, 12, 31);
             var asOf = lastDayInYear > TodayLocal ? lastDayInYear : TodayLocal;
-            if (VacationAccount.Compute(year, entitlement, person.EntryDate, extras, rules, bookings, TodayLocal, asOf, calendar, changes).Remaining < 0)
+            if (VacationAccount.Compute(year, entitlement, person.EntryDate, extras, rules, bookings, TodayLocal, asOf, calendar, changes, person.ExitDate).Remaining < 0)
             {
                 return AbsenceResult.Fail(AbsenceError.InsufficientBalance);
             }
@@ -390,7 +390,7 @@ public sealed class AbsenceService(
         return VacationAccount.Compute(
             year, entitlement, person?.EntryDate, await extraVacation.ForEmployeeAsync(employeeId, cancellationToken),
             (await GetVacationRulesAsync(cancellationToken)).Rules, bookings, TodayLocal, TodayLocal, CalendarFor(person),
-            await extraVacation.ChangesAsync(employeeId, cancellationToken));
+            await extraVacation.ChangesAsync(employeeId, cancellationToken), person?.ExitDate);
     }
 
     /// <summary>The waiting period (first months of employment, maintained by HR) restricts vacation before its end to the days earned so far, or forbids it.</summary>

@@ -714,6 +714,32 @@ public class AbsenceServiceTests
     }
 
     [Fact]
+    public async Task Somebody_who_leaves_during_the_year_gets_the_pro_rata_contractual_days_like_somebody_who_joins()
+    {
+        // Leaves on 30 September: January to September are full months, 25 / 12 * 9 = 18.75 -> 19 days.
+        _entitlements.Days[(Erika, 2026)] = 25;
+        _people.People[Erika] = _people.People[Erika] with { ExitDate = D("2026-09-30") };
+
+        var breakdown = (await Service().BreakdownAsync(Erika, 2026, CancellationToken.None))!;
+
+        (breakdown.ContractualAnnualDays, breakdown.ContractualDays, breakdown.EffectiveDays).ShouldBe((25m, 19m, 19m));
+        // The next year there is nothing any more.
+        _entitlements.Days[(Erika, 2027)] = 25;
+        (await Service().BreakdownAsync(Erika, 2027, CancellationToken.None))!.EffectiveDays.ShouldBe(0m);
+    }
+
+    [Fact]
+    public async Task A_request_cannot_use_more_than_the_pro_rata_days_of_the_year_of_leaving_and_none_after_the_exit()
+    {
+        _entitlements.Days[(Erika, 2026)] = 25;
+        _people.People[Erika] = _people.People[Erika] with { ExitDate = D("2026-09-30") }; // 9 months: 19 days
+
+        (await Service().RequestVacationAsync(Erika, D("2026-08-03"), D("2026-08-29"), CancellationToken.None)).Error.ShouldBe(AbsenceError.InsufficientBalance); // 24 days
+        (await Service().RequestVacationAsync(Erika, D("2026-08-03"), D("2026-08-22"), CancellationToken.None)).Error.ShouldBe(AbsenceError.None);            // 18 days
+        (await Service().RequestVacationAsync(Erika, D("2026-10-05"), D("2026-10-06"), CancellationToken.None)).Error.ShouldBe(AbsenceError.AfterExit);      // after the exit
+    }
+
+    [Fact]
     public async Task Additional_days_are_maintained_by_year_and_can_be_removed()
     {
         var id = await AddExtra(ExtraVacationKind.CarryOver, 2025, 2.5m);

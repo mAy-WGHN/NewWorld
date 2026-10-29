@@ -69,6 +69,7 @@ public static class VacationAccount
     /// </param>
     /// <param name="calendar">Working days of the person.</param>
     /// <param name="changes">Changes of the annual entitlement during the year (other working days per week etc.).</param>
+    /// <param name="exitDate">Date of leaving, <c>null</c> if none; in the year of leaving the days are pro rata, like in the year of joining.</param>
     public static VacationBreakdown Compute(
         int year,
         decimal contractualAnnualDays,
@@ -79,11 +80,12 @@ public static class VacationAccount
         DateOnly today,
         DateOnly asOf,
         WorkCalendar calendar,
-        IReadOnlyList<EntitlementChange>? changes = null)
+        IReadOnlyList<EntitlementChange>? changes = null,
+        DateOnly? exitDate = null)
     {
         var yearStart = new DateOnly(year, 1, 1);
         var yearEnd = new DateOnly(year, 12, 31);
-        var contractual = VacationEntitlement.Contractual(contractualAnnualDays, entryDate, year, rules, changes);
+        var contractual = VacationEntitlement.Contractual(contractualAnnualDays, entryDate, year, rules, changes, exitDate);
 
         // Additional days whose usable window touches the year, the earlier expiring ones first.
         var relevant = extras
