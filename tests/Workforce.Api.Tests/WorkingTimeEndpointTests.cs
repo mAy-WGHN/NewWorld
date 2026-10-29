@@ -1,6 +1,8 @@
 using System.Net;
 using System.Net.Http.Json;
+using Access.Contracts;
 using BcIntegration.Contracts;
+using Microsoft.Extensions.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Shared.Infrastructure.Messaging;
@@ -140,6 +142,37 @@ public sealed class WorkingTimeEndpointTests(PostgresFixture postgres) : IClassF
         (await Post(api, "month-closes", Hanna, new CloseMonthRequest(2026, 9, 170))).StatusCode.ShouldBe(HttpStatusCode.Conflict); // no card, no relationship
         await SeedRelationshipAsync(api, threshold: null);
         (await Post(api, "month-closes", Hanna, new CloseMonthRequest(2026, 9, 170))).StatusCode.ShouldBe(HttpStatusCode.Conflict); // no threshold set
+    }
+
+    [Fact]
+    public async Task The_day_after_the_exit_HR_is_reminded_once_to_pay_out_the_balance_without_any_data()
+    {
+        await using var api = await StartAsync(postgres);
+        await Post(api, "corrections", Hanna, new BookHoursRequest(7.5m, new DateOnly(2026, 10, 1)));
+        using (var scope = api.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<WorkforceDbContext>();
+            (await db.People.SingleAsync(p => p.EmployeeId == Erika)).ExitDate = new DateOnly(2026, 10, 20); // left three days ago
+            await db.SaveChangesAsync();
+        }
+
+        var maintenance = api.Services.GetServices<IHostedService>().OfType<Workforce.Infrastructure.WorkingTime.WorkingTimeMaintenanceService>().Single();
+
+        // Nobody is responsible yet: nothing is sent and nothing is marked.
+        await maintenance.RunOnceAsync(CancellationToken.None);
+        (await api.OutboxAsync()).ShouldNotContain(m => m.Payload.Contains("working-time-payout-reminder", StringComparison.Ordinal));
+
+        await api.DeliverAsync(new ResponsibilitiesChanged(Guid.NewGuid(), Guid.NewGuid(), Start, Erika, 5, [new TopicResponsibility("workingtime.payout", [Max])]));
+        await maintenance.RunOnceAsync(CancellationToken.None);
+        await maintenance.RunOnceAsync(CancellationToken.None); // a second round does not repeat it
+
+        var reminders = (await api.OutboxAsync()).Where(m => m.Payload.Contains("workforce.working-time-payout-reminder.hr", StringComparison.Ordinal)).ToList();
+        var reminder = reminders.ShouldHaveSingleItem();
+        reminder.Payload.ShouldContain(Max.ToString());
+        reminder.Payload.ShouldNotContain("7.5");
+        reminder.Payload.ShouldNotContain("Mustermann");
+        // Nothing was paid out by itself: HR does it.
+        (await api.GetAsync<WorkingTimeDto>($"/api/employees/{Erika}/working-time", Hanna)).Balance.ShouldBe(7.5m);
     }
 
     [Fact]

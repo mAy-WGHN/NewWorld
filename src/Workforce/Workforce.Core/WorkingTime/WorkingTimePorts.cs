@@ -22,6 +22,15 @@ public interface IWorkingTimeStore
 
     Task<decimal?> ThresholdAsync(Guid relationshipId, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// People who left before <paramref name="beforeDay"/> (their exit date is over), have a working time account (at least one booking) and have not
+    /// been looked at for the payout reminder yet.
+    /// </summary>
+    Task<IReadOnlyList<ExitedAccount>> ExitedAccountsToCheckAsync(DateOnly beforeDay, CancellationToken cancellationToken);
+
+    /// <summary>Notes that the exit of a person was looked at (<paramref name="reminded"/>: HR was reminded to pay out a balance).</summary>
+    void AddPayoutCheck(Guid employeeId, DateTimeOffset at, bool reminded);
+
     /// <summary>Sets the monthly threshold of an employment relationship; <c>null</c> removes it.</summary>
     Task SetThresholdAsync(Guid relationshipId, decimal? hours, Guid changedBy, DateTimeOffset at, CancellationToken cancellationToken);
 }

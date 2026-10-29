@@ -99,6 +99,9 @@ public sealed record WorkingTimeRules(decimal PayoutThresholdHours, int? ExpiryM
 
 public sealed record WorkingTimeRulesSetting(WorkingTimeRules Rules, DateTimeOffset ChangedAt, Guid ChangedBy);
 
+/// <summary>A person who has left and has a working time account.</summary>
+public sealed record ExitedAccount(Guid EmployeeId, DateOnly ExitDate);
+
 /// <summary>The monthly threshold (hours per month) of an employment relationship, from which on hours count as overtime.</summary>
 public sealed record MonthlyThreshold(Guid RelationshipId, decimal Hours);
 

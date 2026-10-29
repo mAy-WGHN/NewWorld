@@ -10,6 +10,15 @@ internal sealed class FakeWorkingTimeStore : IWorkingTimeStore
     public List<MonthClose> Closes { get; } = [];
     public WorkingTimeRulesSetting? Rules { get; set; }
     public Dictionary<Guid, decimal> Thresholds { get; } = [];
+    public List<ExitedAccount> Exited { get; } = [];
+
+    /// <summary>People whose exit was looked at for the payout reminder: <c>true</c> if HR was reminded.</summary>
+    public Dictionary<Guid, bool> Checks { get; } = [];
+
+    public Task<IReadOnlyList<ExitedAccount>> ExitedAccountsToCheckAsync(DateOnly beforeDay, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<ExitedAccount>>([.. Exited.Where(e => e.ExitDate < beforeDay && !Checks.ContainsKey(e.EmployeeId) && Bookings.Any(b => b.EmployeeId == e.EmployeeId))]);
+
+    public void AddPayoutCheck(Guid employeeId, DateTimeOffset at, bool reminded) => Checks[employeeId] = reminded;
 
     public Task<IReadOnlyList<TimeBooking>> BookingsAsync(Guid employeeId, CancellationToken cancellationToken) =>
         Task.FromResult<IReadOnlyList<TimeBooking>>([.. Bookings.Where(b => b.EmployeeId == employeeId)]);
@@ -75,6 +84,8 @@ public class WorkingTimeServiceTests
     private readonly FakeStore _absences = new();
     private readonly FakePeople _people = new();
     private readonly FakeEmployment _employment = new();
+    private readonly FakeResponsibilities _responsibilities = new();
+    private readonly RecordingMessages _messages = new();
 
     // Wednesday 2026-10-28, 10:00 local (winter time)
     private readonly FakeTimeProvider _time = new(new DateTimeOffset(2026, 10, 28, 9, 0, 0, TimeSpan.Zero));
@@ -87,7 +98,7 @@ public class WorkingTimeServiceTests
         _store.Thresholds[FullTime] = 160;
     }
 
-    private WorkingTimeService Service() => new(_store, _absences, _people, _employment, _time, new WorkforceOptions());
+    private WorkingTimeService Service() => new(_store, _absences, _people, _employment, _responsibilities, _messages, _time, new WorkforceOptions());
 
     private static DateOnly D(string date) => DateOnly.Parse(date, System.Globalization.CultureInfo.InvariantCulture);
 

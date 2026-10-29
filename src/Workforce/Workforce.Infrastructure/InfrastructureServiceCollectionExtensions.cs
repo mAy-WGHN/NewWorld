@@ -100,6 +100,7 @@ public static class InfrastructureServiceCollectionExtensions
         AddMalwareScanner(services, configuration, environment);
         services.AddScoped<CertificateService>();
         services.AddHostedService<CertificateMaintenanceService>();
+        services.AddHostedService<WorkingTime.WorkingTimeMaintenanceService>();
         services.AddScoped<WorkforceUnitOfWork>();
 
         // Register the privileges of this API with Access (only if Access is configured).

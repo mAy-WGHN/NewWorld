@@ -16,6 +16,14 @@ public sealed class WorkingTimeRulesRecord
     public Guid ChangedBy { get; set; }
 }
 
+/// <summary>Notes that the exit of a person was looked at for the payout reminder (and whether HR was reminded); one row per person.</summary>
+public sealed class PayoutCheckRecord
+{
+    public Guid EmployeeId { get; set; }
+    public DateTimeOffset CheckedAt { get; set; }
+    public bool Reminded { get; set; }
+}
+
 /// <summary>The monthly threshold (hours) of an employment relationship of the selection list.</summary>
 public sealed class MonthlyThresholdRecord
 {
@@ -61,6 +69,16 @@ public sealed class EfWorkingTimeStore(WorkforceDbContext db) : IWorkingTimeStor
         row.ChangedAt = setting.ChangedAt;
         row.ChangedBy = setting.ChangedBy;
     }
+
+    public async Task<IReadOnlyList<ExitedAccount>> ExitedAccountsToCheckAsync(DateOnly beforeDay, CancellationToken cancellationToken) =>
+        await (from p in db.People.AsNoTracking()
+               where p.ExitDate != null && p.ExitDate < beforeDay
+                     && db.TimeBookings.Any(b => b.EmployeeId == p.EmployeeId)
+                     && !db.PayoutChecks.Any(c => c.EmployeeId == p.EmployeeId)
+               select new ExitedAccount(p.EmployeeId, p.ExitDate!.Value)).ToListAsync(cancellationToken);
+
+    public void AddPayoutCheck(Guid employeeId, DateTimeOffset at, bool reminded) =>
+        db.PayoutChecks.Add(new PayoutCheckRecord { EmployeeId = employeeId, CheckedAt = at, Reminded = reminded });
 
     public async Task<IReadOnlyList<MonthlyThreshold>> ThresholdsAsync(CancellationToken cancellationToken) =>
         (await db.MonthlyThresholds.AsNoTracking().OrderBy(t => t.RelationshipId).ToListAsync(cancellationToken)).Select(t => new MonthlyThreshold(t.RelationshipId, t.Hours)).ToList();

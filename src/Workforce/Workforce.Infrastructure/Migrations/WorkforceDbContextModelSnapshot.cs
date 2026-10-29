@@ -1433,6 +1433,11 @@ namespace Workforce.Infrastructure.Migrations
                         .HasColumnType("uuid[]")
                         .HasColumnName("change_request_handler_ids");
 
+                    b.PrimitiveCollection<List<Guid>>("PayoutHandlerIds")
+                        .IsRequired()
+                        .HasColumnType("uuid[]")
+                        .HasColumnName("payout_handler_ids");
+
                     b.PrimitiveCollection<List<Guid>>("ScheduleAdjustmentHandlerIds")
                         .IsRequired()
                         .HasColumnType("uuid[]")
@@ -1587,6 +1592,26 @@ namespace Workforce.Infrastructure.Migrations
                         .HasName("pk_monthly_thresholds");
 
                     b.ToTable("monthly_thresholds", "workforce");
+                });
+
+            modelBuilder.Entity("Workforce.Infrastructure.WorkingTime.PayoutCheckRecord", b =>
+                {
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("employee_id");
+
+                    b.Property<DateTimeOffset>("CheckedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("checked_at");
+
+                    b.Property<bool>("Reminded")
+                        .HasColumnType("boolean")
+                        .HasColumnName("reminded");
+
+                    b.HasKey("EmployeeId")
+                        .HasName("pk_payout_checks");
+
+                    b.ToTable("payout_checks", "workforce");
                 });
 
             modelBuilder.Entity("Workforce.Infrastructure.WorkingTime.WorkingTimeRulesRecord", b =>

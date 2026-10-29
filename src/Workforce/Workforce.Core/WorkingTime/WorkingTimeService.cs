@@ -1,3 +1,4 @@
+using Notifications.Contracts;
 using Workforce.Core.Absences;
 
 namespace Workforce.Core.WorkingTime;
@@ -18,9 +19,13 @@ public sealed class WorkingTimeService(
     IAbsenceStore absences,
     IPeopleDirectory people,
     IEmploymentLookup employment,
+    IResponsibilityDirectory responsibilities,
+    IWorkforceMessages messages,
     TimeProvider time,
     WorkforceOptions options)
 {
+    public const string PayoutReminderTemplate = "workforce.working-time-payout-reminder.hr";
+
     private const decimal MaxHours = 10000;
     private const decimal MaxHoursPerMonth = 744; // 31 days of 24 hours
 
@@ -146,6 +151,42 @@ public sealed class WorkingTimeService(
         return state.Balance <= 0
             ? new BookingResult(WorkingTimeError.NothingToPay)
             : new BookingResult(WorkingTimeError.None, Add(employeeId, BookingKind.PayoutAtExit, -state.Balance, exit, null, actorId));
+    }
+
+    /// <summary>
+    /// The day after somebody has left, HR (topic <c>workingtime.payout</c> in Access) is reminded once if the account still holds a balance (as of the
+    /// exit date). Nothing is booked: paying out is a HR action (<see cref="PayoutAtExitAsync"/>). The reminder carries no data. Without anybody
+    /// responsible nothing is marked, so the next round tries again.
+    /// </summary>
+    /// <returns>How many reminders were created.</returns>
+    public async Task<int> RemindPayoutAfterExitAsync(CancellationToken cancellationToken)
+    {
+        var now = time.GetUtcNow();
+        var rules = (await GetRulesAsync(cancellationToken)).Rules;
+        var reminders = 0;
+        foreach (var account in await store.ExitedAccountsToCheckAsync(TodayLocal, cancellationToken))
+        {
+            var bookings = await store.BookingsAsync(account.EmployeeId, cancellationToken);
+            if (WorkingTimeAccount.Compute(bookings, rules, account.ExitDate).Balance <= 0 || bookings.Any(b => b.Kind == BookingKind.PayoutAtExit))
+            {
+                store.AddPayoutCheck(account.EmployeeId, now, reminded: false);
+                continue;
+            }
+
+            var handlers = (await responsibilities.PayoutHandlersAsync(account.EmployeeId, cancellationToken)).Where(h => h != account.EmployeeId).Distinct().ToList();
+            if (handlers.Count == 0)
+            {
+                continue;
+            }
+
+            messages.Send(new SendNotification(
+                Guid.CreateVersion7(now), account.EmployeeId, now, DeterministicGuid.From($"{account.EmployeeId}:payout-reminder"),
+                handlers, PayoutReminderTemplate, new Dictionary<string, string>(), [NotificationChannel.InApp, NotificationChannel.Push], $"/employees/{account.EmployeeId}/working-time"));
+            store.AddPayoutCheck(account.EmployeeId, now, reminded: true);
+            reminders++;
+        }
+
+        return reminders;
     }
 
     // ------------------------------------------------------------------ month close

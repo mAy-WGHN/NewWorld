@@ -77,6 +77,9 @@ public interface IResponsibilityDirectory
 
     /// <summary>The persons in HR who adjust the schedule when a person becomes unavailable (the "HR team", maintained in Access under the topic <c>schedule.adjustment</c>).</summary>
     Task<IReadOnlyList<Guid>> ScheduleAdjustmentHandlersAsync(Guid employeeId, CancellationToken cancellationToken);
+
+    /// <summary>The persons in HR who pay out the working time balance of a person who has left (topic <c>workingtime.payout</c> in Access, maintained there).</summary>
+    Task<IReadOnlyList<Guid>> PayoutHandlersAsync(Guid employeeId, CancellationToken cancellationToken);
 }
 
 /// <summary>Publishes messages together with the current unit of work (outbox).</summary>

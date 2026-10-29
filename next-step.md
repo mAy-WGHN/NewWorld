@@ -23,7 +23,7 @@ Buchungskonto, Saldo aus Buchungen, Monatsabschluss gegen die Monatsschwelle des
 
 **Offen aus Schritt 4**
 - **Minusstunden** sind von HR schaltbar (`bookMinusHours`, Standard aus, Entscheidung 35); die Untergrenze für den Fehlbetrag (`maxMinusHours`) ist gebaut.
-- **Austritt:** Die Auszahlung des Restguthabens ist eine HR-Aktion; automatisch bei `EmployeeLeft` ist nicht gebaut.
+- **Austritt:** Die Auszahlung des Restguthabens ist eine HR-Aktion mit Erinnerung am Tag nach dem Austritt (Entscheidung 37, Thema `workingtime.payout` in Access einzurichten).
 - **BC-Spiegelung** des Kontos (`TODO(BC-Modell)`), **Stunden aus der Zeiterfassung** statt von Hand, Rechte `workingtime:*` in Access an HR vergeben, Monatsschwellen je Arbeitsverhältnis eintragen.
 
 ---

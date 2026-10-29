@@ -65,7 +65,7 @@ public sealed class EndpointTests(PostgresFixture postgres) : IClassFixture<Post
 
         var before = await api.GetAsync<List<NotificationTypeDto>>("/api/me/notification-preferences", Max);
         before.Select(t => t.TemplateKey).ShouldBe(
-        ["workforce.employee-change-decision.employee", "workforce.employee-change-request.hr", "workforce.shift-uncovered-absence.hr", "workforce.shift-uncovered-sickness.hr", "workforce.sick-note-certificate-rejected.employee", "workforce.sick-note-certificate-reminder.employee", "workforce.sick-note.store-manager", "workforce.vacation-decision.requester", "workforce.vacation-request.supervisor"]);
+        ["workforce.employee-change-decision.employee", "workforce.employee-change-request.hr", "workforce.shift-uncovered-absence.hr", "workforce.shift-uncovered-sickness.hr", "workforce.sick-note-certificate-rejected.employee", "workforce.sick-note-certificate-reminder.employee", "workforce.sick-note.store-manager", "workforce.vacation-decision.requester", "workforce.vacation-request.supervisor", "workforce.working-time-payout-reminder.hr"]);
         before.Single(t => t.TemplateKey == "workforce.sick-note.store-manager").Mandatory.ShouldBeTrue();
         before.SelectMany(t => t.Channels).ShouldAllBe(c => c.Enabled);
 

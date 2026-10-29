@@ -22,6 +22,7 @@ public sealed class WorkforceDbContext(DbContextOptions<WorkforceDbContext> opti
     public DbSet<TimeBooking> TimeBookings => Set<TimeBooking>();
     public DbSet<MonthClose> MonthCloses => Set<MonthClose>();
     public DbSet<WorkingTimeRulesRecord> WorkingTimeRules => Set<WorkingTimeRulesRecord>();
+    public DbSet<PayoutCheckRecord> PayoutChecks => Set<PayoutCheckRecord>();
     public DbSet<MonthlyThresholdRecord> MonthlyThresholds => Set<MonthlyThresholdRecord>();
     public DbSet<UnavailabilityKind> UnavailabilityKinds => Set<UnavailabilityKind>();
     public DbSet<UnavailabilityEntry> UnavailabilityEntries => Set<UnavailabilityEntry>();
@@ -99,6 +100,12 @@ public sealed class WorkforceDbContext(DbContextOptions<WorkforceDbContext> opti
             b.Property(r => r.PayoutThresholdHours).HasPrecision(8, 2);
             b.Property(r => r.BookMinusHours).HasDefaultValue(false);
             b.Property(r => r.MaxMinusHours).HasPrecision(8, 2);
+        });
+        modelBuilder.Entity<PayoutCheckRecord>(b =>
+        {
+            b.ToTable("payout_checks");
+            b.HasKey(c => c.EmployeeId);
+            b.Property(c => c.EmployeeId).ValueGeneratedNever();
         });
         modelBuilder.Entity<MonthlyThresholdRecord>(b =>
         {

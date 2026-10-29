@@ -63,6 +63,9 @@ public sealed class ApproverCopyRecord
     /// <summary>The HR team that adjusts the schedule when a person becomes unavailable.</summary>
     public const string ScheduleAdjustmentTopic = "schedule.adjustment";
 
+    /// <summary>The HR team that pays out the working time balance of a person who has left.</summary>
+    public const string PayoutTopic = "workingtime.payout";
+
     public Guid EmployeeId { get; set; }
     public long Version { get; set; }
     public List<Guid> ApproverIds { get; set; } = [];
@@ -70,4 +73,7 @@ public sealed class ApproverCopyRecord
 
     /// <summary>The persons (HR team) who adjust the schedule when a person becomes unavailable.</summary>
     public List<Guid> ScheduleAdjustmentHandlerIds { get; set; } = [];
+
+    /// <summary>The persons (HR) who pay out the working time balance when this person has left.</summary>
+    public List<Guid> PayoutHandlerIds { get; set; } = [];
 }

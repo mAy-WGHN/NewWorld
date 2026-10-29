@@ -138,6 +138,9 @@ public sealed class EfResponsibilityDirectory(WorkforceDbContext db) : IResponsi
         await db.ApproverCopies.AsNoTracking().Where(a => a.EmployeeId == employeeId).Select(a => a.ChangeRequestHandlerIds).FirstOrDefaultAsync(cancellationToken) ?? [];
 
     /// <summary>The HR team is the same for everybody, but Access publishes responsibilities per person; the copy of this person says who it is.</summary>
+    public async Task<IReadOnlyList<Guid>> PayoutHandlersAsync(Guid employeeId, CancellationToken cancellationToken) =>
+        await db.ApproverCopies.AsNoTracking().Where(a => a.EmployeeId == employeeId).Select(a => a.PayoutHandlerIds).FirstOrDefaultAsync(cancellationToken) ?? [];
+
     public async Task<IReadOnlyList<Guid>> ScheduleAdjustmentHandlersAsync(Guid employeeId, CancellationToken cancellationToken) =>
         await db.ApproverCopies.AsNoTracking().Where(a => a.EmployeeId == employeeId).Select(a => a.ScheduleAdjustmentHandlerIds).FirstOrDefaultAsync(cancellationToken) ?? [];
 }
