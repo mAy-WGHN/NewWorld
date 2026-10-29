@@ -37,6 +37,6 @@ Buchungskonto, Saldo aus Buchungen, Monatsabschluss gegen die Monatsschwelle des
 - Austritt im Jahr: anteiliger Urlaubsanspruch ist umgesetzt (Entscheidung 39); nicht gebaut sind Abgeltung von Resturlaub und Zusatztagen und der gesetzliche Mindesturlaub.
 - **Vor dem Go-live prüfen:** Ob 15301 noch die zuletzt vergebene Personalnummer ist (Bereich 1001 bis 99999).
 - Rechte und Zuständigkeiten in Access zum Schluss in der Oberfläche vergeben (u. a. Thema `employee.change-request`).
-- Portal-Gerüst übernimmt die Hauptfiliale noch nicht.
+- Portal: FAQ, Meldungen und Statistik gebaut (Entscheidung 41, `docs/portal.md`). Offen: Altdaten-Import (Schema vom Projektverantwortlichen), Zweitmeinung, Empfänger je Kategorie und Rechte in Access einrichten. Das Portal übernimmt die Hauptfiliale noch nicht.
 - BC-Änderungserkennung per Polling (BC-Feldnamen fehlen).
 - Datenschutzbeauftragter: Klasse der Lohnart, AU, Datenklassifizierung.
