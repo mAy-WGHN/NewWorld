@@ -11,7 +11,7 @@ public sealed record WorkingTimeView(AccountState State, IReadOnlyList<TimeBooki
 /// returned as <see cref="WorkingTimeError"/>; nothing is stored then. The balance is computed from the bookings (<see cref="WorkingTimeAccount"/>), so
 /// the rules HR sets apply to everything booked. Hours come from HR until the time tracking exists. No message leaves the service.
 /// TODO(BC-Modell): the mirror of the account to BC is not defined yet.
-/// TODO(Entscheidung): whether hours below the monthly threshold become minus hours is open; until then a month below the threshold books nothing.
+/// Hours below the monthly threshold become minus hours only if HR switched that on (<see cref="WorkingTimeRules.BookMinusHours"/>, default off).
 /// </summary>
 public sealed class WorkingTimeService(
     IWorkingTimeStore store,
@@ -152,7 +152,8 @@ public sealed class WorkingTimeService(
 
     /// <summary>
     /// Closes a month that is over: hours above the monthly threshold of the person's employment relationship become overtime, 1:1, booked for the
-    /// last day of the month (that date decides when they expire). Below the threshold nothing is booked.
+    /// last day of the month (that date decides when they expire). Below the threshold nothing is booked, unless HR switched minus hours on: then the
+    /// missing hours are booked as minus hours, also for the last day of the month.
     /// </summary>
     public async Task<MonthCloseResult> CloseMonthAsync(Guid employeeId, int year, int month, decimal workedHours, Guid actorId, CancellationToken cancellationToken)
     {
@@ -195,13 +196,16 @@ public sealed class WorkingTimeService(
 
         var now = time.GetUtcNow();
         var overtime = Math.Max(0, workedHours - threshold);
+        var minus = (await GetRulesAsync(cancellationToken)).Rules.BookMinusHours ? Math.Max(0, threshold - workedHours) : 0;
         var close = new MonthClose
         {
             Id = Guid.CreateVersion7(now), EmployeeId = employeeId, Year = year, Month = month, WorkedHours = workedHours,
-            ThresholdHours = threshold, OvertimeHours = overtime, ClosedBy = actorId, ClosedAt = now,
+            ThresholdHours = threshold, OvertimeHours = overtime, MinusHours = minus, ClosedBy = actorId, ClosedAt = now,
         };
         store.AddClose(close);
-        var booking = overtime > 0 ? Add(employeeId, BookingKind.Overtime, overtime, lastDay, close.Id, actorId) : null;
+        var booking = overtime > 0 ? Add(employeeId, BookingKind.Overtime, overtime, lastDay, close.Id, actorId)
+            : minus > 0 ? Add(employeeId, BookingKind.MinusHours, -minus, lastDay, close.Id, actorId)
+            : null;
         return new MonthCloseResult(WorkingTimeError.None, close, booking);
     }
 

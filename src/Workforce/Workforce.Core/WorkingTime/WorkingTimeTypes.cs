@@ -21,6 +21,9 @@ public enum BookingKind
 
     /// <summary>A later change, e.g. after wrong time tracking (plus or minus).</summary>
     Correction = 6,
+
+    /// <summary>Hours below the monthly threshold of a closed month (minus); only booked if HR switched minus hours on.</summary>
+    MinusHours = 7,
 }
 
 /// <summary>
@@ -49,7 +52,7 @@ public sealed class TimeBooking
 
 /// <summary>
 /// The close of one month for one person: the hours worked (entered by HR until the time tracking exists), the monthly threshold of the employment
-/// relationship at that time, and the overtime that resulted (hours above the threshold, 1:1).
+/// relationship at that time, and the overtime that resulted (hours above the threshold, 1:1) or, if HR switched minus hours on, the minus hours (below it).
 /// </summary>
 public sealed class MonthClose
 {
@@ -67,16 +70,22 @@ public sealed class MonthClose
 
     public decimal OvertimeHours { get; set; }
 
+    /// <summary>Hours below the threshold, booked as minus hours; 0 if HR has not switched minus hours on (then nothing is booked below the threshold).</summary>
+    public decimal MinusHours { get; set; }
+
     public Guid ClosedBy { get; set; }
 
     public DateTimeOffset ClosedAt { get; set; }
 }
 
 /// <summary>
-/// The rules HR sets for everybody (not per employment relationship): payout threshold in hours (default 0 = always) and the expiry of overtime
-/// in months after the earning date (default none).
+/// The rules HR sets for everybody (not per employment relationship): payout threshold in hours (default 0 = always), the expiry of overtime
+/// in months after the earning date (default none) and whether hours below the monthly threshold are booked as minus hours (default no).
 /// </summary>
-public sealed record WorkingTimeRules(decimal PayoutThresholdHours, int? ExpiryMonths)
+/// <param name="PayoutThresholdHours">Balance from which overtime may be paid out; 0 = always.</param>
+/// <param name="ExpiryMonths">Overtime expires this many months after it was earned; <c>null</c> = never.</param>
+/// <param name="BookMinusHours">The month close books the hours below the monthly threshold as minus hours (the threshold is then the target).</param>
+public sealed record WorkingTimeRules(decimal PayoutThresholdHours, int? ExpiryMonths, bool BookMinusHours = false)
 {
     public static readonly WorkingTimeRules Default = new(0, null);
 

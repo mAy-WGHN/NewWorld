@@ -165,6 +165,32 @@ public sealed class WorkingTimeEndpointTests(PostgresFixture postgres) : IClassF
     // ---------------------------------------------------------------- the rules
 
     [Fact]
+    public async Task With_minus_hours_switched_on_by_HR_a_month_below_the_threshold_books_minus_hours()
+    {
+        await using var api = await StartAsync(postgres);
+        await SeedRelationshipAsync(api);
+        var defaults = await api.GetAsync<WorkingTimeRulesDto>("/api/working-time-rules", Hanna);
+        defaults.BookMinusHours.ShouldBeFalse();
+
+        // Off by default: 150 hours against the threshold books nothing.
+        using (var off = await Post(api, "month-closes", Hanna, new CloseMonthRequest(2026, 8, 150)))
+        {
+            off.StatusCode.ShouldBe(HttpStatusCode.OK);
+            (await off.Content.ReadFromJsonAsync<MonthCloseResultDto>())!.Booking.ShouldBeNull();
+        }
+
+        (await api.SendAsync(HttpMethod.Put, "/api/working-time-rules", Hanna, new SetWorkingTimeRulesRequest(0, null, true))).StatusCode.ShouldBe(HttpStatusCode.NoContent);
+        (await api.GetAsync<WorkingTimeRulesDto>("/api/working-time-rules", Hanna)).BookMinusHours.ShouldBeTrue();
+
+        using var on = await Post(api, "month-closes", Hanna, new CloseMonthRequest(2026, 9, 150));
+        on.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var result = (await on.Content.ReadFromJsonAsync<MonthCloseResultDto>())!;
+        (result.Close.MinusHours, result.Close.OvertimeHours, result.Booking!.Kind, result.Booking.Hours, result.Booking.Date).ShouldBe((10m, 0m, "MinusHours", -10m, new DateOnly(2026, 9, 30)));
+        var view = await api.GetAsync<WorkingTimeDto>($"/api/employees/{Erika}/working-time", Hanna);
+        (view.Balance, view.Deficit, view.Rules.BookMinusHours).ShouldBe((-10m, 10m, true));
+    }
+
+    [Fact]
     public async Task HR_sets_the_rules_for_everybody_and_they_apply_to_everything_already_booked()
     {
         await using var api = await StartAsync(postgres);

@@ -87,6 +87,7 @@ public sealed class WorkforceDbContext(DbContextOptions<WorkforceDbContext> opti
             b.Property(c => c.WorkedHours).HasPrecision(8, 2);
             b.Property(c => c.ThresholdHours).HasPrecision(8, 2);
             b.Property(c => c.OvertimeHours).HasPrecision(8, 2);
+            b.Property(c => c.MinusHours).HasPrecision(8, 2).HasDefaultValue(0m);
             b.HasIndex(c => new { c.EmployeeId, c.Year, c.Month }).IsUnique();
         });
         modelBuilder.Entity<WorkingTimeRulesRecord>(b =>
@@ -95,6 +96,7 @@ public sealed class WorkforceDbContext(DbContextOptions<WorkforceDbContext> opti
             b.HasKey(r => r.Id);
             b.Property(r => r.Id).ValueGeneratedNever();
             b.Property(r => r.PayoutThresholdHours).HasPrecision(8, 2);
+            b.Property(r => r.BookMinusHours).HasDefaultValue(false);
         });
         modelBuilder.Entity<MonthlyThresholdRecord>(b =>
         {

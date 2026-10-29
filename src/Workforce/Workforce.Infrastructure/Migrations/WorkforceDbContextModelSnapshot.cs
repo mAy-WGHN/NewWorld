@@ -1077,6 +1077,13 @@ namespace Workforce.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("employee_id");
 
+                    b.Property<decimal>("MinusHours")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(8, 2)
+                        .HasColumnType("numeric(8,2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("minus_hours");
+
                     b.Property<int>("Month")
                         .HasColumnType("integer")
                         .HasColumnName("month");
@@ -1580,6 +1587,12 @@ namespace Workforce.Infrastructure.Migrations
                     b.Property<int>("Id")
                         .HasColumnType("integer")
                         .HasColumnName("id");
+
+                    b.Property<bool>("BookMinusHours")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("book_minus_hours");
 
                     b.Property<DateTimeOffset>("ChangedAt")
                         .HasColumnType("timestamp with time zone")

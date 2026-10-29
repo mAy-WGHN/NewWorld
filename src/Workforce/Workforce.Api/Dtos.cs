@@ -207,9 +207,10 @@ public sealed record BookHoursRequest(decimal Hours, DateOnly Date);
 public sealed record CloseMonthRequest(int Year, int Month, decimal WorkedHours);
 
 /// <summary>Both left out = the defaults: payout at any balance, nothing expires.</summary>
-public sealed record SetWorkingTimeRulesRequest(decimal? PayoutThresholdHours, int? ExpiryMonths);
+/// <summary>Replaces the rules; what is left out gets the default (payout always, nothing expires, no minus hours).</summary>
+public sealed record SetWorkingTimeRulesRequest(decimal? PayoutThresholdHours, int? ExpiryMonths, bool? BookMinusHours = null);
 
-public sealed record WorkingTimeRulesDto(decimal PayoutThresholdHours, int? ExpiryMonths, bool IsDefault, DateTimeOffset? ChangedAt, Guid? ChangedBy);
+public sealed record WorkingTimeRulesDto(decimal PayoutThresholdHours, int? ExpiryMonths, bool IsDefault, DateTimeOffset? ChangedAt, Guid? ChangedBy, bool BookMinusHours = false);
 
 public sealed record SetThresholdRequest(decimal? Hours);
 
@@ -217,7 +218,7 @@ public sealed record MonthlyThresholdDto(Guid RelationshipId, decimal Hours);
 
 public sealed record TimeBookingDto(Guid Id, string Kind, decimal Hours, DateOnly Date, Guid? MonthCloseId, DateTimeOffset CreatedAt);
 
-public sealed record MonthCloseDto(Guid Id, int Year, int Month, decimal WorkedHours, decimal ThresholdHours, decimal OvertimeHours, DateTimeOffset ClosedAt);
+public sealed record MonthCloseDto(Guid Id, int Year, int Month, decimal WorkedHours, decimal ThresholdHours, decimal OvertimeHours, DateTimeOffset ClosedAt, decimal MinusHours = 0);
 
 public sealed record AccountBucketDto(DateOnly EarnedOn, decimal Remaining, DateOnly? ExpiresOn);
 

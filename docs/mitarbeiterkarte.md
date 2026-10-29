@@ -127,4 +127,4 @@ Regeln, alle von HR pflegbar und **für alle gleich** (nicht je Arbeitsverhältn
 2. **Vorgesetzter:** Die Karte speichert ihn über die Personalnummer. Die Zuständigkeit für Genehmigungen bleibt in Access; soll der Vorgesetzte der Karte zusätzlich etwas steuern?
 3. **Rolle** (Mitarbeiterliste): Was bedeutet sie fachlich? (Nicht die Rolle in Access.)
 4. **Lohnart:** Klasse 2 oder 3 (mit dem Datenschutzbeauftragten).
-5. ~~Schwellen je Arbeitsverhältnis?~~ **geklärt:** für alle gleich. **Geklärt:** Das Arbeitsverhältnis bestimmt die Monatsschwelle, ab der Überstunden 1:1 gezählt werden. **Offen:** Werden Stunden **unter** der Monatsschwelle als Minusstunden gebucht (Soll = Schwelle), oder entstehen keine Minusstunden?
+5. ~~Schwellen je Arbeitsverhältnis?~~ **geklärt:** für alle gleich. **Geklärt:** Das Arbeitsverhältnis bestimmt die Monatsschwelle, ab der Überstunden 1:1 gezählt werden. **Geklärt (Entscheidung 35):** Minusstunden unter der Monatsschwelle bucht der Monatsabschluss nur, wenn HR es einschaltet (Standard aus, für alle).

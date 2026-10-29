@@ -69,7 +69,7 @@ public static class WorkingTimeEndpoints
                     return Results.Forbid();
                 }
 
-                var error = await uow.RunAsync(() => service.SetRulesAsync(new WorkingTimeRules(request.PayoutThresholdHours ?? 0, request.ExpiryMonths), actor, ct), e => e == WorkingTimeError.None, ct);
+                var error = await uow.RunAsync(() => service.SetRulesAsync(new WorkingTimeRules(request.PayoutThresholdHours ?? 0, request.ExpiryMonths, request.BookMinusHours ?? false), actor, ct), e => e == WorkingTimeError.None, ct);
                 return error == WorkingTimeError.None ? Results.NoContent() : Problem(error);
             })
             .RequireAuthorization(AppPolicies.Privilege(WorkingTimePrivileges.ManageRules));
@@ -113,15 +113,15 @@ public static class WorkingTimeEndpoints
                 view.State.Balance, view.State.Deficit, view.State.Forfeited,
                 [.. view.State.Buckets.Select(b => new AccountBucketDto(b.EarnedOn, b.Remaining, b.ExpiresOn))],
                 [.. view.Bookings.Select(ToDto)], [.. view.Closes.Select(ToDto)],
-                new WorkingTimeRulesDto(view.Rules.PayoutThresholdHours, view.Rules.ExpiryMonths, view.Rules == WorkingTimeRules.Default, null, null)))
+                new WorkingTimeRulesDto(view.Rules.PayoutThresholdHours, view.Rules.ExpiryMonths, view.Rules == WorkingTimeRules.Default, null, null, view.Rules.BookMinusHours)))
             : Problem(WorkingTimeError.UnknownPerson);
 
     private static WorkingTimeRulesDto ToDto((WorkingTimeRules Rules, bool IsDefault, DateTimeOffset? ChangedAt, Guid? ChangedBy) r) =>
-        new(r.Rules.PayoutThresholdHours, r.Rules.ExpiryMonths, r.IsDefault, r.ChangedAt, r.ChangedBy);
+        new(r.Rules.PayoutThresholdHours, r.Rules.ExpiryMonths, r.IsDefault, r.ChangedAt, r.ChangedBy, r.Rules.BookMinusHours);
 
     private static TimeBookingDto ToDto(TimeBooking b) => new(b.Id, b.Kind.ToString(), b.Hours, b.Date, b.MonthCloseId, b.CreatedAt);
 
-    private static MonthCloseDto ToDto(MonthClose c) => new(c.Id, c.Year, c.Month, c.WorkedHours, c.ThresholdHours, c.OvertimeHours, c.ClosedAt);
+    private static MonthCloseDto ToDto(MonthClose c) => new(c.Id, c.Year, c.Month, c.WorkedHours, c.ThresholdHours, c.OvertimeHours, c.ClosedAt, c.MinusHours);
 
     private static IResult Problem(WorkingTimeError error) => Results.Problem(
         statusCode: error switch

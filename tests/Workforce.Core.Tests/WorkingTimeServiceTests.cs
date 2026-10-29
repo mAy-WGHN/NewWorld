@@ -150,12 +150,120 @@ public class WorkingTimeServiceTests
     [InlineData(120)]
     public async Task At_or_below_the_threshold_the_month_is_closed_without_overtime(double worked)
     {
-        // TODO(Entscheidung): whether hours below the threshold become minus hours is open; until then none are booked.
+        // By default (HR has not switched minus hours on) nothing is booked below the threshold.
         var result = await Service().CloseMonthAsync(Erika, 2026, 9, (decimal)worked, Hanna, CancellationToken.None);
 
         result.Error.ShouldBe(WorkingTimeError.None);
         (result.Close!.OvertimeHours, result.Booking).ShouldBe((0m, null));
         _store.Bookings.ShouldBeEmpty();
+    }
+
+    // ---------------------------------------------------------------- minus hours (HR switches them on, default: off)
+
+    private Task<WorkingTimeError> MinusOn() => Service().SetRulesAsync(new WorkingTimeRules(0, null, BookMinusHours: true), Hanna, CancellationToken.None);
+
+    [Fact]
+    public async Task Minus_hours_are_off_by_default()
+    {
+        (await Service().GetRulesAsync(CancellationToken.None)).Rules.BookMinusHours.ShouldBeFalse();
+        WorkingTimeRules.Default.BookMinusHours.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task With_minus_hours_on_hours_below_the_monthly_threshold_are_booked_as_minus_hours_1_to_1()
+    {
+        await MinusOn();
+
+        var result = await Service().CloseMonthAsync(Erika, 2026, 9, 148.5m, Hanna, CancellationToken.None);
+
+        result.Error.ShouldBe(WorkingTimeError.None);
+        var close = result.Close!;
+        (close.WorkedHours, close.ThresholdHours, close.OvertimeHours, close.MinusHours).ShouldBe((148.5m, 160m, 0m, 11.5m));
+        var booking = result.Booking!;
+        (booking.Kind, booking.Hours, booking.Date, booking.MonthCloseId).ShouldBe((BookingKind.MinusHours, -11.5m, D("2026-09-30"), close.Id));
+        var state = (await Service().GetAsync(Erika, CancellationToken.None))!.State;
+        (state.Balance, state.Deficit).ShouldBe((-11.5m, 11.5m));
+    }
+
+    [Theory]
+    [InlineData(160)]   // exactly the threshold: nothing
+    [InlineData(172)]   // above: overtime, no minus
+    public async Task With_minus_hours_on_a_month_at_or_above_the_threshold_books_no_minus_hours(double worked)
+    {
+        await MinusOn();
+
+        var result = await Service().CloseMonthAsync(Erika, 2026, 9, (decimal)worked, Hanna, CancellationToken.None);
+
+        result.Close!.MinusHours.ShouldBe(0m);
+        _store.Bookings.ShouldAllBe(b => b.Kind != BookingKind.MinusHours);
+    }
+
+    [Fact]
+    public async Task A_later_month_with_overtime_covers_the_minus_hours_first()
+    {
+        await MinusOn();
+        await Service().CloseMonthAsync(Erika, 2026, 8, 150, Hanna, CancellationToken.None);   // 10 minus
+        await Service().CloseMonthAsync(Erika, 2026, 9, 172, Hanna, CancellationToken.None);   // 12 overtime
+
+        var state = (await Service().GetAsync(Erika, CancellationToken.None))!.State;
+
+        (state.Balance, state.Deficit).ShouldBe((2m, 0m));
+    }
+
+    [Fact]
+    public async Task Minus_hours_use_up_the_oldest_overtime_first()
+    {
+        await MinusOn();
+        await Overtime("2026-07-31", 20);
+        await Service().CloseMonthAsync(Erika, 2026, 8, 150, Hanna, CancellationToken.None);   // 10 minus: from the July overtime
+
+        var state = (await Service().GetAsync(Erika, CancellationToken.None))!.State;
+
+        (state.Balance, state.Deficit).ShouldBe((10m, 0m));
+        state.Buckets.ShouldHaveSingleItem().Remaining.ShouldBe(10m);
+    }
+
+    [Fact]
+    public async Task Switching_minus_hours_on_later_changes_only_the_months_closed_afterwards()
+    {
+        await Service().CloseMonthAsync(Erika, 2026, 8, 150, Hanna, CancellationToken.None);   // off: nothing booked
+        await MinusOn();
+        await Service().CloseMonthAsync(Erika, 2026, 9, 150, Hanna, CancellationToken.None);   // on: 10 minus
+
+        _store.Bookings.ShouldHaveSingleItem().Hours.ShouldBe(-10m);
+        (await Service().GetAsync(Erika, CancellationToken.None))!.Closes.Select(c => (c.Month, c.MinusHours)).ShouldBe([(9, 10m), (8, 0m)]);
+    }
+
+    [Theory]
+    [InlineData(2026, 12, "2026-12-31")]   // year end
+    [InlineData(2028, 2, "2028-02-29")]    // leap day
+    [InlineData(2026, 10, "2026-10-31")]   // the month of the change back to winter time (not over yet today? 28 Oct: see below)
+    public async Task Minus_hours_count_for_the_last_day_of_the_month(int year, int month, string expectedDate)
+    {
+        if (year == 2026 && month == 10)
+        {
+            _time.Advance(TimeSpan.FromDays(4)); // 1 November: October is over
+        }
+        else
+        {
+            _time.SetUtcNow(new DateTimeOffset(year + (month == 12 ? 1 : 0), month == 12 ? 1 : month + 1, 5, 9, 0, 0, TimeSpan.Zero));
+        }
+
+        await MinusOn();
+
+        var result = await Service().CloseMonthAsync(Erika, year, month, 100, Hanna, CancellationToken.None);
+
+        (result.Error, result.Booking!.Date).ShouldBe((WorkingTimeError.None, D(expectedDate)));
+    }
+
+    [Fact]
+    public async Task The_minus_hours_switch_is_stored_with_the_rules_by_HR_for_everybody()
+    {
+        await Service().SetRulesAsync(new WorkingTimeRules(20, 6, BookMinusHours: true), Hanna, CancellationToken.None);
+
+        var set = await Service().GetRulesAsync(CancellationToken.None);
+
+        (set.Rules, set.IsDefault, set.ChangedBy).ShouldBe((new WorkingTimeRules(20, 6, BookMinusHours: true), false, (Guid?)Hanna));
     }
 
     [Fact]
