@@ -13,7 +13,7 @@ Arten (24 aus BC), Einträge von HR, Zeitleiste mit KU, Sichtbarkeit nach Art/Ve
 **Offen aus Schritt 3**
 - **Benachrichtigungstexte** sind gebaut (Entscheidung 33). Offen: Oberfläche, HR die Rechte `template:manage` und `unavailability:*` in Access geben, Datenschutzbeauftragter zum Mail-Anbieter, Bezirksleiter-Vermerk, ausgeschiedene Personen überspringen, BC soll Vor- und Nachnamen getrennt liefern.
 - **Einrichtung in Access:** HR-Gruppe als Zuständigkeit zum Thema `schedule.adjustment` (sechs Personen, pflegbar), Rechte `unavailability:*` für HR, Leserechte der Rollen.
-- **BC-Spiegelung** der Einträge (`TODO(BC-Modell)`), **Dienstplan** als Quelle für `IShiftLookup`, **Teiltage** (Uhrzeiten) später, Einträge mit offenem Ende (bisher nicht), Einträge nach Austritt (bisher nur beim Anlegen geprüft).
+- **BC-Spiegelung** der Einträge (`TODO(BC-Modell)`), **Dienstplan** als Quelle für `IShiftLookup`, **Teiltage** (Uhrzeiten) später, Einträge mit offenem Ende (bisher nicht). Einträge, die nach einem später gemeldeten Austritt reichen, werden nur markiert (`afterExit`, Entscheidung 38).
 
 ---
 

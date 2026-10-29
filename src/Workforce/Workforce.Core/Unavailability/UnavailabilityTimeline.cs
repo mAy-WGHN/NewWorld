@@ -16,9 +16,12 @@ public enum UnavailabilityOrigin
     System = 3,
 }
 
-/// <summary>One period of one kind in the unavailability of a person. Whole days; <see cref="To"/> = <c>null</c> is open (sickness until further notice).</summary>
+/// <summary>
+/// One period of one kind in the unavailability of a person. Whole days; <see cref="To"/> = <c>null</c> is open (sickness until further notice).
+/// <see cref="AfterExit"/>: the period reaches past the exit date of the person (e.g. the exit was reported later); only marked, nothing is changed.
+/// </summary>
 public sealed record UnavailabilityItem(
-    Guid Id, Guid EmployeeId, DateOnly From, DateOnly? To, string KindCode, string KindDescription, bool PaidTime, string? ScheduleSymbol, UnavailabilityOrigin Origin);
+    Guid Id, Guid EmployeeId, DateOnly From, DateOnly? To, string KindCode, string KindDescription, bool PaidTime, string? ScheduleSymbol, UnavailabilityOrigin Origin, bool AfterExit = false);
 
 /// <summary>A period in which a person is not available, without any reason.</summary>
 public sealed record AvailabilityPeriod(DateOnly From, DateOnly? To);

@@ -167,9 +167,18 @@ public sealed class UnavailabilityService(
     }
 
     /// <summary>Everything why the person is not available, as one list (the caller decides what the viewer may see of it).</summary>
-    public async Task<IReadOnlyList<UnavailabilityItem>> TimelineAsync(Guid employeeId, CancellationToken cancellationToken) =>
-        UnavailabilityTimeline.Build(
+    public async Task<IReadOnlyList<UnavailabilityItem>> TimelineAsync(Guid employeeId, CancellationToken cancellationToken)
+    {
+        var items = UnavailabilityTimeline.Build(
             employeeId, await absences.ForEmployeeAsync(employeeId, cancellationToken), await store.EntriesAsync(employeeId, cancellationToken), await store.KindsAsync(cancellationToken));
+        if (await people.GetAsync(employeeId, cancellationToken) is not { ExitDate: { } exit })
+        {
+            return items;
+        }
+
+        // Periods that reach past the exit date are only marked (HR sees a hint); nothing is cut or removed.
+        return [.. items.Select(i => i with { AfterExit = i.To is null || i.To > exit })];
+    }
 
     // ------------------------------------------------------------------ helpers
 

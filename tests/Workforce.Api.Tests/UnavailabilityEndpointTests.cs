@@ -1,8 +1,11 @@
 using System.Net;
 using System.Net.Http.Json;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Shared.Testing;
 using Workforce.Api;
 using Workforce.Core.Unavailability;
+using Workforce.Infrastructure;
 using static Workforce.Api.Tests.WorkforceApi;
 
 namespace Workforce.Api.Tests;
@@ -62,6 +65,26 @@ public sealed class UnavailabilityEndpointTests(PostgresFixture postgres) : ICla
     }
 
     // ---------------------------------------------------------------- entries
+
+    [Fact]
+    public async Task An_entry_that_reaches_past_a_reported_exit_is_only_marked_for_HR_and_the_person()
+    {
+        await using var api = await StartAsync(postgres);
+        var special = await KindAsync(api, "SONDERURLAUB");
+        (await EnterAsync(api, Hanna, Erika, special.Id, "2026-11-02", "2026-11-10")).StatusCode.ShouldBe(HttpStatusCode.OK);
+        using (var scope = api.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<WorkforceDbContext>();
+            (await db.People.SingleAsync(p => p.EmployeeId == Erika)).ExitDate = new DateOnly(2026, 11, 5); // the exit is reported afterwards
+            await db.SaveChangesAsync();
+        }
+
+        var forHr = (await api.GetAsync<List<UnavailabilityDto>>($"/api/employees/{Erika}/unavailabilities", Hanna)).Single();
+        (forHr.To, forHr.AfterExit).ShouldBe(((DateOnly?)new DateOnly(2026, 11, 10), (bool?)true)); // not cut: only marked
+        (await api.GetAsync<List<UnavailabilityDto>>("/api/me/unavailabilities", Erika)).Single().AfterExit.ShouldBe(true);
+        // A colleague sees no hint (and not the kind either).
+        (await api.GetAsync<List<UnavailabilityDto>>($"/api/employees/{Erika}/unavailabilities", Ben)).Single().AfterExit.ShouldBeNull();
+    }
 
     [Fact]
     public async Task Only_HR_enters_and_removes_entries()

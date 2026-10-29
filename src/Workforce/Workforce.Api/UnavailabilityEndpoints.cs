@@ -160,7 +160,7 @@ public static class UnavailabilityEndpoints
     }
 
     private static UnavailabilityDto Full(UnavailabilityItem i) =>
-        new(i.EmployeeId, i.From, i.To, "Unavailable", i.Id, i.KindCode, i.KindDescription, i.ScheduleSymbol, i.PaidTime, i.Origin.ToString());
+        new(i.EmployeeId, i.From, i.To, "Unavailable", i.Id, i.KindCode, i.KindDescription, i.ScheduleSymbol, i.PaidTime, i.Origin.ToString(), i.AfterExit);
 
     private static IEnumerable<UnavailabilityDto> Colleague(Guid employeeId, IEnumerable<UnavailabilityItem> items) =>
         UnavailabilityTimeline.ForColleagues(items).Select(c => new UnavailabilityDto(employeeId, c.From, c.To, "Unavailable", Kind: c.KindCode, Description: c.KindDescription, ScheduleSymbol: c.ScheduleSymbol));

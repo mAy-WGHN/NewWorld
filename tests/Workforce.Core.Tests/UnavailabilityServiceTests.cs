@@ -239,6 +239,44 @@ public class UnavailabilityServiceTests
         (await Service().TimelineAsync(Erika, CancellationToken.None)).Select(i => i.KindCode).ShouldBe(["SONDERURLAUB", "URLAUB"]);
     }
 
+    // ---------------------------------------------------------------- periods after the exit are only marked
+
+    [Fact]
+    public async Task Periods_that_reach_past_the_exit_date_are_marked_for_HR_but_nothing_is_changed()
+    {
+        await Service().AddEntryAsync(Erika, KindId("SONDERURLAUB"), D("2026-09-01"), D("2026-09-10"), HrAnna, CancellationToken.None);
+        await Service().AddEntryAsync(Erika, KindId("FORTBILDUNG"), D("2026-09-15"), D("2026-09-16"), HrAnna, CancellationToken.None);
+        await Service().AddEntryAsync(Erika, KindId("FREI"), D("2026-08-01"), D("2026-08-02"), HrAnna, CancellationToken.None);
+        _people.People[Erika] = _people.People[Erika] with { ExitDate = D("2026-09-05") }; // the exit is reported later
+
+        var items = await Service().TimelineAsync(Erika, CancellationToken.None);
+
+        items.Select(i => (i.KindCode, i.AfterExit)).ShouldBe([("FREI", false), ("SONDERURLAUB", true), ("FORTBILDUNG", true)]);
+        _store.Entries.Count.ShouldBe(3); // all still there, unchanged
+        _store.Entries.Select(e => e.To).ShouldContain(D("2026-09-10"));
+    }
+
+    [Fact]
+    public async Task A_period_ending_on_the_exit_date_is_not_marked_and_without_an_exit_nothing_is()
+    {
+        await Service().AddEntryAsync(Erika, KindId("SONDERURLAUB"), D("2026-09-01"), D("2026-09-05"), HrAnna, CancellationToken.None);
+
+        (await Service().TimelineAsync(Erika, CancellationToken.None)).Single().AfterExit.ShouldBeFalse(); // no exit date
+
+        _people.People[Erika] = _people.People[Erika] with { ExitDate = D("2026-09-05") };
+
+        (await Service().TimelineAsync(Erika, CancellationToken.None)).Single().AfterExit.ShouldBeFalse(); // ends on the last day
+    }
+
+    [Fact]
+    public async Task An_open_sick_note_after_a_reported_exit_is_marked()
+    {
+        _absences.Absences.Add(new Absence { Id = Guid.NewGuid(), EmployeeId = Erika, Type = AbsenceType.Sickness, From = D("2026-07-10"), To = null, Status = AbsenceStatus.Reported });
+        _people.People[Erika] = _people.People[Erika] with { ExitDate = D("2026-07-31") };
+
+        (await Service().TimelineAsync(Erika, CancellationToken.None)).Single().AfterExit.ShouldBeTrue();
+    }
+
     // ---------------------------------------------------------------- shifts without cover
 
     [Fact]

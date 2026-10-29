@@ -9,7 +9,7 @@ public sealed record VacationBooking(DateRange Range, AbsenceStatus Status);
 public sealed record VacationBalance(int Year, decimal Entitlement, decimal Taken, decimal Planned, decimal Remaining);
 
 /// <summary>
-/// Entitlement per year (maintained manually, TODO(BC-Modell): later import), taken, planned and remaining days. Approved days before
+/// Entitlement per year (maintained by HR, decision 24), taken, planned and remaining days. Approved days before
 /// today are taken, approved days from today on and requested days are planned (requested days are reserved so a second request cannot
 /// exceed the account). Rejected, withdrawn and cancelled vacation does not count (credited).
 /// </summary>

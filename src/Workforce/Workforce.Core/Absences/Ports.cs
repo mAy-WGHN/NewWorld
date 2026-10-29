@@ -35,7 +35,7 @@ public interface IAbsenceStore
     void AddApproval(ApprovalRequest approval);
 }
 
-/// <summary>Vacation entitlement per person and year (maintained manually; TODO(BC-Modell): later import).</summary>
+/// <summary>Vacation entitlement per person and year (maintained by HR; no import from BC, decision 24).</summary>
 public interface IEntitlementStore
 {
     Task<decimal?> GetAsync(Guid employeeId, int year, CancellationToken cancellationToken);

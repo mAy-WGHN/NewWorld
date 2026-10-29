@@ -195,9 +195,10 @@ public sealed record AddUnavailabilityRequest(Guid KindId, DateOnly From, DateOn
 /// A period in which a person is not available, as its viewer may see it: the kind (<see cref="Kind"/> and the fields after it) only for the person
 /// themself and holders of the reason privilege (HR, supervisors); colleagues with the availability privilege see the kind for sickness, vacation and
 /// KU (what the schedule shows anyway) and otherwise only <c>Status</c> = <c>Unavailable</c> and the period (no <see cref="Id"/>, <see cref="PaidTime"/>, <see cref="Origin"/>). <see cref="Origin"/> is <c>Absence</c>, <c>Manual</c> or <c>System</c>.
+/// <see cref="AfterExit"/> (only in the full view) is <c>true</c> if the period reaches past the exit date of the person: a hint for HR, nothing is changed.
 /// </summary>
 public sealed record UnavailabilityDto(
-    Guid EmployeeId, DateOnly From, DateOnly? To, string Status, Guid? Id = null, string? Kind = null, string? Description = null, string? ScheduleSymbol = null, bool? PaidTime = null, string? Origin = null);
+    Guid EmployeeId, DateOnly From, DateOnly? To, string Status, Guid? Id = null, string? Kind = null, string? Description = null, string? ScheduleSymbol = null, bool? PaidTime = null, string? Origin = null, bool? AfterExit = null);
 
 /// <summary>What colleagues in a store see (name and period); the kind only with the reason privilege.</summary>
 public sealed record StoreUnavailabilityDto(string EmployeeName, UnavailabilityDto Period);
