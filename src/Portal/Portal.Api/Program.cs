@@ -80,5 +80,6 @@ app.MapDefaultEndpoints();
 app.MapFaqEndpoints();
 app.MapReportEndpoints();
 app.MapReportRecipientEndpoints();
+app.MapStatisticsEndpoints();
 
 app.Run();
