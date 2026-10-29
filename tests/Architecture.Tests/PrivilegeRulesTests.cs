@@ -1,5 +1,6 @@
 using Access.Core.Acl;
 using Notifications.Core;
+using Portal.Core;
 using Workforce.Core.Absences;
 using Workforce.Core.Certificates;
 using Workforce.Core.Employees;
@@ -15,6 +16,7 @@ public class PrivilegeRulesTests
         var missing = AccessPrivileges.Catalog.Select(c => (c.Key, c.Description))
             .Concat(AbsencePrivileges.Catalog.Concat(CertificatePrivileges.Catalog).Concat(EmployeePrivileges.Catalog).Select(c => (c.Key, c.Description)))
             .Concat(NotificationPrivileges.Catalog.Select(c => (c.Key, c.Description)))
+            .Concat(PortalPrivileges.Catalog.Select(c => (c.Key, c.Description)))
             .Where(c => string.IsNullOrWhiteSpace(c.Description))
             .Select(c => c.Key)
             .ToList();
@@ -28,6 +30,7 @@ public class PrivilegeRulesTests
         var all = AccessPrivileges.Catalog.Select(c => (c.Key, c.Description))
             .Concat(AbsencePrivileges.Catalog.Concat(CertificatePrivileges.Catalog).Concat(EmployeePrivileges.Catalog).Select(c => (c.Key, c.Description)))
             .Concat(NotificationPrivileges.Catalog.Select(c => (c.Key, c.Description)))
+            .Concat(PortalPrivileges.Catalog.Select(c => (c.Key, c.Description)))
             .ToList();
 
         all.Where(c => c.Description.Length > 500).ShouldBeEmpty();

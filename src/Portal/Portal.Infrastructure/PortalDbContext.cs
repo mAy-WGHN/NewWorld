@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Portal.Infrastructure.Faqs;
 using Portal.Infrastructure.Messaging;
 using Shared.Infrastructure.Authorization;
 using Shared.Infrastructure.Messaging;
@@ -12,6 +13,8 @@ public sealed class PortalDbContext(DbContextOptions<PortalDbContext> options) :
 
     public DbSet<PersonRecord> People => Set<PersonRecord>();
     public DbSet<StoreRecord> Stores => Set<StoreRecord>();
+    public DbSet<FaqRecord> Faqs => Set<FaqRecord>();
+    public DbSet<FaqImageRecord> FaqImages => Set<FaqImageRecord>();
 
     /// <summary>Provider settings shared by runtime and design time (migrations).</summary>
     public static DbContextOptionsBuilder Configure(DbContextOptionsBuilder options, string connectionString) => options
@@ -33,6 +36,21 @@ public sealed class PortalDbContext(DbContextOptions<PortalDbContext> options) :
         {
             b.ToTable("stores");
             b.HasKey(s => s.StoreId);
+        });
+        modelBuilder.Entity<FaqRecord>(b =>
+        {
+            b.ToTable("faqs");
+            b.HasKey(f => f.Id);
+            b.Property(f => f.Title).HasMaxLength(255);
+            b.HasIndex(f => new { f.Archived, f.SortOrder });
+        });
+        modelBuilder.Entity<FaqImageRecord>(b =>
+        {
+            b.ToTable("faq_images");
+            b.HasKey(i => i.Id);
+            b.Property(i => i.Extension).HasMaxLength(8);
+            // Deleting an entry leaves its images orphaned (they can be deleted separately).
+            b.HasOne<FaqRecord>().WithMany().HasForeignKey(i => i.FaqId).OnDelete(DeleteBehavior.SetNull);
         });
     }
 }

@@ -23,6 +23,75 @@ namespace Portal.Infrastructure.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Portal.Infrastructure.Faqs.FaqImageRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Extension")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)")
+                        .HasColumnName("extension");
+
+                    b.Property<Guid?>("FaqId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("faq_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_faq_images");
+
+                    b.HasIndex("FaqId")
+                        .HasDatabaseName("ix_faq_images_faq_id");
+
+                    b.ToTable("faq_images", "portal");
+                });
+
+            modelBuilder.Entity("Portal.Infrastructure.Faqs.FaqRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("Archived")
+                        .HasColumnType("boolean")
+                        .HasColumnName("archived");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("description");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("sort_order");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("title");
+
+                    b.HasKey("Id")
+                        .HasName("pk_faqs");
+
+                    b.HasIndex("Archived", "SortOrder")
+                        .HasDatabaseName("ix_faqs_archived_sort_order");
+
+                    b.ToTable("faqs", "portal");
+                });
+
             modelBuilder.Entity("Portal.Infrastructure.Messaging.PersonRecord", b =>
                 {
                     b.Property<Guid>("EmployeeId")
@@ -178,6 +247,15 @@ namespace Portal.Infrastructure.Migrations
                         .HasDatabaseName("ix_outbox_messages_processed_at");
 
                     b.ToTable("outbox_messages", "portal");
+                });
+
+            modelBuilder.Entity("Portal.Infrastructure.Faqs.FaqImageRecord", b =>
+                {
+                    b.HasOne("Portal.Infrastructure.Faqs.FaqRecord", null)
+                        .WithMany()
+                        .HasForeignKey("FaqId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_faq_images_faqs_faq_id");
                 });
 #pragma warning restore 612, 618
         }

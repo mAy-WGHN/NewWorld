@@ -4,6 +4,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Portal.Core;
+using Portal.Core.Faqs;
+using Portal.Infrastructure.Faqs;
 using Portal.Infrastructure.Messaging;
 using Shared.Infrastructure.Authorization;
 using Shared.Infrastructure.Messaging;
@@ -31,6 +34,18 @@ public static class InfrastructureServiceCollectionExtensions
 
         services.AddMessaging<PortalDbContext>(configuration, environment);
         services.AddPermissionCachePersistence<PortalDbContext>();
+
+        // FAQ images: files outside the application folder (never in the web root); relative paths count from the content root.
+        var imagePath = configuration["Portal:Faq:ImagePath"] is { Length: > 0 } configured ? configured : Path.Combine("var", "uploads", "faq");
+        services.AddSingleton<IFaqImageStorage>(_ => new FileSystemFaqImageStorage(Path.GetFullPath(imagePath, environment.ContentRootPath)));
+
+        // Register the privileges of this API with Access (only if Access is configured).
+        if (configuration["Access:BaseUrl"] is { Length: > 0 })
+        {
+            services.AddCatalogRegistration(
+                configuration, PortalPrivileges.AppKey,
+                [.. PortalPrivileges.Catalog.Select(p => new CatalogPrivilege(p.Key, p.Scopable, p.Description))]);
+        }
 
         // Permission copy from Access (decision 13). Subscription "portal" on the PermissionsChanged topic.
         services.AddMessageHandler<PortalDbContext, PermissionsChanged, PermissionsChangedConsumer>(

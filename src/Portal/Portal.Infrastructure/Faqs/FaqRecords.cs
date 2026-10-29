@@ -1,0 +1,26 @@
+namespace Portal.Infrastructure.Faqs;
+
+/// <summary>A FAQ entry. The description is Markdown; <see cref="SortOrder"/> is exposed as "order" by the API.</summary>
+public sealed class FaqRecord
+{
+    public Guid Id { get; set; } = Guid.CreateVersion7();
+    public required string Title { get; set; }
+    public required string Description { get; set; }
+    public int SortOrder { get; set; }
+    public bool Archived { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+}
+
+/// <summary>
+/// An uploaded image. The id is deliberately a random UUID (not version 7): it is the token in the public URL and the only access control.
+/// </summary>
+public sealed class FaqImageRecord
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public required string Extension { get; set; }
+
+    /// <summary>The entry that links the image in its Markdown (the one saved last wins); none = orphaned.</summary>
+    public Guid? FaqId { get; set; }
+
+    public DateTimeOffset CreatedAt { get; set; }
+}
