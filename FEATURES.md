@@ -89,6 +89,7 @@
 - **Mein Urlaub:** „Urlaub beantragen“ oben rechts, Urlaubskonto, Anträge die auf Genehmigung warten gelb ganz oben, darunter der übrige Urlaub; Zurückziehen.
 - **Störung melden:** wie im alten System (irs.wintergerst-gruppe.de): fünf Arten (Fehler, Virus, Diebstahl, Sonstige Verstöße, Verbesserungsvorschlag) mit den Feldern, Prüftexten und festen Schweregraden des alten Systems; Filialauswahl mit Suche.
 - **Meldungen:** offene Meldungen gelb ganz oben (dringendste zuerst), erledigte darunter; erledigen, wieder öffnen, kommentieren, archivieren; „Archiv“ oben rechts. „Störung melden“ steht oben rechts.
+- **Genehmigungen:** offene Urlaubsanträge gelb ganz oben, genehmigen oder ablehnen (mit Rückfrage); „Aktualisieren“ oben rechts.
 - Alle weiteren Bereiche der Navigation sind Platzhalter.
 
 ## Nicht gebaut

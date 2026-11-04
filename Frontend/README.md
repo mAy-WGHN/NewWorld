@@ -67,6 +67,7 @@ Meine Krankmeldungen: Der Link „Krankmeldungen“ auf der Startseite führt hi
 | Mein Urlaub | `/my-vacation` | Workforce (gleiche Aufrufe wie die Abwesenheiten) |
 | Meldungen | `/reports` | Portal (`/api/reports`, `/api/reports/archived`, `PATCH`, `DELETE`) |
 | Störung melden | `/report-issue` | Portal (`POST /api/reports`, `GET /api/locations`) |
+| Genehmigungen | `/approvals` | Workforce (`/api/approvals/pending`, `approve`, `reject`) |
 
 Alle Listenseiten folgen demselben Schema: Titel mit einem Knopf oben rechts, Übersicht der Einträge, und was Aufmerksamkeit braucht, steht ganz oben in einem gelb hervorgehobenen Block (jeder Eintrag nur einmal). Die gemeinsamen Stile liegen in `src/app/shared/_list-page.scss`.
 
@@ -75,6 +76,8 @@ Mein Urlaub: Knopf „Urlaub beantragen“ (öffnet das Formular), darüber das 
 Störung melden: entspricht „Störung melden“ des alten Systems (irs.wintergerst-gruppe.de). Zuerst „Was möchtest du melden?“ mit den fünf Arten Fehler, Virus, Diebstahl, Sonstige Verstöße und Verbesserungsvorschlag, dann das Formular der Art. Gemeinsam sind Personalnummer\* (vorbelegt, wenn bekannt), Beschreibung\* (mit der Frage der Art) und Filiale (Suche nach Name oder Nummer, mehrere möglich, „Name (Nummer)“). Dazu kommen: bei **Fehler** der Störlevel (Standard „Mittel“); bei **Virus** „Konkreter Rechner“, „Wann bemerkt?“ (Tag und Uhrzeit), „Wie wurde es bemerkt?“ und „Was wurde davor an dem Gerät gemacht?“; bei **Diebstahl** „Datum & Uhrzeit“. Der Schweregrad ist wie im alten System je Art fest: Virus kritisch, Diebstahl hoch, Sonstige Verstöße mittel, Verbesserungsvorschlag niedrig. Prüf- und Erfolgstexte sind die des alten Systems („Bitte deine Personalnummer angeben.“, „Meldung wurde erfolgreich übermittelt.“). Erreichbar für alle Angemeldeten, ohne besonderes Recht: von der Startseite („Störung melden“), von der Navigation und mit dem Knopf oben rechts auf der Seite „Meldungen“. Noch offen: Das alte System ist ohne Anmeldung nutzbar, das neue Frontend verlangt die Anmeldung (die Schnittstelle selbst bleibt öffentlich).
 
 Meldungen: Knopf „Störung melden“ und „Archiv“ oben rechts („Archiv“ wechselt zu den archivierten Meldungen und zurück). Gelb stehen die offenen Meldungen, die dringendsten zuerst (Reihenfolge vom Dienst); darunter die erledigten. Mit dem Recht `report:update` lassen sich Meldungen erledigen, wieder öffnen und kommentieren, mit `report:delete` archivieren; archivierte lassen sich wiederherstellen. Es wird seitenweise nachgeladen („Mehr anzeigen“). Die Reichweite (welche Filialen) bestimmt der Dienst.
+
+Genehmigungen: Die Urlaubsanträge, die auf die Entscheidung der angemeldeten Person warten (für Zuständige laut Access, Recht `absence:approve`), stehen gelb und nach Beginn sortiert, mit Name und Zeitraum. „Genehmigen“ geht mit einem Klick, „Ablehnen“ fragt noch einmal nach („Wirklich ablehnen?“), weil es hier nicht zurückgenommen werden kann. Hat jemand anderes schon entschieden, sagt die Seite das und zeigt die aktuelle Liste. „Aktualisieren“ oben rechts lädt neu. Bereits entschiedene Anträge listet das Backend nicht; sie stehen dem Antragsteller unter „Mein Urlaub“.
 
 Alle anderen Bereiche der Navigation sind Platzhalter.
 

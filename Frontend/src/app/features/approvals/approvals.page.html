@@ -1,0 +1,45 @@
+<header class="head">
+  <h1>Genehmigungen</h1>
+  <button type="button" class="btn" data-testid="refresh" [disabled]="busy()" (click)="refresh()">Aktualisieren</button>
+</header>
+
+@if (error(); as message) {
+  <p class="alert" role="alert">{{ message }}</p>
+}
+@if (status(); as message) {
+  <p class="ok" role="status" data-testid="status">{{ message }}</p>
+}
+@if (listError(); as message) {
+  <p class="alert" role="alert">{{ message }}</p>
+}
+
+@if (count() > 0) {
+  <section class="attention-block" data-testid="attention" aria-labelledby="open-title">
+    <h2 id="open-title">Wartet auf deine Entscheidung ({{ count() }})</h2>
+    <p class="attention-hint">Diese Urlaubsanträge brauchen deine Entscheidung, die frühesten zuerst.</p>
+    <ul class="list">
+      @for (r of requests(); track r.absenceId) {
+        <li class="row attention" data-testid="request-row" [attr.data-id]="r.absenceId">
+          <div class="row-main">
+            <div>
+              <strong>{{ r.employeeName }}</strong>
+              <span class="hint">Urlaub {{ formatPeriod(r.from, r.to) }}</span>
+            </div>
+            <div class="actions">
+              @if (confirming() === r.absenceId) {
+                <span class="ask">Wirklich ablehnen?</span>
+                <button type="button" class="btn danger" data-action="confirm-reject" [disabled]="busy()" (click)="reject(r)">Ja, ablehnen</button>
+                <button type="button" class="btn-quiet" data-action="cancel-reject" [disabled]="busy()" (click)="cancelAsk()">Abbrechen</button>
+              } @else {
+                <button type="button" class="btn" data-action="approve" [disabled]="busy()" (click)="approve(r)">Genehmigen</button>
+                <button type="button" class="btn-quiet" data-action="reject" [disabled]="busy()" (click)="ask(r)">Ablehnen</button>
+              }
+            </div>
+          </div>
+        </li>
+      }
+    </ul>
+  </section>
+} @else if (loaded() && !listError()) {
+  <p class="muted">Keine offenen Anträge. Alles erledigt.</p>
+}

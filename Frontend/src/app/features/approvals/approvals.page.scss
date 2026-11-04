@@ -1,0 +1,11 @@
+@use '../../shared/list-page';
+
+.ask {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.btn.danger {
+  background: var(--danger);
+  color: #fff;
+}
