@@ -1,0 +1,79 @@
+<app-page-head title="Einstellungen" />
+
+<mat-tab-group animationDuration="0ms" mat-stretch-tabs="false" mat-align-tabs="start">
+  <mat-tab label="Darstellung">
+    <section class="max-w-2xl py-5" aria-labelledby="theme-title">
+      <h2 id="theme-title" class="m-0 mb-1 text-lg font-medium">Farbschema</h2>
+      <p class="m-0 mb-3 text-sm text-on-surface-variant">Gilt nur für diesen Browser.</p>
+      <div class="flex flex-wrap gap-2" role="group" aria-labelledby="theme-title">
+        @for (m of modes; track m.value) {
+          @if (theme.mode() === m.value) {
+            <button [attr.data-theme]="m.value" type="button" aria-pressed="true" mat-flat-button (click)="theme.set(m.value)">
+              <mat-icon>{{ m.icon }}</mat-icon>
+              {{ m.label }}
+            </button>
+          } @else {
+            <button [attr.data-theme]="m.value" type="button" aria-pressed="false" mat-stroked-button (click)="theme.set(m.value)">
+              <mat-icon>{{ m.icon }}</mat-icon>
+              {{ m.label }}
+            </button>
+          }
+        }
+      </div>
+    </section>
+  </mat-tab>
+
+  @if (canReadChoices()) {
+    <mat-tab label="Mitteilungen">
+      <div class="py-5"><app-notification-preferences /></div>
+    </mat-tab>
+  }
+
+  <mat-tab label="Anmeldung">
+    <section class="max-w-2xl py-5" data-testid="login-info">
+      <h2 class="m-0 mb-3 text-lg font-medium">Angemeldet als</h2>
+      <p class="m-0">{{ profile.displayName() ?? 'Unbekannt' }}@if (profile.personnelNumber()) { · Personalnummer {{ profile.personnelNumber() }} }</p>
+      <h2 class="m-0 mt-6 mb-1 text-lg font-medium">PIN</h2>
+      <p class="m-0 text-on-surface-variant">
+        Dein PIN wird in Business Central verwaltet. Das Portal speichert und ändert ihn nicht. Wenn du ihn ändern möchtest oder vergessen hast, wende dich an die Personalabteilung.
+      </p>
+    </section>
+  </mat-tab>
+
+  <mat-tab label="Rollen und Rechte">
+    <div class="max-w-3xl py-5">
+      <section data-testid="roles" aria-labelledby="roles-title" class="mb-6">
+        <h2 id="roles-title" class="m-0 mb-2 text-lg font-medium">Deine Rollen</h2>
+        @if (roles().length) {
+          <mat-chip-set aria-label="Rollen">
+            @for (role of roles(); track role) {
+              <mat-chip>{{ role }}</mat-chip>
+            }
+          </mat-chip-set>
+        } @else {
+          <p class="m-0 text-on-surface-variant">Keine Rolle zugewiesen.</p>
+        }
+      </section>
+
+      <section data-testid="privileges" aria-labelledby="privileges-title">
+        <h2 id="privileges-title" class="m-0 mb-1 text-lg font-medium">Deine Rechte</h2>
+        <p class="m-0 mb-3 text-sm text-on-surface-variant">Nur zur Ansicht. Rollen und Rechte vergibt die Verwaltung.</p>
+        @for (g of groups(); track g.area) {
+          <mat-card appearance="outlined" class="mb-3">
+            <div class="px-4 py-3">
+              <h3 class="m-0 mb-1 text-base font-medium">{{ g.area }}</h3>
+              <ul class="m-0 list-none p-0">
+                @for (i of g.items; track i.key) {
+                  <li class="flex justify-between gap-4 border-t border-outline-variant py-1.5 first:border-t-0">
+                    <span>{{ i.action }}</span>
+                    <span class="text-on-surface-variant">{{ i.reach }}</span>
+                  </li>
+                }
+              </ul>
+            </div>
+          </mat-card>
+        }
+      </section>
+    </div>
+  </mat-tab>
+</mat-tab-group>

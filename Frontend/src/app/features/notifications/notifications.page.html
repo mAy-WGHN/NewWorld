@@ -37,44 +37,7 @@
   }
 </section>
 
-@if (canReadChoices() && types().length) {
-  <section data-testid="preferences" aria-labelledby="choices-title">
-    <h2 id="choices-title" class="m-0 mb-1 text-lg font-medium">Was möchtest du erhalten?</h2>
-    <p class="m-0 mb-3 text-sm text-on-surface-variant">Pflichtmitteilungen lassen sich nicht abschalten.</p>
-    <mat-card appearance="outlined" class="overflow-x-auto">
-      <table class="w-full border-collapse">
-        <thead>
-          <tr class="text-sm text-on-surface-variant">
-            <th scope="col" class="px-4 py-2.5 text-left font-medium">Mitteilung</th>
-            @for (c of types()[0].channels; track c.channel) {
-              <th scope="col" class="px-4 py-2.5 text-center font-medium">{{ channelLabel(c.channel) }}</th>
-            }
-          </tr>
-        </thead>
-        <tbody>
-          @for (t of types(); track t.templateKey) {
-            <tr class="border-t border-outline-variant">
-              <th scope="row" class="px-4 py-1.5 text-left font-medium">
-                {{ typeLabel(t.templateKey) }}
-                @if (t.mandatory) {
-                  <mat-chip-set class="ml-2 inline-block align-middle" aria-label="Pflicht"><mat-chip>Pflicht</mat-chip></mat-chip-set>
-                }
-              </th>
-              @for (c of t.channels; track c.channel) {
-                <td class="px-4 py-1.5 text-center">
-                  @for (version of [rebuild()]; track version) {
-                  <mat-checkbox [attr.data-key]="t.templateKey" [attr.data-channel]="c.channel" [checked]="c.enabled" [disabled]="t.mandatory || !canChangeChoices()"
-                                [attr.aria-label]="typeLabel(t.templateKey) + ': ' + channelLabel(c.channel)" (change)="toggle(t, c.channel, $event)" />
-                  }
-                </td>
-              }
-            </tr>
-          }
-        </tbody>
-      </table>
-    </mat-card>
-  </section>
-}
+<app-notification-preferences />
 
 <ng-template #row let-n let-attention="attention">
   <app-row-card [attention]="attention" data-testid="notification" [attr.data-id]="n.id">

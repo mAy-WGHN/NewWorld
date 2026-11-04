@@ -44,7 +44,7 @@ export const routes: Routes = [
       { path: '', component: HomePage, title: 'Startseite' },
       { path: 'areas', component: AreasPage, title: 'Alle Bereiche' },
       { path: 'favorites', component: FavoritesPage, title: 'Favoriten' },
-      { path: 'settings', component: PlaceholderPage, title: 'Einstellungen', data: { title: 'Einstellungen', about: 'Darstellung und persönliche Einstellungen.' } },
+      { path: 'settings', loadComponent: () => import('./features/settings/settings.page').then((m) => m.SettingsPage), title: 'Einstellungen' },
       { path: 'help', component: PlaceholderPage, title: 'Hilfe', data: { title: 'Hilfe', about: 'Anleitungen und Ansprechpersonen.' } },
       ...areaRoutes,
       { path: 'forbidden', component: ForbiddenPage, title: 'Kein Zugriff' },
