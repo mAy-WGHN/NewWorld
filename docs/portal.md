@@ -20,6 +20,7 @@ gleiche Antwortform, gleiche Feldnamen.
 | FAQ-Bild ansehen | `GET /api/faqs/images/{id}` | öffentlich (die zufällige ID ist die Zugriffskontrolle) |
 | FAQ-Bilder | `POST/GET /api/admin/faq/images`, `DELETE /api/admin/faq/images/{id}` | `faq:create` / `faq:read` / `faq:delete` |
 | Meldung anlegen | `POST /api/reports` | öffentlich, Rate Limit (10 je Minute und Client) |
+| Filialen zur Auswahl im Meldeformular | `GET /api/locations` | öffentlich (wie das Formular); nur offene Filialen nach Filialnummer, aus der BC-Kopie, nicht änderbar; Organisationsdaten (Klasse 1). Antwort wie im alten System: `{success,data:{items:[{id,name,storeCode,archived}],meta}}` |
 | Meldungen | `GET /api/reports`, `GET /api/reports/archived`, `GET /api/reports/{id}` | `report:read` (Reichweite: Filialen) |
 | Meldung ändern / archivieren / Hauptmeldung lösen | `PATCH /api/reports/{id}`, `DELETE /api/reports/{id}`, `DELETE /api/reports/{id}/parent` | `report:update` / `report:delete` / `report:update` |
 | Statistik | `GET /api/statistics/{monthly,monthly-by-category,by-location-severity,by-personnel-number}` | `statistic:read` (Reichweite: Filialen) |

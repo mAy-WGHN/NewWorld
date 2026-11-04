@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom, map } from 'rxjs';
 import { ConfigService } from '../../core/config';
+import type { CreateReportRequest } from '../report-issue/report-issue-models';
 import { Report, ReportPage } from './report-models';
 
 /** The portal wraps answers as `{success, data}`; this unwraps them. Errors are left to the caller (see `envelopeMessage`). */
@@ -32,6 +33,11 @@ export class ReportsApi {
 
   listArchived(offset: number, limit = PAGE_SIZE): Promise<ReportPage> {
     return firstValueFrom(this.http.get<Envelope<ReportPage>>(this.url('/archived'), { params: { offset, limit } }).pipe(map((answer) => answer.data)));
+  }
+
+  /** Files a report (the form is public; the portal limits how many one client may send per minute). */
+  create(body: CreateReportRequest): Promise<Report> {
+    return firstValueFrom(this.http.post<Envelope<Report>>(this.url(''), body).pipe(map((answer) => answer.data)));
   }
 
   setStatus(id: string, status: 'open' | 'done'): Promise<Report> {

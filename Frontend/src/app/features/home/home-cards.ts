@@ -25,6 +25,7 @@ export const HOME_CARDS: HomeCard[] = [
     tone: 'blue',
     icon: 'tasks',
     chips: [
+      { label: 'Störung melden', path: '/report-issue' },
       { label: 'Krankmeldungen', path: '/my-sick-notes', requires: ['absence:read-own', 'absence:create-own'] },
       { label: 'Urlaub beantragen', path: '/my-vacation', requires: ['absence:create-own'] },
       { label: 'Genehmigungen', path: '/approvals', requires: ['absence:approve'] },

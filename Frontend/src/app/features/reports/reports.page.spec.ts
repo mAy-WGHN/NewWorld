@@ -1,6 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { PrivilegeSet } from '../../core/auth/privileges';
 import { Report } from './report-models';
@@ -46,6 +47,7 @@ describe('ReportsPage', () => {
   async function create(privileges = grant('report:read', 'report:update', 'report:delete')): Promise<void> {
     TestBed.configureTestingModule({
       providers: [
+        provideRouter([]),
         { provide: ReportsApi, useValue: api },
         { provide: AuthService, useValue: { privileges: signal(privileges) } },
       ],
@@ -86,6 +88,14 @@ describe('ReportsPage', () => {
 
     expect(q('h1')!.textContent).toContain('Meldungen');
     expect(q('.head [data-testid="archive-button"]')!.textContent).toContain('Archiv');
+  });
+
+  it('has "Störung melden" at the top right, leading to the report form', async () => {
+    await create();
+
+    const link = q('.head [data-testid="report-issue-link"]')!;
+    expect(link.textContent).toContain('Störung melden');
+    expect(link.getAttribute('href')).toBe('/report-issue');
   });
 
   it('puts the open reports at the top, highlighted yellow, and the done ones below', async () => {

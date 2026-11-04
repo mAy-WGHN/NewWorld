@@ -79,6 +79,7 @@ app.UseAuthorization();
 app.MapDefaultEndpoints();
 app.MapFaqEndpoints();
 app.MapReportEndpoints();
+app.MapLocationEndpoints();
 app.MapReportRecipientEndpoints();
 app.MapStatisticsEndpoints();
 

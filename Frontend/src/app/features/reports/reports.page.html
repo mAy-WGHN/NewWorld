@@ -1,8 +1,11 @@
 <header class="head">
   <h1>Meldungen</h1>
-  <button type="button" class="btn" data-testid="archive-button" [attr.aria-pressed]="archiveMode()" (click)="toggleArchive()">
-    {{ archiveMode() ? 'Aktuelle Meldungen' : 'Archiv' }}
-  </button>
+  <div class="head-actions">
+    <a class="btn" routerLink="/report-issue" data-testid="report-issue-link">Störung melden</a>
+    <button type="button" class="btn-quiet" data-testid="archive-button" [attr.aria-pressed]="archiveMode()" (click)="toggleArchive()">
+      {{ archiveMode() ? 'Aktuelle Meldungen' : 'Archiv' }}
+    </button>
+  </div>
 </header>
 
 @if (error(); as message) {

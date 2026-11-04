@@ -1,0 +1,110 @@
+<h1>Störung melden</h1>
+
+@switch (step()) {
+  @case ('choose') {
+    <section class="choose" aria-labelledby="choose-title">
+      <p class="lead">Etwas ist vorgefallen?</p>
+      <h2 id="choose-title">Was möchtest du melden?</h2>
+      <div class="choices">
+        @for (c of categories; track c.id) {
+          <button type="button" class="choice" [attr.data-category]="c.id" (click)="start(c)">
+            <span class="choice-icon"><app-icon [name]="c.icon" [size]="24" /></span>
+            {{ c.label }}
+          </button>
+        }
+      </div>
+    </section>
+  }
+
+  @case ('form') {
+    <form class="card" data-testid="issue-form" (submit)="submit($event)" novalidate>
+      <h2>{{ category().label }}</h2>
+
+      <div class="field">
+        <label for="pn">Personalnummer*</label>
+        <input id="pn" type="number" inputmode="numeric" min="1" [value]="form().personnelNumber" (input)="set('personnelNumber', $event)"
+               [attr.aria-invalid]="errors().personnelNumber ? 'true' : null" [disabled]="busy()" />
+        @if (errors().personnelNumber; as message) {
+          <p class="field-error" role="alert">{{ message }}</p>
+        }
+      </div>
+
+      <div class="field">
+        <label for="description">Beschreibung*</label>
+        <textarea id="description" rows="4" [placeholder]="category().placeholder" [value]="form().description" (input)="set('description', $event)"
+                  [attr.aria-invalid]="errors().description ? 'true' : null" [disabled]="busy()"></textarea>
+        @if (errors().description; as message) {
+          <p class="field-error" role="alert">{{ message }}</p>
+        }
+      </div>
+
+      <app-store-picker [locations]="locations()" [(selected)]="chosen" [error]="errors().locations ?? null" />
+      @if (locationsError(); as message) {
+        <p class="field-error" data-testid="locations-error" role="alert">{{ message }}</p>
+      }
+
+      @if (category().severity === 'choose') {
+        <div class="field">
+          <label for="severity">Störlevel*</label>
+          <select id="severity" (change)="set('severity', $event)" [disabled]="busy()">
+            @for (s of severities; track s.value) {
+              <option [value]="s.value" [selected]="form().severity === s.value">{{ s.label }}</option>
+            }
+          </select>
+        </div>
+      }
+
+      @if (category().extra === 'virus') {
+        <div class="field">
+          <label for="device">Konkreter Rechner</label>
+          <input id="device" type="text" placeholder="z. B. Kasse-03" [value]="form().device" (input)="set('device', $event)" [disabled]="busy()" />
+          <p class="hint">Falls mehrere vorhanden</p>
+        </div>
+      }
+
+      @if (category().extra !== 'none') {
+        <fieldset class="field">
+          <legend>{{ category().extra === 'virus' ? 'Wann bemerkt?' : 'Datum & Uhrzeit' }}</legend>
+          <div class="two">
+            <div class="field">
+              <label for="noticed-date">Tag</label>
+              <input id="noticed-date" type="date" [value]="form().noticedDate" (input)="set('noticedDate', $event)" [disabled]="busy()" />
+            </div>
+            <div class="field">
+              <label for="noticed-time">Uhrzeit</label>
+              <input id="noticed-time" type="time" [value]="form().noticedTime" (input)="set('noticedTime', $event)" [disabled]="busy()" />
+            </div>
+          </div>
+        </fieldset>
+      }
+
+      @if (category().extra === 'virus') {
+        <div class="field">
+          <label for="noticed-how">Wie wurde es bemerkt?</label>
+          <input id="noticed-how" type="text" [value]="form().noticedHow" (input)="set('noticedHow', $event)" [disabled]="busy()" />
+        </div>
+        <div class="field">
+          <label for="prior-activity">Was wurde davor an dem Gerät gemacht?</label>
+          <input id="prior-activity" type="text" [value]="form().priorActivity" (input)="set('priorActivity', $event)" [disabled]="busy()" />
+        </div>
+      }
+
+      @if (submitError(); as message) {
+        <p class="alert" role="alert" data-testid="submit-error">{{ message }}</p>
+      }
+
+      <div class="form-actions">
+        <button type="button" class="btn-quiet" data-action="cancel" [disabled]="busy()" (click)="backToChoice()">Abbrechen</button>
+        <button type="submit" class="btn" [disabled]="busy()">{{ busy() ? 'Wird gesendet …' : 'Melden' }}</button>
+      </div>
+    </form>
+  }
+
+  @case ('done') {
+    <section class="card success" data-testid="success" role="status">
+      <span class="success-icon"><app-icon name="check" [size]="32" /></span>
+      <p>Meldung wurde erfolgreich übermittelt.</p>
+      <button type="button" class="btn" data-action="again" (click)="backToChoice()">Weitere Störung melden</button>
+    </section>
+  }
+}

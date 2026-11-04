@@ -89,6 +89,14 @@ describe('HomePage', () => {
     expect(links()).not.toContain('Arbeitszeitkonto');
   });
 
+  it('offers "Störung melden" to everybody, also without any privilege', async () => {
+    privileges.set(grant());
+    await create();
+
+    expect(links()).toContain('Störung melden');
+    expect(root.querySelector('a[href="/report-issue"]')).not.toBeNull();
+  });
+
   it('says plainly that an area is not built yet instead of showing empty links', async () => {
     await create();
 

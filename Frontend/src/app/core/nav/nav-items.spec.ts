@@ -6,7 +6,7 @@ const paths = (set: PrivilegeSet) => visibleNav(set).flatMap((g) => g.items.map(
 
 describe('visibleNav', () => {
   it('shows only open areas to a person without privileges', () => {
-    expect(paths(PrivilegeSet.empty)).toEqual(['faq']);
+    expect(paths(PrivilegeSet.empty)).toEqual(['report-issue', 'faq']);
   });
 
   it('shows an area if one of its privileges is granted', () => {

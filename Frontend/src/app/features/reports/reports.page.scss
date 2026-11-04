@@ -1,5 +1,16 @@
 @use '../../shared/list-page';
 
+.head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+
+  .btn {
+    text-decoration: none;
+  }
+}
+
 // Category, severity and state stand in one line (the shared rule for the first block makes it a column).
 .row-main > .chips:first-child {
   flex-direction: row;

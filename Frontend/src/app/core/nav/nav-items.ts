@@ -41,6 +41,7 @@ export const NAV: NavGroup[] = [
   {
     title: 'Portal',
     items: [
+      { label: 'Störung melden', path: 'report-issue', about: 'Fehler, Virus, Diebstahl, sonstige Verstöße oder einen Verbesserungsvorschlag melden.', keywords: ['störung', 'fehler', 'virus', 'diebstahl', 'verstoß', 'vorschlag', 'verbesserung', 'problem', 'melden', 'etwas ist vorgefallen'] },
       { label: 'FAQ', path: 'faq', about: 'Häufige Fragen und Antworten.', keywords: ['fragen', 'antworten', 'hilfe', 'anleitung'] },
       { label: 'Meldungen', path: 'reports', requires: ['report:read'], about: 'Eingegangene Meldungen bearbeiten.', keywords: ['meldung', 'incident', 'diebstahl', 'störung'] },
       { label: 'Statistik', path: 'statistics', requires: ['statistic:read'], about: 'Auswertung der Meldungen.', keywords: ['auswertung', 'zahlen', 'kennzahlen'] },

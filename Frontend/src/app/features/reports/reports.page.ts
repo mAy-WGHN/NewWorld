@@ -1,5 +1,6 @@
 import { NgTemplateOutlet } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { Report, categoryLabel, envelopeMessage, formatCreated, locationNames, severityLabel, statusLabel } from './report-models';
 import { ReportsApi } from './reports.api';
@@ -20,7 +21,7 @@ const EMPTY: Bucket = { items: [], total: 0 };
  */
 @Component({
   selector: 'app-reports',
-  imports: [NgTemplateOutlet],
+  imports: [NgTemplateOutlet, RouterLink],
   templateUrl: './reports.page.html',
   styleUrl: './reports.page.scss',
 })

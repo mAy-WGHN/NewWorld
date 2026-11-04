@@ -16,6 +16,7 @@ const builtAreas: Record<string, () => Promise<Type<unknown>>> = {
   'my-sick-notes': () => import('./features/sick-notes/sick-notes.page').then((m) => m.SickNotesPage),
   'my-vacation': () => import('./features/vacation/vacation.page').then((m) => m.VacationPage),
   reports: () => import('./features/reports/reports.page').then((m) => m.ReportsPage),
+  'report-issue': () => import('./features/report-issue/report-issue.page').then((m) => m.ReportIssuePage),
 };
 
 /** Every area of the navigation is a placeholder page until it is built; the privilege guard applies to both. */

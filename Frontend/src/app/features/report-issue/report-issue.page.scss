@@ -1,0 +1,160 @@
+:host {
+  display: block;
+  max-width: 640px;
+}
+
+h1 {
+  margin: 0 0 16px;
+  font-size: 26px;
+}
+
+h2 {
+  margin: 0 0 8px;
+  font-size: 20px;
+}
+
+.lead {
+  margin: 0 0 4px;
+  color: var(--muted);
+}
+
+.choices {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.choice {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 14px 18px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+
+  &:hover {
+    border-color: var(--accent);
+  }
+}
+
+.choice-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+fieldset.field {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+label,
+legend {
+  padding: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+input,
+textarea,
+select {
+  font: inherit;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  width: 100%;
+}
+
+textarea {
+  resize: vertical;
+}
+
+[aria-invalid='true'] {
+  border-color: var(--danger);
+}
+
+.two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.field-error {
+  margin: 0;
+  color: var(--danger);
+  font-size: 13px;
+}
+
+.alert {
+  margin: 0;
+  padding: 10px 14px;
+  border: 1px solid var(--danger);
+  border-radius: 10px;
+  color: var(--danger);
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.success {
+  align-items: center;
+  text-align: center;
+
+  p {
+    margin: 0;
+    font-size: 17px;
+  }
+}
+
+.success-icon {
+  color: var(--ok);
+}
+
+@media (max-width: 480px) {
+  .two {
+    grid-template-columns: 1fr;
+  }
+}

@@ -25,6 +25,11 @@ const ICONS: Record<string, string[]> = {
   megaphone: ['M3 11v3h3l7 4V7L6 11z', 'M16 9a4 4 0 010 6'],
   tasks: ['M9 6h11', 'M9 12h11', 'M9 18h11', 'M4.5 6l1 1 2-2', 'M4.5 12l1 1 2-2', 'M4.5 18l1 1 2-2'],
   logout: ['M10 4H5v16h5', 'M15 8l4 4-4 4', 'M19 12H9'],
+  x: ['M6 6l12 12', 'M18 6L6 18'],
+  bug: ['M9 9h6v6a3 3 0 01-6 0z', 'M9 9a3 3 0 016 0', 'M12 4v2', 'M4 13h5', 'M15 13h5', 'M5 7l3 2', 'M19 7l-3 2', 'M5 19l3-2', 'M19 19l-3-2'],
+  shield: ['M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z', 'M9 12l2 2 4-4'],
+  gavel: ['M13 4l7 7', 'M11 6l7 7-3 3-7-7z', 'M4 20l6-6'],
+  lightbulb: ['M9 18h6', 'M10 21h4', 'M12 3a6 6 0 00-3.5 10.9c.6.5 1 1.2 1 2V16h5v-.1c0-.8.4-1.5 1-2A6 6 0 0012 3z'],
 };
 
 /** A line icon in the current text colour; decorative unless a `label` is given. */

@@ -73,6 +73,7 @@
 
 - Gerüst: Kopien von Mitarbeitenden und Filialen, Hauptfiliale aus Access, Ein- und Austritt.
 - FAQ mit Bildern, Meldungen mit Filial-Reichweite, Archiv und Verweisen, Statistik.
+- Filialliste für das Meldeformular (`GET /api/locations`, öffentlich, nur offene Filialen).
 - Benachrichtigung je Meldungskategorie ohne Meldungsinhalt.
 - Das Angular-Frontend bleibt kompatibel.
 - Öffentlich bleiben Meldungsformular und FAQ-Lesen, mit Rate Limit.
@@ -86,7 +87,8 @@
 - **Meine Abwesenheiten:** Urlaubskonto je Jahr, Krankmeldung, Urlaubsantrag, Zurückziehen, Krankmeldung beenden, AU hochladen.
 - **Meine Krankmeldungen:** Übersicht der eigenen Krankmeldungen mit „Krankmelden“ oben rechts; Krankmeldungen, für die die Personalabteilung noch eine AU braucht (fehlt oder abgelehnt), stehen ganz oben und sind gelb hervorgehoben.
 - **Mein Urlaub:** „Urlaub beantragen“ oben rechts, Urlaubskonto, Anträge die auf Genehmigung warten gelb ganz oben, darunter der übrige Urlaub; Zurückziehen.
-- **Meldungen:** offene Meldungen gelb ganz oben (dringendste zuerst), erledigte darunter; erledigen, wieder öffnen, kommentieren, archivieren; „Archiv“ oben rechts. Meldung erstellen fehlt noch (Filialauswahl fehlt im Portal).
+- **Störung melden:** wie im alten System (irs.wintergerst-gruppe.de): fünf Arten (Fehler, Virus, Diebstahl, Sonstige Verstöße, Verbesserungsvorschlag) mit den Feldern, Prüftexten und festen Schweregraden des alten Systems; Filialauswahl mit Suche.
+- **Meldungen:** offene Meldungen gelb ganz oben (dringendste zuerst), erledigte darunter; erledigen, wieder öffnen, kommentieren, archivieren; „Archiv“ oben rechts. „Störung melden“ steht oben rechts.
 - Alle weiteren Bereiche der Navigation sind Platzhalter.
 
 ## Nicht gebaut
