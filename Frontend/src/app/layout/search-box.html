@@ -1,0 +1,23 @@
+<div class="field">
+  <app-icon name="search" [size]="20" />
+  <input type="search" role="combobox" aria-label="Suche" aria-autocomplete="list" [attr.aria-expanded]="open() && results().length > 0"
+         aria-controls="search-results" placeholder="Was möchtest du erledigen?" autocomplete="off"
+         [value]="query()" (input)="onInput($event)" (keydown)="onKey($event)" (focus)="open.set(true)" (blur)="close()" />
+</div>
+@if (examples(); as hint) {
+  <p class="hint">{{ hint }}</p>
+}
+@if (open() && query().trim()) {
+  <ul id="search-results" class="results" role="listbox">
+    @for (item of results(); track item.path; let i = $index) {
+      <li role="option" [attr.aria-selected]="i === active()" [class.active]="i === active()">
+        <button type="button" tabindex="-1" (mousedown)="$event.preventDefault()" (click)="go(item)">
+          <strong>{{ item.label }}</strong>
+          <span>{{ item.about }}</span>
+        </button>
+      </li>
+    } @empty {
+      <li class="none">Dazu habe ich nichts gefunden.</li>
+    }
+  </ul>
+}

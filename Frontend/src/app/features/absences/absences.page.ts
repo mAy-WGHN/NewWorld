@@ -1,5 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { AuthService } from '../../core/auth/auth.service';
+import { todayIso } from '../../core/dates';
 import {
   Absence,
   GENERIC_ERROR,
@@ -19,11 +20,6 @@ import {
 import { AbsencesApi } from './absences.api';
 
 type PanelKind = 'end' | 'upload';
-
-const todayIso = (): string => {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-};
 
 /** "Meine Abwesenheiten": report a sick note, request vacation, see the vacation account, end or withdraw, hand in the certificate (AU). */
 @Component({

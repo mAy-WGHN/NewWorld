@@ -1,20 +1,23 @@
 import { Component, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
+import { FavoritesService } from '../../core/favorites.service';
 import { visibleNav } from '../../core/nav/nav-items';
+import { IconComponent } from '../../shared/icon';
 
-/** Start page: what this person may open and which privileges they hold (grouped by area). */
+/** Every area this person may open, grouped, with a star to pin it; below the own privileges. */
 @Component({
-  selector: 'app-dashboard',
-  imports: [RouterLink],
-  templateUrl: './dashboard.html',
-  styleUrl: './dashboard.scss',
+  selector: 'app-areas',
+  imports: [RouterLink, IconComponent],
+  templateUrl: './areas.html',
+  styleUrl: './areas.scss',
 })
-export class DashboardPage {
+export class AreasPage {
   private readonly auth = inject(AuthService);
+  protected readonly favorites = inject(FavoritesService);
 
+  protected readonly groups = computed(() => visibleNav(this.auth.privileges()));
   protected readonly roles = this.auth.roles;
-  protected readonly areas = computed(() => visibleNav(this.auth.privileges()));
   protected readonly privilegeCount = computed(() => this.auth.privileges().grants.length);
 
   /** Privileges grouped by their first key segment ("absence", "employee", ...). */

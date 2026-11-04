@@ -34,6 +34,24 @@ Aspire vergibt die Ports dynamisch: die Ziele in `proxy.conf.json` auf die Adres
 
 Die Rechteprüfung im Frontend steuert nur, was angezeigt wird. Durchgesetzt wird sie von den Diensten bei jedem Aufruf.
 
+## Rahmen und Startseite
+
+Das Aussehen folgt dem Entwurf der Startseite (Wintergerst Mitarbeiterportal): Kopfzeile mit Suche („Was möchtest du erledigen?“), Glocke mit Zähler und der angemeldeten Person; schmale Seitenleiste (Startseite, Alle Bereiche, Favoriten, Mitteilungen, Einstellungen, Hilfe); auf der Startseite die Begrüßung, die vier Kacheln Erledigen, Finden, Lernen und Mein Bereich, „Meine Aufgaben“, „Meine nächsten Termine“, Kennzahlen und „Aktuelles aus der Zentrale“. Es gibt ein helles und ein dunkles Schema (nach Einstellung des Geräts) und eine Handyansicht.
+
+Die Startseite zeigt nur echte Daten, nichts Erfundenes:
+
+| Teil | Quelle |
+| --- | --- |
+| Begrüßung, Name, Personalnummer | eigene Mitarbeiterkarte in Workforce (`/api/me/employee-card`); ohne Karte, etwa bei Personen nur aus BC, ohne Namen |
+| Glocke und „ungelesene Mitteilungen“ | Notifications (`/api/me/notifications/unread-count`), alle 60 Sekunden aktualisiert |
+| „Meine Aufgaben“ | fehlende AU der eigenen Krankmeldungen, offene Urlaubsanträge zum Entscheiden (`/api/approvals/pending`), ungelesene Mitteilungen |
+| „Meine nächsten Termine“ | eigener Urlaub, der läuft oder noch kommt |
+| Schnellzugriffe der Kacheln | nur Bereiche, die es gibt und die die Person öffnen darf |
+| Suche | die Bereiche der Person, nach Name und gängigen Begriffen |
+| Favoriten | im Browser gemerkt (Stern unter „Alle Bereiche“) |
+
+Noch ohne Daten und deshalb als „folgt“ gekennzeichnet: Kennzahlen der Filiale, Aktuelles aus der Zentrale, Schulungen, Anleitungen und Filialordner. Auch Filialname unter dem Namen fehlt: `TODO(Backend)`, es gibt noch keinen Aufruf „Wer bin ich“ mit Name und Hauptfiliale (siehe `ProfileService`).
+
 ## Fertige Bereiche
 
 | Bereich | Pfad | Dienst |

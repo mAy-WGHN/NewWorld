@@ -1,0 +1,88 @@
+<div class="layout">
+  <div class="main">
+    <section class="hero" aria-labelledby="hello">
+      <div class="hero-text">
+        <h1 id="hello">Hallo{{ firstName() ? ' ' + firstName() : '' }}! <span aria-hidden="true">👋</span></h1>
+        <p>Schön, dass du da bist. Was möchtest du heute erledigen?</p>
+      </div>
+      <p class="hero-claim" aria-hidden="true">Starke Teams.<br />Starke Filialen.</p>
+    </section>
+
+    <div class="cards">
+      @for (card of cards(); track card.id) {
+        <section class="card tone-{{ card.tone }}" [attr.aria-labelledby]="'card-' + card.id">
+          <div class="card-head">
+            <span class="icon-circle"><app-icon [name]="card.icon" [size]="26" /></span>
+            <div>
+              <h2 [id]="'card-' + card.id">{{ card.title }}</h2>
+              <p>{{ card.about }}</p>
+            </div>
+          </div>
+          @if (card.chips.length) {
+            <ul class="chips">
+              @for (chip of card.chips; track chip.label) {
+                <li><a class="pill" [routerLink]="chip.path">{{ chip.label }}</a></li>
+              }
+            </ul>
+          }
+          @if (card.soon) {
+            <p class="soon">{{ card.soon }}</p>
+          }
+        </section>
+      }
+    </div>
+
+    <section class="panel" data-testid="figures" aria-labelledby="figures-title">
+      <h2 id="figures-title">Aktuelle Kennzahlen</h2>
+      <p class="empty"><app-icon name="info" [size]="18" /> Kennzahlen deiner Filiale (Umsatz, offene Aufgaben, Schulungsquote) folgen.</p>
+    </section>
+  </div>
+
+  <aside class="side">
+    <section class="panel" aria-labelledby="tasks-title">
+      <h2 id="tasks-title">Meine Aufgaben</h2>
+      <ul class="tasks">
+        @for (task of tasks(); track task.id) {
+          <li class="task tone-{{ task.tone }}">
+            <span class="task-icon"><app-icon [name]="task.tone === 'ok' ? 'check' : task.tone === 'danger' ? 'alert' : 'info'" [size]="22" /></span>
+            @if (task.link) {
+              <a [routerLink]="task.link"><strong>{{ task.title }}</strong><small>{{ task.subtitle }}</small></a>
+            } @else {
+              <div><strong>{{ task.title }}</strong><small>{{ task.subtitle }}</small></div>
+            }
+          </li>
+        }
+      </ul>
+    </section>
+
+    <section class="panel" aria-labelledby="appointments-title">
+      <div class="panel-head">
+        <h2 id="appointments-title">Meine nächsten Termine</h2>
+        @if (appointments().length) {
+          <a routerLink="/absences" class="more">Alle anzeigen <app-icon name="chevron-right" [size]="14" /></a>
+        }
+      </div>
+      @if (appointments().length) {
+        <ul class="appointments">
+          @for (a of appointments(); track a.id) {
+            <li data-testid="appointment">
+              <span class="date"><small>{{ a.month }}</small><strong>{{ a.day }}</strong></span>
+              <div>
+                <strong>{{ a.title }}</strong>
+                <span>{{ a.detail }}</span>
+                <small>{{ a.note }}</small>
+              </div>
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="empty">Keine anstehenden Termine.</p>
+      }
+    </section>
+
+    <section class="panel" data-testid="news" aria-labelledby="news-title">
+      <h2 id="news-title">Aktuelles aus der Zentrale</h2>
+      <p class="empty"><app-icon name="megaphone" [size]="18" /> Neuigkeiten aus der Zentrale folgen.</p>
+    </section>
+  </aside>
+</div>

@@ -1,28 +1,82 @@
-<header class="bar">
-  <button type="button" class="menu-toggle" (click)="toggleMenu()" [attr.aria-expanded]="menuOpen()" aria-controls="main-nav">
+<header class="topbar">
+  <button type="button" class="menu-toggle" (click)="toggleMenu()" [attr.aria-expanded]="menuOpen()" aria-controls="side-nav">
     <span class="sr-only">Menü</span>
-    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg>
+    <app-icon name="menu" [size]="22" />
   </button>
-  <a class="brand" routerLink="/" (click)="closeMenu()">NewWorld</a>
+
+  <a class="brand" routerLink="/" (click)="closeMenu()" aria-label="Wintergerst Mitarbeiterportal, Startseite">
+    <svg class="logo" viewBox="0 0 48 48" width="40" height="40" aria-hidden="true">
+      <path d="M24 44V22" fill="none" stroke="#2f7a4b" stroke-width="2.4" stroke-linecap="round" />
+      <path d="M24 30c-8 0-13-5-13-13 8 0 13 5 13 13z" fill="#3f9b5f" />
+      <path d="M24 24c0-8 5-13 13-13 0 8-5 13-13 13z" fill="#2f7a4b" />
+      <path d="M24 36c6 0 10-4 10-10-6 0-10 4-10 10z" fill="#6cc08a" />
+    </svg>
+    <span class="brand-text"><strong>Wintergerst</strong><small>Mitarbeiterportal</small></span>
+  </a>
+
+  <app-search-box class="search" />
+
   <div class="spacer"></div>
-  <div class="who">
-    @for (role of roles(); track role) {
-      <span class="chip">{{ role }}</span>
-    }
-  </div>
-  <button type="button" class="btn-quiet" (click)="logout()">Abmelden</button>
+
+  @if (canSeeNotifications()) {
+    <a class="bell" routerLink="/notifications" (click)="closeMenu()" aria-label="Mitteilungen">
+      <app-icon name="bell" [size]="24" />
+      @if (unread(); as count) {
+        <span class="badge" data-testid="badge">{{ count > 99 ? '99+' : count }}</span>
+      }
+    </a>
+  }
+
+  <details class="user">
+    <summary>
+      <span class="avatar" aria-hidden="true">{{ initials() }}</span>
+      <span class="who">
+        <strong>{{ displayName() ?? 'Angemeldet' }}</strong>
+        @if (personnelNumber(); as number) {
+          <small>Personalnummer {{ number }}</small>
+        }
+      </span>
+      <app-icon name="chevron-down" [size]="16" />
+    </summary>
+    <div class="menu">
+      <button type="button" data-action="logout" (click)="logout()">
+        <app-icon name="logout" [size]="18" />
+        Abmelden
+      </button>
+    </div>
+  </details>
 </header>
 
 <div class="body">
-  <nav id="main-nav" class="nav" [class.open]="menuOpen()" aria-label="Bereiche">
-    <a class="nav-link" routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" (click)="closeMenu()">Start</a>
-    @for (group of nav(); track group.title) {
-      <h2 class="nav-title">{{ group.title }}</h2>
-      @for (item of group.items; track item.path) {
-        <a class="nav-link" [routerLink]="'/' + item.path" routerLinkActive="active" (click)="closeMenu()">{{ item.label }}</a>
+  <nav id="side-nav" class="side" [class.open]="menuOpen()" aria-label="Hauptmenü">
+    <div class="side-top">
+      <a class="side-link" routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" (click)="closeMenu()">
+        <app-icon name="home" /> Startseite
+      </a>
+      <a class="side-link" routerLink="/areas" routerLinkActive="active" (click)="closeMenu()">
+        <app-icon name="grid" /> Alle Bereiche
+      </a>
+      <a class="side-link" routerLink="/favorites" routerLinkActive="active" (click)="closeMenu()">
+        <app-icon name="star" /> Favoriten
+      </a>
+      @if (canSeeNotifications()) {
+        <a class="side-link" routerLink="/notifications" routerLinkActive="active" (click)="closeMenu()">
+          <app-icon name="bell" /> Mitteilungen
+        </a>
       }
-    }
+    </div>
+
+    <div class="side-bottom">
+      <a class="side-link" routerLink="/settings" routerLinkActive="active" (click)="closeMenu()">
+        <app-icon name="settings" /> Einstellungen
+      </a>
+      <a class="side-link" routerLink="/help" routerLinkActive="active" (click)="closeMenu()">
+        <app-icon name="help" /> Hilfe
+      </a>
+      <p class="tagline">Gemeinsam<br />mehr erreichen.</p>
+    </div>
   </nav>
+
   <main class="content">
     <router-outlet />
   </main>

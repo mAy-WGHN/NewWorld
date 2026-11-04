@@ -1,0 +1,45 @@
+<h1>Alle Bereiche</h1>
+
+@for (group of groups(); track group.title) {
+  <section>
+    <h2>{{ group.title }}</h2>
+    <div class="tiles">
+      @for (item of group.items; track item.path) {
+        <div class="tile">
+          <a class="tile-link" [routerLink]="'/' + item.path">
+            <strong>{{ item.label }}</strong>
+            <span>{{ item.about }}</span>
+          </a>
+          <button type="button" class="star" data-action="favorite" [class.on]="favorites.has(item.path)" [attr.aria-pressed]="favorites.has(item.path)"
+                  [attr.aria-label]="(favorites.has(item.path) ? 'Aus Favoriten entfernen: ' : 'Zu Favoriten hinzufügen: ') + item.label" (click)="favorites.toggle(item.path)">
+            <app-icon name="star" [size]="20" />
+          </button>
+        </div>
+      }
+    </div>
+  </section>
+}
+
+<section>
+  <h2>Deine Rechte</h2>
+  <p class="muted">
+    @if (roles().length) {
+      Rollen:
+      @for (role of roles(); track role) {
+        <span class="chip">{{ role }}</span>
+      }
+    }
+    {{ privilegeCount() }} Rechte insgesamt.
+  </p>
+  <details>
+    <summary>Alle Rechte anzeigen</summary>
+    @for (area of byArea(); track area[0]) {
+      <h3>{{ area[0] }}</h3>
+      <ul class="keys">
+        @for (key of area[1]; track key) {
+          <li><code>{{ key }}</code></li>
+        }
+      </ul>
+    }
+  </details>
+</section>

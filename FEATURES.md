@@ -80,7 +80,9 @@
 ## Frontend (`Frontend/`, Angular)
 
 - Rahmen mit Anmeldung (Personalnummer und PIN gegen Access), Sitzungserneuerung und Navigation nach den Rechten der Person.
-- Startseite mit den freigeschalteten Bereichen, Rollen und Rechten.
+- Rahmen und Startseite nach dem Entwurf: Kopfzeile mit Suche, Glocke mit Zähler und Person, Seitenleiste, vier Kacheln, Aufgaben und nächste Termine aus echten Daten; helles und dunkles Schema, Handyansicht.
+- Alle Bereiche (mit Rechteübersicht) und Favoriten.
+- Kennzahlen, Neuigkeiten, Schulungen und Anleitungen sind als „folgt“ gekennzeichnet, nichts ist erfunden.
 - **Meine Abwesenheiten:** Urlaubskonto je Jahr, Krankmeldung, Urlaubsantrag, Zurückziehen, Krankmeldung beenden, AU hochladen.
 - Alle weiteren Bereiche der Navigation sind Platzhalter.
 

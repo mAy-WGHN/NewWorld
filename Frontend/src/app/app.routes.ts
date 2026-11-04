@@ -2,11 +2,13 @@ import { Type } from '@angular/core';
 import { Routes } from '@angular/router';
 import { authGuard, loginGuard, privilegeGuard } from './core/auth/guards';
 import { ALL_ITEMS } from './core/nav/nav-items';
-import { DashboardPage } from './pages/dashboard/dashboard';
+import { HomePage } from './features/home/home.page';
+import { Shell } from './layout/shell';
+import { AreasPage } from './pages/areas/areas';
+import { FavoritesPage } from './pages/areas/favorites';
+import { LoginPage } from './pages/login/login';
 import { ForbiddenPage } from './pages/placeholder/forbidden';
 import { PlaceholderPage } from './pages/placeholder/placeholder';
-import { LoginPage } from './pages/login/login';
-import { Shell } from './layout/shell';
 
 /** Areas that are built; they replace the placeholder of the same path. Loaded on demand. */
 const builtAreas: Record<string, () => Promise<Type<unknown>>> = {
@@ -32,7 +34,11 @@ export const routes: Routes = [
     component: Shell,
     canActivate: [authGuard],
     children: [
-      { path: '', component: DashboardPage, title: 'Start' },
+      { path: '', component: HomePage, title: 'Startseite' },
+      { path: 'areas', component: AreasPage, title: 'Alle Bereiche' },
+      { path: 'favorites', component: FavoritesPage, title: 'Favoriten' },
+      { path: 'settings', component: PlaceholderPage, title: 'Einstellungen', data: { title: 'Einstellungen', about: 'Darstellung und persönliche Einstellungen.' } },
+      { path: 'help', component: PlaceholderPage, title: 'Hilfe', data: { title: 'Hilfe', about: 'Anleitungen und Ansprechpersonen.' } },
       ...areaRoutes,
       { path: 'forbidden', component: ForbiddenPage, title: 'Kein Zugriff' },
     ],
