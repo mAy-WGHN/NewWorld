@@ -36,7 +36,7 @@ Die Rechteprüfung im Frontend steuert nur, was angezeigt wird. Durchgesetzt wir
 
 ## Rahmen und Startseite
 
-Das Aussehen folgt dem Entwurf der Startseite (Wintergerst Mitarbeiterportal): Kopfzeile mit Suche („Was möchtest du erledigen?“), Glocke mit Zähler und der angemeldeten Person; schmale Seitenleiste (Startseite, Alle Bereiche, Favoriten, Mitteilungen, Einstellungen, Hilfe); auf der Startseite die Begrüßung, die vier Kacheln Erledigen, Finden, Lernen und Mein Bereich, „Meine Aufgaben“, „Meine nächsten Termine“, Kennzahlen und „Aktuelles aus der Zentrale“. Es gibt ein helles und ein dunkles Schema (nach Einstellung des Geräts) und eine Handyansicht.
+Das Aussehen folgt dem Entwurf der Startseite (Wintergerst Mitarbeiterportal): Kopfzeile mit Suche („Was möchtest du erledigen?“), Glocke mit Zähler und der angemeldeten Person; Seitenleiste (oben Startseite, Alle Bereiche, Favoriten; darunter die Bereiche der Person nach Gruppen, jeder einen Klick entfernt und nur, was sie öffnen darf; unten Einstellungen und Hilfe; die Liste der Bereiche kommt aus `core/nav/nav-items.ts`); auf der Startseite die Begrüßung, die vier Kacheln Erledigen, Finden, Lernen und Mein Bereich, „Meine Aufgaben“, „Meine nächsten Termine“, Kennzahlen und „Aktuelles aus der Zentrale“. Es gibt ein helles und ein dunkles Schema (nach Einstellung des Geräts) und eine Handyansicht.
 
 Die Startseite zeigt nur echte Daten, nichts Erfundenes:
 
@@ -89,6 +89,10 @@ src/app/
 ```
 
 Neuer Bereich: Eintrag in [src/app/core/nav/nav-items.ts](src/app/core/nav/nav-items.ts) (Pfad, nötige Rechte), die Route dazu entsteht aus dem Eintrag und zeigt zunächst die Platzhalterseite. Ist der Bereich gebaut, kommt er mit seinem Pfad in `builtAreas` in `app.routes.ts` und wird bei Bedarf nachgeladen.
+
+## Wenn eine Seite nicht öffnet
+
+Die gebauten Bereiche (Krankmeldungen, Urlaub, Störung melden, Meldungen, Abwesenheiten) werden beim ersten Öffnen nachgeladen. Lädt ein Bereich langsam, zeigt ein dünner Balken am oberen Rand den Fortschritt. Scheitert das Nachladen (zum Beispiel weil der Dev-Server nicht mehr läuft oder ein alter Stand im Browser liegt), erscheint oben auf der Seite eine rote Meldung mit dem Grund und dem Knopf „Neu laden“, und die Seite lädt sich bei einem solchen Fehler einmal selbst neu. Ohne das bliebe die zuvor geöffnete Seite einfach stehen. Hilft Neuladen nicht: `npm start` beenden, den Ordner `Frontend/.angular` löschen (Build-Cache) und neu starten.
 
 ## Tests und Build
 

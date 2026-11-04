@@ -3,6 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { AuthService } from '../core/auth/auth.service';
 import { PrivilegeSet } from '../core/auth/privileges';
+import { NavigationState, PageReloader } from '../core/navigation-state.service';
 import { NotificationsService } from '../core/notifications.service';
 import { ProfileService } from '../core/profile.service';
 import { Shell } from './shell';
@@ -91,12 +92,60 @@ describe('Shell', () => {
     expect(root.textContent).not.toContain('Mitteilungen');
   });
 
-  it('has the entries of the side bar', async () => {
+  it('has the fixed entries of the side bar', async () => {
     await create();
 
-    for (const label of ['Startseite', 'Alle Bereiche', 'Favoriten', 'Mitteilungen', 'Einstellungen', 'Hilfe']) {
+    for (const label of ['Startseite', 'Alle Bereiche', 'Favoriten', 'Einstellungen', 'Hilfe']) {
       expect(root.querySelector('.side')!.textContent).toContain(label);
     }
+  });
+
+  const sideLinks = () => [...root.querySelectorAll('.side a')].map((a) => ({ text: a.textContent?.trim() ?? '', href: a.getAttribute('href') }));
+  const groupTitles = () => [...root.querySelectorAll('.side .side-title')].map((t) => t.textContent?.trim());
+
+  it('lists the areas of the person directly in the side bar, so they are one click away', async () => {
+    privileges.set(grant('absence:read-own', 'absence:create-own', 'workingtime:read-own', 'notification:read-own'));
+    await create();
+
+    const links = sideLinks();
+    expect(links).toContainEqual({ text: 'Meine Krankmeldungen', href: '/my-sick-notes' });
+    expect(links).toContainEqual({ text: 'Mein Urlaub', href: '/my-vacation' });
+    expect(links).toContainEqual({ text: 'Meine Abwesenheiten', href: '/absences' });
+    expect(links).toContainEqual({ text: 'Arbeitszeitkonto', href: '/working-time' });
+    expect(links).toContainEqual({ text: 'Mitteilungen', href: '/notifications' });
+  });
+
+  it('groups the areas and names a group only if the person has something in it', async () => {
+    privileges.set(grant('absence:read-own', 'absence:create-own'));
+    await create();
+
+    expect(groupTitles()).toEqual(['Persönlich', 'Portal']);
+  });
+
+  it('shows the areas without privilege (report a problem, FAQ) to everybody, but no others', async () => {
+    privileges.set(grant());
+    await create();
+
+    const texts = sideLinks().map((l) => l.text);
+    expect(texts).toContain('Störung melden');
+    expect(texts).toContain('FAQ');
+    expect(texts).not.toContain('Meine Krankmeldungen');
+    expect(texts).not.toContain('Rollen und Rechte');
+  });
+
+  it('shows the administration group to the people who may administer', async () => {
+    privileges.set(grant('access:role:read', 'template:manage'));
+    await create();
+
+    expect(groupTitles()).toContain('Verwaltung');
+    expect(sideLinks().map((l) => l.text)).toContain('Rollen und Rechte');
+  });
+
+  it('names the messages once in the side bar', async () => {
+    privileges.set(grant('notification:read-own'));
+    await create();
+
+    expect(sideLinks().filter((l) => l.href === '/notifications')).toHaveLength(1);
   });
 
   it('signs out, forgets the person and goes to the login page', async () => {
@@ -110,6 +159,66 @@ describe('Shell', () => {
     expect(profile.clear).toHaveBeenCalled();
     expect(notifications.clear).toHaveBeenCalled();
     expect(navigate).toHaveBeenCalledWith(['/login']);
+  });
+
+  describe('when a page is slow or cannot be loaded', () => {
+    const loading = signal(false);
+    const error = signal<string | null>(null);
+    const errorDetail = signal<string | null>(null);
+    let reloadNow: ReturnType<typeof vi.fn>;
+
+    async function createWithNavigation(): Promise<void> {
+      TestBed.configureTestingModule({
+        providers: [
+          provideRouter([]),
+          { provide: AuthService, useValue: auth },
+          { provide: ProfileService, useValue: profile },
+          { provide: NotificationsService, useValue: notifications },
+          { provide: NavigationState, useValue: { loading, error, errorDetail } },
+          { provide: PageReloader, useValue: { reloadNow, reloadOnce: vi.fn() } },
+        ],
+      });
+      fixture = TestBed.createComponent(Shell);
+      root = fixture.nativeElement as HTMLElement;
+      await fixture.whenStable();
+    }
+
+    beforeEach(() => {
+      loading.set(false);
+      error.set(null);
+      errorDetail.set(null);
+      reloadNow = vi.fn();
+    });
+
+    it('shows a loading bar while a page takes long', async () => {
+      await createWithNavigation();
+      expect(root.querySelector('[role="progressbar"]')).toBeNull();
+
+      loading.set(true);
+      fixture.detectChanges();
+
+      expect(root.querySelector('[role="progressbar"]')).not.toBeNull();
+    });
+
+    it('says so when a page cannot be loaded, with the reason and a button to load again', async () => {
+      await createWithNavigation();
+      error.set('Diese Seite konnte nicht geladen werden.');
+      errorDetail.set('Failed to fetch dynamically imported module');
+      fixture.detectChanges();
+
+      const banner = root.querySelector('[data-testid="nav-error"]')!;
+      expect(banner.textContent).toContain('Diese Seite konnte nicht geladen werden.');
+      expect(banner.textContent).toContain('Failed to fetch dynamically imported module');
+
+      banner.querySelector<HTMLButtonElement>('button')!.click();
+      expect(reloadNow).toHaveBeenCalled();
+    });
+
+    it('shows nothing when all is well', async () => {
+      await createWithNavigation();
+
+      expect(root.querySelector('[data-testid="nav-error"]')).toBeNull();
+    });
   });
 
   it('opens and closes the menu on small screens', async () => {

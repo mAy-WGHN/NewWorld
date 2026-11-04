@@ -1,3 +1,7 @@
+@if (navigation.loading()) {
+  <div class="progress" role="progressbar" aria-label="Seite wird geladen"><span></span></div>
+}
+
 <header class="topbar">
   <button type="button" class="menu-toggle" (click)="toggleMenu()" [attr.aria-expanded]="menuOpen()" aria-controls="side-nav">
     <span class="sr-only">Menü</span>
@@ -59,10 +63,15 @@
       <a class="side-link" routerLink="/favorites" routerLinkActive="active" (click)="closeMenu()">
         <app-icon name="star" /> Favoriten
       </a>
-      @if (canSeeNotifications()) {
-        <a class="side-link" routerLink="/notifications" routerLinkActive="active" (click)="closeMenu()">
-          <app-icon name="bell" /> Mitteilungen
-        </a>
+    </div>
+
+    <!-- The areas of the person, one click away (what they may open, grouped). -->
+    <div class="side-areas">
+      @for (group of areas(); track group.title) {
+        <h2 class="side-title">{{ group.title }}</h2>
+        @for (item of group.items; track item.path) {
+          <a class="side-link area" [routerLink]="'/' + item.path" routerLinkActive="active" (click)="closeMenu()">{{ item.label }}</a>
+        }
       }
     </div>
 
@@ -78,6 +87,18 @@
   </nav>
 
   <main class="content">
+    @if (navigation.error(); as message) {
+      <div class="nav-error" role="alert" data-testid="nav-error">
+        <div>
+          <strong>{{ message }}</strong>
+          Bitte lade die Seite neu (Strg + F5). Hilft das nicht, sag bitte Bescheid und nenne den Grund unten.
+          @if (navigation.errorDetail(); as detail) {
+            <small>{{ detail }}</small>
+          }
+        </div>
+        <button type="button" class="btn" (click)="reload()">Neu laden</button>
+      </div>
+    }
     <router-outlet />
   </main>
 </div>
