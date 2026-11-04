@@ -200,7 +200,7 @@ public sealed class Landscape
         using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(4));
         foreach (var service in new[] { "bc-integration-api", "access-api", "notifications-api", "workforce-api", "portal-api" })
         {
-            await _fixture.App.ResourceNotifications.WaitForResourceHealthyAsync(service, cts.Token);
+            await _fixture.WaitHealthyAsync(service, TimeSpan.FromMinutes(4), cts.Token);
         }
 
         // 1. BC Integration compares master data (WireMock BC): one store, six employees; the ids come from its events.

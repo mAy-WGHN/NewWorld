@@ -14,7 +14,7 @@ public class BcIntegrationE2ETests(AppHostFixture fixture)
     public async Task Master_data_from_the_bc_fake_becomes_events_of_bc_integration()
     {
         using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(4));
-        await fixture.App.ResourceNotifications.WaitForResourceHealthyAsync("bc-integration-api", cts.Token);
+        await fixture.WaitHealthyAsync("bc-integration-api", TimeSpan.FromMinutes(4), cts.Token);
         var connectionString = await fixture.App.GetConnectionStringAsync("bcintegration", cts.Token);
 
         var types = new List<string>();
