@@ -28,7 +28,7 @@ describe('ProfileService', () => {
     const profile = create();
 
     const done = profile.load();
-    http.expectOne('/workforce/api/me/employee-card').flush({ firstName: 'Mehmet', lastName: 'Demir', personnelNumber: '15302' });
+    http.expectOne('/svc/workforce/api/me/employee-card').flush({ firstName: 'Mehmet', lastName: 'Demir', personnelNumber: '15302' });
     await done;
 
     expect(profile.firstName()).toBe('Mehmet');
@@ -41,7 +41,7 @@ describe('ProfileService', () => {
     const profile = create();
 
     const done = profile.load();
-    http.expectOne('/workforce/api/me/employee-card').flush({}, { status: 404, statusText: 'Not Found' });
+    http.expectOne('/svc/workforce/api/me/employee-card').flush({}, { status: 404, statusText: 'Not Found' });
     await done;
 
     expect(profile.firstName()).toBeNull();
@@ -55,14 +55,14 @@ describe('ProfileService', () => {
 
     await profile.load();
 
-    http.expectNone('/workforce/api/me/employee-card');
+    http.expectNone('/svc/workforce/api/me/employee-card');
     expect(profile.firstName()).toBeNull();
   });
 
   it('forgets the person on sign-out', async () => {
     const profile = create();
     const done = profile.load();
-    http.expectOne('/workforce/api/me/employee-card').flush({ firstName: 'Mehmet', lastName: 'Demir', personnelNumber: '1' });
+    http.expectOne('/svc/workforce/api/me/employee-card').flush({ firstName: 'Mehmet', lastName: 'Demir', personnelNumber: '1' });
     await done;
 
     profile.clear();

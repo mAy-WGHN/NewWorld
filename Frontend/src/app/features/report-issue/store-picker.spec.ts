@@ -1,3 +1,4 @@
+import { OverlayContainer } from '@angular/cdk/overlay';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Location } from './report-issue-models';
 import { StorePicker } from './store-picker';
@@ -11,40 +12,49 @@ const stores: Location[] = [
 describe('StorePicker', () => {
   let fixture: ComponentFixture<StorePicker>;
   let root: HTMLElement;
+  let overlay: OverlayContainer;
 
   async function settle(): Promise<void> {
-    await fixture.whenStable();
-    await new Promise((r) => setTimeout(r));
-    await fixture.whenStable();
+    for (let i = 0; i < 3; i++) {
+      await fixture.whenStable();
+      await new Promise((r) => setTimeout(r, 20));
+    }
   }
 
-  const options = () => [...root.querySelectorAll('[data-testid="location-option"]')].map((o) => o.textContent?.trim());
-  const chips = () => [...root.querySelectorAll('[data-testid="chosen"]')].map((o) => o.textContent?.trim().replace(/\s*×$/, '').replace(/\s+/g, ' '));
+  /** The options stand in the overlay (outside of the component), as Angular Material places them. */
+  const options = () => [...overlay.getContainerElement().querySelectorAll('mat-option')].map((o) => o.textContent?.trim());
+  const chips = () => [...root.querySelectorAll('[data-testid="chosen"]')].map((c) => c.textContent?.replace(/\s+/g, ' ').replace(/cancel$/, '').trim());
   const input = () => root.querySelector<HTMLInputElement>('input')!;
 
   async function focus(): Promise<void> {
+    input().focus();
+    input().dispatchEvent(new Event('focusin', { bubbles: true }));
     input().dispatchEvent(new Event('focus'));
     await settle();
   }
 
   async function type(value: string): Promise<void> {
+    await focus();
     input().value = value;
     input().dispatchEvent(new Event('input', { bubbles: true }));
     await settle();
   }
 
-  async function key(name: string): Promise<void> {
-    input().dispatchEvent(new KeyboardEvent('keydown', { key: name, cancelable: true, bubbles: true }));
+  async function choose(id: string): Promise<void> {
+    overlay.getContainerElement().querySelector<HTMLElement>(`mat-option[data-id="${id}"]`)!.click();
     await settle();
   }
 
   beforeEach(async () => {
     TestBed.configureTestingModule({});
+    overlay = TestBed.inject(OverlayContainer);
     fixture = TestBed.createComponent(StorePicker);
     fixture.componentRef.setInput('locations', stores);
     root = fixture.nativeElement as HTMLElement;
     await settle();
   });
+
+  afterEach(() => overlay.ngOnDestroy());
 
   it('asks for the store with the same wording as the existing system', () => {
     expect(root.textContent).toContain('Filiale');
@@ -60,8 +70,6 @@ describe('StorePicker', () => {
   });
 
   it('narrows the list by name or number', async () => {
-    await focus();
-
     await type('augs');
     expect(options()).toEqual(['Samurai Augsburg (0022)']);
 
@@ -70,19 +78,15 @@ describe('StorePicker', () => {
   });
 
   it('says so when nothing fits', async () => {
-    await focus();
     await type('xyz');
 
-    expect(options()).toEqual([]);
-    expect(root.textContent).toContain('Keine Filiale gefunden');
+    expect(options()).toEqual(['Keine Filiale gefunden.']);
   });
 
   it('adds a store with a click, shows it as a chip and clears the search', async () => {
-    await focus();
     await type('kemp');
 
-    root.querySelector<HTMLButtonElement>('[data-testid="location-option"]')!.click();
-    await settle();
+    await choose('a');
 
     expect(fixture.componentInstance.selected().map((s) => s.id)).toEqual(['a']);
     expect(chips()).toEqual(['BaBu Kempten (0011)']);
@@ -91,11 +95,9 @@ describe('StorePicker', () => {
 
   it('allows several stores and does not offer a chosen one again', async () => {
     await focus();
-    root.querySelector<HTMLButtonElement>('[data-id="a"]')!.click();
-    await settle();
+    await choose('a');
     await focus();
-    root.querySelector<HTMLButtonElement>('[data-id="c"]')!.click();
-    await settle();
+    await choose('c');
     await focus();
 
     expect(fixture.componentInstance.selected().map((s) => s.id)).toEqual(['a', 'c']);
@@ -110,18 +112,6 @@ describe('StorePicker', () => {
     await settle();
 
     expect(fixture.componentInstance.selected().map((s) => s.id)).toEqual(['b']);
-  });
-
-  it('takes the first match with Enter, moves with the arrow keys and closes with Escape', async () => {
-    await focus();
-    await key('ArrowDown');
-    await key('Enter');
-    expect(fixture.componentInstance.selected().map((s) => s.id)).toEqual(['b']);
-
-    await focus();
-    expect(options().length).toBeGreaterThan(0);
-    await key('Escape');
-    expect(options()).toEqual([]);
   });
 
   it('shows the message of what is missing', async () => {

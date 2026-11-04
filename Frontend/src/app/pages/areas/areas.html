@@ -1,45 +1,49 @@
-<h1>Alle Bereiche</h1>
+<app-page-head title="Alle Bereiche" />
 
 @for (group of groups(); track group.title) {
-  <section>
-    <h2>{{ group.title }}</h2>
-    <div class="tiles">
+  <section class="mb-7">
+    <h2 class="m-0 mb-2.5 text-lg font-medium">{{ group.title }}</h2>
+    <div class="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-3.5">
       @for (item of group.items; track item.path) {
-        <div class="tile">
-          <a class="tile-link" [routerLink]="'/' + item.path">
+        <mat-card appearance="outlined" class="relative">
+          <a class="flex flex-col gap-1 py-4 pr-14 pl-4.5 text-on-surface no-underline hover:bg-surface-container" [routerLink]="'/' + item.path">
             <strong>{{ item.label }}</strong>
-            <span>{{ item.about }}</span>
+            <span class="text-[13px] text-on-surface-variant">{{ item.about }}</span>
           </a>
-          <button type="button" class="star" data-action="favorite" [class.on]="favorites.has(item.path)" [attr.aria-pressed]="favorites.has(item.path)"
+          <button mat-icon-button type="button" class="absolute! top-2 right-2" data-action="favorite" [attr.aria-pressed]="favorites.has(item.path)"
                   [attr.aria-label]="(favorites.has(item.path) ? 'Aus Favoriten entfernen: ' : 'Zu Favoriten hinzufügen: ') + item.label" (click)="favorites.toggle(item.path)">
-            <app-icon name="star" [size]="20" />
+            <mat-icon [class]="favorites.has(item.path) ? 'text-amber-500' : 'text-on-surface-variant'">{{ favorites.has(item.path) ? 'star' : 'star_border' }}</mat-icon>
           </button>
-        </div>
+        </mat-card>
       }
     </div>
   </section>
 }
 
 <section>
-  <h2>Deine Rechte</h2>
-  <p class="muted">
+  <h2 class="m-0 mb-2.5 text-lg font-medium">Deine Rechte</h2>
+  <p class="m-0 mb-3 text-on-surface-variant">
     @if (roles().length) {
       Rollen:
-      @for (role of roles(); track role) {
-        <span class="chip">{{ role }}</span>
-      }
+      <mat-chip-set class="inline-block align-middle" aria-label="Rollen">
+        @for (role of roles(); track role) {
+          <mat-chip>{{ role }}</mat-chip>
+        }
+      </mat-chip-set>
     }
     {{ privilegeCount() }} Rechte insgesamt.
   </p>
-  <details>
-    <summary>Alle Rechte anzeigen</summary>
+  <mat-expansion-panel>
+    <mat-expansion-panel-header>
+      <mat-panel-title>Alle Rechte anzeigen</mat-panel-title>
+    </mat-expansion-panel-header>
     @for (area of byArea(); track area[0]) {
-      <h3>{{ area[0] }}</h3>
-      <ul class="keys">
+      <h3 class="mt-4 mb-2 text-xs font-medium tracking-wider text-on-surface-variant uppercase">{{ area[0] }}</h3>
+      <ul class="m-0 flex list-none flex-wrap gap-1.5 p-0">
         @for (key of area[1]; track key) {
-          <li><code>{{ key }}</code></li>
+          <li><code class="rounded-md bg-surface-container px-1.5 py-0.5 text-xs">{{ key }}</code></li>
         }
       </ul>
     }
-  </details>
+  </mat-expansion-panel>
 </section>

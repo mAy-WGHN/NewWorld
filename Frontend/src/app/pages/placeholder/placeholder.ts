@@ -1,18 +1,21 @@
 import { Component, inject } from '@angular/core';
+import { MatCardModule } from '@angular/material/card';
+import { MatIconModule } from '@angular/material/icon';
 import { ActivatedRoute } from '@angular/router';
 
 /** Stands in for an area that is not built yet; title and description come from the route data (see nav-items.ts). */
 @Component({
   selector: 'app-placeholder',
+  imports: [MatCardModule, MatIconModule],
   template: `
-    <h1>{{ title }}</h1>
-    <p class="muted">{{ about }}</p>
-    <p class="note">Dieser Bereich wird noch gebaut.</p>
-  `,
-  styles: `
-    h1 { margin: 0 0 8px; font-size: 26px; }
-    .muted { color: var(--muted); }
-    .note { margin-top: 20px; padding: 12px 14px; border: 1px dashed var(--border); border-radius: 10px; color: var(--muted); }
+    <h1 class="m-0 mb-2 text-2xl font-medium">{{ title }}</h1>
+    <p class="m-0 text-on-surface-variant">{{ about }}</p>
+    <mat-card appearance="outlined" class="mt-5 max-w-xl">
+      <mat-card-content class="flex items-center gap-3 !py-4 text-on-surface-variant">
+        <mat-icon>construction</mat-icon>
+        <span>Dieser Bereich wird noch gebaut.</span>
+      </mat-card-content>
+    </mat-card>
   `,
 })
 export class PlaceholderPage {

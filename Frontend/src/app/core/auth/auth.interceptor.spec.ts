@@ -26,18 +26,18 @@ describe('authInterceptor', () => {
 
     sessionStorage.setItem('nw.refresh', 'refresh-0');
     const restored = auth.restore();
-    http.expectOne('/access/api/auth/refresh').flush(TOKENS);
+    http.expectOne('/svc/access/api/auth/refresh').flush(TOKENS);
     await new Promise((r) => setTimeout(r));
-    http.expectOne('/access/api/me/privileges').flush(ME);
+    http.expectOne('/svc/access/api/me/privileges').flush(ME);
     await restored;
   });
 
   afterEach(() => http.verify());
 
   it('adds the access token to calls to our services', () => {
-    client.get('/workforce/api/me/absences').subscribe();
+    client.get('/svc/workforce/api/me/absences').subscribe();
 
-    const request = http.expectOne('/workforce/api/me/absences');
+    const request = http.expectOne('/svc/workforce/api/me/absences');
     expect(request.request.headers.get('Authorization')).toBe('Bearer access-1');
     request.flush([]);
   });
@@ -51,23 +51,23 @@ describe('authInterceptor', () => {
   });
 
   it('leaves the login and refresh calls alone', () => {
-    client.post('/access/api/auth/login', {}).subscribe({ error: () => undefined });
+    client.post('/svc/access/api/auth/login', {}).subscribe({ error: () => undefined });
 
-    const request = http.expectOne('/access/api/auth/login');
+    const request = http.expectOne('/svc/access/api/auth/login');
     expect(request.request.headers.has('Authorization')).toBe(false);
     request.flush({}, { status: 401, statusText: 'Unauthorized' });
   });
 
   it('refreshes once on 401 and repeats the call with the new token', async () => {
     let result: unknown;
-    client.get('/portal/api/reports').subscribe((r) => (result = r));
+    client.get('/svc/portal/api/reports').subscribe((r) => (result = r));
 
-    http.expectOne('/portal/api/reports').flush({}, { status: 401, statusText: 'Unauthorized' });
+    http.expectOne('/svc/portal/api/reports').flush({}, { status: 401, statusText: 'Unauthorized' });
     await new Promise((r) => setTimeout(r));
-    http.expectOne('/access/api/auth/refresh').flush({ ...TOKENS, accessToken: 'access-2', refreshToken: 'refresh-2' });
+    http.expectOne('/svc/access/api/auth/refresh').flush({ ...TOKENS, accessToken: 'access-2', refreshToken: 'refresh-2' });
     await new Promise((r) => setTimeout(r));
 
-    const retry = http.expectOne('/portal/api/reports');
+    const retry = http.expectOne('/svc/portal/api/reports');
     expect(retry.request.headers.get('Authorization')).toBe('Bearer access-2');
     retry.flush(['report']);
     expect(result).toEqual(['report']);
@@ -76,11 +76,11 @@ describe('authInterceptor', () => {
   it('ends the session and goes to the login page if the refresh fails', async () => {
     const navigate = vi.spyOn(router, 'navigate').mockResolvedValue(true);
     let failed = false;
-    client.get('/portal/api/reports').subscribe({ error: () => (failed = true) });
+    client.get('/svc/portal/api/reports').subscribe({ error: () => (failed = true) });
 
-    http.expectOne('/portal/api/reports').flush({}, { status: 401, statusText: 'Unauthorized' });
+    http.expectOne('/svc/portal/api/reports').flush({}, { status: 401, statusText: 'Unauthorized' });
     await new Promise((r) => setTimeout(r));
-    http.expectOne('/access/api/auth/refresh').flush({}, { status: 401, statusText: 'Unauthorized' });
+    http.expectOne('/svc/access/api/auth/refresh').flush({}, { status: 401, statusText: 'Unauthorized' });
     await new Promise((r) => setTimeout(r));
 
     expect(failed).toBe(true);
@@ -90,11 +90,11 @@ describe('authInterceptor', () => {
 
   it('passes other errors through without a refresh', () => {
     let status = 0;
-    client.get('/portal/api/reports').subscribe({ error: (e) => (status = e.status) });
+    client.get('/svc/portal/api/reports').subscribe({ error: (e) => (status = e.status) });
 
-    http.expectOne('/portal/api/reports').flush({}, { status: 403, statusText: 'Forbidden' });
+    http.expectOne('/svc/portal/api/reports').flush({}, { status: 403, statusText: 'Forbidden' });
 
     expect(status).toBe(403);
-    http.expectNone('/access/api/auth/refresh');
+    http.expectNone('/svc/access/api/auth/refresh');
   });
 });

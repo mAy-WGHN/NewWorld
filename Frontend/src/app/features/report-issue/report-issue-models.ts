@@ -29,9 +29,9 @@ export interface IssueCategory {
 
 /** The five kinds of the existing system ("Störung melden"), in its order. */
 export const CATEGORIES: readonly IssueCategory[] = [
-  { id: 'bug', label: 'Fehler melden', icon: 'bug', placeholder: 'Was funktioniert nicht?', severity: 'choose', extra: 'none' },
-  { id: 'virus', label: 'Virus melden', icon: 'shield', placeholder: 'Was ist aufgefallen?', severity: 'critical', extra: 'virus' },
-  { id: 'theft', label: 'Diebstahl melden', icon: 'alert', placeholder: 'Was ist passiert?', severity: 'high', extra: 'noticed' },
+  { id: 'bug', label: 'Fehler melden', icon: 'bug_report', placeholder: 'Was funktioniert nicht?', severity: 'choose', extra: 'none' },
+  { id: 'virus', label: 'Virus melden', icon: 'security', placeholder: 'Was ist aufgefallen?', severity: 'critical', extra: 'virus' },
+  { id: 'theft', label: 'Diebstahl melden', icon: 'report', placeholder: 'Was ist passiert?', severity: 'high', extra: 'noticed' },
   { id: 'other', label: 'Sonstige Verstöße melden', icon: 'gavel', placeholder: 'Was ist passiert?', severity: 'medium', extra: 'none' },
   { id: 'suggestion', label: 'Verbesserungsvorschlag melden', icon: 'lightbulb', placeholder: 'Was schlägst du vor?', severity: 'low', extra: 'none' },
 ];

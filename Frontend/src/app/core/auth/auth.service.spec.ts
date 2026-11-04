@@ -21,10 +21,10 @@ describe('AuthService', () => {
 
   async function signIn(): Promise<void> {
     const done = auth.login('4711', '1234');
-    http.expectOne('/access/api/auth/login').flush(TOKENS);
+    http.expectOne('/svc/access/api/auth/login').flush(TOKENS);
     await Promise.resolve();
     await new Promise((r) => setTimeout(r));
-    http.expectOne('/access/api/me/privileges').flush(ME);
+    http.expectOne('/svc/access/api/me/privileges').flush(ME);
     await done;
   }
 
@@ -39,11 +39,11 @@ describe('AuthService', () => {
 
   it('sends personnel number and PIN only to the login call and never stores the PIN', async () => {
     const done = auth.login('4711', '1234');
-    const request = http.expectOne('/access/api/auth/login');
+    const request = http.expectOne('/svc/access/api/auth/login');
     expect(request.request.body).toEqual({ personnelNumber: '4711', pin: '1234' });
     request.flush(TOKENS);
     await new Promise((r) => setTimeout(r));
-    http.expectOne('/access/api/me/privileges').flush(ME);
+    http.expectOne('/svc/access/api/me/privileges').flush(ME);
     await done;
 
     const stored = JSON.stringify(Object.entries(sessionStorage)) + JSON.stringify(Object.entries(localStorage));
@@ -54,7 +54,7 @@ describe('AuthService', () => {
 
   it('maps a wrong PIN to "invalid" and stays signed out', async () => {
     const done = auth.login('4711', 'bad');
-    http.expectOne('/access/api/auth/login').flush({ title: 'InvalidCredentials' }, { status: 401, statusText: 'Unauthorized' });
+    http.expectOne('/svc/access/api/auth/login').flush({ title: 'InvalidCredentials' }, { status: 401, statusText: 'Unauthorized' });
 
     await expect(done).rejects.toMatchObject({ failure: 'invalid' });
     expect(auth.isAuthenticated()).toBe(false);
@@ -63,7 +63,7 @@ describe('AuthService', () => {
 
   it('maps throttling to "locked" with the wait time', async () => {
     const done = auth.login('4711', 'bad');
-    http.expectOne('/access/api/auth/login').flush({}, { status: 429, statusText: 'Too Many', headers: { 'Retry-After': '120' } });
+    http.expectOne('/svc/access/api/auth/login').flush({}, { status: 429, statusText: 'Too Many', headers: { 'Retry-After': '120' } });
 
     const error = (await done.catch((e: unknown) => e)) as LoginError;
     expect(error.failure).toBe('locked');
@@ -72,7 +72,7 @@ describe('AuthService', () => {
 
   it('maps an unavailable login to "unavailable"', async () => {
     const done = auth.login('4711', '1234');
-    http.expectOne('/access/api/auth/login').flush({}, { status: 503, statusText: 'Unavailable' });
+    http.expectOne('/svc/access/api/auth/login').flush({}, { status: 503, statusText: 'Unavailable' });
 
     await expect(done).rejects.toMatchObject({ failure: 'unavailable' });
   });
@@ -81,11 +81,11 @@ describe('AuthService', () => {
     sessionStorage.setItem('nw.refresh', 'refresh-0');
 
     const done = auth.restore();
-    const refresh = http.expectOne('/access/api/auth/refresh');
+    const refresh = http.expectOne('/svc/access/api/auth/refresh');
     expect(refresh.request.body).toEqual({ refreshToken: 'refresh-0' });
     refresh.flush({ ...TOKENS, refreshToken: 'refresh-2' });
     await new Promise((r) => setTimeout(r));
-    http.expectOne('/access/api/me/privileges').flush(ME);
+    http.expectOne('/svc/access/api/me/privileges').flush(ME);
     await done;
 
     expect(auth.isAuthenticated()).toBe(true);
@@ -104,7 +104,7 @@ describe('AuthService', () => {
 
     const first = auth.refresh();
     const second = auth.refresh();
-    http.expectOne('/access/api/auth/refresh').flush({ ...TOKENS, accessToken: 'access-2', refreshToken: 'refresh-3' });
+    http.expectOne('/svc/access/api/auth/refresh').flush({ ...TOKENS, accessToken: 'access-2', refreshToken: 'refresh-3' });
 
     expect(await first).toBe(true);
     expect(await second).toBe(true);
@@ -115,7 +115,7 @@ describe('AuthService', () => {
     sessionStorage.setItem('nw.refresh', 'old');
 
     const done = auth.restore();
-    http.expectOne('/access/api/auth/refresh').flush({}, { status: 401, statusText: 'Unauthorized' });
+    http.expectOne('/svc/access/api/auth/refresh').flush({}, { status: 401, statusText: 'Unauthorized' });
     await done;
 
     expect(auth.isAuthenticated()).toBe(false);
@@ -126,7 +126,7 @@ describe('AuthService', () => {
     sessionStorage.setItem('nw.refresh', 'keep');
 
     const done = auth.refresh();
-    http.expectOne('/access/api/auth/refresh').flush({}, { status: 0, statusText: 'Unknown' });
+    http.expectOne('/svc/access/api/auth/refresh').flush({}, { status: 0, statusText: 'Unknown' });
 
     expect(await done).toBe(false);
     expect(sessionStorage.getItem('nw.refresh')).toBe('keep');
@@ -136,7 +136,7 @@ describe('AuthService', () => {
     await signIn();
 
     const done = auth.logout();
-    http.expectOne('/access/api/auth/logout').flush(null, { status: 204, statusText: 'No Content' });
+    http.expectOne('/svc/access/api/auth/logout').flush(null, { status: 204, statusText: 'No Content' });
     await done;
 
     expect(auth.isAuthenticated()).toBe(false);
@@ -148,7 +148,7 @@ describe('AuthService', () => {
     await signIn();
 
     const done = auth.logout();
-    http.expectOne('/access/api/auth/logout').flush({}, { status: 500, statusText: 'Error' });
+    http.expectOne('/svc/access/api/auth/logout').flush({}, { status: 500, statusText: 'Error' });
     await done;
 
     expect(auth.isAuthenticated()).toBe(false);
@@ -156,9 +156,9 @@ describe('AuthService', () => {
 
   async function signInWithToken(): Promise<void> {
     const done = auth.restore();
-    http.expectOne('/access/api/auth/refresh').flush(TOKENS);
+    http.expectOne('/svc/access/api/auth/refresh').flush(TOKENS);
     await new Promise((r) => setTimeout(r));
-    http.expectOne('/access/api/me/privileges').flush(ME);
+    http.expectOne('/svc/access/api/me/privileges').flush(ME);
     await done;
   }
 });

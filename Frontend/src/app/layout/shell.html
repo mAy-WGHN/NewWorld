@@ -1,104 +1,134 @@
-@if (navigation.loading()) {
-  <div class="progress" role="progressbar" aria-label="Seite wird geladen"><span></span></div>
-}
-
-<header class="topbar">
-  <button type="button" class="menu-toggle" (click)="toggleMenu()" [attr.aria-expanded]="menuOpen()" aria-controls="side-nav">
-    <span class="sr-only">Menü</span>
-    <app-icon name="menu" [size]="22" />
-  </button>
-
-  <a class="brand" routerLink="/" (click)="closeMenu()" aria-label="Wintergerst Mitarbeiterportal, Startseite">
-    <svg class="logo" viewBox="0 0 48 48" width="40" height="40" aria-hidden="true">
-      <path d="M24 44V22" fill="none" stroke="#2f7a4b" stroke-width="2.4" stroke-linecap="round" />
-      <path d="M24 30c-8 0-13-5-13-13 8 0 13 5 13 13z" fill="#3f9b5f" />
-      <path d="M24 24c0-8 5-13 13-13 0 8-5 13-13 13z" fill="#2f7a4b" />
-      <path d="M24 36c6 0 10-4 10-10-6 0-10 4-10 10z" fill="#6cc08a" />
-    </svg>
-    <span class="brand-text"><strong>Wintergerst</strong><small>Mitarbeiterportal</small></span>
-  </a>
-
-  <app-search-box class="search" />
-
-  <div class="spacer"></div>
-
-  @if (canSeeNotifications()) {
-    <a class="bell" routerLink="/notifications" (click)="closeMenu()" aria-label="Mitteilungen">
-      <app-icon name="bell" [size]="24" />
-      @if (unread(); as count) {
-        <span class="badge" data-testid="badge">{{ count > 99 ? '99+' : count }}</span>
-      }
-    </a>
+<div class="flex h-dvh flex-col bg-surface text-on-surface">
+  @if (navigation.loading()) {
+    <mat-progress-bar mode="indeterminate" aria-label="Seite wird geladen" class="fixed! top-0 right-0 left-0 z-50" />
   }
 
-  <details class="user">
-    <summary>
-      <span class="avatar" aria-hidden="true">{{ initials() }}</span>
-      <span class="who">
-        <strong>{{ displayName() ?? 'Angemeldet' }}</strong>
-        @if (personnelNumber(); as number) {
-          <small>Personalnummer {{ number }}</small>
-        }
-      </span>
-      <app-icon name="chevron-down" [size]="16" />
-    </summary>
-    <div class="menu">
-      <button type="button" data-action="logout" (click)="logout()">
-        <app-icon name="logout" [size]="18" />
-        Abmelden
+  <mat-toolbar class="topbar z-10 shrink-0 border-b border-outline-variant bg-surface! h-auto! min-h-16 py-2!">
+    <div class="flex w-full flex-wrap items-center gap-x-3 gap-y-2">
+    @if (small()) {
+      <button mat-icon-button type="button" class="menu-toggle" aria-label="Menü" [attr.aria-expanded]="menuOpen()" (click)="toggleMenu()">
+        <mat-icon>menu</mat-icon>
       </button>
-    </div>
-  </details>
-</header>
-
-<div class="body">
-  <nav id="side-nav" class="side" [class.open]="menuOpen()" aria-label="Hauptmenü">
-    <div class="side-top">
-      <a class="side-link" routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" (click)="closeMenu()">
-        <app-icon name="home" /> Startseite
-      </a>
-      <a class="side-link" routerLink="/areas" routerLinkActive="active" (click)="closeMenu()">
-        <app-icon name="grid" /> Alle Bereiche
-      </a>
-      <a class="side-link" routerLink="/favorites" routerLinkActive="active" (click)="closeMenu()">
-        <app-icon name="star" /> Favoriten
-      </a>
-    </div>
-
-    <!-- The areas of the person, one click away (what they may open, grouped). -->
-    <div class="side-areas">
-      @for (group of areas(); track group.title) {
-        <h2 class="side-title">{{ group.title }}</h2>
-        @for (item of group.items; track item.path) {
-          <a class="side-link area" [routerLink]="'/' + item.path" routerLinkActive="active" (click)="closeMenu()">{{ item.label }}</a>
-        }
-      }
-    </div>
-
-    <div class="side-bottom">
-      <a class="side-link" routerLink="/settings" routerLinkActive="active" (click)="closeMenu()">
-        <app-icon name="settings" /> Einstellungen
-      </a>
-      <a class="side-link" routerLink="/help" routerLinkActive="active" (click)="closeMenu()">
-        <app-icon name="help" /> Hilfe
-      </a>
-      <p class="tagline">Gemeinsam<br />mehr erreichen.</p>
-    </div>
-  </nav>
-
-  <main class="content">
-    @if (navigation.error(); as message) {
-      <div class="nav-error" role="alert" data-testid="nav-error">
-        <div>
-          <strong>{{ message }}</strong>
-          Bitte lade die Seite neu (Strg + F5). Hilft das nicht, sag bitte Bescheid und nenne den Grund unten.
-          @if (navigation.errorDetail(); as detail) {
-            <small>{{ detail }}</small>
-          }
-        </div>
-        <button type="button" class="btn" (click)="reload()">Neu laden</button>
-      </div>
     }
-    <router-outlet />
-  </main>
+
+    <a class="flex shrink-0 items-center gap-2.5 text-on-surface no-underline lg:w-44" routerLink="/" (click)="closeMenu()" aria-label="Wintergerst Mitarbeiterportal, Startseite">
+      <svg viewBox="0 0 48 48" width="40" height="40" aria-hidden="true">
+        <path d="M24 44V22" fill="none" stroke="#2f7a4b" stroke-width="2.4" stroke-linecap="round" />
+        <path d="M24 30c-8 0-13-5-13-13 8 0 13 5 13 13z" fill="#3f9b5f" />
+        <path d="M24 24c0-8 5-13 13-13 0 8-5 13-13 13z" fill="#2f7a4b" />
+        <path d="M24 36c6 0 10-4 10-10-6 0-10 4-10 10z" fill="#6cc08a" />
+      </svg>
+      <span class="flex flex-col leading-tight">
+        <strong class="text-xl">Wintergerst</strong>
+        <small class="text-xs text-on-surface-variant">Mitarbeiterportal</small>
+      </span>
+    </a>
+
+    @if (!small()) {
+      <app-search-box class="mx-auto flex-1" />
+    }
+
+    <span class="flex-1 lg:hidden"></span>
+
+    @if (canSeeNotifications()) {
+      <a mat-icon-button class="bell" routerLink="/notifications" aria-label="Mitteilungen" (click)="closeMenu()">
+        <mat-icon [matBadge]="badge()" [matBadgeHidden]="!unread()" matBadgeColor="warn" matBadgeSize="small">notifications</mat-icon>
+      </a>
+    }
+
+    <button mat-button type="button" class="user !h-auto !py-1" [matMenuTriggerFor]="userMenu" aria-label="Benutzermenü">
+      <span class="flex items-center gap-2.5">
+        <span class="avatar grid size-10 place-items-center rounded-full bg-primary-container font-bold text-on-primary-container" aria-hidden="true">{{ initials() }}</span>
+        @if (!small()) {
+          <span class="who flex flex-col text-left leading-tight">
+            <strong>{{ displayName() ?? 'Angemeldet' }}</strong>
+            @if (personnelNumber(); as number) {
+              <small class="text-xs font-normal text-on-surface-variant">Personalnummer {{ number }}</small>
+            }
+          </span>
+        }
+        <mat-icon>expand_more</mat-icon>
+      </span>
+    </button>
+    <mat-menu #userMenu="matMenu">
+      <button mat-menu-item type="button" data-action="logout" (click)="logout()">
+        <mat-icon>logout</mat-icon>
+        <span>Abmelden</span>
+      </button>
+    </mat-menu>
+
+    @if (small()) {
+      <app-search-box class="basis-full" />
+    }
+    </div>
+  </mat-toolbar>
+
+  <mat-sidenav-container class="min-h-0 flex-1 bg-surface-container-low!" autosize>
+    <mat-sidenav
+      class="side w-60! border-r! border-outline-variant!"
+      [mode]="small() ? 'over' : 'side'"
+      [opened]="!small() || menuOpen()"
+      (closedStart)="menuOpen.set(false)"
+      fixedInViewport="false"
+    >
+      <nav class="flex h-full flex-col" aria-label="Hauptmenü">
+        <mat-nav-list class="shrink-0">
+          <a mat-list-item routerLink="/" routerLinkActive #home="routerLinkActive" [routerLinkActiveOptions]="{ exact: true }" [activated]="home.isActive" (click)="closeMenu()">
+            <mat-icon matListItemIcon>home</mat-icon>
+            <span matListItemTitle>Startseite</span>
+          </a>
+          <a mat-list-item routerLink="/areas" routerLinkActive #all="routerLinkActive" [activated]="all.isActive" (click)="closeMenu()">
+            <mat-icon matListItemIcon>apps</mat-icon>
+            <span matListItemTitle>Alle Bereiche</span>
+          </a>
+          <a mat-list-item routerLink="/favorites" routerLinkActive #fav="routerLinkActive" [activated]="fav.isActive" (click)="closeMenu()">
+            <mat-icon matListItemIcon>star_border</mat-icon>
+            <span matListItemTitle>Favoriten</span>
+          </a>
+        </mat-nav-list>
+
+        <!-- The areas of the person, one click away (what they may open, grouped). -->
+        <mat-nav-list class="min-h-0 flex-1 overflow-y-auto border-t border-outline-variant">
+          @for (group of areas(); track group.title) {
+            <h2 mat-subheader class="side-title uppercase tracking-wider">{{ group.title }}</h2>
+            @for (item of group.items; track item.path) {
+              <a mat-list-item [routerLink]="'/' + item.path" routerLinkActive #area="routerLinkActive" [activated]="area.isActive" (click)="closeMenu()">
+                <span matListItemTitle>{{ item.label }}</span>
+              </a>
+            }
+          }
+        </mat-nav-list>
+
+        <mat-nav-list class="shrink-0 border-t border-outline-variant">
+          <a mat-list-item routerLink="/settings" routerLinkActive #settings="routerLinkActive" [activated]="settings.isActive" (click)="closeMenu()">
+            <mat-icon matListItemIcon>tune</mat-icon>
+            <span matListItemTitle>Einstellungen</span>
+          </a>
+          <a mat-list-item routerLink="/help" routerLinkActive #help="routerLinkActive" [activated]="help.isActive" (click)="closeMenu()">
+            <mat-icon matListItemIcon>help_outline</mat-icon>
+            <span matListItemTitle>Hilfe</span>
+          </a>
+        </mat-nav-list>
+        <p class="m-0 px-5 pb-4 font-serif text-lg leading-tight text-ok italic">Gemeinsam<br />mehr erreichen.</p>
+      </nav>
+    </mat-sidenav>
+
+    <mat-sidenav-content>
+      <main class="mx-auto w-full max-w-[1500px] p-4 lg:p-6">
+        @if (navigation.error(); as message) {
+          <div class="nav-error mb-4 flex flex-wrap items-start justify-between gap-4 rounded-xl border border-error bg-surface px-4 py-3" role="alert" data-testid="nav-error">
+            <div>
+              <strong class="block text-error">{{ message }}</strong>
+              Bitte lade die Seite neu (Strg + F5). Hilft das nicht, sag bitte Bescheid und nenne den Grund unten.
+              @if (navigation.errorDetail(); as detail) {
+                <small class="mt-1.5 block break-all text-on-surface-variant">{{ detail }}</small>
+              }
+            </div>
+            <button mat-flat-button type="button" (click)="reload()">Neu laden</button>
+          </div>
+        }
+        <router-outlet />
+      </main>
+    </mat-sidenav-content>
+  </mat-sidenav-container>
 </div>

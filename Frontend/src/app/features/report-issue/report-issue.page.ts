@@ -1,6 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { ProfileService } from '../../core/profile.service';
-import { IconComponent } from '../../shared/icon';
+import { PAGE_UI } from '../../shared/ui/material';
 import { ReportsApi } from '../reports/reports.api';
 import { LocationsApi } from './locations.api';
 import {
@@ -35,9 +35,8 @@ const emptyForm = (personnelNumber: string): IssueForm => ({
  */
 @Component({
   selector: 'app-report-issue',
-  imports: [IconComponent, StorePicker],
+  imports: [StorePicker, ...PAGE_UI],
   templateUrl: './report-issue.page.html',
-  styleUrl: './report-issue.page.scss',
 })
 export class ReportIssuePage {
   private readonly reports = inject(ReportsApi);

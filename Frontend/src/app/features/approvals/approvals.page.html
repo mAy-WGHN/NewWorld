@@ -1,45 +1,40 @@
-<header class="head">
-  <h1>Genehmigungen</h1>
-  <button type="button" class="btn" data-testid="refresh" [disabled]="busy()" (click)="refresh()">Aktualisieren</button>
-</header>
+<app-page-head title="Genehmigungen">
+  <button mat-flat-button type="button" data-testid="refresh" [disabled]="busy()" (click)="refresh()">Aktualisieren</button>
+</app-page-head>
 
 @if (error(); as message) {
-  <p class="alert" role="alert">{{ message }}</p>
+  <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert">{{ message }}</p>
 }
 @if (status(); as message) {
-  <p class="ok" role="status" data-testid="status">{{ message }}</p>
+  <p class="mb-3 rounded-xl bg-primary-container px-4 py-2.5 text-on-primary-container" role="status" data-testid="status">{{ message }}</p>
 }
 @if (listError(); as message) {
-  <p class="alert" role="alert">{{ message }}</p>
+  <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert">{{ message }}</p>
 }
 
 @if (count() > 0) {
-  <section class="attention-block" data-testid="attention" aria-labelledby="open-title">
-    <h2 id="open-title">Wartet auf deine Entscheidung ({{ count() }})</h2>
-    <p class="attention-hint">Diese Urlaubsanträge brauchen deine Entscheidung, die frühesten zuerst.</p>
-    <ul class="list">
-      @for (r of requests(); track r.absenceId) {
-        <li class="row attention" data-testid="request-row" [attr.data-id]="r.absenceId">
-          <div class="row-main">
-            <div>
-              <strong>{{ r.employeeName }}</strong>
-              <span class="hint">Urlaub {{ formatPeriod(r.from, r.to) }}</span>
-            </div>
-            <div class="actions">
-              @if (confirming() === r.absenceId) {
-                <span class="ask">Wirklich ablehnen?</span>
-                <button type="button" class="btn danger" data-action="confirm-reject" [disabled]="busy()" (click)="reject(r)">Ja, ablehnen</button>
-                <button type="button" class="btn-quiet" data-action="cancel-reject" [disabled]="busy()" (click)="cancelAsk()">Abbrechen</button>
-              } @else {
-                <button type="button" class="btn" data-action="approve" [disabled]="busy()" (click)="approve(r)">Genehmigen</button>
-                <button type="button" class="btn-quiet" data-action="reject" [disabled]="busy()" (click)="ask(r)">Ablehnen</button>
-              }
-            </div>
+  <app-attention-block data-testid="attention" title="Wartet auf deine Entscheidung ({{ count() }})" hint="Diese Urlaubsanträge brauchen deine Entscheidung, die frühesten zuerst.">
+    @for (r of requests(); track r.absenceId) {
+      <app-row-card [attention]="true" data-testid="request-row" [attr.data-id]="r.absenceId">
+        <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+          <div class="flex flex-col">
+            <strong>{{ r.employeeName }}</strong>
+            <span class="text-[13px]">Urlaub {{ formatPeriod(r.from, r.to) }}</span>
           </div>
-        </li>
-      }
-    </ul>
-  </section>
+          <div class="flex flex-wrap items-center gap-2">
+            @if (confirming() === r.absenceId) {
+              <span class="text-sm font-medium">Wirklich ablehnen?</span>
+              <button mat-flat-button type="button" class="!bg-error !text-on-error" data-action="confirm-reject" [disabled]="busy()" (click)="reject(r)">Ja, ablehnen</button>
+              <button mat-stroked-button type="button" data-action="cancel-reject" [disabled]="busy()" (click)="cancelAsk()">Abbrechen</button>
+            } @else {
+              <button mat-flat-button type="button" data-action="approve" [disabled]="busy()" (click)="approve(r)">Genehmigen</button>
+              <button mat-stroked-button type="button" data-action="reject" [disabled]="busy()" (click)="ask(r)">Ablehnen</button>
+            }
+          </div>
+        </div>
+      </app-row-card>
+    }
+  </app-attention-block>
 } @else if (loaded() && !listError()) {
-  <p class="muted">Keine offenen Anträge. Alles erledigt.</p>
+  <p class="m-0 text-on-surface-variant">Keine offenen Anträge. Alles erledigt.</p>
 }

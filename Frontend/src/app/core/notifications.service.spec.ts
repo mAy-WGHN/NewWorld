@@ -32,7 +32,7 @@ describe('NotificationsService', () => {
     const service = create();
 
     const done = service.refresh();
-    http.expectOne('/notifications/api/me/notifications/unread-count').flush({ count: 3 });
+    http.expectOne('/svc/notifications/api/me/notifications/unread-count').flush({ count: 3 });
     await done;
 
     expect(service.unread()).toBe(3);
@@ -41,11 +41,11 @@ describe('NotificationsService', () => {
   it('keeps the last count if a refresh fails', async () => {
     const service = create();
     const first = service.refresh();
-    http.expectOne('/notifications/api/me/notifications/unread-count').flush({ count: 2 });
+    http.expectOne('/svc/notifications/api/me/notifications/unread-count').flush({ count: 2 });
     await first;
 
     const second = service.refresh();
-    http.expectOne('/notifications/api/me/notifications/unread-count').flush({}, { status: 503, statusText: 'Unavailable' });
+    http.expectOne('/svc/notifications/api/me/notifications/unread-count').flush({}, { status: 503, statusText: 'Unavailable' });
     await second;
 
     expect(service.unread()).toBe(2);
@@ -57,14 +57,14 @@ describe('NotificationsService', () => {
 
     await service.refresh();
 
-    http.expectNone('/notifications/api/me/notifications/unread-count');
+    http.expectNone('/svc/notifications/api/me/notifications/unread-count');
     expect(service.unread()).toBeNull();
   });
 
   it('forgets the count on sign-out', async () => {
     const service = create();
     const done = service.refresh();
-    http.expectOne('/notifications/api/me/notifications/unread-count').flush({ count: 5 });
+    http.expectOne('/svc/notifications/api/me/notifications/unread-count').flush({ count: 5 });
     await done;
 
     service.clear();

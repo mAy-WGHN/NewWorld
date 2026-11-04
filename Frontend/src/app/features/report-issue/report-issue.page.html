@@ -1,110 +1,122 @@
-<h1>Störung melden</h1>
+<div class="max-w-2xl">
+  <app-page-head title="Störung melden" />
 
-@switch (step()) {
-  @case ('choose') {
-    <section class="choose" aria-labelledby="choose-title">
-      <p class="lead">Etwas ist vorgefallen?</p>
-      <h2 id="choose-title">Was möchtest du melden?</h2>
-      <div class="choices">
-        @for (c of categories; track c.id) {
-          <button type="button" class="choice" [attr.data-category]="c.id" (click)="start(c)">
-            <span class="choice-icon"><app-icon [name]="c.icon" [size]="24" /></span>
-            {{ c.label }}
-          </button>
-        }
-      </div>
-    </section>
-  }
+  @switch (step()) {
+    @case ('choose') {
+      <section aria-labelledby="choose-title">
+        <p class="m-0 mb-1 text-on-surface-variant">Etwas ist vorgefallen?</p>
+        <h2 id="choose-title" class="m-0 mb-4 text-xl font-medium">Was möchtest du melden?</h2>
+        <div class="flex flex-col gap-3">
+          @for (c of categories; track c.id) {
+            <button mat-stroked-button type="button" class="!h-16 !justify-start !rounded-2xl !px-4 !text-base" [attr.data-category]="c.id" (click)="start(c)">
+              <mat-icon class="mr-2 text-primary">{{ c.icon }}</mat-icon>
+              <span class="label">{{ c.label }}</span>
+            </button>
+          }
+        </div>
+      </section>
+    }
 
-  @case ('form') {
-    <form class="card" data-testid="issue-form" (submit)="submit($event)" novalidate>
-      <h2>{{ category().label }}</h2>
+    @case ('form') {
+      <mat-card appearance="outlined">
+        <form class="flex flex-col gap-5 p-5" data-testid="issue-form" (submit)="submit($event)" novalidate>
+          <h2 class="m-0 text-xl font-medium">{{ category().label }}</h2>
 
-      <div class="field">
-        <label for="pn">Personalnummer*</label>
-        <input id="pn" type="number" inputmode="numeric" min="1" [value]="form().personnelNumber" (input)="set('personnelNumber', $event)"
-               [attr.aria-invalid]="errors().personnelNumber ? 'true' : null" [disabled]="busy()" />
-        @if (errors().personnelNumber; as message) {
-          <p class="field-error" role="alert">{{ message }}</p>
-        }
-      </div>
-
-      <div class="field">
-        <label for="description">Beschreibung*</label>
-        <textarea id="description" rows="4" [placeholder]="category().placeholder" [value]="form().description" (input)="set('description', $event)"
-                  [attr.aria-invalid]="errors().description ? 'true' : null" [disabled]="busy()"></textarea>
-        @if (errors().description; as message) {
-          <p class="field-error" role="alert">{{ message }}</p>
-        }
-      </div>
-
-      <app-store-picker [locations]="locations()" [(selected)]="chosen" [error]="errors().locations ?? null" />
-      @if (locationsError(); as message) {
-        <p class="field-error" data-testid="locations-error" role="alert">{{ message }}</p>
-      }
-
-      @if (category().severity === 'choose') {
-        <div class="field">
-          <label for="severity">Störlevel*</label>
-          <select id="severity" (change)="set('severity', $event)" [disabled]="busy()">
-            @for (s of severities; track s.value) {
-              <option [value]="s.value" [selected]="form().severity === s.value">{{ s.label }}</option>
+          <div>
+            <mat-form-field appearance="outline" class="w-full" subscriptSizing="dynamic">
+              <mat-label>Personalnummer*</mat-label>
+              <input matInput id="pn" type="number" inputmode="numeric" min="1" [value]="form().personnelNumber" (input)="set('personnelNumber', $event)"
+                     [attr.aria-invalid]="errors().personnelNumber ? 'true' : null" [disabled]="busy()" />
+            </mat-form-field>
+            @if (errors().personnelNumber; as message) {
+              <p class="m-0 mt-1 text-[13px] text-error" role="alert">{{ message }}</p>
             }
-          </select>
-        </div>
-      }
-
-      @if (category().extra === 'virus') {
-        <div class="field">
-          <label for="device">Konkreter Rechner</label>
-          <input id="device" type="text" placeholder="z. B. Kasse-03" [value]="form().device" (input)="set('device', $event)" [disabled]="busy()" />
-          <p class="hint">Falls mehrere vorhanden</p>
-        </div>
-      }
-
-      @if (category().extra !== 'none') {
-        <fieldset class="field">
-          <legend>{{ category().extra === 'virus' ? 'Wann bemerkt?' : 'Datum & Uhrzeit' }}</legend>
-          <div class="two">
-            <div class="field">
-              <label for="noticed-date">Tag</label>
-              <input id="noticed-date" type="date" [value]="form().noticedDate" (input)="set('noticedDate', $event)" [disabled]="busy()" />
-            </div>
-            <div class="field">
-              <label for="noticed-time">Uhrzeit</label>
-              <input id="noticed-time" type="time" [value]="form().noticedTime" (input)="set('noticedTime', $event)" [disabled]="busy()" />
-            </div>
           </div>
-        </fieldset>
-      }
 
-      @if (category().extra === 'virus') {
-        <div class="field">
-          <label for="noticed-how">Wie wurde es bemerkt?</label>
-          <input id="noticed-how" type="text" [value]="form().noticedHow" (input)="set('noticedHow', $event)" [disabled]="busy()" />
-        </div>
-        <div class="field">
-          <label for="prior-activity">Was wurde davor an dem Gerät gemacht?</label>
-          <input id="prior-activity" type="text" [value]="form().priorActivity" (input)="set('priorActivity', $event)" [disabled]="busy()" />
-        </div>
-      }
+          <div>
+            <mat-form-field appearance="outline" class="w-full" subscriptSizing="dynamic">
+              <mat-label>Beschreibung*</mat-label>
+              <textarea matInput id="description" rows="4" [placeholder]="category().placeholder" [value]="form().description" (input)="set('description', $event)"
+                        [attr.aria-invalid]="errors().description ? 'true' : null" [disabled]="busy()"></textarea>
+            </mat-form-field>
+            @if (errors().description; as message) {
+              <p class="m-0 mt-1 text-[13px] text-error" role="alert">{{ message }}</p>
+            }
+          </div>
 
-      @if (submitError(); as message) {
-        <p class="alert" role="alert" data-testid="submit-error">{{ message }}</p>
-      }
+          <div>
+            <app-store-picker [locations]="locations()" [(selected)]="chosen" [error]="errors().locations ?? null" />
+            @if (locationsError(); as message) {
+              <p class="m-0 mt-1 text-[13px] text-error" data-testid="locations-error" role="alert">{{ message }}</p>
+            }
+          </div>
 
-      <div class="form-actions">
-        <button type="button" class="btn-quiet" data-action="cancel" [disabled]="busy()" (click)="backToChoice()">Abbrechen</button>
-        <button type="submit" class="btn" [disabled]="busy()">{{ busy() ? 'Wird gesendet …' : 'Melden' }}</button>
-      </div>
-    </form>
+          @if (category().severity === 'choose') {
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Störlevel*</mat-label>
+              <select matNativeControl id="severity" (change)="set('severity', $event)" [disabled]="busy()">
+                @for (s of severities; track s.value) {
+                  <option [value]="s.value" [selected]="form().severity === s.value">{{ s.label }}</option>
+                }
+              </select>
+            </mat-form-field>
+          }
+
+          @if (category().extra === 'virus') {
+            <mat-form-field appearance="outline">
+              <mat-label>Konkreter Rechner</mat-label>
+              <input matInput id="device" type="text" placeholder="z. B. Kasse-03" [value]="form().device" (input)="set('device', $event)" [disabled]="busy()" />
+              <mat-hint>Falls mehrere vorhanden</mat-hint>
+            </mat-form-field>
+          }
+
+          @if (category().extra !== 'none') {
+            <fieldset class="m-0 border-0 p-0">
+              <legend class="mb-2 p-0 text-sm font-medium">{{ category().extra === 'virus' ? 'Wann bemerkt?' : 'Datum & Uhrzeit' }}</legend>
+              <div class="grid gap-x-3 sm:grid-cols-2">
+                <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                  <mat-label>Tag</mat-label>
+                  <input matInput id="noticed-date" type="date" [value]="form().noticedDate" (input)="set('noticedDate', $event)" [disabled]="busy()" />
+                </mat-form-field>
+                <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                  <mat-label>Uhrzeit</mat-label>
+                  <input matInput id="noticed-time" type="time" [value]="form().noticedTime" (input)="set('noticedTime', $event)" [disabled]="busy()" />
+                </mat-form-field>
+              </div>
+            </fieldset>
+          }
+
+          @if (category().extra === 'virus') {
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Wie wurde es bemerkt?</mat-label>
+              <input matInput id="noticed-how" type="text" [value]="form().noticedHow" (input)="set('noticedHow', $event)" [disabled]="busy()" />
+            </mat-form-field>
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Was wurde davor an dem Gerät gemacht?</mat-label>
+              <input matInput id="prior-activity" type="text" [value]="form().priorActivity" (input)="set('priorActivity', $event)" [disabled]="busy()" />
+            </mat-form-field>
+          }
+
+          @if (submitError(); as message) {
+            <p class="m-0 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="submit-error">{{ message }}</p>
+          }
+
+          <div class="flex justify-end gap-2">
+            <button mat-stroked-button type="button" data-action="cancel" [disabled]="busy()" (click)="backToChoice()">Abbrechen</button>
+            <button mat-flat-button type="submit" [disabled]="busy()">{{ busy() ? 'Wird gesendet …' : 'Melden' }}</button>
+          </div>
+        </form>
+      </mat-card>
+    }
+
+    @case ('done') {
+      <mat-card appearance="outlined" data-testid="success" role="status">
+        <mat-card-content class="flex flex-col items-center gap-3 !p-6 text-center">
+          <mat-icon class="!size-10 !text-[40px] text-ok">check_circle</mat-icon>
+          <p class="m-0 text-lg">Meldung wurde erfolgreich übermittelt.</p>
+          <button mat-flat-button type="button" data-action="again" (click)="backToChoice()">Weitere Störung melden</button>
+        </mat-card-content>
+      </mat-card>
+    }
   }
-
-  @case ('done') {
-    <section class="card success" data-testid="success" role="status">
-      <span class="success-icon"><app-icon name="check" [size]="32" /></span>
-      <p>Meldung wurde erfolgreich übermittelt.</p>
-      <button type="button" class="btn" data-action="again" (click)="backToChoice()">Weitere Störung melden</button>
-    </section>
-  }
-}
+</div>

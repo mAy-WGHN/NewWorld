@@ -1,5 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { AuthService } from '../../core/auth/auth.service';
+import { PAGE_UI } from '../../shared/ui/material';
 import { todayIso } from '../../core/dates';
 import {
   Absence,
@@ -24,8 +25,8 @@ type PanelKind = 'end' | 'upload';
 /** "Meine Abwesenheiten": report a sick note, request vacation, see the vacation account, end or withdraw, hand in the certificate (AU). */
 @Component({
   selector: 'app-absences',
+  imports: [...PAGE_UI],
   templateUrl: './absences.page.html',
-  styleUrl: './absences.page.scss',
 })
 export class AbsencesPage {
   private readonly api = inject(AbsencesApi);

@@ -1,4 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
+import { OverlayContainer } from '@angular/cdk/overlay';
 import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ProfileService } from '../../core/profile.service';
@@ -14,6 +15,7 @@ const stores: Location[] = [
 
 describe('ReportIssuePage', () => {
   let fixture: ComponentFixture<ReportIssuePage>;
+  let overlay: OverlayContainer;
   let root: HTMLElement;
   let create: ReturnType<typeof vi.fn>;
   let list: ReturnType<typeof vi.fn>;
@@ -34,6 +36,7 @@ describe('ReportIssuePage', () => {
         { provide: ProfileService, useValue: { personnelNumber } },
       ],
     });
+    overlay = TestBed.inject(OverlayContainer);
     fixture = TestBed.createComponent(ReportIssuePage);
     root = fixture.nativeElement as HTMLElement;
     await settle();
@@ -54,9 +57,12 @@ describe('ReportIssuePage', () => {
   }
 
   async function pickStore(id: string): Promise<void> {
-    q('#store-search')!.dispatchEvent(new Event('focus'));
+    const field = q<HTMLInputElement>('#store-search')!;
+    field.focus();
+    field.dispatchEvent(new Event('focusin', { bubbles: true }));
+    field.dispatchEvent(new Event('focus'));
     await settle();
-    q<HTMLButtonElement>(`[data-testid="location-option"][data-id="${id}"]`)!.click();
+    overlay.getContainerElement().querySelector<HTMLElement>('mat-option[data-id="' + id + '"]')!.click();
     await settle();
   }
 
@@ -70,6 +76,8 @@ describe('ReportIssuePage', () => {
     await pickStore('a');
   }
 
+  afterEach(() => overlay?.ngOnDestroy());
+
   beforeEach(() => {
     personnelNumber.set('15302');
     create = vi.fn().mockResolvedValue({ id: 'r1' });
@@ -80,7 +88,7 @@ describe('ReportIssuePage', () => {
     await open();
 
     expect(root.textContent).toContain('Was möchtest du melden?');
-    const labels = [...root.querySelectorAll('[data-category]')].map((b) => b.textContent?.trim());
+    const labels = [...root.querySelectorAll('[data-category] .label')].map((b) => b.textContent?.trim());
     expect(labels).toEqual(['Fehler melden', 'Virus melden', 'Diebstahl melden', 'Sonstige Verstöße melden', 'Verbesserungsvorschlag melden']);
   });
 

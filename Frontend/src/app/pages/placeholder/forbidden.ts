@@ -1,17 +1,14 @@
 import { Component } from '@angular/core';
+import { MatButtonModule } from '@angular/material/button';
 import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-forbidden',
-  imports: [RouterLink],
+  imports: [MatButtonModule, RouterLink],
   template: `
-    <h1>Kein Zugriff</h1>
-    <p class="muted">Für diesen Bereich fehlt dir das Recht. Wende dich bei Bedarf an die Verwaltung.</p>
-    <a routerLink="/">Zur Startseite</a>
-  `,
-  styles: `
-    h1 { margin: 0 0 8px; font-size: 26px; }
-    .muted { color: var(--muted); }
+    <h1 class="m-0 mb-2 text-2xl font-medium">Kein Zugriff</h1>
+    <p class="m-0 mb-4 text-on-surface-variant">Für diesen Bereich fehlt dir das Recht. Wende dich bei Bedarf an die Verwaltung.</p>
+    <a mat-stroked-button routerLink="/">Zur Startseite</a>
   `,
 })
 export class ForbiddenPage {}

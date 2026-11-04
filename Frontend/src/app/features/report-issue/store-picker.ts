@@ -1,13 +1,15 @@
 import { Component, computed, input, model, signal } from '@angular/core';
-import { IconComponent } from '../../shared/icon';
+import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
+import { MatChipsModule } from '@angular/material/chips';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIconModule } from '@angular/material/icon';
 import { Location, filterLocations, locationLabel } from './report-issue-models';
 
 /** Choose one or more stores: search by name or number, the chosen ones stand as chips. */
 @Component({
   selector: 'app-store-picker',
-  imports: [IconComponent],
+  imports: [MatAutocompleteModule, MatChipsModule, MatFormFieldModule, MatIconModule],
   templateUrl: './store-picker.html',
-  styleUrl: './store-picker.scss',
 })
 export class StorePicker {
   readonly locations = input<readonly Location[]>([]);
@@ -17,8 +19,6 @@ export class StorePicker {
   readonly inputId = input('store-search');
 
   protected readonly query = signal('');
-  protected readonly open = signal(false);
-  protected readonly active = signal(0);
 
   protected readonly matches = computed(() =>
     filterLocations(
@@ -30,51 +30,19 @@ export class StorePicker {
 
   protected readonly label = locationLabel;
 
+  /** The field stays empty after a choice (the options are objects, they must not be written into it). */
+  protected readonly display = (): string => '';
+
   protected onInput(event: Event): void {
     this.query.set((event.target as HTMLInputElement).value);
-    this.active.set(0);
-    this.open.set(true);
   }
 
-  protected onKey(event: KeyboardEvent): void {
-    const count = this.matches().length;
-    switch (event.key) {
-      case 'ArrowDown':
-        event.preventDefault();
-        this.open.set(true);
-        this.active.set(count ? (this.active() + 1) % count : 0);
-        break;
-      case 'ArrowUp':
-        event.preventDefault();
-        this.active.set(count ? (this.active() - 1 + count) % count : 0);
-        break;
-      case 'Enter': {
-        event.preventDefault(); // Enter must not send the form
-        const chosen = this.matches()[this.active()];
-        if (this.open() && chosen) {
-          this.add(chosen);
-        }
-        break;
-      }
-      case 'Escape':
-        this.open.set(false);
-        break;
-    }
-  }
-
-  protected add(location: Location): void {
-    this.selected.update((list) => [...list, location]);
+  protected add(event: MatAutocompleteSelectedEvent): void {
+    this.selected.update((list) => [...list, event.option.value as Location]);
     this.query.set('');
-    this.active.set(0);
-    this.open.set(false);
   }
 
   protected remove(location: Location): void {
     this.selected.update((list) => list.filter((l) => l.id !== location.id));
-  }
-
-  protected close(): void {
-    // a click on an option must still arrive, so the list closes a moment later
-    setTimeout(() => this.open.set(false), 120);
   }
 }

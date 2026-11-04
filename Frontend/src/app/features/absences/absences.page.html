@@ -1,119 +1,135 @@
-<h1>Meine Abwesenheiten</h1>
+<app-page-head title="Meine Abwesenheiten" />
 
-<section class="card" data-testid="balance" aria-labelledby="balance-title">
-  <div class="card-head">
-    <h2 id="balance-title">Urlaubskonto</h2>
-    <div class="year">
-      <button type="button" class="btn-quiet" data-action="prev-year" (click)="changeYear(-1)" aria-label="Vorheriges Jahr">‹</button>
-      <strong>{{ year() }}</strong>
-      <button type="button" class="btn-quiet" data-action="next-year" (click)="changeYear(1)" aria-label="Nächstes Jahr">›</button>
+<mat-card appearance="outlined" class="mb-4" data-testid="balance">
+  <mat-card-content class="!p-4">
+    <div class="flex items-center justify-between gap-3">
+      <h2 class="m-0 text-lg font-medium">Urlaubskonto</h2>
+      <div class="flex items-center gap-1">
+        <button mat-icon-button type="button" data-action="prev-year" aria-label="Vorheriges Jahr" (click)="changeYear(-1)"><mat-icon>chevron_left</mat-icon></button>
+        <strong class="min-w-12 text-center">{{ year() }}</strong>
+        <button mat-icon-button type="button" data-action="next-year" aria-label="Nächstes Jahr" (click)="changeYear(1)"><mat-icon>chevron_right</mat-icon></button>
+      </div>
     </div>
-  </div>
-  @if (balance(); as b) {
-    <dl class="figures">
-      <div><dt>Anspruch</dt><dd>{{ b.entitlement }}</dd></div>
-      <div><dt>Genommen</dt><dd>{{ b.taken }}</dd></div>
-      <div><dt>Geplant</dt><dd>{{ b.planned }}</dd></div>
-      <div class="remaining"><dt>Verbleibend</dt><dd>{{ b.remaining }}</dd></div>
-    </dl>
-  } @else if (balanceError(); as message) {
-    <p class="muted">{{ message }}</p>
-  }
-</section>
+    @if (balance(); as b) {
+      <dl class="m-0 mt-3 grid grid-cols-[repeat(auto-fit,minmax(110px,1fr))] gap-3">
+        <div class="flex flex-col"><dt class="text-[13px] text-on-surface-variant">Anspruch</dt><dd class="m-0 text-2xl font-semibold">{{ b.entitlement }}</dd></div>
+        <div class="flex flex-col"><dt class="text-[13px] text-on-surface-variant">Genommen</dt><dd class="m-0 text-2xl font-semibold">{{ b.taken }}</dd></div>
+        <div class="flex flex-col"><dt class="text-[13px] text-on-surface-variant">Geplant</dt><dd class="m-0 text-2xl font-semibold">{{ b.planned }}</dd></div>
+        <div class="flex flex-col"><dt class="text-[13px] text-on-surface-variant">Verbleibend</dt><dd class="m-0 text-2xl font-semibold text-primary">{{ b.remaining }}</dd></div>
+      </dl>
+    } @else if (balanceError(); as message) {
+      <p class="m-0 mt-2 text-sm text-on-surface-variant">{{ message }}</p>
+    }
+  </mat-card-content>
+</mat-card>
 
 @if (error(); as message) {
-  <p class="alert" role="alert">{{ message }}</p>
+  <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert">{{ message }}</p>
 }
 @if (status(); as message) {
-  <p class="ok" role="status" data-testid="status">{{ message }}</p>
+  <p class="mb-3 rounded-xl bg-primary-container px-4 py-2.5 text-on-primary-container" role="status" data-testid="status">{{ message }}</p>
 }
 
 @if (canCreate()) {
-  <div class="forms">
-    <form class="card" data-testid="sick-form" (submit)="reportSick($event)" novalidate>
-      <h2>Krankmeldung</h2>
-      <p class="muted">Das Ende kannst du offen lassen und später eintragen. Die AU kannst du jederzeit nachreichen.</p>
-      <label for="sick-from">Erster Tag</label>
-      <input id="sick-from" type="date" [value]="sickFrom()" (input)="set(sickFrom, $event)" [disabled]="busy()" />
-      <label for="sick-to">Letzter Tag (optional)</label>
-      <input id="sick-to" type="date" [value]="sickTo()" (input)="set(sickTo, $event)" [disabled]="busy()" />
-      <button type="submit" class="btn" [disabled]="busy()">Krank melden</button>
-    </form>
+  <div class="mb-4 grid items-start gap-4 md:grid-cols-2">
+    <mat-card appearance="outlined">
+      <form class="flex flex-col gap-1 p-4" data-testid="sick-form" (submit)="reportSick($event)" novalidate>
+        <h2 class="m-0 text-lg font-medium">Krankmeldung</h2>
+        <p class="m-0 mb-2 text-sm text-on-surface-variant">Das Ende kannst du offen lassen und später eintragen. Die AU kannst du jederzeit nachreichen.</p>
+        <mat-form-field appearance="outline">
+          <mat-label>Erster Tag</mat-label>
+          <input matInput id="sick-from" type="date" [value]="sickFrom()" (input)="set(sickFrom, $event)" [disabled]="busy()" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Letzter Tag (optional)</mat-label>
+          <input matInput id="sick-to" type="date" [value]="sickTo()" (input)="set(sickTo, $event)" [disabled]="busy()" />
+        </mat-form-field>
+        <div><button mat-flat-button type="submit" [disabled]="busy()">Krank melden</button></div>
+      </form>
+    </mat-card>
 
-    <form class="card" data-testid="vacation-form" (submit)="requestVacation($event)" novalidate>
-      <h2>Urlaub beantragen</h2>
-      <p class="muted">Der Antrag geht an deine Vorgesetzten zur Genehmigung.</p>
-      <label for="vac-from">Von</label>
-      <input id="vac-from" type="date" [value]="vacationFrom()" (input)="set(vacationFrom, $event)" [disabled]="busy()" />
-      <label for="vac-to">Bis</label>
-      <input id="vac-to" type="date" [value]="vacationTo()" (input)="set(vacationTo, $event)" [disabled]="busy()" />
-      <button type="submit" class="btn" [disabled]="busy()">Urlaub beantragen</button>
-    </form>
+    <mat-card appearance="outlined">
+      <form class="flex flex-col gap-1 p-4" data-testid="vacation-form" (submit)="requestVacation($event)" novalidate>
+        <h2 class="m-0 text-lg font-medium">Urlaub beantragen</h2>
+        <p class="m-0 mb-2 text-sm text-on-surface-variant">Der Antrag geht an deine Vorgesetzten zur Genehmigung.</p>
+        <mat-form-field appearance="outline">
+          <mat-label>Von</mat-label>
+          <input matInput id="vac-from" type="date" [value]="vacationFrom()" (input)="set(vacationFrom, $event)" [disabled]="busy()" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Bis</mat-label>
+          <input matInput id="vac-to" type="date" [value]="vacationTo()" (input)="set(vacationTo, $event)" [disabled]="busy()" />
+        </mat-form-field>
+        <div><button mat-flat-button type="submit" [disabled]="busy()">Urlaub beantragen</button></div>
+      </form>
+    </mat-card>
   </div>
 }
 
 <section aria-labelledby="list-title">
-  <h2 id="list-title">Übersicht</h2>
+  <h2 id="list-title" class="m-0 mb-2 text-lg font-medium">Übersicht</h2>
   @if (listError(); as message) {
-    <p class="alert" role="alert">{{ message }}</p>
+    <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert">{{ message }}</p>
   } @else if (loaded() && absences().length === 0) {
-    <p class="muted">Keine Abwesenheiten eingetragen.</p>
+    <p class="m-0 mb-2 text-sm text-on-surface-variant">Keine Abwesenheiten eingetragen.</p>
   }
-  <ul class="list">
+  <div class="flex flex-col gap-2.5" role="list">
     @for (a of absences(); track a.id) {
-      <li class="row" data-testid="absence-row">
-        <div class="row-main">
+      <app-row-card data-testid="absence-row" [attr.data-id]="a.id">
+        <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
           <div>
             <strong>{{ typeLabel(a.type) }}</strong>
-            <span class="period">{{ formatPeriod(a.from, a.to) }}</span>
+            <span class="ml-2.5 text-sm text-on-surface-variant">{{ formatPeriod(a.from, a.to) }}</span>
           </div>
-          <div class="chips">
-            <span class="chip">{{ statusLabel(a.status) }}</span>
+          <mat-chip-set aria-label="Stand">
+            <mat-chip>{{ statusLabel(a.status) }}</mat-chip>
             @if (certificateLabel(a.certificateStatus); as cert) {
-              <span class="chip chip-note">{{ cert }}</span>
+              <mat-chip>{{ cert }}</mat-chip>
             }
-          </div>
-          <div class="actions">
+          </mat-chip-set>
+          <div class="flex flex-wrap items-center gap-2">
             @if (canUpdate() && canWithdraw(a)) {
-              <button type="button" class="btn-quiet" data-action="withdraw" [disabled]="busy()" (click)="withdraw(a)">Zurückziehen</button>
+              <button mat-stroked-button type="button" data-action="withdraw" [disabled]="busy()" (click)="withdraw(a)">Zurückziehen</button>
             }
             @if (canUpdate() && canEnd(a)) {
-              <button type="button" class="btn-quiet" data-action="end" (click)="openPanel(a, 'end')">Beenden</button>
+              <button mat-stroked-button type="button" data-action="end" (click)="openPanel(a, 'end')">Beenden</button>
             }
             @if (canUploadCertificate() && canUpload(a)) {
-              <button type="button" class="btn-quiet" data-action="upload" (click)="openPanel(a, 'upload')">AU hochladen</button>
+              <button mat-stroked-button type="button" data-action="upload" (click)="openPanel(a, 'upload')">AU hochladen</button>
             }
           </div>
         </div>
 
         @if (panel(); as p) {
           @if (p.id === a.id) {
-            <div class="panel">
+            <div class="mt-3 flex flex-col gap-1 border-t border-outline-variant pt-3">
               @if (p.kind === 'end') {
-                <label for="end-to">Letzter Tag der Krankmeldung</label>
-                <input id="end-to" type="date" [value]="endTo()" (input)="set(endTo, $event)" />
+                <mat-form-field appearance="outline" class="max-w-xs">
+                  <mat-label>Letzter Tag der Krankmeldung</mat-label>
+                  <input matInput id="end-to" type="date" [value]="endTo()" (input)="set(endTo, $event)" />
+                </mat-form-field>
               } @else {
-                <label for="cert-file">AU (PDF, JPEG oder PNG)</label>
-                <input id="cert-file" type="file" accept="application/pdf,image/jpeg,image/png" (change)="pickFile($event)" />
-                <div class="two">
-                  <div>
-                    <label for="cert-from">Laut AU von</label>
-                    <input id="cert-from" type="date" [value]="certFrom()" (input)="set(certFrom, $event)" />
-                  </div>
-                  <div>
-                    <label for="cert-to">Laut AU bis</label>
-                    <input id="cert-to" type="date" [value]="certTo()" (input)="set(certTo, $event)" />
-                  </div>
+                <label class="text-sm font-medium" for="cert-file">AU (PDF, JPEG oder PNG)</label>
+                <input id="cert-file" type="file" class="mb-3" accept="application/pdf,image/jpeg,image/png" (change)="pickFile($event)" />
+                <div class="grid gap-x-3 sm:grid-cols-2">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Laut AU von</mat-label>
+                    <input matInput id="cert-from" type="date" [value]="certFrom()" (input)="set(certFrom, $event)" />
+                  </mat-form-field>
+                  <mat-form-field appearance="outline">
+                    <mat-label>Laut AU bis</mat-label>
+                    <input matInput id="cert-to" type="date" [value]="certTo()" (input)="set(certTo, $event)" />
+                  </mat-form-field>
                 </div>
               }
-              <div class="panel-actions">
-                <button type="button" class="btn" data-action="confirm" [disabled]="busy()" (click)="confirmPanel(a)">Speichern</button>
-                <button type="button" class="btn-quiet" (click)="openPanel(a, p.kind)">Abbrechen</button>
+              <div class="flex flex-wrap gap-2">
+                <button mat-flat-button type="button" data-action="confirm" [disabled]="busy()" (click)="confirmPanel(a)">Speichern</button>
+                <button mat-stroked-button type="button" (click)="openPanel(a, p.kind)">Abbrechen</button>
               </div>
             </div>
           }
         }
-      </li>
+      </app-row-card>
     }
-  </ul>
+  </div>
 </section>

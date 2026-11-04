@@ -17,6 +17,8 @@ const builtAreas: Record<string, () => Promise<Type<unknown>>> = {
   'my-vacation': () => import('./features/vacation/vacation.page').then((m) => m.VacationPage),
   reports: () => import('./features/reports/reports.page').then((m) => m.ReportsPage),
   approvals: () => import('./features/approvals/approvals.page').then((m) => m.ApprovalsPage),
+  notifications: () => import('./features/notifications/notifications.page').then((m) => m.NotificationsPage),
+  'working-time': () => import('./features/working-time/working-time.page').then((m) => m.WorkingTimePage),
   'report-issue': () => import('./features/report-issue/report-issue.page').then((m) => m.ReportIssuePage),
 };
 

@@ -1,23 +1,20 @@
-<div class="field">
-  <app-icon name="search" [size]="20" />
-  <input type="search" role="combobox" aria-label="Suche" aria-autocomplete="list" [attr.aria-expanded]="open() && results().length > 0"
-         aria-controls="search-results" placeholder="Was möchtest du erledigen?" autocomplete="off"
-         [value]="query()" (input)="onInput($event)" (keydown)="onKey($event)" (focus)="open.set(true)" (blur)="close()" />
-</div>
-@if (examples(); as hint) {
-  <p class="hint">{{ hint }}</p>
-}
-@if (open() && query().trim()) {
-  <ul id="search-results" class="results" role="listbox">
-    @for (item of results(); track item.path; let i = $index) {
-      <li role="option" [attr.aria-selected]="i === active()" [class.active]="i === active()">
-        <button type="button" tabindex="-1" (mousedown)="$event.preventDefault()" (click)="go(item)">
-          <strong>{{ item.label }}</strong>
-          <span>{{ item.about }}</span>
-        </button>
-      </li>
+<mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-full max-w-2xl">
+  <mat-icon matPrefix class="mr-2 text-on-surface-variant">search</mat-icon>
+  <input matInput type="search" aria-label="Suche" placeholder="Was möchtest du erledigen?" autocomplete="off"
+         [value]="query()" (input)="onInput($event)" [matAutocomplete]="auto" />
+  <mat-autocomplete #auto="matAutocomplete" autoActiveFirstOption [displayWith]="display" (optionSelected)="choose($event)">
+    @for (item of results(); track item.path) {
+      <mat-option [value]="item">
+        <span class="block font-medium">{{ item.label }}</span>
+        <span class="block text-xs text-on-surface-variant">{{ item.about }}</span>
+      </mat-option>
     } @empty {
-      <li class="none">Dazu habe ich nichts gefunden.</li>
+      @if (query().trim()) {
+        <mat-option disabled>Dazu habe ich nichts gefunden.</mat-option>
+      }
     }
-  </ul>
-}
+  </mat-autocomplete>
+  @if (examples(); as hint) {
+    <mat-hint>{{ hint }}</mat-hint>
+  }
+</mat-form-field>

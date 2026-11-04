@@ -1,26 +1,26 @@
 {
-  "/access": {
+  "/svc/access": {
     "target": "http://localhost:5101",
     "secure": false,
-    "pathRewrite": { "^/access": "" },
+    "pathRewrite": { "^/svc/access": "" },
     "changeOrigin": true
   },
-  "/workforce": {
+  "/svc/workforce": {
     "target": "http://localhost:5102",
     "secure": false,
-    "pathRewrite": { "^/workforce": "" },
+    "pathRewrite": { "^/svc/workforce": "" },
     "changeOrigin": true
   },
-  "/portal": {
+  "/svc/portal": {
     "target": "http://localhost:5103",
     "secure": false,
-    "pathRewrite": { "^/portal": "" },
+    "pathRewrite": { "^/svc/portal": "" },
     "changeOrigin": true
   },
-  "/notifications": {
+  "/svc/notifications": {
     "target": "http://localhost:5104",
     "secure": false,
-    "pathRewrite": { "^/notifications": "" },
+    "pathRewrite": { "^/svc/notifications": "" },
     "changeOrigin": true
   }
 }

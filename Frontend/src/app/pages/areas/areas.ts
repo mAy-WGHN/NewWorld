@@ -1,16 +1,16 @@
 import { Component, computed, inject } from '@angular/core';
+import { MatExpansionModule } from '@angular/material/expansion';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { FavoritesService } from '../../core/favorites.service';
 import { visibleNav } from '../../core/nav/nav-items';
-import { IconComponent } from '../../shared/icon';
+import { PAGE_UI } from '../../shared/ui/material';
 
 /** Every area this person may open, grouped, with a star to pin it; below the own privileges. */
 @Component({
   selector: 'app-areas',
-  imports: [RouterLink, IconComponent],
+  imports: [RouterLink, MatExpansionModule, ...PAGE_UI],
   templateUrl: './areas.html',
-  styleUrl: './areas.scss',
 })
 export class AreasPage {
   private readonly auth = inject(AuthService);

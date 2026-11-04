@@ -1,22 +1,28 @@
-<main class="wrap">
-  <form class="card" (submit)="submit($event)" novalidate>
-    <h1>NewWorld</h1>
-    <p class="hint">Melde dich mit deiner Personalnummer und deiner PIN an.</p>
+<main class="grid min-h-dvh place-items-center bg-surface-container-low p-4">
+  <mat-card appearance="outlined" class="w-full max-w-sm">
+    <form class="flex flex-col gap-2 p-6" (submit)="submit($event)" novalidate>
+      <h1 class="m-0 text-2xl font-medium">NewWorld</h1>
+      <p class="m-0 mb-3 text-sm text-on-surface-variant">Melde dich mit deiner Personalnummer und deiner PIN an.</p>
 
-    <label for="pn">Personalnummer</label>
-    <input id="pn" name="username" type="text" inputmode="numeric" autocomplete="username" autofocus
-           [value]="personnelNumber()" (input)="set('personnelNumber', $event)" [disabled]="busy()" />
+      <mat-form-field appearance="outline">
+        <mat-label>Personalnummer</mat-label>
+        <input matInput id="pn" name="username" type="text" inputmode="numeric" autocomplete="username" autofocus
+               [value]="personnelNumber()" (input)="set('personnelNumber', $event)" [disabled]="busy()" />
+      </mat-form-field>
 
-    <label for="pin">PIN</label>
-    <input id="pin" name="password" type="password" inputmode="numeric" autocomplete="current-password"
-           [value]="pin()" (input)="set('pin', $event)" [disabled]="busy()" />
+      <mat-form-field appearance="outline">
+        <mat-label>PIN</mat-label>
+        <input matInput id="pin" name="password" type="password" inputmode="numeric" autocomplete="current-password"
+               [value]="pin()" (input)="set('pin', $event)" [disabled]="busy()" />
+      </mat-form-field>
 
-    @if (error(); as message) {
-      <p class="error" role="alert">{{ message }}</p>
-    }
+      @if (error(); as message) {
+        <p class="m-0 text-sm text-error" role="alert">{{ message }}</p>
+      }
 
-    <button type="submit" class="btn" [disabled]="busy() || !personnelNumber().trim() || !pin()">
-      {{ busy() ? 'Anmelden …' : 'Anmelden' }}
-    </button>
-  </form>
+      <button mat-flat-button type="submit" class="mt-2" [disabled]="busy() || !personnelNumber().trim() || !pin()">
+        {{ busy() ? 'Anmelden …' : 'Anmelden' }}
+      </button>
+    </form>
+  </mat-card>
 </main>

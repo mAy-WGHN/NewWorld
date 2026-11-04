@@ -23,7 +23,7 @@ export const HOME_CARDS: HomeCard[] = [
     title: 'Erledigen',
     about: 'Meldungen, Anträge und Aufgaben schnell erledigen.',
     tone: 'blue',
-    icon: 'tasks',
+    icon: 'checklist',
     chips: [
       { label: 'Störung melden', path: '/report-issue' },
       { label: 'Krankmeldungen', path: '/my-sick-notes', requires: ['absence:read-own', 'absence:create-own'] },
@@ -46,7 +46,7 @@ export const HOME_CARDS: HomeCard[] = [
     title: 'Lernen',
     about: 'Schulungen, Zertifikate und Wissenschecks.',
     tone: 'purple',
-    icon: 'cap',
+    icon: 'school',
     chips: [],
     soon: 'Dieser Bereich folgt.',
   },
@@ -55,7 +55,7 @@ export const HOME_CARDS: HomeCard[] = [
     title: 'Mein Bereich',
     about: 'Deine persönlichen Informationen und Kennzahlen.',
     tone: 'orange',
-    icon: 'chart',
+    icon: 'bar_chart',
     chips: [
       { label: 'Meine Abwesenheiten', path: '/absences', requires: ['absence:read-own', 'absence:create-own'] },
       { label: 'Arbeitszeitkonto', path: '/working-time', requires: ['workingtime:read-own'] },

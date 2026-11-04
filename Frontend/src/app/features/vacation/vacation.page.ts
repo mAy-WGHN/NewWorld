@@ -1,6 +1,7 @@
 import { NgTemplateOutlet } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { AuthService } from '../../core/auth/auth.service';
+import { PAGE_UI } from '../../shared/ui/material';
 import {
   Absence,
   GENERIC_ERROR,
@@ -21,9 +22,8 @@ import { AbsencesApi } from '../absences/absences.api';
  */
 @Component({
   selector: 'app-vacation',
-  imports: [NgTemplateOutlet],
+  imports: [NgTemplateOutlet, ...PAGE_UI],
   templateUrl: './vacation.page.html',
-  styleUrl: './vacation.page.scss',
 })
 export class VacationPage {
   private readonly api = inject(AbsencesApi);

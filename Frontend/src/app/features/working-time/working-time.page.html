@@ -1,0 +1,101 @@
+<app-page-head title="Arbeitszeitkonto" />
+
+@if (error(); as message) {
+  <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert">{{ message }}</p>
+}
+
+@if (account(); as a) {
+  <div class="mb-5 flex flex-wrap gap-3">
+    <mat-card appearance="outlined" class="min-w-40" data-testid="balance">
+      <mat-card-content class="flex flex-col !px-4.5 !py-3.5">
+        <span class="text-[13px] text-on-surface-variant">Saldo</span>
+        <strong class="text-2xl">{{ formatHours(a.balance, false) }}</strong>
+      </mat-card-content>
+    </mat-card>
+    @if (a.deficit > 0) {
+      <mat-card appearance="outlined" class="min-w-40" data-testid="deficit">
+        <mat-card-content class="flex flex-col !px-4.5 !py-3.5">
+          <span class="text-[13px] text-on-surface-variant">Fehlbetrag</span>
+          <strong class="text-2xl">{{ formatHours(a.deficit, false) }}</strong>
+        </mat-card-content>
+      </mat-card>
+    }
+    @if (a.forfeited > 0) {
+      <mat-card appearance="outlined" class="min-w-40" data-testid="forfeited">
+        <mat-card-content class="flex flex-col !px-4.5 !py-3.5">
+          <span class="text-[13px] text-on-surface-variant">Verfallen</span>
+          <strong class="text-2xl">{{ formatHours(a.forfeited, false) }}</strong>
+        </mat-card-content>
+      </mat-card>
+    }
+  </div>
+
+  @if (soon().length) {
+    <app-attention-block data-testid="attention" title="Läuft bald ab" hint="Diese Stunden verfallen in den nächsten {{ warnDays }} Tagen. Bitte rechtzeitig Freizeitausgleich nehmen.">
+      @for (b of soon(); track b.earnedOn + b.expiresOn) {
+        <app-row-card [attention]="true">
+          <div class="flex flex-wrap items-center gap-x-3">
+            <strong>{{ formatHours(b.remaining, false) }}</strong>
+            <span class="text-[13px]">verfallen am {{ formatDate(b.expiresOn) }}</span>
+          </div>
+        </app-row-card>
+      }
+    </app-attention-block>
+  }
+
+  <section class="mb-6" aria-labelledby="bookings-title">
+    <h2 id="bookings-title" class="m-0 mb-2 text-lg font-medium">Buchungen</h2>
+    @if (a.bookings.length === 0) {
+      <p class="m-0 text-sm text-on-surface-variant">Noch keine Buchungen.</p>
+    } @else {
+      <mat-card appearance="outlined" class="overflow-x-auto">
+        <table class="w-full border-collapse">
+          <thead>
+            <tr class="text-sm text-on-surface-variant">
+              <th scope="col" class="px-3.5 py-2.5 text-left font-medium">Datum</th>
+              <th scope="col" class="px-3.5 py-2.5 text-left font-medium">Art</th>
+              <th scope="col" class="px-3.5 py-2.5 text-right font-medium">Stunden</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (b of a.bookings; track b.id) {
+              <tr class="border-t border-outline-variant" data-testid="booking">
+                <td class="px-3.5 py-2.5">{{ formatDate(b.date) }}</td>
+                <td class="px-3.5 py-2.5">{{ kindLabel(b.kind) }}</td>
+                <td class="px-3.5 py-2.5 text-right tabular-nums" [class.text-error]="b.hours < 0">{{ formatHours(b.hours) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </mat-card>
+    }
+  </section>
+
+  @if (a.closes.length) {
+    <section data-testid="closes" aria-labelledby="closes-title">
+      <h2 id="closes-title" class="m-0 mb-2 text-lg font-medium">Monatsabschlüsse</h2>
+      <mat-card appearance="outlined" class="overflow-x-auto">
+        <table class="w-full border-collapse">
+          <thead>
+            <tr class="text-sm text-on-surface-variant">
+              <th scope="col" class="px-3.5 py-2.5 text-left font-medium">Monat</th>
+              <th scope="col" class="px-3.5 py-2.5 text-right font-medium">Gearbeitet</th>
+              <th scope="col" class="px-3.5 py-2.5 text-right font-medium">Schwelle</th>
+              <th scope="col" class="px-3.5 py-2.5 text-right font-medium">Überstunden</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (c of a.closes; track c.id) {
+              <tr class="border-t border-outline-variant">
+                <td class="px-3.5 py-2.5">{{ monthLabel(c.year, c.month) }}</td>
+                <td class="px-3.5 py-2.5 text-right tabular-nums">{{ formatHours(c.workedHours, false) }}</td>
+                <td class="px-3.5 py-2.5 text-right tabular-nums">{{ formatHours(c.thresholdHours, false) }}</td>
+                <td class="px-3.5 py-2.5 text-right tabular-nums">{{ formatHours(c.overtimeHours - c.minusHours) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </mat-card>
+    </section>
+  }
+}

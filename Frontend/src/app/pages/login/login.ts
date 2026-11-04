@@ -1,4 +1,8 @@
 import { Component, inject, signal } from '@angular/core';
+import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService, LoginError } from '../../core/auth/auth.service';
 
@@ -9,8 +13,8 @@ export function safeReturnUrl(value: string | null): string {
 
 @Component({
   selector: 'app-login',
+  imports: [MatButtonModule, MatCardModule, MatFormFieldModule, MatInputModule],
   templateUrl: './login.html',
-  styleUrl: './login.scss',
 })
 export class LoginPage {
   private readonly auth = inject(AuthService);

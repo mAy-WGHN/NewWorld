@@ -1,0 +1,38 @@
+@import 'tailwindcss';
+
+/*
+ * Tailwind takes its colours from the Angular Material theme (the --mat-sys-* variables of styles.scss), so a class like
+ * `bg-surface-container` follows the theme and the light/dark scheme. `inline` makes the values resolve where they are used.
+ */
+@theme inline {
+  --color-primary: var(--mat-sys-primary);
+  --color-on-primary: var(--mat-sys-on-primary);
+  --color-primary-container: var(--mat-sys-primary-container);
+  --color-on-primary-container: var(--mat-sys-on-primary-container);
+  --color-secondary-container: var(--mat-sys-secondary-container);
+  --color-on-secondary-container: var(--mat-sys-on-secondary-container);
+  --color-surface: var(--mat-sys-surface);
+  --color-surface-container-low: var(--mat-sys-surface-container-low);
+  --color-surface-container: var(--mat-sys-surface-container);
+  --color-surface-container-high: var(--mat-sys-surface-container-high);
+  --color-on-surface: var(--mat-sys-on-surface);
+  --color-on-surface-variant: var(--mat-sys-on-surface-variant);
+  --color-outline: var(--mat-sys-outline);
+  --color-outline-variant: var(--mat-sys-outline-variant);
+  --color-error: var(--mat-sys-error);
+  --color-on-error: var(--mat-sys-on-error);
+  --color-error-container: var(--mat-sys-error-container);
+  --color-on-error-container: var(--mat-sys-on-error-container);
+
+  /* what needs the person's attention (yellow) and the tiles of the start page; defined in styles.scss */
+  --color-attention: var(--app-attention-bg);
+  --color-attention-border: var(--app-attention-border);
+  --color-on-attention: var(--app-attention-text);
+  --color-ok: var(--app-ok);
+  --color-tile-blue: var(--app-tile-blue-bg);
+  --color-tile-green: var(--app-tile-green-bg);
+  --color-tile-purple: var(--app-tile-purple-bg);
+  --color-tile-orange: var(--app-tile-orange-bg);
+  --color-hero-from: var(--app-hero-from);
+  --color-hero-to: var(--app-hero-to);
+}

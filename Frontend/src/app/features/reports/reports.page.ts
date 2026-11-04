@@ -1,7 +1,9 @@
 import { NgTemplateOutlet } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
+import { MatExpansionModule } from '@angular/material/expansion';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
+import { PAGE_UI } from '../../shared/ui/material';
 import { Report, categoryLabel, envelopeMessage, formatCreated, locationNames, severityLabel, statusLabel } from './report-models';
 import { ReportsApi } from './reports.api';
 
@@ -21,9 +23,8 @@ const EMPTY: Bucket = { items: [], total: 0 };
  */
 @Component({
   selector: 'app-reports',
-  imports: [NgTemplateOutlet, RouterLink],
+  imports: [NgTemplateOutlet, RouterLink, MatExpansionModule, ...PAGE_UI],
   templateUrl: './reports.page.html',
-  styleUrl: './reports.page.scss',
 })
 export class ReportsPage {
   private readonly api = inject(ReportsApi);

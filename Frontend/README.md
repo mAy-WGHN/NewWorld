@@ -2,6 +2,8 @@
 
 Das globale Frontend des Mitarbeiterportals: ein Angular-Rahmen (Version 22, Standalone-Komponenten, Signals, zoneless) mit Anmeldung und einer Navigation, die sich nach den Rechten der angemeldeten Person richtet. Die Fachbereiche (Abwesenheiten, Arbeitszeitkonto, Mitarbeiterkarte, FAQ, Meldungen, Verwaltung …) sind als Platzhalterseiten angelegt und werden nacheinander gebaut.
 
+**Oberfläche:** Angular Material (M3-Theme) und TailwindCSS v4 (PostCSS, `src/tailwind.css`, Farben aus den Material-Systemvariablen). Gebaut sind u. a. Krankmeldungen, Urlaub, Genehmigungen, Meldungen, Störung melden, Mitteilungen und Arbeitszeitkonto. Dienstpfade im Dev-Proxy liegen unter `/svc/...`, damit sie nicht mit Seiten wie `/notifications` kollidieren. Nach Änderungen an `angular.json`, Tailwind oder `proxy.conf.json` den Dev-Server neu starten.
+
 ## Starten
 
 ```bash
@@ -14,10 +16,10 @@ Voraussetzung sind die Backend-Dienste (zum Beispiel über den Aspire-AppHost). 
 
 | Pfad im Browser | Dienst | Standard-Ziel |
 | --- | --- | --- |
-| `/access/*` | Access (Login, Rechte) | `http://localhost:5101` |
-| `/workforce/*` | Workforce | `http://localhost:5102` |
-| `/portal/*` | Portal | `http://localhost:5103` |
-| `/notifications/*` | Notifications | `http://localhost:5104` |
+| `/svc/access/*` | Access (Login, Rechte) | `http://localhost:5101` |
+| `/svc/workforce/*` | Workforce | `http://localhost:5102` |
+| `/svc/portal/*` | Portal | `http://localhost:5103` |
+| `/svc/notifications/*` | Notifications | `http://localhost:5104` |
 
 Aspire vergibt die Ports dynamisch: die Ziele in `proxy.conf.json` auf die Adressen aus dem Aspire-Dashboard anpassen. Der Proxy entfernt das Präfix, die Dienste sehen ihre normalen Pfade (`/api/...`). Die Dienste brauchen so kein CORS.
 

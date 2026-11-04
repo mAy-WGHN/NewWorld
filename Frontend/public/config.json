@@ -1,8 +1,8 @@
 {
   "services": {
-    "access": "/access",
-    "workforce": "/workforce",
-    "portal": "/portal",
-    "notifications": "/notifications"
+    "access": "/svc/access",
+    "workforce": "/svc/workforce",
+    "portal": "/svc/portal",
+    "notifications": "/svc/notifications"
   }
 }

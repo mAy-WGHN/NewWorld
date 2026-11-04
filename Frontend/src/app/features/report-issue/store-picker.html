@@ -1,32 +1,25 @@
-<div class="picker" [class.invalid]="error()">
-  <label [for]="inputId()">Filiale</label>
-  @if (selected().length) {
-    <ul class="chosen">
-      @for (s of selected(); track s.id) {
-        <li class="chip" data-testid="chosen">
-          {{ label(s) }}
-          <button type="button" data-action="remove" [attr.data-id]="s.id" [attr.aria-label]="s.name + ' entfernen'" (click)="remove(s)">
-            <app-icon name="x" [size]="14" />
-          </button>
-        </li>
-      }
-    </ul>
-  }
-  <input [id]="inputId()" type="text" role="combobox" autocomplete="off" placeholder="Filiale suchen…" aria-autocomplete="list"
-         [attr.aria-expanded]="open()" [attr.aria-controls]="inputId() + '-list'" [attr.aria-invalid]="error() ? 'true' : null"
-         [value]="query()" (input)="onInput($event)" (keydown)="onKey($event)" (focus)="open.set(true)" (click)="open.set(true)" (blur)="close()" />
-  @if (open()) {
-    <ul class="list" role="listbox" [id]="inputId() + '-list'">
-      @for (s of matches(); track s.id; let i = $index) {
-        <li role="option" [attr.aria-selected]="i === active()" [class.active]="i === active()">
-          <button type="button" tabindex="-1" data-testid="location-option" [attr.data-id]="s.id" (mousedown)="$event.preventDefault()" (click)="add(s)">{{ label(s) }}</button>
-        </li>
-      } @empty {
-        <li class="none">Keine Filiale gefunden.</li>
-      }
-    </ul>
-  }
-  @if (error(); as message) {
-    <p class="field-error" role="alert">{{ message }}</p>
-  }
-</div>
+<mat-form-field appearance="outline" class="w-full" subscriptSizing="dynamic">
+  <mat-label>Filiale</mat-label>
+  <mat-chip-grid #grid aria-label="Gewählte Filialen">
+    @for (s of selected(); track s.id) {
+      <mat-chip-row data-testid="chosen" (removed)="remove(s)">
+        {{ label(s) }}
+        <button matChipRemove type="button" data-action="remove" [attr.data-id]="s.id" [attr.aria-label]="s.name + ' entfernen'">
+          <mat-icon>cancel</mat-icon>
+        </button>
+      </mat-chip-row>
+    }
+  </mat-chip-grid>
+  <input [id]="inputId()" placeholder="Filiale suchen…" autocomplete="off" [attr.aria-invalid]="error() ? 'true' : null"
+         [matChipInputFor]="grid" [matAutocomplete]="auto" [value]="query()" (input)="onInput($event)" />
+  <mat-autocomplete #auto="matAutocomplete" autoActiveFirstOption [displayWith]="display" (optionSelected)="add($event)">
+    @for (s of matches(); track s.id) {
+      <mat-option [value]="s" data-testid="location-option" [attr.data-id]="s.id">{{ label(s) }}</mat-option>
+    } @empty {
+      <mat-option disabled>Keine Filiale gefunden.</mat-option>
+    }
+  </mat-autocomplete>
+</mat-form-field>
+@if (error(); as message) {
+  <p class="m-0 mt-1 text-[13px] text-error" role="alert">{{ message }}</p>
+}

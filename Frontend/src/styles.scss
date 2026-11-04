@@ -1,167 +1,45 @@
-:root {
-  --bg: #f3f6fb;
-  --surface: #ffffff;
-  --text: #16202f;
-  --muted: #5f6b7d;
-  --border: #e1e6ee;
-  --hover: #eef2f8;
-  --accent: #1f57c3;
-  --accent-soft: #e6eefc;
-  --on-accent: #ffffff;
-  --danger: #c6362c;
-  --ok: #1f8a5b;
-  --warn: #d9791a;
-  --search-bg: #e9eef6;
-  --shadow: 0 1px 2px rgb(20 40 80 / 0.06), 0 4px 14px rgb(20 40 80 / 0.05);
-  --shadow-lg: 0 8px 30px rgb(20 40 80 / 0.16);
+@use '@angular/material' as mat;
 
-  // Pastel tiles of the home page: background, strong colour of the icon, soft colour of its circle.
-  --tile-blue-bg: #e9effc;
-  --tile-blue: #1f57c3;
-  --tile-blue-soft: #d3e0fa;
-  --tile-green-bg: #e5f4ec;
-  --tile-green: #1f8a5b;
-  --tile-green-soft: #cdebdc;
-  --tile-purple-bg: #eeeafb;
-  --tile-purple: #5b3fbf;
-  --tile-purple-soft: #dcd4f6;
-  --tile-orange-bg: #fdefe0;
-  --tile-orange: #d9701a;
-  --tile-orange-soft: #fadcb9;
+// Angular Material theme (Material 3): blue, follows the light/dark setting of the device, Roboto. It emits the --mat-sys-* variables
+// that Material components and (via tailwind.css) the Tailwind classes use.
+html {
+  @include mat.theme(
+    (
+      color: (
+        theme-type: color-scheme,
+        primary: mat.$azure-palette,
+      ),
+      typography: Roboto,
+      density: 0,
+    )
+  );
+  color-scheme: light dark;
 
-  --hero-from: #1f3d2c;
-  --hero-to: #3f6b4a;
-
-  // Something needs the person's attention (yellow marker): background, border, text.
-  --attention-bg: #fff6c9;
-  --attention-border: #e8c53a;
-  --attention-text: #5e4700;
-  color-scheme: light;
-}
-
-@mixin dark-tokens {
-  --bg: #12151b;
-  --surface: #1b1f27;
-  --text: #e8ebf0;
-  --muted: #98a2b3;
-  --border: #2c323d;
-  --hover: #252a33;
-  --accent: #7ba6ff;
-  --accent-soft: #1f2d4a;
-  --on-accent: #0b1220;
-  --danger: #ff8a80;
-  --ok: #5fd0a0;
-  --warn: #f0a560;
-  --search-bg: #232832;
-  --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 4px 14px rgb(0 0 0 / 0.25);
-  --shadow-lg: 0 8px 30px rgb(0 0 0 / 0.5);
-  --tile-blue-bg: #1b2538;
-  --tile-blue: #7ba6ff;
-  --tile-blue-soft: #263553;
-  --tile-green-bg: #18291f;
-  --tile-green: #5fd0a0;
-  --tile-green-soft: #1f3a2b;
-  --tile-purple-bg: #231f38;
-  --tile-purple: #a591f0;
-  --tile-purple-soft: #322b55;
-  --tile-orange-bg: #33241a;
-  --tile-orange: #f0a560;
-  --tile-orange-soft: #4a3220;
-  --hero-from: #17301f;
-  --hero-to: #2c4d34;
-  --attention-bg: #3a3214;
-  --attention-border: #8a7424;
-  --attention-text: #f4dd8c;
-  color-scheme: dark;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) {
-    @include dark-tokens;
-  }
-}
-
-:root[data-theme='dark'] {
-  @include dark-tokens;
-}
-
-* {
-  box-sizing: border-box;
+  // Colours of our own that Material has no name for. light-dark() picks by the scheme.
+  --app-attention-bg: light-dark(#fff6c9, #3a3214);
+  --app-attention-border: light-dark(#e8c53a, #8a7424);
+  --app-attention-text: light-dark(#5e4700, #f4dd8c);
+  --app-ok: light-dark(#1f8a5b, #5fd0a0);
+  --app-tile-blue-bg: light-dark(#e9effc, #1b2538);
+  --app-tile-green-bg: light-dark(#e5f4ec, #18291f);
+  --app-tile-purple-bg: light-dark(#eeeafb, #231f38);
+  --app-tile-orange-bg: light-dark(#fdefe0, #33241a);
+  --app-hero-from: light-dark(#1f3d2c, #17301f);
+  --app-hero-to: light-dark(#3f6b4a, #2c4d34);
 }
 
 html,
 body {
   margin: 0;
-  background: var(--bg);
-  color: var(--text);
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  min-height: 100%;
+  background: var(--mat-sys-surface);
+  color: var(--mat-sys-on-surface);
+  font-family: Roboto, system-ui, 'Segoe UI', sans-serif;
   font-size: 16px;
   line-height: 1.5;
 }
 
-a {
-  color: var(--accent);
-}
-
-code {
-  font-family: ui-monospace, 'Cascadia Code', Menlo, monospace;
-  font-size: 12.5px;
-  background: var(--hover);
-  padding: 2px 6px;
-  border-radius: 6px;
-}
-
-.chip {
-  display: inline-block;
-  padding: 2px 10px;
-  border-radius: 999px;
-  background: var(--accent-soft);
-  color: var(--accent);
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.btn {
-  font: inherit;
-  font-weight: 600;
-  padding: 10px 16px;
-  border: 0;
-  border-radius: 10px;
-  background: var(--accent);
-  color: var(--on-accent);
-  cursor: pointer;
-
-  &:disabled {
-    opacity: 0.55;
-    cursor: not-allowed;
-  }
-}
-
-.btn-quiet {
-  font: inherit;
-  font-size: 14px;
-  padding: 6px 12px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: transparent;
-  color: var(--text);
-  cursor: pointer;
-
-  &:hover {
-    background: var(--hover);
-  }
-}
-
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
-}
-
-:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+// Material Icons as ligatures: <mat-icon>home</mat-icon>
+.mat-icon {
+  font-family: 'Material Icons';
 }

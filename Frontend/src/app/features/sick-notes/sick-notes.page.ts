@@ -1,6 +1,7 @@
 import { NgTemplateOutlet } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { AuthService } from '../../core/auth/auth.service';
+import { PAGE_UI } from '../../shared/ui/material';
 import { todayIso } from '../../core/dates';
 import {
   Absence,
@@ -24,9 +25,8 @@ type PanelKind = 'end' | 'upload';
  */
 @Component({
   selector: 'app-sick-notes',
-  imports: [NgTemplateOutlet],
+  imports: [NgTemplateOutlet, ...PAGE_UI],
   templateUrl: './sick-notes.page.html',
-  styleUrl: './sick-notes.page.scss',
 })
 export class SickNotesPage {
   private readonly api = inject(AbsencesApi);

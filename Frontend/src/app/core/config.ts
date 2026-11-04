@@ -8,7 +8,7 @@ export interface AppConfig {
 }
 
 const DEFAULTS: AppConfig = {
-  services: { access: '/access', workforce: '/workforce', portal: '/portal', notifications: '/notifications' },
+  services: { access: '/svc/access', workforce: '/svc/workforce', portal: '/svc/portal', notifications: '/svc/notifications' },
 };
 
 /** Runtime configuration (`config.json` next to the app), so the same build runs in every environment. */

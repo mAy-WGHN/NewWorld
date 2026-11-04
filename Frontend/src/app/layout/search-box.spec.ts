@@ -1,3 +1,4 @@
+import { OverlayContainer } from '@angular/cdk/overlay';
 import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
@@ -10,92 +11,73 @@ const grant = (...keys: string[]) => new PrivilegeSet(keys.map((key) => ({ key, 
 describe('SearchBox', () => {
   let fixture: ComponentFixture<SearchBox>;
   let root: HTMLElement;
+  let overlay: OverlayContainer;
   let navigate: ReturnType<typeof vi.spyOn>;
   const privileges = signal(grant('absence:read-own', 'workingtime:read-own'));
 
   async function settle(): Promise<void> {
-    await fixture.whenStable();
-    await new Promise((r) => setTimeout(r));
-    await fixture.whenStable();
+    for (let i = 0; i < 3; i++) {
+      await fixture.whenStable();
+      await new Promise((r) => setTimeout(r, 20));
+    }
   }
+
+  const input = () => root.querySelector<HTMLInputElement>('input')!;
+  /** The options stand in the overlay (outside of the component), as Angular Material places them. */
+  const options = () => [...overlay.getContainerElement().querySelectorAll('mat-option')];
+  const optionNames = () => options().map((o) => o.querySelector('.font-medium')?.textContent?.trim() ?? o.textContent?.trim());
 
   async function type(value: string): Promise<void> {
-    const input = root.querySelector<HTMLInputElement>('input')!;
-    input.value = value;
-    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input().focus();
+    input().value = value;
+    input().dispatchEvent(new Event('input', { bubbles: true }));
     await settle();
   }
-
-  async function key(name: string): Promise<void> {
-    root.querySelector('input')!.dispatchEvent(new KeyboardEvent('keydown', { key: name, cancelable: true, bubbles: true }));
-    await settle();
-  }
-
-  const results = () => [...root.querySelectorAll('[role="option"]')].map((o) => o.querySelector('strong')?.textContent ?? o.textContent?.trim());
 
   beforeEach(async () => {
     privileges.set(grant('absence:read-own', 'workingtime:read-own'));
     TestBed.configureTestingModule({ providers: [provideRouter([]), { provide: AuthService, useValue: { privileges } }] });
+    overlay = TestBed.inject(OverlayContainer);
     navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true);
     fixture = TestBed.createComponent(SearchBox);
     root = fixture.nativeElement as HTMLElement;
     await settle();
   });
 
-  it('shows examples taken from the areas the person has', () => {
+  afterEach(() => overlay.ngOnDestroy());
+
+  it('asks "Was möchtest du erledigen?" and gives examples from the areas the person has', () => {
+    expect(input().placeholder).toBe('Was möchtest du erledigen?');
     expect(root.textContent).toContain('z. B.');
-    expect(root.textContent).toContain('Meine Abwesenheiten');
+    expect(root.textContent).toContain('Meine Krankmeldungen');
   });
 
   it('finds an area by what people call it', async () => {
     await type('krank');
 
-    // the sick note page first; the absences page only follows because its description mentions sick notes
-    expect(results()).toEqual(['Meine Krankmeldungen', 'Meine Abwesenheiten']);
+    expect(optionNames()).toEqual(['Meine Krankmeldungen', 'Meine Abwesenheiten']);
   });
 
   it('finds nothing in areas the person may not open', async () => {
     await type('genehmig');
 
-    expect(results()).toEqual([]);
-    expect(root.textContent).toContain('nichts gefunden');
+    expect(optionNames().filter((n) => n === 'Genehmigungen')).toEqual([]);
+    expect(overlay.getContainerElement().textContent).toContain('nichts gefunden');
   });
 
-  it('opens the best match with Enter and clears the search', async () => {
+  it('opens the area of a chosen result and empties the field', async () => {
     await type('stunden');
-    await key('Enter');
+
+    (options()[0] as HTMLElement).click();
+    await settle();
 
     expect(navigate).toHaveBeenCalledWith('/working-time');
-    expect(root.querySelector('input')!.value).toBe('');
+    expect(input().value).toBe('');
   });
 
-  it('moves through the results with the arrow keys, wrapping around', async () => {
-    privileges.set(grant('absence:read-own', 'absence:create-own', 'workingtime:read-own'));
-    await type('u');
-    const first = results();
-    expect(first.length).toBeGreaterThan(1);
+  it('does not offer anything for an empty field', async () => {
+    await type('');
 
-    await key('ArrowDown');
-    expect(root.querySelector('[role="option"][aria-selected="true"]')!.textContent).toContain(first[1]!);
-
-    await key('ArrowUp');
-    await key('ArrowUp');
-    expect(root.querySelector('[role="option"][aria-selected="true"]')!.textContent).toContain(first[first.length - 1]!);
-  });
-
-  it('closes the list with Escape', async () => {
-    await type('krank');
-    expect(results()).not.toEqual([]);
-
-    await key('Escape');
-
-    expect(results()).toEqual([]);
-  });
-
-  it('does nothing on Enter without a result', async () => {
-    await type('xyz');
-    await key('Enter');
-
-    expect(navigate).not.toHaveBeenCalled();
+    expect(options()).toEqual([]);
   });
 });

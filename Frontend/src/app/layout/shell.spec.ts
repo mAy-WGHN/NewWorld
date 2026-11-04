@@ -1,6 +1,9 @@
+import { BreakpointObserver } from '@angular/cdk/layout';
+import { OverlayContainer } from '@angular/cdk/overlay';
 import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
+import { of } from 'rxjs';
 import { AuthService } from '../core/auth/auth.service';
 import { PrivilegeSet } from '../core/auth/privileges';
 import { NavigationState, PageReloader } from '../core/navigation-state.service';
@@ -68,20 +71,23 @@ describe('Shell', () => {
     expect(notifications.refresh).toHaveBeenCalledTimes(1);
   });
 
+  const badge = () => root.querySelector('.bell .mat-badge-content')?.textContent?.trim();
+
   it('shows the unread count at the bell', async () => {
     await create();
 
-    expect(root.querySelector('[data-testid="badge"]')!.textContent).toContain('3');
+    expect(badge()).toBe('3');
+    expect(root.querySelector('.bell .mat-badge-hidden')).toBeNull();
   });
 
   it('shows no badge when everything is read and caps big numbers', async () => {
     unread.set(0);
     await create();
-    expect(root.querySelector('[data-testid="badge"]')).toBeNull();
+    expect(root.querySelector('.bell .mat-badge-hidden')).not.toBeNull();
 
     unread.set(250);
     fixture.detectChanges();
-    expect(root.querySelector('[data-testid="badge"]')!.textContent).toContain('99+');
+    expect(badge()).toBe('99+');
   });
 
   it('has no bell and no messages link without the privilege', async () => {
@@ -151,9 +157,12 @@ describe('Shell', () => {
   it('signs out, forgets the person and goes to the login page', async () => {
     await create();
 
-    root.querySelector<HTMLButtonElement>('[data-action="logout"]')!.click();
+    root.querySelector<HTMLButtonElement>('[aria-label="Benutzermenü"]')!.click();
     await fixture.whenStable();
-    await new Promise((r) => setTimeout(r));
+    await new Promise((r) => setTimeout(r, 20));
+    TestBed.inject(OverlayContainer).getContainerElement().querySelector<HTMLButtonElement>('[data-action="logout"]')!.click();
+    await fixture.whenStable();
+    await new Promise((r) => setTimeout(r, 20));
 
     expect(auth.logout).toHaveBeenCalled();
     expect(profile.clear).toHaveBeenCalled();
@@ -221,17 +230,37 @@ describe('Shell', () => {
     });
   });
 
-  it('opens and closes the menu on small screens', async () => {
+  it('opens and closes the side bar as a drawer on small screens', async () => {
+    TestBed.configureTestingModule({
+      providers: [
+        provideRouter([]),
+        { provide: AuthService, useValue: auth },
+        { provide: ProfileService, useValue: profile },
+        { provide: NotificationsService, useValue: notifications },
+        { provide: BreakpointObserver, useValue: { observe: () => of({ matches: true, breakpoints: {} }) } },
+      ],
+    });
+    fixture = TestBed.createComponent(Shell);
+    root = fixture.nativeElement as HTMLElement;
+    await fixture.whenStable();
+    await new Promise((r) => setTimeout(r, 20));
+    const drawer = root.querySelector('.side')!;
+    expect(drawer.classList.contains('mat-drawer-opened')).toBe(false);
+
+    root.querySelector<HTMLButtonElement>('.menu-toggle')!.click();
+    await fixture.whenStable();
+    await new Promise((r) => setTimeout(r, 20));
+    expect(drawer.classList.contains('mat-drawer-opened')).toBe(true);
+
+    root.querySelector<HTMLButtonElement>('.menu-toggle')!.click();
+    await fixture.whenStable();
+    await new Promise((r) => setTimeout(r, 20));
+    expect(drawer.classList.contains('mat-drawer-opened')).toBe(false);
+  });
+
+  it('has no menu button on a wide screen', async () => {
     await create();
-    const nav = root.querySelector('.side')!;
-    expect(nav.classList.contains('open')).toBe(false);
 
-    root.querySelector<HTMLButtonElement>('.menu-toggle')!.click();
-    fixture.detectChanges();
-    expect(nav.classList.contains('open')).toBe(true);
-
-    root.querySelector<HTMLButtonElement>('.menu-toggle')!.click();
-    fixture.detectChanges();
-    expect(nav.classList.contains('open')).toBe(false);
+    expect(root.querySelector('.menu-toggle')).toBeNull();
   });
 });
