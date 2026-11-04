@@ -1,0 +1,8 @@
+{
+  "services": {
+    "access": "/access",
+    "workforce": "/workforce",
+    "portal": "/portal",
+    "notifications": "/notifications"
+  }
+}

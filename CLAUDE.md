@@ -18,6 +18,7 @@ Backend eines Mitarbeiterportals, eines HR-Tools und der Integrationsdienste fü
 | `src/`, `tests/` | Neue Dienste und Shared-Bibliotheken nach Plan (`NewWorld.slnx`). Hier wird entwickelt. |
 | `Archiv/` | Bestandsdienste, unverändert lauffähig (Entscheidung 10). Fachliche Referenz, keine Weiterentwicklung. |
 | `docker-compose.yaml`, `Makefile` | Startet die Archiv-Dienste gemeinsam (`make up`). |
+| `Frontend/` | Globales Angular-Frontend (Rahmen mit Anmeldung und rechtebasierter Navigation, Fachbereiche als Platzhalter; seit 2026-11-04). Eigene Toolchain (`npm`), nicht Teil von `NewWorld.slnx`. Siehe `Frontend/README.md`. |
 | `docs/` | Phasenberichte. |
 
 | Archiv-Ordner | Entsprechung im Zielbild (`src/`) |
@@ -260,4 +261,4 @@ BC-Stammdaten-Feldliste (Phase 2, 3) · BC-Datenmodell Workforce / Upsert über 
 
 ## Außerhalb des Scopes
 
-Inventur-Anwendung (nur leerer `Inventory/`-Ordner), Deployment/CI/CD und Azure-Ressourcen außer Service-Bus-Bicep, Frontends, HR API, Dienstplanung/Zeiterfassung/Schichttausch, alle Portal-API-Fachfunktionen, echte Push-/Mail-Zustellung, automatische Löschfristen. Wird so etwas berührt, nur Schnittstelle oder Platzhalter vorbereiten.
+Inventur-Anwendung (nur leerer `Inventory/`-Ordner), Deployment/CI/CD und Azure-Ressourcen außer Service-Bus-Bicep, Frontends (außer dem Rahmen in `Frontend/`, siehe Ordnertabelle; die Fachbereiche darin sind Platzhalter), HR API, Dienstplanung/Zeiterfassung/Schichttausch, alle Portal-API-Fachfunktionen, echte Push-/Mail-Zustellung, automatische Löschfristen. Wird so etwas berührt, nur Schnittstelle oder Platzhalter vorbereiten.

@@ -1,0 +1,26 @@
+{
+  "/access": {
+    "target": "http://localhost:5101",
+    "secure": false,
+    "pathRewrite": { "^/access": "" },
+    "changeOrigin": true
+  },
+  "/workforce": {
+    "target": "http://localhost:5102",
+    "secure": false,
+    "pathRewrite": { "^/workforce": "" },
+    "changeOrigin": true
+  },
+  "/portal": {
+    "target": "http://localhost:5103",
+    "secure": false,
+    "pathRewrite": { "^/portal": "" },
+    "changeOrigin": true
+  },
+  "/notifications": {
+    "target": "http://localhost:5104",
+    "secure": false,
+    "pathRewrite": { "^/notifications": "" },
+    "changeOrigin": true
+  }
+}

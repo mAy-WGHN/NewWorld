@@ -1,0 +1,29 @@
+<header class="bar">
+  <button type="button" class="menu-toggle" (click)="toggleMenu()" [attr.aria-expanded]="menuOpen()" aria-controls="main-nav">
+    <span class="sr-only">Menü</span>
+    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg>
+  </button>
+  <a class="brand" routerLink="/" (click)="closeMenu()">NewWorld</a>
+  <div class="spacer"></div>
+  <div class="who">
+    @for (role of roles(); track role) {
+      <span class="chip">{{ role }}</span>
+    }
+  </div>
+  <button type="button" class="btn-quiet" (click)="logout()">Abmelden</button>
+</header>
+
+<div class="body">
+  <nav id="main-nav" class="nav" [class.open]="menuOpen()" aria-label="Bereiche">
+    <a class="nav-link" routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" (click)="closeMenu()">Start</a>
+    @for (group of nav(); track group.title) {
+      <h2 class="nav-title">{{ group.title }}</h2>
+      @for (item of group.items; track item.path) {
+        <a class="nav-link" [routerLink]="'/' + item.path" routerLinkActive="active" (click)="closeMenu()">{{ item.label }}</a>
+      }
+    }
+  </nav>
+  <main class="content">
+    <router-outlet />
+  </main>
+</div>

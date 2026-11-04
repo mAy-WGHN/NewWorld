@@ -1,0 +1,43 @@
+<h1>Willkommen</h1>
+
+<section>
+  <h2>Deine Bereiche</h2>
+  @if (areas().length === 0) {
+    <p class="muted">Für dich sind noch keine Bereiche freigeschaltet. Bitte wende dich an die Verwaltung.</p>
+  }
+  @for (group of areas(); track group.title) {
+    <h3>{{ group.title }}</h3>
+    <div class="tiles">
+      @for (item of group.items; track item.path) {
+        <a class="tile" [routerLink]="'/' + item.path">
+          <strong>{{ item.label }}</strong>
+          <span>{{ item.about }}</span>
+        </a>
+      }
+    </div>
+  }
+</section>
+
+<section>
+  <h2>Deine Rechte</h2>
+  <p class="muted">
+    @if (roles().length) {
+      Rollen:
+      @for (role of roles(); track role) {
+        <span class="chip">{{ role }}</span>
+      }
+    }
+    {{ privilegeCount() }} Rechte insgesamt.
+  </p>
+  <details>
+    <summary>Alle Rechte anzeigen</summary>
+    @for (area of byArea(); track area[0]) {
+      <h3>{{ area[0] }}</h3>
+      <ul class="keys">
+        @for (key of area[1]; track key) {
+          <li><code>{{ key }}</code></li>
+        }
+      </ul>
+    }
+  </details>
+</section>
