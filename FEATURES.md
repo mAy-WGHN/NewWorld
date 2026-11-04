@@ -77,6 +77,13 @@
 - Das Angular-Frontend bleibt kompatibel.
 - Öffentlich bleiben Meldungsformular und FAQ-Lesen, mit Rate Limit.
 
+## Frontend (`Frontend/`, Angular)
+
+- Rahmen mit Anmeldung (Personalnummer und PIN gegen Access), Sitzungserneuerung und Navigation nach den Rechten der Person.
+- Startseite mit den freigeschalteten Bereichen, Rollen und Rechten.
+- **Meine Abwesenheiten:** Urlaubskonto je Jahr, Krankmeldung, Urlaubsantrag, Zurückziehen, Krankmeldung beenden, AU hochladen.
+- Alle weiteren Bereiche der Navigation sind Platzhalter.
+
 ## Nicht gebaut
 
 - **Außerhalb des Scopes:** HR API, Dienstplanung und Zeiterfassung, Frontends, echter Push- und Mailversand.

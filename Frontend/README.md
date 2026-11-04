@@ -34,6 +34,16 @@ Aspire vergibt die Ports dynamisch: die Ziele in `proxy.conf.json` auf die Adres
 
 Die Rechteprüfung im Frontend steuert nur, was angezeigt wird. Durchgesetzt wird sie von den Diensten bei jedem Aufruf.
 
+## Fertige Bereiche
+
+| Bereich | Pfad | Dienst |
+| --- | --- | --- |
+| Meine Abwesenheiten | `/absences` | Workforce (`/api/me/absences`, `/api/me/vacation-balance`, AU-Upload) |
+
+Meine Abwesenheiten: Urlaubskonto je Jahr, Krankmeldung (Ende offen lassen und später eintragen), Urlaub beantragen, Urlaub zurückziehen, offene Krankmeldung beenden und die AU hochladen (PDF, JPEG, PNG, mit dem Zeitraum laut AU). Fehler der Dienste (zum Beispiel Überschneidung oder zu wenig Urlaubstage) erscheinen als Klartext. Formulare und Aktionen sind nur mit den Rechten `absence:create-own`, `absence:update-own` und `certificate:upload-own` sichtbar. Die Dienste prüfen sie trotzdem bei jedem Aufruf.
+
+Alle anderen Bereiche der Navigation sind Platzhalter.
+
 ## Aufbau
 
 ```
@@ -41,9 +51,10 @@ src/app/
   core/            Konfiguration, Auth (Service, Interceptor, Guards, Rechte), Navigation (nav-items.ts)
   layout/          Rahmen mit Kopfzeile und Navigation
   pages/           Anmeldung, Startseite, Platzhalter
+  features/        Fertige Fachbereiche, je Ordner: Seite, API-Dienst, Modelle und Hilfsfunktionen
 ```
 
-Neuer Bereich: Eintrag in [src/app/core/nav/nav-items.ts](src/app/core/nav/nav-items.ts) (Pfad, nötige Rechte), die Route dazu entsteht aus dem Eintrag. Soll der Bereich echte Inhalte bekommen, ersetzt eine eigene Route in `app.routes.ts` die Platzhalterseite.
+Neuer Bereich: Eintrag in [src/app/core/nav/nav-items.ts](src/app/core/nav/nav-items.ts) (Pfad, nötige Rechte), die Route dazu entsteht aus dem Eintrag und zeigt zunächst die Platzhalterseite. Ist der Bereich gebaut, kommt er mit seinem Pfad in `builtAreas` in `app.routes.ts` und wird bei Bedarf nachgeladen.
 
 ## Tests und Build
 
