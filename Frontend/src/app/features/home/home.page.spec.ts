@@ -79,7 +79,8 @@ describe('HomePage', () => {
   it('offers quick links only for what the person may open', async () => {
     await create();
 
-    expect(links()).toContain('Krankmeldung');
+    expect(links()).toContain('Krankmeldungen');
+    expect(root.querySelector('a[href="/my-sick-notes"]')!.textContent).toContain('Krankmeldungen');
     expect(links()).toContain('Urlaub beantragen');
     expect(links()).toContain('Meine Abwesenheiten');
     expect(links()).toContain('FAQ');

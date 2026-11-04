@@ -31,6 +31,11 @@
 
   --hero-from: #1f3d2c;
   --hero-to: #3f6b4a;
+
+  // Something needs the person's attention (yellow marker): background, border, text.
+  --attention-bg: #fff6c9;
+  --attention-border: #e8c53a;
+  --attention-text: #5e4700;
   color-scheme: light;
 }
 
@@ -64,6 +69,9 @@
   --tile-orange-soft: #4a3220;
   --hero-from: #17301f;
   --hero-to: #2c4d34;
+  --attention-bg: #3a3214;
+  --attention-border: #8a7424;
+  --attention-text: #f4dd8c;
   color-scheme: dark;
 }
 

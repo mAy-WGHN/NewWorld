@@ -82,6 +82,19 @@ export const canWithdraw = (a: Absence): boolean => a.type === 'Vacation' && (a.
 export const canEnd = (a: Absence): boolean => a.type === 'Sickness' && a.status === 'Reported' && a.to === null;
 export const canUpload = (a: Absence): boolean => a.type === 'Sickness' && a.status === 'Reported';
 
+/**
+ * HR still needs an AU for an active sick note if none was handed in or HR turned the one handed in down.
+ * An AU that was handed in and waits for the check, or that was checked, needs nothing more from the person.
+ */
+export const needsCertificate = (a: Absence): boolean =>
+  a.type === 'Sickness' && a.status === 'Reported' && (a.certificateStatus === 'Missing' || a.certificateStatus === 'Rejected');
+
+/** The own sick notes: those that still need an AU first (apart, each note only once), the others below; newest first in both. */
+export function splitSickNotes(absences: readonly Absence[]): { attention: Absence[]; others: Absence[] } {
+  const sickNotes = absences.filter((a) => a.type === 'Sickness').sort((a, b) => b.from.localeCompare(a.from));
+  return { attention: sickNotes.filter(needsCertificate), others: sickNotes.filter((a) => !needsCertificate(a)) };
+}
+
 const ERRORS: Record<string, string> = {
   InvalidPeriod: 'Der Zeitraum ist nicht gültig.',
   AfterExit: 'Der Zeitraum liegt nach deinem Austritt.',

@@ -13,6 +13,7 @@ import { PlaceholderPage } from './pages/placeholder/placeholder';
 /** Areas that are built; they replace the placeholder of the same path. Loaded on demand. */
 const builtAreas: Record<string, () => Promise<Type<unknown>>> = {
   absences: () => import('./features/absences/absences.page').then((m) => m.AbsencesPage),
+  'my-sick-notes': () => import('./features/sick-notes/sick-notes.page').then((m) => m.SickNotesPage),
 };
 
 /** Every area of the navigation is a placeholder page until it is built; the privilege guard applies to both. */

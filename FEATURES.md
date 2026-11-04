@@ -84,6 +84,7 @@
 - Alle Bereiche (mit Rechteübersicht) und Favoriten.
 - Kennzahlen, Neuigkeiten, Schulungen und Anleitungen sind als „folgt“ gekennzeichnet, nichts ist erfunden.
 - **Meine Abwesenheiten:** Urlaubskonto je Jahr, Krankmeldung, Urlaubsantrag, Zurückziehen, Krankmeldung beenden, AU hochladen.
+- **Meine Krankmeldungen:** Übersicht der eigenen Krankmeldungen mit „Krankmelden“ oben rechts; Krankmeldungen, für die die Personalabteilung noch eine AU braucht (fehlt oder abgelehnt), stehen ganz oben und sind gelb hervorgehoben.
 - Alle weiteren Bereiche der Navigation sind Platzhalter.
 
 ## Nicht gebaut

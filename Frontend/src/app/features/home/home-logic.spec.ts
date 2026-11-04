@@ -26,7 +26,7 @@ describe('buildTasks', () => {
     const tasks = buildTasks({ pendingApprovals: 2, missingCertificates: 1, unread: 4 });
 
     expect(tasks.map((t) => t.id)).toEqual(['certificates', 'approvals', 'unread']);
-    expect(tasks[0]).toMatchObject({ tone: 'danger', title: 'Für 1 Krankmeldung fehlt die AU', link: '/absences' });
+    expect(tasks[0]).toMatchObject({ tone: 'danger', title: 'Für 1 Krankmeldung fehlt die AU', link: '/my-sick-notes' });
   });
 
   it('names several missing certificates and unread messages', () => {

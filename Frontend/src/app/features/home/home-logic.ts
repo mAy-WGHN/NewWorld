@@ -30,7 +30,7 @@ export function buildTasks(input: TaskInput): Task[] {
       tone: 'danger',
       title: `Für ${plural(input.missingCertificates, 'Krankmeldung', 'Krankmeldungen')} fehlt die AU`,
       subtitle: 'Bitte nachreichen',
-      link: '/absences',
+      link: '/my-sick-notes',
     });
   }
   if ((input.pendingApprovals ?? 0) > 0) {

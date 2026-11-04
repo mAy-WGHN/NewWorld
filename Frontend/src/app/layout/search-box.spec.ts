@@ -50,7 +50,8 @@ describe('SearchBox', () => {
   it('finds an area by what people call it', async () => {
     await type('krank');
 
-    expect(results()).toEqual(['Meine Abwesenheiten']);
+    // the sick note page first; the absences page only follows because its description mentions sick notes
+    expect(results()).toEqual(['Meine Krankmeldungen', 'Meine Abwesenheiten']);
   });
 
   it('finds nothing in areas the person may not open', async () => {

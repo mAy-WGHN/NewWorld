@@ -21,7 +21,8 @@ export const NAV: NavGroup[] = [
   {
     title: 'Persönlich',
     items: [
-      { label: 'Meine Abwesenheiten', path: 'absences', requires: ['absence:read-own', 'absence:create-own'], about: 'Krankmeldung, Urlaub und Urlaubskonto.', keywords: ['krank', 'krankmeldung', 'urlaub', 'urlaub beantragen', 'au', 'fehlen'] },
+      { label: 'Meine Krankmeldungen', path: 'my-sick-notes', requires: ['absence:read-own', 'absence:create-own'], about: 'Krank melden, eigene Krankmeldungen ansehen und die AU nachreichen.', keywords: ['krank', 'krankmelden', 'krankmeldung', 'au', 'bescheinigung', 'gelber schein'] },
+      { label: 'Meine Abwesenheiten', path: 'absences', requires: ['absence:read-own', 'absence:create-own'], about: 'Urlaub, Urlaubskonto und Krankmeldungen.', keywords: ['urlaub', 'urlaub beantragen', 'urlaubskonto', 'fehlen'] },
       { label: 'Arbeitszeitkonto', path: 'working-time', requires: ['workingtime:read-own'], about: 'Saldo und Buchungen des eigenen Arbeitszeitkontos.', keywords: ['stunden', 'überstunden', 'arbeitszeit', 'saldo'] },
       { label: 'Meine Karte', path: 'employee-card', requires: ['employee:read-own'], about: 'Eigene Stammdaten und Änderungsanträge.', keywords: ['daten', 'adresse', 'stammdaten', 'profil'] },
       { label: 'Benachrichtigungen', path: 'notifications', requires: ['notification:read-own'], about: 'Mitteilungen und Einstellungen.', keywords: ['mitteilungen', 'nachrichten', 'glocke'] },

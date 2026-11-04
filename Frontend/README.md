@@ -60,6 +60,10 @@ Noch ohne Daten und deshalb als „folgt“ gekennzeichnet: Kennzahlen der Filia
 
 Meine Abwesenheiten: Urlaubskonto je Jahr, Krankmeldung (Ende offen lassen und später eintragen), Urlaub beantragen, Urlaub zurückziehen, offene Krankmeldung beenden und die AU hochladen (PDF, JPEG, PNG, mit dem Zeitraum laut AU). Fehler der Dienste (zum Beispiel Überschneidung oder zu wenig Urlaubstage) erscheinen als Klartext. Formulare und Aktionen sind nur mit den Rechten `absence:create-own`, `absence:update-own` und `certificate:upload-own` sichtbar. Die Dienste prüfen sie trotzdem bei jedem Aufruf.
 
+| Meine Krankmeldungen | `/my-sick-notes` | Workforce (gleiche Aufrufe wie die Abwesenheiten) |
+
+Meine Krankmeldungen: Der Link „Krankmeldungen“ auf der Startseite führt hierher. Oben rechts steht der Knopf „Krankmelden“ (öffnet das Formular, das Ende kann offen bleiben). Darunter die eigenen Krankmeldungen, neueste zuerst. Braucht die Personalabteilung noch eine AU, steht die Krankmeldung ganz oben in einem eigenen, gelb hervorgehobenen Block „AU wird noch benötigt“ und nicht noch einmal in der Liste darunter. Das gilt, wenn die AU fehlt oder von der Personalabteilung abgelehnt wurde; eine eingereichte, noch ungeprüfte oder eine geprüfte AU braucht nichts mehr. Von dort lässt sich die AU hochladen oder eine offene Krankmeldung beenden.
+
 Alle anderen Bereiche der Navigation sind Platzhalter.
 
 ## Aufbau

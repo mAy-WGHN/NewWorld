@@ -14,6 +14,17 @@ describe('visibleNav', () => {
     expect(paths(keys('absence:read-reason'))).toContain('team-absences');
   });
 
+  it('shows the own sick notes to everybody who may see or report their absences', () => {
+    expect(paths(keys('absence:read-own'))).toContain('my-sick-notes');
+    expect(paths(keys('absence:create-own'))).toContain('my-sick-notes');
+    expect(paths(PrivilegeSet.empty)).not.toContain('my-sick-notes');
+  });
+
+  it('keeps the sick note overview of HR apart from the own one', () => {
+    expect(paths(keys('absence:read-own'))).not.toContain('sick-notes');
+    expect(paths(keys('certificate:review'))).toContain('sick-notes');
+  });
+
   it('hides areas whose privilege is missing', () => {
     expect(paths(keys('absence:read-own'))).not.toContain('approvals');
     expect(paths(keys('absence:read-own'))).not.toContain('admin/access');

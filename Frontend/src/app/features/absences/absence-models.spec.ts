@@ -7,7 +7,9 @@ import {
   errorMessage,
   formatDate,
   formatPeriod,
+  needsCertificate,
   problemTitle,
+  splitSickNotes,
   statusLabel,
   typeLabel,
   validatePeriod,
@@ -132,5 +134,59 @@ describe('errors', () => {
     expect(problemTitle(error)).toBe('Overlap');
     expect(problemTitle(new HttpErrorResponse({ status: 500 }))).toBeUndefined();
     expect(problemTitle(new Error('x'))).toBeUndefined();
+  });
+});
+
+describe('needsCertificate', () => {
+  const sickNote = (patch: Partial<Absence>) => absence({ type: 'Sickness', status: 'Reported', to: null, certificateStatus: 'Missing', ...patch });
+
+  it('needs an AU where none was handed in or HR turned it down', () => {
+    expect(needsCertificate(sickNote({ certificateStatus: 'Missing' }))).toBe(true);
+    expect(needsCertificate(sickNote({ certificateStatus: 'Rejected' }))).toBe(true);
+  });
+
+  it('needs nothing more once an AU is handed in or checked', () => {
+    expect(needsCertificate(sickNote({ certificateStatus: 'Submitted' }))).toBe(false);
+    expect(needsCertificate(sickNote({ certificateStatus: 'Verified' }))).toBe(false);
+  });
+
+  it('only applies to active sick notes', () => {
+    expect(needsCertificate(sickNote({ status: 'Cancelled' }))).toBe(false);
+    expect(needsCertificate(absence({ type: 'Vacation', certificateStatus: 'Missing' }))).toBe(false);
+    expect(needsCertificate(sickNote({ certificateStatus: null }))).toBe(false);
+  });
+});
+
+describe('splitSickNotes', () => {
+  const sick = (id: string, from: string, certificateStatus: string, status = 'Reported'): Absence =>
+    absence({ id, type: 'Sickness', status, from, to: null, certificateStatus });
+
+  it('keeps only sick notes', () => {
+    const { attention, others } = splitSickNotes([absence({ id: 'v' }), sick('s', '2026-11-02', 'Verified')]);
+
+    expect([...attention, ...others].map((a) => a.id)).toEqual(['s']);
+  });
+
+  it('puts the ones that need an AU first, apart from the rest, each note once', () => {
+    const { attention, others } = splitSickNotes([
+      sick('verified-new', '2026-11-20', 'Verified'),
+      sick('missing-old', '2026-10-01', 'Missing'),
+      sick('rejected', '2026-10-15', 'Rejected'),
+      sick('submitted', '2026-11-05', 'Submitted'),
+    ]);
+
+    expect(attention.map((a) => a.id)).toEqual(['rejected', 'missing-old']);
+    expect(others.map((a) => a.id)).toEqual(['verified-new', 'submitted']);
+  });
+
+  it('sorts newest first, also across the year change', () => {
+    const { others } = splitSickNotes([sick('a', '2026-12-30', 'Verified'), sick('c', '2027-01-03', 'Verified'), sick('b', '2026-01-05', 'Verified')]);
+
+    expect(others.map((a) => a.id)).toEqual(['c', 'a', 'b']);
+  });
+
+  it('has nothing to highlight when no AU is missing', () => {
+    expect(splitSickNotes([sick('a', '2026-11-01', 'Verified')]).attention).toEqual([]);
+    expect(splitSickNotes([])).toEqual({ attention: [], others: [] });
   });
 });
