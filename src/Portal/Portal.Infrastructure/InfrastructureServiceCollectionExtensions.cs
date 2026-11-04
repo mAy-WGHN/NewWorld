@@ -55,6 +55,10 @@ public static class InfrastructureServiceCollectionExtensions
         // these copies prove the event distribution to a third consumer.
         services.AddMessageHandler<PortalDbContext, EmployeeChanged, EmployeeChangedHandler>(
             MessageSource.Subscription(MessagingNames.For(typeof(EmployeeChanged)), "portal"));
+        services.AddMessageHandler<PortalDbContext, EmployeeHired, EmployeeHiredHandler>(
+            MessageSource.Subscription(MessagingNames.For(typeof(EmployeeHired)), "portal"));
+        services.AddMessageHandler<PortalDbContext, EmployeeLeft, EmployeeLeftHandler>(
+            MessageSource.Subscription(MessagingNames.For(typeof(EmployeeLeft)), "portal"));
         services.AddMessageHandler<PortalDbContext, StoreChanged, StoreChangedHandler>(
             MessageSource.Subscription(MessagingNames.For(typeof(StoreChanged)), "portal"));
         services.AddMessageHandler<PortalDbContext, EmployeeDataErasureRequested, EmployeeDataErasureRequestedHandler>(

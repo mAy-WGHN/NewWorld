@@ -195,6 +195,27 @@ resource read_employee_hired_access 'Microsoft.Authorization/roleAssignments@202
   }
 }
 
+// Subscription employee-hired/portal. Purpose: Entry date for the copy of employees in the Portal API.
+resource sub_employee_hired_portal 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2024-01-01' = {
+  parent: topic_employee_hired
+  name: 'portal'
+  properties: {
+    maxDeliveryCount: 5
+    lockDuration: 'PT1M'
+    defaultMessageTimeToLive: 'P1D'
+  }
+}
+
+resource read_employee_hired_portal 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: sub_employee_hired_portal
+  name: guid(sub_employee_hired_portal.id, portalPrincipalId, receiverRoleId)
+  properties: {
+    roleDefinitionId: receiverRole.id
+    principalId: portalPrincipalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
 // Topic employee-left (event). Publisher: BC Integration.
 resource topic_employee_left 'Microsoft.ServiceBus/namespaces/topics@2024-01-01' = {
   parent: sbNamespace
@@ -252,6 +273,27 @@ resource read_employee_left_access 'Microsoft.Authorization/roleAssignments@2022
   properties: {
     roleDefinitionId: receiverRole.id
     principalId: accessPrincipalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// Subscription employee-left/portal. Purpose: Exit date for the copy of employees in the Portal API.
+resource sub_employee_left_portal 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2024-01-01' = {
+  parent: topic_employee_left
+  name: 'portal'
+  properties: {
+    maxDeliveryCount: 5
+    lockDuration: 'PT1M'
+    defaultMessageTimeToLive: 'P1D'
+  }
+}
+
+resource read_employee_left_portal 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: sub_employee_left_portal
+  name: guid(sub_employee_left_portal.id, portalPrincipalId, receiverRoleId)
+  properties: {
+    roleDefinitionId: receiverRole.id
+    principalId: portalPrincipalId
     principalType: 'ServicePrincipal'
   }
 }

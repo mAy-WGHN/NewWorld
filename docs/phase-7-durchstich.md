@@ -17,7 +17,7 @@ Stand: 2026-10-23. Build ohne Warnungen; gesamte Solution grün (inkl. drei E2E-
 2. **Entra** (Entscheidung 13): keine Benutzer-App-Rollen/-Gruppen, keine Identitätszuordnung; Entra nur zwischen Diensten. Weicht vom Plan ab.
 3. **Emulator:** Lebensdauer maximal 1 h, mindestens eine Subscription je Topic (daher kein `shift-uncovered`-Topic bis zum ersten Herausgeber).
 4. **Portal** konsumiert `EmployeeHired`/`EmployeeLeft` noch nicht (Kopie nutzt das Austrittsdatum aus `EmployeeChanged`).
-5. `Access.Permissions.Read` (Neuaufbau der Berechtigungskopie): Endpunkt vorhanden, Aufrufer-Code in den Diensten fehlt noch.
+4. **Portal** konsumiert seit 2026-11-03 `EmployeeHired`/`EmployeeLeft` (Datumsfelder der Kopie) und übernimmt die Hauptfiliale aus `PermissionsChanged` wie Workforce.
 6. Nicht verifiziert: Bicep gegen echte Azure-Umgebung, PowerShell-Skripte, Betrieb mehrerer Instanzen (`TODO(Betrieb)` bei Master-Data-Sync und Forwarded Headers).
 
 ## Offene `TODO(BC-Modell)` (Auswahl nach Bereich, Vollständige Liste per `grep -rn "TODO(" src`)

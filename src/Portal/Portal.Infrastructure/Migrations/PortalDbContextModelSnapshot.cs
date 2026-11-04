@@ -92,12 +92,40 @@ namespace Portal.Infrastructure.Migrations
                     b.ToTable("faqs", "portal");
                 });
 
+            modelBuilder.Entity("Portal.Infrastructure.Messaging.MainStoreCopyRecord", b =>
+                {
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("employee_id");
+
+                    b.Property<Guid?>("StoreId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("store_id");
+
+                    b.Property<long>("Version")
+                        .HasColumnType("bigint")
+                        .HasColumnName("version");
+
+                    b.HasKey("EmployeeId")
+                        .HasName("pk_main_store_copies");
+
+                    b.ToTable("main_store_copies", "portal");
+                });
+
             modelBuilder.Entity("Portal.Infrastructure.Messaging.PersonRecord", b =>
                 {
                     b.Property<Guid>("EmployeeId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("employee_id");
+
+                    b.Property<Guid?>("BcHomeStoreId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("bc_home_store_id");
+
+                    b.Property<DateOnly?>("EntryDate")
+                        .HasColumnType("date")
+                        .HasColumnName("entry_date");
 
                     b.Property<DateOnly?>("ExitDate")
                         .HasColumnType("date")

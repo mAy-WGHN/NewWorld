@@ -15,6 +15,7 @@ public sealed class PortalDbContext(DbContextOptions<PortalDbContext> options) :
 
     public DbSet<PersonRecord> People => Set<PersonRecord>();
     public DbSet<StoreRecord> Stores => Set<StoreRecord>();
+    public DbSet<MainStoreCopyRecord> MainStoreCopies => Set<MainStoreCopyRecord>();
     public DbSet<FaqRecord> Faqs => Set<FaqRecord>();
     public DbSet<FaqImageRecord> FaqImages => Set<FaqImageRecord>();
     public DbSet<ReportRecord> Reports => Set<ReportRecord>();
@@ -36,6 +37,12 @@ public sealed class PortalDbContext(DbContextOptions<PortalDbContext> options) :
             b.ToTable("people");
             b.HasKey(p => p.EmployeeId);
             b.HasIndex(p => p.HomeStoreId);
+        });
+        modelBuilder.Entity<MainStoreCopyRecord>(b =>
+        {
+            b.ToTable("main_store_copies");
+            b.HasKey(m => m.EmployeeId);
+            b.Property(m => m.EmployeeId).ValueGeneratedNever();
         });
         modelBuilder.Entity<StoreRecord>(b =>
         {
