@@ -1,0 +1,55 @@
+@use '../../shared/list-page';
+
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  h2 {
+    margin: 0;
+  }
+}
+
+.year {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.figures {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 12px;
+  margin: 12px 0 0;
+
+  div {
+    display: flex;
+    flex-direction: column;
+  }
+
+  dt {
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  dd {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 600;
+  }
+
+  .remaining dd {
+    color: var(--accent);
+  }
+}
+
+.balance {
+  margin-top: 4px;
+}
+
+.chip-bad {
+  background: transparent;
+  border: 1px solid var(--danger);
+  color: var(--danger);
+}

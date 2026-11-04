@@ -10,6 +10,7 @@ import {
   needsCertificate,
   problemTitle,
   splitSickNotes,
+  splitVacation,
   statusLabel,
   typeLabel,
   validatePeriod,
@@ -188,5 +189,39 @@ describe('splitSickNotes', () => {
   it('has nothing to highlight when no AU is missing', () => {
     expect(splitSickNotes([sick('a', '2026-11-01', 'Verified')]).attention).toEqual([]);
     expect(splitSickNotes([])).toEqual({ attention: [], others: [] });
+  });
+});
+
+describe('splitVacation', () => {
+  const vac = (id: string, from: string, status: string): Absence => absence({ id, type: 'Vacation', status, from, to: from });
+
+  it('keeps only vacation', () => {
+    const { pending, others } = splitVacation([absence({ id: 's', type: 'Sickness', status: 'Reported' }), vac('v', '2026-12-21', 'Approved')]);
+
+    expect([...pending, ...others].map((a) => a.id)).toEqual(['v']);
+  });
+
+  it('puts requests that wait for a decision first, apart from the rest, each only once', () => {
+    const { pending, others } = splitVacation([
+      vac('approved', '2026-12-21', 'Approved'),
+      vac('requested-late', '2027-03-01', 'Requested'),
+      vac('rejected', '2026-08-03', 'Rejected'),
+      vac('requested-early', '2026-12-28', 'Requested'),
+      vac('withdrawn', '2026-07-01', 'Withdrawn'),
+    ]);
+
+    expect(pending.map((a) => a.id)).toEqual(['requested-late', 'requested-early']);
+    expect(others.map((a) => a.id)).toEqual(['approved', 'rejected', 'withdrawn']);
+  });
+
+  it('sorts newest first across the year change', () => {
+    const { others } = splitVacation([vac('a', '2026-12-30', 'Approved'), vac('b', '2027-01-04', 'Approved'), vac('c', '2026-02-01', 'Approved')]);
+
+    expect(others.map((a) => a.id)).toEqual(['b', 'a', 'c']);
+  });
+
+  it('has nothing waiting when everything is decided', () => {
+    expect(splitVacation([vac('a', '2026-12-21', 'Approved')]).pending).toEqual([]);
+    expect(splitVacation([])).toEqual({ pending: [], others: [] });
   });
 });

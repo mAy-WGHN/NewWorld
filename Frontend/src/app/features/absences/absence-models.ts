@@ -95,6 +95,12 @@ export function splitSickNotes(absences: readonly Absence[]): { attention: Absen
   return { attention: sickNotes.filter(needsCertificate), others: sickNotes.filter((a) => !needsCertificate(a)) };
 }
 
+/** The own vacation: requests that still wait for a decision first (apart, each only once), the others below; newest first in both. */
+export function splitVacation(absences: readonly Absence[]): { pending: Absence[]; others: Absence[] } {
+  const vacation = absences.filter((a) => a.type === 'Vacation').sort((a, b) => b.from.localeCompare(a.from));
+  return { pending: vacation.filter((a) => a.status === 'Requested'), others: vacation.filter((a) => a.status !== 'Requested') };
+}
+
 const ERRORS: Record<string, string> = {
   InvalidPeriod: 'Der Zeitraum ist nicht gültig.',
   AfterExit: 'Der Zeitraum liegt nach deinem Austritt.',

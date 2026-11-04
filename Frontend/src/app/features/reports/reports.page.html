@@ -1,0 +1,121 @@
+<header class="head">
+  <h1>Meldungen</h1>
+  <button type="button" class="btn" data-testid="archive-button" [attr.aria-pressed]="archiveMode()" (click)="toggleArchive()">
+    {{ archiveMode() ? 'Aktuelle Meldungen' : 'Archiv' }}
+  </button>
+</header>
+
+@if (error(); as message) {
+  <p class="alert" role="alert">{{ message }}</p>
+}
+@if (status(); as message) {
+  <p class="ok" role="status" data-testid="status">{{ message }}</p>
+}
+@if (listError(); as message) {
+  <p class="alert" role="alert">{{ message }}</p>
+}
+
+@if (!archiveMode()) {
+  @if (open().items.length) {
+    <section class="attention-block" data-testid="attention" aria-labelledby="open-title">
+      <h2 id="open-title">Offene Meldungen</h2>
+      <p class="attention-hint">Diese Meldungen warten noch auf Bearbeitung, die dringendsten zuerst.</p>
+      <ul class="list">
+        @for (r of open().items; track r.id) {
+          <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: r, attention: true }" />
+        }
+      </ul>
+      @if (open().total > open().items.length) {
+        <button type="button" class="btn-quiet more" data-testid="more-open" (click)="more('open')">Mehr anzeigen ({{ open().items.length }} von {{ open().total }})</button>
+      }
+    </section>
+  } @else if (loaded() && !listError()) {
+    <p class="muted">Keine offenen Meldungen.</p>
+  }
+
+  <section aria-labelledby="done-title">
+    <h2 id="done-title">Erledigte Meldungen</h2>
+    @if (loaded() && !listError() && done().items.length === 0) {
+      <p class="muted">Noch keine erledigten Meldungen.</p>
+    }
+    <ul class="list">
+      @for (r of done().items; track r.id) {
+        <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: r, attention: false }" />
+      }
+    </ul>
+    @if (done().total > done().items.length) {
+      <button type="button" class="btn-quiet more" data-testid="more-done" (click)="more('done')">Mehr anzeigen ({{ done().items.length }} von {{ done().total }})</button>
+    }
+  </section>
+} @else {
+  <section aria-labelledby="archive-title">
+    <h2 id="archive-title">Archiv</h2>
+    @if (loaded() && !listError() && archived().items.length === 0) {
+      <p class="muted">Das Archiv ist leer.</p>
+    }
+    <ul class="list">
+      @for (r of archived().items; track r.id) {
+        <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: r, attention: false }" />
+      }
+    </ul>
+    @if (archived().total > archived().items.length) {
+      <button type="button" class="btn-quiet more" data-testid="more-archive" (click)="more('archive')">Mehr anzeigen ({{ archived().items.length }} von {{ archived().total }})</button>
+    }
+  </section>
+}
+
+<ng-template #row let-r let-attention="attention">
+  <li class="row sev-{{ r.severity }}" [class.attention]="attention" data-testid="report-row" [attr.data-id]="r.id">
+    <div class="row-main">
+      <div class="chips">
+        <strong>{{ categoryLabel(r.category) }}</strong>
+        <span class="chip sev-chip">{{ severityLabel(r.severity) }}</span>
+        <span class="chip chip-note">{{ statusLabel(r.status) }}</span>
+        @if (r.archived) {
+          <span class="chip chip-note">Archiviert</span>
+        }
+      </div>
+      <div class="actions">
+        @if (!r.archived) {
+          @if (canUpdate()) {
+            @if (r.status === 'open') {
+              <button type="button" [class]="attention ? 'btn' : 'btn-quiet'" data-action="done" [disabled]="busy()" (click)="markDone(r)">Erledigt</button>
+            } @else {
+              <button type="button" class="btn-quiet" data-action="reopen" [disabled]="busy()" (click)="reopen(r)">Wieder öffnen</button>
+            }
+          }
+          @if (canDelete()) {
+            <button type="button" class="btn-quiet" data-action="archive" [disabled]="busy()" (click)="archive(r)">Archivieren</button>
+          }
+        } @else if (canUpdate()) {
+          <button type="button" class="btn-quiet" data-action="restore" [disabled]="busy()" (click)="restore(r)">Wiederherstellen</button>
+        }
+      </div>
+    </div>
+
+    <p class="desc">{{ r.description }}</p>
+    <p class="meta">{{ locationNames(r) }} · {{ formatCreated(r.createdAt) }} · Personalnummer {{ r.personnelNumber }}</p>
+
+    @if (r.device || r.noticedAt || r.noticedHow || r.priorActivity) {
+      <details class="more-info">
+        <summary>Weitere Angaben</summary>
+        <dl>
+          @if (r.device) { <div><dt>Gerät</dt><dd>{{ r.device }}</dd></div> }
+          @if (r.noticedAt) { <div><dt>Bemerkt am</dt><dd>{{ formatCreated(r.noticedAt) }}</dd></div> }
+          @if (r.noticedHow) { <div><dt>Wie bemerkt</dt><dd>{{ r.noticedHow }}</dd></div> }
+          @if (r.priorActivity) { <div><dt>Zuvor getan</dt><dd>{{ r.priorActivity }}</dd></div> }
+        </dl>
+      </details>
+    }
+
+    @if (canUpdate() && !r.archived) {
+      <div class="comment">
+        <label [for]="'comment-' + r.id">Kommentar</label>
+        <textarea [id]="'comment-' + r.id" rows="2" [value]="draft(r)" (input)="setDraft(r, $event)"></textarea>
+        <button type="button" class="btn-quiet" data-action="save-comment" [disabled]="busy()" (click)="saveComment(r)">Kommentar speichern</button>
+      </div>
+    } @else if (r.comment) {
+      <p class="comment-text"><strong>Kommentar:</strong> {{ r.comment }}</p>
+    }
+  </li>
+</ng-template>

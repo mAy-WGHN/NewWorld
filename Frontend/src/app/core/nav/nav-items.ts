@@ -22,7 +22,8 @@ export const NAV: NavGroup[] = [
     title: 'Persönlich',
     items: [
       { label: 'Meine Krankmeldungen', path: 'my-sick-notes', requires: ['absence:read-own', 'absence:create-own'], about: 'Krank melden, eigene Krankmeldungen ansehen und die AU nachreichen.', keywords: ['krank', 'krankmelden', 'krankmeldung', 'au', 'bescheinigung', 'gelber schein'] },
-      { label: 'Meine Abwesenheiten', path: 'absences', requires: ['absence:read-own', 'absence:create-own'], about: 'Urlaub, Urlaubskonto und Krankmeldungen.', keywords: ['urlaub', 'urlaub beantragen', 'urlaubskonto', 'fehlen'] },
+      { label: 'Mein Urlaub', path: 'my-vacation', requires: ['absence:read-own', 'absence:create-own'], about: 'Urlaub beantragen, Urlaubskonto und eigene Urlaubsanträge.', keywords: ['urlaub', 'urlaub beantragen', 'urlaubskonto', 'urlaubstage', 'ferien'] },
+      { label: 'Meine Abwesenheiten', path: 'absences', requires: ['absence:read-own', 'absence:create-own'], about: 'Alle eigenen Abwesenheiten auf einen Blick: Urlaub und Krankmeldungen.', keywords: ['fehlen', 'abwesend'] },
       { label: 'Arbeitszeitkonto', path: 'working-time', requires: ['workingtime:read-own'], about: 'Saldo und Buchungen des eigenen Arbeitszeitkontos.', keywords: ['stunden', 'überstunden', 'arbeitszeit', 'saldo'] },
       { label: 'Meine Karte', path: 'employee-card', requires: ['employee:read-own'], about: 'Eigene Stammdaten und Änderungsanträge.', keywords: ['daten', 'adresse', 'stammdaten', 'profil'] },
       { label: 'Benachrichtigungen', path: 'notifications', requires: ['notification:read-own'], about: 'Mitteilungen und Einstellungen.', keywords: ['mitteilungen', 'nachrichten', 'glocke'] },

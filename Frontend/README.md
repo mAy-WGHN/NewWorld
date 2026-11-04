@@ -64,6 +64,15 @@ Meine Abwesenheiten: Urlaubskonto je Jahr, Krankmeldung (Ende offen lassen und s
 
 Meine Krankmeldungen: Der Link „Krankmeldungen“ auf der Startseite führt hierher. Oben rechts steht der Knopf „Krankmelden“ (öffnet das Formular, das Ende kann offen bleiben). Darunter die eigenen Krankmeldungen, neueste zuerst. Braucht die Personalabteilung noch eine AU, steht die Krankmeldung ganz oben in einem eigenen, gelb hervorgehobenen Block „AU wird noch benötigt“ und nicht noch einmal in der Liste darunter. Das gilt, wenn die AU fehlt oder von der Personalabteilung abgelehnt wurde; eine eingereichte, noch ungeprüfte oder eine geprüfte AU braucht nichts mehr. Von dort lässt sich die AU hochladen oder eine offene Krankmeldung beenden.
 
+| Mein Urlaub | `/my-vacation` | Workforce (gleiche Aufrufe wie die Abwesenheiten) |
+| Meldungen | `/reports` | Portal (`/api/reports`, `/api/reports/archived`, `PATCH`, `DELETE`) |
+
+Alle Listenseiten folgen demselben Schema: Titel mit einem Knopf oben rechts, Übersicht der Einträge, und was Aufmerksamkeit braucht, steht ganz oben in einem gelb hervorgehobenen Block (jeder Eintrag nur einmal). Die gemeinsamen Stile liegen in `src/app/shared/_list-page.scss`.
+
+Mein Urlaub: Knopf „Urlaub beantragen“ (öffnet das Formular), darüber das Urlaubskonto mit Jahreswechsel. Gelb stehen die Anträge, die noch auf eine Entscheidung warten („Wartet auf Genehmigung“); darunter der übrige Urlaub (genehmigt, abgelehnt, zurückgezogen). Beantragen oder bestätigten Urlaub zurückziehen, solange er nicht begonnen hat.
+
+Meldungen: Knopf „Archiv“ oben rechts (wechselt zu den archivierten Meldungen und zurück). Gelb stehen die offenen Meldungen, die dringendsten zuerst (Reihenfolge vom Dienst); darunter die erledigten. Mit dem Recht `report:update` lassen sich Meldungen erledigen, wieder öffnen und kommentieren, mit `report:delete` archivieren; archivierte lassen sich wiederherstellen. Es wird seitenweise nachgeladen („Mehr anzeigen“). Die Reichweite (welche Filialen) bestimmt der Dienst. Einen Knopf „Meldung erstellen“ gibt es noch nicht, weil das Portal keinen Aufruf hat, der die Filialen zur Auswahl liefert (`TODO(Backend)`).
+
 Alle anderen Bereiche der Navigation sind Platzhalter.
 
 ## Aufbau

@@ -1,0 +1,101 @@
+<header class="head">
+  <h1>Mein Urlaub</h1>
+  @if (canCreate()) {
+    <button type="button" class="btn" data-testid="request-button" [attr.aria-expanded]="requesting()" (click)="toggleRequest()">Urlaub beantragen</button>
+  }
+</header>
+
+@if (error(); as message) {
+  <p class="alert" role="alert">{{ message }}</p>
+}
+@if (status(); as message) {
+  <p class="ok" role="status" data-testid="status">{{ message }}</p>
+}
+
+@if (requesting()) {
+  <form class="card" data-testid="request-form" (submit)="request($event)" novalidate>
+    <h2>Urlaub beantragen</h2>
+    <p class="muted">Der Antrag geht an deine Vorgesetzten zur Genehmigung.</p>
+    <div class="two">
+      <div>
+        <label for="vac-from">Von</label>
+        <input id="vac-from" type="date" [value]="from()" (input)="set(from, $event)" [disabled]="busy()" />
+      </div>
+      <div>
+        <label for="vac-to">Bis</label>
+        <input id="vac-to" type="date" [value]="to()" (input)="set(to, $event)" [disabled]="busy()" />
+      </div>
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn" [disabled]="busy()">Urlaub beantragen</button>
+      <button type="button" class="btn-quiet" data-action="cancel-request" (click)="toggleRequest()">Abbrechen</button>
+    </div>
+  </form>
+}
+
+<section class="card balance" data-testid="balance" aria-labelledby="balance-title">
+  <div class="card-head">
+    <h2 id="balance-title">Urlaubskonto</h2>
+    <div class="year">
+      <button type="button" class="btn-quiet" data-action="prev-year" (click)="changeYear(-1)" aria-label="Vorheriges Jahr">‹</button>
+      <strong>{{ year() }}</strong>
+      <button type="button" class="btn-quiet" data-action="next-year" (click)="changeYear(1)" aria-label="Nächstes Jahr">›</button>
+    </div>
+  </div>
+  @if (balance(); as b) {
+    <dl class="figures">
+      <div><dt>Anspruch</dt><dd>{{ b.entitlement }}</dd></div>
+      <div><dt>Genommen</dt><dd>{{ b.taken }}</dd></div>
+      <div><dt>Geplant</dt><dd>{{ b.planned }}</dd></div>
+      <div class="remaining"><dt>Verbleibend</dt><dd>{{ b.remaining }}</dd></div>
+    </dl>
+  } @else if (balanceError(); as message) {
+    <p class="muted">{{ message }}</p>
+  }
+</section>
+
+@if (listError(); as message) {
+  <p class="alert" role="alert">{{ message }}</p>
+}
+
+@if (split().pending.length) {
+  <section class="attention-block" data-testid="attention" aria-labelledby="attention-title">
+    <h2 id="attention-title">Wartet auf Genehmigung</h2>
+    <p class="attention-hint">Diese Urlaubsanträge sind noch nicht entschieden.</p>
+    <ul class="list">
+      @for (a of split().pending; track a.id) {
+        <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: a, attention: true }" />
+      }
+    </ul>
+  </section>
+}
+
+<section aria-labelledby="list-title">
+  <h2 id="list-title">{{ split().pending.length ? 'Weiterer Urlaub' : 'Übersicht' }}</h2>
+  @if (loaded() && total() === 0 && !listError()) {
+    <p class="muted">Noch kein Urlaub beantragt.</p>
+  }
+  <ul class="list">
+    @for (a of split().others; track a.id) {
+      <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: a, attention: false }" />
+    }
+  </ul>
+</section>
+
+<ng-template #row let-a let-attention="attention">
+  <li class="row" [class.attention]="attention" data-testid="vacation-row" [attr.data-id]="a.id">
+    <div class="row-main">
+      <div>
+        <strong>{{ formatPeriod(a.from, a.to) }}</strong>
+      </div>
+      <div class="chips">
+        <span class="chip" [class.chip-bad]="a.status === 'Rejected'">{{ statusLabel(a.status) }}</span>
+      </div>
+      <div class="actions">
+        @if (canUpdate() && canWithdraw(a)) {
+          <button type="button" class="btn-quiet" data-action="withdraw" [disabled]="busy()" (click)="withdraw(a)">Zurückziehen</button>
+        }
+      </div>
+    </div>
+  </li>
+</ng-template>

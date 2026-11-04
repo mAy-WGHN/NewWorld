@@ -82,6 +82,7 @@ describe('HomePage', () => {
     expect(links()).toContain('Krankmeldungen');
     expect(root.querySelector('a[href="/my-sick-notes"]')!.textContent).toContain('Krankmeldungen');
     expect(links()).toContain('Urlaub beantragen');
+    expect(root.querySelector('a[href="/my-vacation"]')!.textContent).toContain('Urlaub beantragen');
     expect(links()).toContain('Meine Abwesenheiten');
     expect(links()).toContain('FAQ');
     expect(links()).not.toContain('Genehmigungen');

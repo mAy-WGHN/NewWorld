@@ -85,6 +85,8 @@
 - Kennzahlen, Neuigkeiten, Schulungen und Anleitungen sind als „folgt“ gekennzeichnet, nichts ist erfunden.
 - **Meine Abwesenheiten:** Urlaubskonto je Jahr, Krankmeldung, Urlaubsantrag, Zurückziehen, Krankmeldung beenden, AU hochladen.
 - **Meine Krankmeldungen:** Übersicht der eigenen Krankmeldungen mit „Krankmelden“ oben rechts; Krankmeldungen, für die die Personalabteilung noch eine AU braucht (fehlt oder abgelehnt), stehen ganz oben und sind gelb hervorgehoben.
+- **Mein Urlaub:** „Urlaub beantragen“ oben rechts, Urlaubskonto, Anträge die auf Genehmigung warten gelb ganz oben, darunter der übrige Urlaub; Zurückziehen.
+- **Meldungen:** offene Meldungen gelb ganz oben (dringendste zuerst), erledigte darunter; erledigen, wieder öffnen, kommentieren, archivieren; „Archiv“ oben rechts. Meldung erstellen fehlt noch (Filialauswahl fehlt im Portal).
 - Alle weiteren Bereiche der Navigation sind Platzhalter.
 
 ## Nicht gebaut
