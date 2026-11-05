@@ -7,7 +7,7 @@ import { of } from 'rxjs';
 import { AuthService } from '../core/auth/auth.service';
 import { PrivilegeSet } from '../core/auth/privileges';
 import { NavigationState, PageReloader } from '../core/navigation-state.service';
-import { NotificationsService } from '../core/notifications.service';
+import { Arrival, NotificationsService } from '../core/notifications.service';
 import { ProfileService } from '../core/profile.service';
 import { Shell } from './shell';
 
@@ -23,7 +23,8 @@ describe('Shell', () => {
   const unread = signal<number | null>(3);
   let auth: { privileges: typeof privileges; logout: ReturnType<typeof vi.fn> };
   let profile: { load: ReturnType<typeof vi.fn>; clear: ReturnType<typeof vi.fn>; displayName: typeof displayName; initials: typeof initials; personnelNumber: typeof personnelNumber; firstName: ReturnType<typeof signal<string | null>> };
-  let notifications: { refresh: ReturnType<typeof vi.fn>; clear: ReturnType<typeof vi.fn>; unread: typeof unread };
+  const arrived = signal<Arrival | null>(null);
+  let notifications: { refresh: ReturnType<typeof vi.fn>; clear: ReturnType<typeof vi.fn>; unread: typeof unread; arrived: typeof arrived };
   let navigate: ReturnType<typeof vi.spyOn>;
 
   async function create(): Promise<void> {
@@ -42,9 +43,10 @@ describe('Shell', () => {
     initials.set('MD');
     personnelNumber.set('15302');
     unread.set(3);
+    arrived.set(null);
     auth = { privileges, logout: vi.fn().mockResolvedValue(undefined) };
     profile = { load: vi.fn().mockResolvedValue(undefined), clear: vi.fn(), displayName, initials, personnelNumber, firstName: signal(null) };
-    notifications = { refresh: vi.fn().mockResolvedValue(undefined), clear: vi.fn(), unread };
+    notifications = { refresh: vi.fn().mockResolvedValue(undefined), clear: vi.fn(), unread, arrived };
   });
 
   it('shows who is signed in', async () => {
@@ -88,6 +90,36 @@ describe('Shell', () => {
     unread.set(250);
     fixture.detectChanges();
     expect(badge()).toBe('99+');
+  });
+
+  it('highlights an incoming notification in a snackbar and opens its link on "Ansehen"', async () => {
+    await create();
+    const router = TestBed.inject(Router);
+    const navigate = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
+
+    arrived.set({ id: 1, items: [{ id: 'n1', templateKey: 'k', title: 'Urlaubsantrag', body: 'Erika hat Urlaub beantragt.', deepLink: '/absences/1', createdAt: '2026-11-05T10:00:00Z', readAt: null }] });
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const bar = TestBed.inject(OverlayContainer).getContainerElement();
+    expect(bar.textContent).toContain('Urlaubsantrag: Erika hat Urlaub beantragt.');
+    (bar.querySelector('button') as HTMLButtonElement).click();
+    expect(navigate).toHaveBeenCalledWith('/absences/1');
+  });
+
+  it('sums up several incoming notifications and opens the list', async () => {
+    await create();
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true);
+    const one = (id: string) => ({ id, templateKey: 'k', title: 't', body: 'b', deepLink: '/x', createdAt: '2026-11-05T10:00:00Z', readAt: null });
+
+    arrived.set({ id: 2, items: [one('a'), one('b')] });
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const bar = TestBed.inject(OverlayContainer).getContainerElement();
+    expect(bar.textContent).toContain('2 neue Mitteilungen');
+    (bar.querySelector('button') as HTMLButtonElement).click();
+    expect(navigate).toHaveBeenCalledWith('/notifications');
   });
 
   it('has no bell and no messages link without the privilege', async () => {

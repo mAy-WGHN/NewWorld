@@ -1,5 +1,5 @@
 import { BreakpointObserver } from '@angular/cdk/layout';
-import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatButtonModule } from '@angular/material/button';
@@ -8,6 +8,7 @@ import { MatListModule } from '@angular/material/list';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSidenavModule } from '@angular/material/sidenav';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { map } from 'rxjs';
@@ -18,7 +19,10 @@ import { NotificationsService } from '../core/notifications.service';
 import { ProfileService } from '../core/profile.service';
 import { SearchBox } from './search-box';
 
-const REFRESH_MS = 60_000;
+/** How often the count is asked for; a new notification shows up in the snackbar within this time. */
+const REFRESH_MS = 15_000;
+/** How long the snackbar stays. */
+const SNACKBAR_MS = 8_000;
 
 /** Below this width the side bar is a drawer that opens over the page. */
 const SMALL_SCREEN = '(max-width: 1000px)';
@@ -37,6 +41,7 @@ const SMALL_SCREEN = '(max-width: 1000px)';
     MatMenuModule,
     MatProgressBarModule,
     MatSidenavModule,
+    MatSnackBarModule,
     MatToolbarModule,
     SearchBox,
   ],
@@ -48,6 +53,7 @@ export class Shell {
   private readonly profile = inject(ProfileService);
   private readonly notifications = inject(NotificationsService);
   private readonly reloader = inject(PageReloader);
+  private readonly snackBar = inject(MatSnackBar);
   protected readonly navigation = inject(NavigationState);
 
   protected readonly small = toSignal(inject(BreakpointObserver).observe(SMALL_SCREEN).pipe(map((state) => state.matches)), { initialValue: false });
@@ -65,10 +71,24 @@ export class Shell {
   protected readonly areas = computed(() => visibleNav(this.auth.privileges()));
 
   constructor() {
+    effect(() => {
+      const arrival = this.notifications.arrived();
+      if (arrival) {
+        this.announce(arrival.items);
+      }
+    });
     void this.profile.load();
     void this.notifications.refresh();
     const timer = setInterval(() => void this.notifications.refresh(), REFRESH_MS);
     inject(DestroyRef).onDestroy(() => clearInterval(timer));
+  }
+
+  /** Highlights new notifications in a snackbar; one is shown with its title and text, several as a count. */
+  private announce(items: readonly { title: string; body: string; deepLink?: string | null }[]): void {
+    const first = items[0];
+    const message = items.length === 1 ? `${first.title}: ${first.body}` : `${items.length} neue Mitteilungen`;
+    const ref = this.snackBar.open(message, 'Ansehen', { duration: SNACKBAR_MS, horizontalPosition: 'end', verticalPosition: 'bottom', panelClass: 'notification-snackbar' });
+    ref.onAction().subscribe(() => void this.router.navigateByUrl(items.length === 1 && first.deepLink ? first.deepLink : '/notifications'));
   }
 
   protected toggleMenu(): void {

@@ -32,7 +32,7 @@
 
     @if (canSeeNotifications()) {
       <a mat-icon-button class="bell" routerLink="/notifications" aria-label="Mitteilungen" (click)="closeMenu()">
-        <mat-icon [matBadge]="badge()" [matBadgeHidden]="!unread()" matBadgeColor="warn" matBadgeSize="small">notifications</mat-icon>
+        <mat-icon [matBadge]="badge()" [matBadgeHidden]="!unread()" matBadgeColor="warn" matBadgeSize="large">notifications</mat-icon>
       </a>
     }
 

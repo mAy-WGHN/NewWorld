@@ -43,3 +43,23 @@ body {
 .mat-icon {
   font-family: 'Material Icons';
 }
+
+// Bell badge: bigger than Material's default so that new notifications are not overlooked.
+.bell .mat-badge.mat-badge-large .mat-badge-content {
+  min-width: 22px !important;
+  width: auto !important;
+  height: 22px !important;
+  line-height: 22px !important;
+  font-size: 13px !important;
+  padding: 0 4px;
+  top: -8px !important;
+  right: -10px !important;
+  font-weight: 700;
+}
+
+.notification-snackbar {
+  --mat-snack-bar-container-shape: 12px;
+  .mdc-snackbar__surface {
+    border-left: 6px solid var(--mat-sys-primary, #1976d2);
+  }
+}

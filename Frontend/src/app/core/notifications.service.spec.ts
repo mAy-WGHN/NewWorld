@@ -71,4 +71,76 @@ describe('NotificationsService', () => {
 
     expect(service.unread()).toBeNull();
   });
+
+  describe('arrivals', () => {
+    const COUNT = '/svc/notifications/api/me/notifications/unread-count';
+    const item = (id: string, readAt: string | null = null) => ({ id, templateKey: 'k', title: `T${id}`, body: `B${id}`, deepLink: '/x', createdAt: '2026-11-05T10:00:00Z', readAt });
+
+    async function count(service: NotificationsService, value: number, newest: unknown[] = []): Promise<void> {
+      const done = service.refresh();
+      http.expectOne(COUNT).flush({ count: value });
+      const list = http.match((r) => r.url === '/svc/notifications/api/me/notifications');
+      list.forEach((r) => r.flush(newest));
+      await done;
+    }
+
+    it('announces nothing on the first count', async () => {
+      const service = create();
+      await count(service, 4);
+      expect(service.arrived()).toBeNull();
+    });
+
+    it('announces what came in when the count rises', async () => {
+      const service = create();
+      await count(service, 1);
+
+      const done = service.refresh();
+      http.expectOne(COUNT).flush({ count: 2 });
+      await Promise.resolve();
+      await Promise.resolve();
+      const request = http.expectOne((r) => r.url === '/svc/notifications/api/me/notifications');
+      expect(request.request.params.get('take')).toBe('1');
+      request.flush([item('a')]);
+      await done;
+
+      expect(service.arrived()?.items.map((n) => n.id)).toEqual(['a']);
+    });
+
+    it('does not announce when the count stays or falls', async () => {
+      const service = create();
+      await count(service, 3);
+      await count(service, 3);
+      await count(service, 1);
+      expect(service.arrived()).toBeNull();
+    });
+
+    it('asks for at most three at once', async () => {
+      const service = create();
+      await count(service, 0);
+
+      const done = service.refresh();
+      http.expectOne(COUNT).flush({ count: 9 });
+      await Promise.resolve();
+      await Promise.resolve();
+      const request = http.expectOne((r) => r.url === '/svc/notifications/api/me/notifications');
+      expect(request.request.params.get('take')).toBe('3');
+      request.flush([item('a'), item('b'), item('c')]);
+      await done;
+    });
+
+    it('forgets the arrival on sign-out', async () => {
+      const service = create();
+      await count(service, 0);
+      const done = service.refresh();
+      http.expectOne(COUNT).flush({ count: 1 });
+      await Promise.resolve();
+      await Promise.resolve();
+      http.expectOne((r) => r.url === '/svc/notifications/api/me/notifications').flush([item('a')]);
+      await done;
+
+      service.clear();
+
+      expect(service.arrived()).toBeNull();
+    });
+  });
 });
