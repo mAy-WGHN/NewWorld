@@ -6,6 +6,18 @@ export interface Faq {
   order: number;
   archived: boolean;
   createdAt: string;
+  /** Only filled for signed-in people (the entry itself is public). */
+  attachments?: FaqAttachment[];
+}
+
+/** A file attached to an entry (PDF, image, Office document); `url` is the path to fetch it (signed-in people only). */
+export interface FaqAttachment {
+  id: string;
+  fileName: string;
+  contentType: string;
+  length: number;
+  isImage: boolean;
+  url: string;
 }
 
 export interface FaqImageUpload {
@@ -38,6 +50,44 @@ export function imageProblem(file: { type: string; size: number }): string | nul
     return 'Die Datei ist zu groß. Erlaubt sind höchstens 5 MB.';
   }
   return null;
+}
+
+export const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
+export const MAX_ATTACHMENTS = 20;
+const ATTACHMENT_EXTENSIONS = ['pdf', 'png', 'jpg', 'jpeg', 'webp', 'docx', 'xlsx', 'pptx', 'doc', 'xls', 'ppt'];
+export const ATTACHMENT_ACCEPT = ATTACHMENT_EXTENSIONS.map((e) => '.' + e).join(',');
+
+/** Why a file cannot be attached (the portal checks the content again), or null if it can. */
+export function attachmentProblem(file: { name: string; size: number }): string | null {
+  const dot = file.name.lastIndexOf('.');
+  const extension = dot < 0 ? '' : file.name.slice(dot + 1).toLowerCase();
+  if (!ATTACHMENT_EXTENSIONS.includes(extension)) {
+    return 'Erlaubt sind PDF, Bilder (PNG, JPEG, WebP) und Office-Dokumente (Word, Excel, PowerPoint).';
+  }
+  if (file.size === 0 || file.size > MAX_ATTACHMENT_BYTES) {
+    return 'Die Datei ist leer oder zu groß. Erlaubt sind höchstens 10 MB.';
+  }
+  return null;
+}
+
+/** PDF and images open in a tab; Office documents are downloaded. */
+export const opensInTab = (a: Pick<FaqAttachment, 'isImage' | 'contentType'>): boolean => a.isImage || a.contentType === 'application/pdf';
+
+/** The Material icon for a file. */
+export function attachmentIcon(a: Pick<FaqAttachment, 'isImage' | 'contentType'>): string {
+  if (a.isImage) {
+    return 'image';
+  }
+  if (a.contentType === 'application/pdf') {
+    return 'picture_as_pdf';
+  }
+  if (a.contentType.includes('spreadsheet') || a.contentType.includes('excel')) {
+    return 'table_chart';
+  }
+  if (a.contentType.includes('presentation') || a.contentType.includes('powerpoint')) {
+    return 'slideshow';
+  }
+  return 'description';
 }
 
 const IMAGE_STATUSES: Record<string, string> = { orphaned: 'Nicht verwendet', archived: 'Nur in archivierter Antwort', active: 'In Verwendung' };

@@ -3,9 +3,11 @@ import { MatExpansionModule } from '@angular/material/expansion';
 import { AuthService } from '../../core/auth/auth.service';
 import { PAGE_UI } from '../../shared/ui/material';
 import { envelopeMessage } from '../reports/report-models';
+import { formatSize } from '../sick-note-review/sick-note-review-models';
 import { FaqAnswer } from './faq-answer';
+import { FaqAttachments } from './faq-attachments';
 import { FaqFileDrop } from './faq-file-drop';
-import { Faq, FaqImage, IMAGE_ACCEPT, filterFaqs, imageProblem, imageStatusLabel, move } from './faq-models';
+import { ATTACHMENT_ACCEPT, Faq, FaqAttachment, FaqImage, IMAGE_ACCEPT, MAX_ATTACHMENTS, attachmentProblem, filterFaqs, imageProblem, imageStatusLabel, move } from './faq-models';
 import { FaqApi } from './faq.api';
 
 type Mode = 'list' | 'archive' | 'images';
@@ -15,6 +17,10 @@ interface Draft {
   id: string | null;
   title: string;
   description: string;
+  /** The files of the entry that are attached already (a change). */
+  attachments: FaqAttachment[];
+  /** Files chosen for a new entry; they are attached when it is saved. */
+  pending: File[];
 }
 
 /**
@@ -23,7 +29,7 @@ interface Draft {
  */
 @Component({
   selector: 'app-faq',
-  imports: [MatExpansionModule, FaqAnswer, FaqFileDrop, ...PAGE_UI],
+  imports: [MatExpansionModule, FaqAnswer, FaqAttachments, FaqFileDrop, ...PAGE_UI],
   templateUrl: './faq.page.html',
 })
 export class FaqPage {
@@ -52,6 +58,12 @@ export class FaqPage {
   protected readonly error = signal<string | null>(null);
   protected readonly status = signal<string | null>(null);
 
+  protected readonly confirmAttachmentDelete = signal<string | null>(null);
+  private attachQueue: Promise<void> = Promise.resolve();
+
+  protected readonly attachmentAccept = ATTACHMENT_ACCEPT;
+  protected readonly maxAttachments = MAX_ATTACHMENTS;
+  protected readonly formatSize = formatSize;
   protected readonly imageAccept = IMAGE_ACCEPT;
   protected readonly imageStatusLabel = imageStatusLabel;
 
@@ -76,13 +88,14 @@ export class FaqPage {
 
   protected startCreate(): void {
     this.mode.set('list');
-    this.draft.set({ id: null, title: '', description: '' });
+    this.draft.set({ id: null, title: '', description: '', attachments: [], pending: [] });
     this.error.set(null);
     this.status.set(null);
   }
 
   protected startEdit(faq: Faq): void {
-    this.draft.set({ id: faq.id, title: faq.title, description: faq.description });
+    this.draft.set({ id: faq.id, title: faq.title, description: faq.description, attachments: [...(faq.attachments ?? [])], pending: [] });
+    this.confirmAttachmentDelete.set(null);
     this.error.set(null);
     this.status.set(null);
   }
@@ -110,9 +123,95 @@ export class FaqPage {
       this.error.set('Bitte gib eine Frage und eine Antwort ein.');
       return;
     }
+    let failures: string[] = [];
     await this.act(draft.id ? 'Eintrag gespeichert.' : 'Eintrag angelegt.', async () => {
-      await (draft.id ? this.api.update(draft.id, { title: draft.title, description: draft.description }) : this.api.create(draft.title, draft.description));
+      if (draft.id) {
+        await this.api.update(draft.id, { title: draft.title, description: draft.description });
+      } else {
+        const created = await this.api.create(draft.title, draft.description);
+        failures = await this.attachPending(created.id, draft.pending);
+      }
       this.draft.set(null);
+    });
+    if (failures.length > 0) {
+      this.error.set(`Der Eintrag ist angelegt, aber diese Dateien konnten nicht angeheftet werden: ${failures.join('; ')}. Hefte sie über "Ändern" an.`);
+    }
+  }
+
+  // --- attachments ---
+
+  /** Attaches the files that were chosen for a new entry, one after the other; says which ones did not work. */
+  private async attachPending(faqId: string, files: File[]): Promise<string[]> {
+    const failures: string[] = [];
+    for (const file of files) {
+      try {
+        await this.api.uploadAttachment(faqId, file);
+      } catch (error) {
+        failures.push(`${file.name} (${envelopeMessage(error)})`);
+      }
+    }
+    return failures;
+  }
+
+  /** A file for the entry in the editor: attached at once to an existing entry, collected for a new one (attached when it is saved). */
+  protected attach(file: File): Promise<void> {
+    this.attachQueue = this.attachQueue.then(() => this.attachOne(file));
+    return this.attachQueue;
+  }
+
+  private async attachOne(file: File): Promise<void> {
+    const draft = this.draft();
+    if (!draft) {
+      return;
+    }
+    const problem = attachmentProblem(file);
+    if (problem) {
+      this.error.set(`${file.name}: ${problem}`);
+      this.status.set(null);
+      return;
+    }
+    if (draft.attachments.length + draft.pending.length >= MAX_ATTACHMENTS) {
+      this.error.set(`An einen Eintrag können höchstens ${MAX_ATTACHMENTS} Dateien angeheftet werden.`);
+      this.status.set(null);
+      return;
+    }
+    this.error.set(null);
+    if (!draft.id) {
+      this.draft.update((d) => d && { ...d, pending: [...d.pending, file] });
+      return;
+    }
+    this.busy.set(true);
+    try {
+      const attachment = await this.api.uploadAttachment(draft.id, file);
+      this.draft.update((d) => (d && d.id === draft.id ? { ...d, attachments: [...d.attachments, attachment] } : d));
+      this.status.set(`${file.name} angeheftet.`);
+      void this.load();
+    } catch (error) {
+      this.error.set(`${file.name}: ${envelopeMessage(error)}`);
+      this.status.set(null);
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
+  protected removePending(index: number): void {
+    this.draft.update((d) => d && { ...d, pending: d.pending.filter((_, i) => i !== index) });
+  }
+
+  /** Taking a file away needs a second click. */
+  protected async removeAttachment(attachment: FaqAttachment): Promise<void> {
+    const draft = this.draft();
+    if (!draft?.id) {
+      return;
+    }
+    if (this.confirmAttachmentDelete() !== attachment.id) {
+      this.confirmAttachmentDelete.set(attachment.id);
+      return;
+    }
+    this.confirmAttachmentDelete.set(null);
+    await this.act('Datei entfernt.', async () => {
+      await this.api.deleteAttachment(attachment, draft.id!);
+      this.draft.update((d) => d && { ...d, attachments: d.attachments.filter((a) => a.id !== attachment.id) });
     });
   }
 

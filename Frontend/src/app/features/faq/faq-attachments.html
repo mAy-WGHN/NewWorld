@@ -1,0 +1,44 @@
+@if (attachments().length) {
+  <section class="mt-3 flex flex-col gap-2" aria-label="Anhänge" data-testid="attachments">
+    <h3 class="m-0 text-sm font-medium">Anhänge</h3>
+
+    @if (images().length) {
+      <div class="flex flex-wrap gap-2" data-testid="attachment-images">
+        @for (a of images(); track a.id) {
+          <button
+            type="button"
+            class="grid h-24 w-32 cursor-pointer place-items-center overflow-hidden rounded-lg border border-outline-variant bg-surface-container p-0 text-on-surface"
+            data-testid="attachment-image"
+            [attr.data-id]="a.id"
+            [attr.aria-label]="a.fileName + ' öffnen'"
+            [title]="a.fileName"
+            (click)="open(a)"
+          >
+            @if (previews()[a.id]; as src) {
+              <img class="h-full w-full object-cover" [src]="src" [alt]="a.fileName" />
+            } @else {
+              <span class="flex flex-col items-center gap-1 px-1 text-center text-[12px]"><mat-icon aria-hidden="true">image</mat-icon>{{ a.fileName }}</span>
+            }
+          </button>
+        }
+      </div>
+    }
+
+    @if (files().length) {
+      <ul class="m-0 flex list-none flex-wrap gap-2 p-0" data-testid="attachment-files">
+        @for (a of files(); track a.id) {
+          <li>
+            <button mat-stroked-button type="button" data-testid="attachment-file" [attr.data-id]="a.id" (click)="open(a)">
+              <mat-icon aria-hidden="true">{{ icon(a) }}</mat-icon>
+              {{ a.fileName }} <span class="text-[13px] opacity-70">({{ formatSize(a.length) }})</span>
+            </button>
+          </li>
+        }
+      </ul>
+    }
+
+    @if (error(); as message) {
+      <p class="m-0 text-[13px] text-error" role="alert" data-testid="attachment-error">{{ message }}</p>
+    }
+  </section>
+}

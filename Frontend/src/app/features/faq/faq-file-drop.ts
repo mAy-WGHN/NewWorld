@@ -14,6 +14,9 @@ import { MatIconModule } from '@angular/material/icon';
 export class FaqFileDrop {
   readonly accept = input('');
   readonly disabled = input(false);
+  /** What is dropped: "Bild" or "Datei". */
+  readonly label = input('Bild');
+  readonly multiple = input(false);
   readonly chosen = output<File>();
 
   protected readonly over = signal(false);
@@ -25,9 +28,9 @@ export class FaqFileDrop {
 
   protected onChange(event: Event): void {
     const input = event.target as HTMLInputElement;
-    const file = input.files?.[0] ?? null;
+    const files = [...(input.files ?? [])];
     input.value = '';
-    if (file) {
+    for (const file of this.multiple() ? files : files.slice(0, 1)) {
       this.chosen.emit(file);
     }
   }
@@ -50,9 +53,11 @@ export class FaqFileDrop {
   protected drop(event: DragEvent): void {
     event.preventDefault();
     this.over.set(false);
-    const file = event.dataTransfer?.files?.[0];
-    if (file && !this.disabled()) {
-      this.chosen.emit(file);
+    const files = [...(event.dataTransfer?.files ?? [])];
+    if (!this.disabled()) {
+      for (const file of this.multiple() ? files : files.slice(0, 1)) {
+        this.chosen.emit(file);
+      }
     }
   }
 }

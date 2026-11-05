@@ -22,6 +22,37 @@ describe('FaqApi', () => {
     expect(await done).toEqual([{ id: 'f1', title: 'Frage' }]);
   });
 
+  it('attaches a file to an entry as a form', async () => {
+    const file = new File(['x'], 'Formular.pdf', { type: 'application/pdf' });
+    const done = api.uploadAttachment('f1', file);
+    const request = http.expectOne('/svc/portal/api/faqs/f1/attachments');
+
+    expect(request.request.method).toBe('POST');
+    expect((request.request.body as FormData).get('file')).toBe(file);
+    request.flush({ success: true, data: { id: 'a1', fileName: 'Formular.pdf' } });
+
+    expect(await done).toEqual({ id: 'a1', fileName: 'Formular.pdf' });
+  });
+
+  it('removes an attached file', async () => {
+    const done = api.deleteAttachment({ id: 'a1' } as never, 'f1');
+    const request = http.expectOne('/svc/portal/api/faqs/f1/attachments/a1');
+
+    expect(request.request.method).toBe('DELETE');
+    request.flush(null, { status: 204, statusText: 'No Content' });
+    await done;
+  });
+
+  it('fetches an attached file as data from the path the portal gave', async () => {
+    const done = api.downloadAttachment({ url: '/api/faqs/f1/attachments/a1' });
+    const request = http.expectOne('/svc/portal/api/faqs/f1/attachments/a1');
+
+    expect(request.request.responseType).toBe('blob');
+    request.flush(new Blob(['content']));
+
+    expect(await (await done).text()).toBe('content');
+  });
+
   it('loads the archive', async () => {
     const done = api.listArchived();
     http.expectOne('/svc/portal/api/faqs/archived').flush({ success: true, data: [] });

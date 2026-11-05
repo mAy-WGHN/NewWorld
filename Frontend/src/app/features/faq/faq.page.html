@@ -34,6 +34,36 @@
       <textarea matInput id="faq-description" rows="8" [value]="d.description" (input)="setDescription($event)"></textarea>
       <mat-hint>Du kannst **fett**, *kursiv*, Listen mit "- " und Links schreiben. Bilder fügst du unter "Bilder" ein.</mat-hint>
     </mat-form-field>
+    @if (canUpdate()) {
+      <section class="mt-4" aria-labelledby="attachments-title" data-testid="attachments-editor">
+        <h3 id="attachments-title" class="m-0 mb-1 text-base font-medium">Anhänge</h3>
+        <p class="m-0 mb-2 text-sm text-on-surface-variant">
+          Hefte PDF, Bilder oder Office-Dokumente an (bis 10 MB je Datei, höchstens {{ maxAttachments }}). Angeheftete Dateien sehen nur angemeldete Personen.
+          @if (!d.id) {
+            Die Dateien werden mit dem Speichern angeheftet.
+          }
+        </p>
+        @if (d.attachments.length || d.pending.length) {
+          <ul class="m-0 mb-3 flex list-none flex-col gap-1.5 p-0">
+            @for (a of d.attachments; track a.id) {
+              <li class="flex flex-wrap items-center gap-2" data-testid="attached-file" [attr.data-id]="a.id">
+                <span>{{ a.fileName }} <span class="text-[13px] opacity-70">({{ formatSize(a.length) }})</span></span>
+                <button mat-stroked-button type="button" data-action="remove-attachment" [disabled]="busy()" (click)="removeAttachment(a)">
+                  {{ confirmAttachmentDelete() === a.id ? 'Wirklich entfernen' : 'Entfernen' }}
+                </button>
+              </li>
+            }
+            @for (file of d.pending; track $index; let i = $index) {
+              <li class="flex flex-wrap items-center gap-2" data-testid="pending-file">
+                <span>{{ file.name }} <span class="text-[13px] opacity-70">({{ formatSize(file.size) }}, wird beim Speichern angeheftet)</span></span>
+                <button mat-stroked-button type="button" data-action="remove-pending" [disabled]="busy()" (click)="removePending(i)">Entfernen</button>
+              </li>
+            }
+          </ul>
+        }
+        <app-faq-file-drop data-testid="attachment-drop" label="Datei" [multiple]="true" [accept]="attachmentAccept" [disabled]="busy()" (chosen)="attach($event)" />
+      </section>
+    }
     <div class="mt-4 flex flex-wrap gap-2">
       <button mat-flat-button type="button" data-testid="save-entry" [disabled]="busy()" (click)="save()">Speichern</button>
       <button mat-stroked-button type="button" data-testid="cancel-edit" [disabled]="busy()" (click)="cancelEdit()">Abbrechen</button>
@@ -65,6 +95,7 @@
               </div>
             </div>
             <app-faq-answer class="mt-2 block" [markdown]="f.description" />
+            <app-faq-attachments [attachments]="f.attachments ?? []" />
           </app-row-card>
         }
       </div>
@@ -122,6 +153,7 @@
           <mat-expansion-panel>
             <mat-expansion-panel-header><mat-panel-title>{{ f.title }}</mat-panel-title></mat-expansion-panel-header>
             <app-faq-answer [markdown]="f.description" />
+            <app-faq-attachments [attachments]="f.attachments ?? []" />
           </mat-expansion-panel>
           @if (canUpdate() || canDelete()) {
             <div class="mt-2 flex flex-wrap items-center gap-2">

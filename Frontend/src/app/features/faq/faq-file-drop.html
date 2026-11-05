@@ -8,7 +8,7 @@
   (dragleave)="dragLeave()"
   (drop)="drop($event)"
 >
-  <input #picker type="file" class="hidden" tabindex="-1" [accept]="accept()" [disabled]="disabled()" (change)="onChange($event)" />
-  <p class="m-0 text-sm text-on-surface-variant">Bild hierher ziehen oder</p>
-  <button mat-stroked-button type="button" data-testid="choose-image" [disabled]="disabled()" (click)="open()">Bild auswählen</button>
+  <input #picker type="file" class="hidden" tabindex="-1" [multiple]="multiple()" [accept]="accept()" [disabled]="disabled()" (change)="onChange($event)" />
+  <p class="m-0 text-sm text-on-surface-variant">{{ label() }} hierher ziehen oder</p>
+  <button mat-stroked-button type="button" data-testid="choose-image" [disabled]="disabled()" (click)="open()">{{ label() }} auswählen</button>
 </div>

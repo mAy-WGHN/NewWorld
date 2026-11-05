@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom, map } from 'rxjs';
 import { ConfigService } from '../../core/config';
-import { Faq, FaqImage, FaqImageStatus, FaqImageUpload } from './faq-models';
+import { Faq, FaqAttachment, FaqImage, FaqImageStatus, FaqImageUpload } from './faq-models';
 
 /** The portal wraps answers as `{success, data}`; this unwraps them. Errors are left to the caller. */
 interface Envelope<T> {
@@ -44,6 +44,22 @@ export class FaqApi {
   /** Deletes an entry for good (archiving is `update` with `archived: true`). */
   async remove(id: string): Promise<void> {
     await firstValueFrom(this.http.delete(this.url(`/api/faqs/${id}`)));
+  }
+
+  /** Attaches a file to an entry (needs faq:update); the portal checks type and size on the content. */
+  uploadAttachment(faqId: string, file: File): Promise<FaqAttachment> {
+    const form = new FormData();
+    form.append('file', file);
+    return firstValueFrom(this.http.post<Envelope<FaqAttachment>>(this.url(`/api/faqs/${faqId}/attachments`), form).pipe(map((a) => a.data)));
+  }
+
+  async deleteAttachment(attachment: FaqAttachment, faqId: string): Promise<void> {
+    await firstValueFrom(this.http.delete(this.url(`/api/faqs/${faqId}/attachments/${attachment.id}`)));
+  }
+
+  /** The file itself; it needs the sign-in, so it comes as data and is opened from there (no address with a token). */
+  downloadAttachment(attachment: Pick<FaqAttachment, 'url'>): Promise<Blob> {
+    return firstValueFrom(this.http.get(this.url(attachment.url), { responseType: 'blob' }));
   }
 
   uploadImage(file: File): Promise<FaqImageUpload> {
