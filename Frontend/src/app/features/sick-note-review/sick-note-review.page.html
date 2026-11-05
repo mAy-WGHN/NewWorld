@@ -1,0 +1,126 @@
+<app-page-head title="Krankmeldungen und AU">
+  <button mat-stroked-button type="button" data-action="reload" [disabled]="busy()" (click)="load()">Aktualisieren</button>
+</app-page-head>
+
+@if (error(); as message) {
+  <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert">{{ message }}</p>
+}
+@if (status(); as message) {
+  <p class="mb-3 rounded-xl bg-primary-container px-4 py-2.5 text-on-primary-container" role="status" data-testid="status">{{ message }}</p>
+}
+@if (listError(); as message) {
+  <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert">{{ message }}</p>
+}
+
+<div class="mb-4 flex flex-wrap gap-2" role="group" aria-label="Stand der AU">
+  @for (f of filters; track f.label) {
+    <button
+      mat-stroked-button
+      type="button"
+      data-testid="filter"
+      [class.!bg-primary-container]="filter() === f.value"
+      [attr.aria-pressed]="filter() === f.value"
+      (click)="setFilter(f.value)"
+    >
+      {{ f.label }}
+    </button>
+  }
+</div>
+
+@if (loaded() && items().length === 0 && !listError()) {
+  <p class="m-0 mb-2 text-sm text-on-surface-variant" data-testid="empty">Keine Krankmeldungen mit diesem Stand.</p>
+}
+
+<div class="flex flex-col gap-2.5" role="list">
+  @for (n of items(); track n.absenceId) {
+    <app-row-card [attention]="n.certificateStatus === 'Submitted'" data-testid="sick-row" [attr.data-id]="n.absenceId">
+      <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <div class="flex flex-col">
+          <strong>{{ n.employeeName }}</strong>
+          <span class="text-[13px]">{{ formatPeriod(n.from, n.to) }}</span>
+          @if (n.certifiedThrough) {
+            <span class="text-[13px] opacity-80">AU gilt bis {{ formatDate(n.certifiedThrough) }}</span>
+          }
+          @if (n.remindersSent > 0) {
+            <span class="text-[13px] opacity-80">{{ n.remindersSent }} Erinnerung{{ n.remindersSent === 1 ? '' : 'en' }} gesendet</span>
+          }
+        </div>
+        <mat-chip-set aria-label="Stand">
+          <mat-chip>{{ statusLabel(n.certificateStatus) }}</mat-chip>
+        </mat-chip-set>
+        <button mat-stroked-button type="button" data-action="toggle" [attr.aria-expanded]="expanded() === n.absenceId" (click)="toggle(n)">
+          {{ expanded() === n.absenceId ? 'Schließen' : 'Dokumente' }}
+        </button>
+      </div>
+
+      @if (expanded() === n.absenceId) {
+        <div class="mt-3 flex flex-col gap-2 border-t border-outline-variant pt-3 text-on-surface" data-testid="documents">
+          @if (documentsError(); as message) {
+            <p class="m-0 text-error" role="alert">{{ message }}</p>
+          } @else if (documents() === null) {
+            <p class="m-0 text-sm text-on-surface-variant">Dokumente werden geladen …</p>
+          } @else if (documents()!.length === 0) {
+            <p class="m-0 text-sm text-on-surface-variant" data-testid="no-documents">Noch keine AU hochgeladen.</p>
+          }
+          @for (d of documents(); track d.id) {
+            <div class="flex flex-col gap-2 rounded-lg bg-surface-container px-3 py-2.5" data-testid="document" [attr.data-id]="d.id">
+              <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+                <div class="flex flex-col">
+                  <strong>Laut AU {{ formatDate(d.certifiedFrom) }} bis {{ formatDate(d.certifiedTo) }}</strong>
+                  <span class="text-[13px] opacity-80">Hochgeladen {{ formatDateTime(d.uploadedAt) }}, {{ formatSize(d.length) }}</span>
+                  @if (d.state === 'Rejected' && d.rejectionReason) {
+                    <span class="text-[13px]">Abgelehnt: {{ rejectionLabel(d.rejectionReason) }}</span>
+                  }
+                </div>
+                <mat-chip-set aria-label="Stand des Dokuments">
+                  <mat-chip>{{ statusLabel(d.state) }}</mat-chip>
+                </mat-chip-set>
+              </div>
+
+              <div class="flex flex-wrap items-center gap-2">
+                @if (d.canOpen && d.hasContent) {
+                  <button mat-stroked-button type="button" data-action="open-file" [disabled]="busy()" (click)="open(d)">Datei öffnen</button>
+                }
+                @if (canReview() && isOpenForReview(d)) {
+                  <button mat-flat-button type="button" data-action="verify" [disabled]="busy()" (click)="verify(d)">Bestätigen</button>
+                  <button mat-stroked-button type="button" data-action="ask-reject" [disabled]="busy()" (click)="askReject(d)">Ablehnen …</button>
+                }
+                @if (canDelete() && d.hasContent) {
+                  <button mat-stroked-button type="button" data-action="ask-delete" [disabled]="busy()" (click)="askDelete(d)">Löschen …</button>
+                }
+              </div>
+
+              @if (rejecting(); as r) {
+                @if (r.id === d.id) {
+                  <div class="flex flex-wrap items-center gap-2" data-testid="reject-panel">
+                    <label class="text-sm font-medium" [for]="'reason-' + d.id">Grund</label>
+                    <select class="rounded-lg border border-outline bg-surface px-2 py-1.5" [id]="'reason-' + d.id" [value]="r.reason" (change)="setReason($event)">
+                      @for (reason of reasons; track reason.value) {
+                        <option [value]="reason.value">{{ reason.label }}</option>
+                      }
+                    </select>
+                    <button mat-flat-button type="button" data-action="reject" [disabled]="busy()" (click)="reject(d)">AU ablehnen</button>
+                    <button mat-stroked-button type="button" data-action="cancel-reject" (click)="cancelReject()">Abbrechen</button>
+                  </div>
+                }
+              }
+              @if (deleting() === d.id) {
+                <div class="flex flex-wrap items-center gap-2" data-testid="delete-panel">
+                  <span class="text-sm">Die Datei wird endgültig gelöscht. Wirklich löschen?</span>
+                  <button mat-flat-button type="button" data-action="delete" [disabled]="busy()" (click)="remove(d)">Ja, löschen</button>
+                  <button mat-stroked-button type="button" data-action="cancel-delete" (click)="cancelDelete()">Abbrechen</button>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+    </app-row-card>
+  }
+</div>
+
+@if (hasMore()) {
+  <div class="mt-3">
+    <button mat-stroked-button type="button" data-action="more" [disabled]="loadingMore()" (click)="more()">Mehr anzeigen</button>
+  </div>
+}

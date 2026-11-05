@@ -70,6 +70,7 @@ Meine Krankmeldungen: Der Link „Krankmeldungen“ auf der Startseite führt hi
 | Meldungen | `/reports` | Portal (`/api/reports`, `/api/reports/archived`, `PATCH`, `DELETE`) |
 | Störung melden | `/report-issue` | Portal (`POST /api/reports`, `GET /api/locations`) |
 | Genehmigungen | `/approvals` | Workforce (`/api/approvals/pending`, `approve`, `reject`) |
+| Krankmeldungen und AU (HR) | `/sick-notes` | Workforce (`/api/sick-notes`, `/api/absences/{id}/certificates`, `verify`, `reject`, `content`) |
 
 Alle Listenseiten folgen demselben Schema: Titel mit einem Knopf oben rechts, Übersicht der Einträge, und was Aufmerksamkeit braucht, steht ganz oben in einem gelb hervorgehobenen Block (jeder Eintrag nur einmal). Die gemeinsamen Stile liegen in `src/app/shared/_list-page.scss`.
 
@@ -105,3 +106,7 @@ Die gebauten Bereiche (Krankmeldungen, Urlaub, Störung melden, Meldungen, Abwes
 npm test -- --watch=false   # Vitest
 npm run build               # dist/newworld-frontend
 ```
+
+Krankmeldungen und AU (HR): alle Krankmeldungen der Reichweite mit dem Stand der AU, gefiltert nach „Wartet auf Prüfung“ (Standard, gelb), „AU fehlt“, „Abgelehnt“, „Geprüft“ oder „Alle“. Eine Zeile öffnet die hochgeladenen Dokumente: Datei öffnen (in neuem Tab, der Browser bekommt sie als Blob; jeder Zugriff wird im Dienst protokolliert), Bestätigen, Ablehnen mit einem festen Grund (Nicht lesbar, Falsche Person, Falscher Zeitraum, Keine AU) und Löschen nach Rückfrage. Die Knöpfe folgen den Rechten `certificate:review` und `certificate:delete`; wer die Datei öffnen darf, sagt der Dienst (`canOpen`).
+
+Mitteilungen führen je nach Art zu einer vorhandenen Seite (`features/notifications/notification-link.ts`), nicht zu den Pfaden der Dienste; wo die Person die Seite nicht öffnen darf, öffnet sich die Mitteilungsliste.
