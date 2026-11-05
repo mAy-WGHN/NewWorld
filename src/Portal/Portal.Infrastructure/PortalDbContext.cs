@@ -83,6 +83,7 @@ public sealed class PortalDbContext(DbContextOptions<PortalDbContext> options) :
             b.ToTable("faqs");
             b.HasKey(f => f.Id);
             b.Property(f => f.Title).HasMaxLength(255);
+            b.Property(f => f.ContentJson).HasColumnType("jsonb");
             b.HasIndex(f => new { f.Archived, f.SortOrder });
         });
         modelBuilder.Entity<FaqAttachmentRecord>(b =>

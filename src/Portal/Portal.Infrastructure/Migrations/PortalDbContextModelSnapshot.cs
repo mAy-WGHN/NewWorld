@@ -104,6 +104,10 @@ namespace Portal.Infrastructure.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("archived");
 
+                    b.Property<string>("ContentJson")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("content_json");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");

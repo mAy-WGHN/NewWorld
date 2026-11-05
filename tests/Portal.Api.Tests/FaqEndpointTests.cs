@@ -106,7 +106,7 @@ public sealed class FaqEndpointTests(PostgresFixture postgres) : IClassFixture<P
     [Theory]
     [InlineData("", "Text", "title")]
     [InlineData("   ", "Text", "title")]
-    [InlineData("Titel", "", "description")]
+    [InlineData("Titel", "", "content")]
     public async Task Missing_values_are_a_422_with_the_field(string title, string description, string field)
     {
         await using var api = await StartAsync(postgres);
@@ -116,7 +116,7 @@ public sealed class FaqEndpointTests(PostgresFixture postgres) : IClassFixture<P
         response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
         var error = (await ErrorAsync(response)).GetProperty("errors")[0];
         error.GetProperty("field").GetString().ShouldBe(field);
-        error.GetProperty("message").GetString().ShouldBe("Dieser Wert darf nicht leer sein.");
+        error.GetProperty("message").GetString().ShouldBe(field == "content" ? "Bitte gib eine Antwort ein." : "Dieser Wert darf nicht leer sein.");
     }
 
     [Fact]

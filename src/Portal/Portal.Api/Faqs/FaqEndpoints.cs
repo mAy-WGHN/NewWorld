@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Net.Http.Headers;
@@ -12,17 +13,19 @@ using Shared.Authorization;
 namespace Portal.Api.Faqs;
 
 /// <summary>
-/// A FAQ entry. <see cref="Attachments"/> (files attached to the entry) are only filled for signed-in callers; the entry itself is public.
+/// A FAQ entry. <see cref="Content"/> is the answer as a rich-text document (TipTap JSON, see <c>FaqContent</c>); <see cref="Description"/> is the same answer as
+/// Markdown, derived from it, for searching and for old clients. <see cref="Attachments"/> (files attached to the entry) are only filled for signed-in callers; the entry itself is public.
 /// </summary>
 public sealed record FaqDto(
-    Guid Id, string Title, string Description, int Order, bool Archived, DateTimeOffset CreatedAt, IReadOnlyList<FaqAttachmentDto>? Attachments = null);
+    Guid Id, string Title, string Description, int Order, bool Archived, DateTimeOffset CreatedAt, IReadOnlyList<FaqAttachmentDto>? Attachments = null, JsonNode? Content = null);
 
 /// <summary>An attached file; <see cref="Url"/> is the path to fetch it (signed-in callers only).</summary>
 public sealed record FaqAttachmentDto(Guid Id, string FileName, string ContentType, long Length, bool IsImage, string Url);
 
-public sealed record CreateFaqRequest(string? Title, string? Description);
+/// <summary>The answer comes as <c>content</c> (a document); old clients may send only <c>description</c> (a text without formatting).</summary>
+public sealed record CreateFaqRequest(string? Title, string? Description, JsonNode? Content = null);
 
-public sealed record UpdateFaqRequest(string? Title, string? Description, bool? Archived);
+public sealed record UpdateFaqRequest(string? Title, string? Description, bool? Archived, JsonNode? Content = null);
 
 public sealed record ReorderFaqRequest(List<Guid>? OrderedIds);
 
@@ -52,12 +55,12 @@ public static class FaqEndpoints
             {
                 var validation = new Validator();
                 validation.RequiredText("title", request.Title, 255);
-                validation.RequiredText("description", request.Description);
+                var (description, contentJson) = AnswerOf(request.Content, request.Description, validation);
                 validation.ThrowIfInvalid();
 
                 // Position = highest + 1 over all entries (also archived ones); 0 for the first.
                 var next = await db.Faqs.Select(f => (int?)f.SortOrder).MaxAsync(ct) + 1 ?? 0;
-                var faq = new FaqRecord { Title = request.Title!.Trim(), Description = request.Description!, SortOrder = next, CreatedAt = time.GetUtcNow() };
+                var faq = new FaqRecord { Title = request.Title!.Trim(), Description = description!, ContentJson = contentJson, SortOrder = next, CreatedAt = time.GetUtcNow() };
                 db.Faqs.Add(faq);
                 await db.SaveChangesAsync(ct); // the entry first, so the images can point to it
                 await SyncImageLinksAsync(db, faq, ct);
@@ -101,6 +104,8 @@ public static class FaqEndpoints
             {
                 var validation = new Validator();
                 validation.MaxLength("title", request.Title, 255);
+                var answered = request.Content is not null || request.Description is not null;
+                var (newDescription, newContentJson) = answered ? AnswerOf(request.Content, request.Description, validation) : (null, null);
                 validation.ThrowIfInvalid();
 
                 var faq = await db.Faqs.FindAsync([id], ct) ?? throw ApiException.NotFound();
@@ -114,9 +119,11 @@ public static class FaqEndpoints
                     faq.Archived = archived;
                 }
 
-                if (request.Description is not null && request.Description != faq.Description)
+                if (answered && (newContentJson is not null || newDescription != faq.Description))
                 {
-                    faq.Description = request.Description;
+                    // A document replaces the answer; a plain text from an old client replaces it, too, and the document is derived from it again.
+                    faq.Description = newDescription!;
+                    faq.ContentJson = newContentJson;
                     await SyncImageLinksAsync(db, faq, ct);
                 }
 
@@ -309,7 +316,35 @@ public static class FaqEndpoints
         await WithAttachmentsAsync(db, await db.Faqs.AsNoTracking().Where(f => !f.Archived).OrderBy(f => f.SortOrder).ThenBy(f => f.Id).ToListAsync(ct), withAttachments, ct);
 
     private static FaqDto ToDto(FaqRecord f, IReadOnlyList<FaqAttachmentDto>? attachments = null) =>
-        new(f.Id, f.Title, f.Description, f.SortOrder, f.Archived, f.CreatedAt, attachments ?? []);
+        new(f.Id, f.Title, f.Description, f.SortOrder, f.Archived, f.CreatedAt, attachments ?? [], ContentOf(f));
+
+    /// <summary>The document of an entry; an entry that only has the text of an old client gets a document made of its paragraphs.</summary>
+    private static JsonNode ContentOf(FaqRecord f) => f.ContentJson is { } json && JsonNode.Parse(json) is { } document ? document : FaqContent.FromPlainText(f.Description);
+
+    /// <summary>
+    /// The answer of a request: the cleaned document with its Markdown (new clients), or the text as it is (old clients that only know
+    /// <c>description</c>). What is wrong with it is added to <paramref name="validation"/>.
+    /// </summary>
+    private static (string? Description, string? ContentJson) AnswerOf(JsonNode? content, string? description, Validator validation)
+    {
+        if (content is not null)
+        {
+            if (FaqContent.TryClean(content, out var error) is { } clean)
+            {
+                return (FaqContent.ToMarkdown(clean), clean.ToJsonString());
+            }
+
+            validation.Add("content", error!);
+            return (null, null);
+        }
+
+        if (string.IsNullOrWhiteSpace(description))
+        {
+            validation.Add("content", "Bitte gib eine Antwort ein.");
+        }
+
+        return (description, null);
+    }
 
     private static FaqAttachmentDto AttachmentDto(FaqAttachmentRecord a) =>
         new(a.Id, a.FileName, FaqAttachmentFormat.ContentType(a.Extension), a.Length, FaqAttachmentFormat.IsImage(a.Extension), $"/api/faqs/{a.FaqId}/attachments/{a.Id}");

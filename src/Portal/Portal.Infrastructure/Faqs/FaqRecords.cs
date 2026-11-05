@@ -1,11 +1,16 @@
 namespace Portal.Infrastructure.Faqs;
 
-/// <summary>A FAQ entry. The description is Markdown; <see cref="SortOrder"/> is exposed as "order" by the API.</summary>
+/// <summary>
+/// A FAQ entry. The answer is a rich-text document (<see cref="ContentJson"/>, TipTap JSON, checked by <c>FaqContent</c>); <see cref="Description"/> is the
+/// same answer as Markdown for searching and for old clients (derived from the document; an entry that old clients wrote has only this text and no document yet).
+/// <see cref="SortOrder"/> is exposed as "order" by the API.
+/// </summary>
 public sealed class FaqRecord
 {
     public Guid Id { get; set; } = Guid.CreateVersion7();
     public required string Title { get; set; }
     public required string Description { get; set; }
+    public string? ContentJson { get; set; }
     public int SortOrder { get; set; }
     public bool Archived { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
