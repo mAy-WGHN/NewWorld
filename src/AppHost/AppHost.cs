@@ -7,6 +7,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 var accessKey = ServiceKey.Create();
 var notificationsKey = ServiceKey.Create();
 var workforceKey = ServiceKey.Create();
+var portalKey = ServiceKey.Create();
 
 // One PostgreSQL instance, one database per service (own schema inside, no cross-schema joins).
 var postgres = builder.AddPostgres("postgres");
@@ -54,6 +55,7 @@ var access = builder.AddProject<Projects.Access_Api>("access-api")
     // Workforce and Notifications register their privilege catalogue with Access and rebuild their permission copy from it.
     .WithServicePeer("workforce", workforceKey, "Access.Catalog.Register", "Access.Permissions.Read")
     .WithServicePeer("notifications", notificationsKey, "Access.Catalog.Register", "Access.Permissions.Read")
+    .WithServicePeer("portal", portalKey, "Access.Catalog.Register", "Access.Permissions.Read")
     // First administrator (receives the built-in administrator role once the employee copy arrives).
     .WithEnvironment("Access__BootstrapAdministrators__0", "10099")
     // Login: PIN check through BC Integration.
@@ -91,6 +93,7 @@ if (!string.Equals(builder.Configuration["ClamAv:Enabled"], "false", StringCompa
 
 builder.AddProject<Projects.Portal_Api>("portal-api")
     .WithReference(portalDb).WaitFor(portalDb)
+    .WithServiceIdentity("portal", portalKey)
     .WithReference(serviceBus).WaitFor(serviceBus)
     .WithAccess(access)
     .WithHttpHealthCheck("/health/ready");
