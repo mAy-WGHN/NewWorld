@@ -9,7 +9,9 @@ public sealed record SetMainStoreRequest(Guid StoreId);
 
 public sealed record PrivilegeDto(string Key, bool Unrestricted, IReadOnlyList<Guid> StoreIds, IReadOnlyList<Guid> EmployeeIds);
 
-public sealed record MyPrivilegesDto(Guid EmployeeId, IReadOnlyList<string> Roles, IReadOnlyList<PrivilegeDto> Privileges);
+/// <summary>The privileges of the signed-in person; <see cref="Name"/> and <see cref="PersonnelNumber"/> from the copy of the people (empty if the person is not known).</summary>
+public sealed record MyPrivilegesDto(
+    Guid EmployeeId, IReadOnlyList<string> Roles, IReadOnlyList<PrivilegeDto> Privileges, string? Name = null, string? PersonnelNumber = null);
 
 public sealed record CatalogEntryDto(string Key, string Owner, bool Scopable, string Description = "");
 

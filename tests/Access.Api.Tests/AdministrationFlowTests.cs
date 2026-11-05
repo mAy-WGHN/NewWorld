@@ -29,6 +29,29 @@ public sealed class AdministrationFlowTests(PostgresFixture postgres) : IClassFi
     }
 
     [Fact]
+    public async Task Me_privileges_say_who_is_signed_in_by_name_and_personnel_number()
+    {
+        await using var api = await StartAsync(postgres);
+
+        var erika = await api.GetAsync<MyPrivilegesDto>("/api/me/privileges", As(Erika));
+        var admin = await api.GetAsync<MyPrivilegesDto>("/api/me/privileges", As(Admin));
+
+        (erika.Name, erika.PersonnelNumber).ShouldBe(("Erika Mustermann", "10042"));
+        (admin.Name, admin.PersonnelNumber).ShouldBe(("Admin", AdminPersonnelNumber));
+    }
+
+    [Fact]
+    public async Task Me_privileges_have_no_name_for_a_person_the_copy_does_not_know()
+    {
+        await using var api = await StartAsync(postgres);
+
+        var stranger = await api.GetAsync<MyPrivilegesDto>("/api/me/privileges", As(Guid.NewGuid()));
+
+        (stranger.Name, stranger.PersonnelNumber).ShouldBe((null, null));
+        stranger.Privileges.ShouldBeEmpty();
+    }
+
+    [Fact]
     public async Task Store_manager_role_is_built_assigned_and_takes_effect_with_reach_and_event()
     {
         await using var api = await StartAsync(postgres);

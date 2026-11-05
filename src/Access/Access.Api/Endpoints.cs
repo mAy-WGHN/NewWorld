@@ -21,11 +21,18 @@ public static class Endpoints
         app.MapAuthEndpoints();
         var api = app.MapGroup("/api");
 
-        // Decision 5: privileges and reach of the signed-in person, computed fresh.
-        api.MapGet("/me/privileges", async (ClaimsPrincipal user, IAclReader reader, TimeProvider time, AccessOptions options, CancellationToken ct) =>
-            Actor(user) is not { } me
-                ? Results.Forbid()
-                : Results.Ok(ToDto(me, EffectivePermissionCalculator.Calculate(me, await reader.LoadAsync(ct), time.GetUtcNow(), options.Zone))))
+        // Decision 5: privileges and reach of the signed-in person, computed fresh. The name and the personnel number come from the copy of the
+        // people (organisation data, class 1), so that a frontend can say who is signed in without a call to another service.
+        api.MapGet("/me/privileges", async (ClaimsPrincipal user, IAclReader reader, AccessDbContext db, TimeProvider time, AccessOptions options, CancellationToken ct) =>
+            {
+                if (Actor(user) is not { } me)
+                {
+                    return Results.Forbid();
+                }
+
+                var person = await db.People.AsNoTracking().Where(p => p.EmployeeId == me).Select(p => new { p.Name, p.PersonnelNumber }).FirstOrDefaultAsync(ct);
+                return Results.Ok(ToDto(me, EffectivePermissionCalculator.Calculate(me, await reader.LoadAsync(ct), time.GetUtcNow(), options.Zone), person?.Name, person?.PersonnelNumber));
+            })
             .RequireAuthorization();
 
         api.MapGet("/catalog", async (AccessDbContext db, CancellationToken ct) =>
@@ -283,12 +290,14 @@ public static class Endpoints
         _ => null,
     };
 
-    private static MyPrivilegesDto ToDto(Guid employeeId, EffectivePermissions permissions) => new(
+    private static MyPrivilegesDto ToDto(Guid employeeId, EffectivePermissions permissions, string? name = null, string? personnelNumber = null) => new(
         employeeId,
         permissions.Roles,
         permissions.Privileges.OrderBy(p => p.Key, StringComparer.Ordinal)
             .Select(p => new PrivilegeDto(p.Key, p.Value.Unrestricted, p.Value.StoreIds.Order().ToList(), p.Value.EmployeeIds.Order().ToList()))
-            .ToList());
+            .ToList(),
+        name,
+        personnelNumber);
 }
 
 /// <summary>Resource-based privilege check for endpoint handlers.</summary>
