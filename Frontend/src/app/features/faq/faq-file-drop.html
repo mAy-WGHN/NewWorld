@@ -1,0 +1,14 @@
+<div
+  class="flex flex-col items-center gap-2 rounded-xl border-2 border-dashed px-4 py-4 text-center"
+  [class.border-primary]="over()"
+  [class.bg-primary-container]="over()"
+  [class.border-outline]="!over()"
+  data-testid="image-drop"
+  (dragover)="dragOver($event)"
+  (dragleave)="dragLeave()"
+  (drop)="drop($event)"
+>
+  <input #picker type="file" class="hidden" tabindex="-1" [accept]="accept()" [disabled]="disabled()" (change)="onChange($event)" />
+  <p class="m-0 text-sm text-on-surface-variant">Bild hierher ziehen oder</p>
+  <button mat-stroked-button type="button" data-testid="choose-image" [disabled]="disabled()" (click)="open()">Bild auswählen</button>
+</div>
