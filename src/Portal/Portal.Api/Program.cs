@@ -24,7 +24,7 @@ builder.Services.AddSingleton<IAuthorizationMiddlewareResultHandler, EnvelopeAut
 
 // A body that cannot be read reaches the exception handler (422 in the envelope) instead of a bare 400.
 builder.Services.Configure<RouteHandlerOptions>(options => options.ThrowOnBadRequest = true);
-builder.Services.Configure<FormOptions>(options => options.MultipartBodyLengthLimit = FaqImageFormat.MaxBytes + 3 * 1024 * 1024);
+builder.Services.Configure<FormOptions>(options => options.MultipartBodyLengthLimit = FaqAttachmentFormat.MaxBytes + 3 * 1024 * 1024);
 
 // Behind a reverse proxy: client address and scheme/host from X-Forwarded-*. Without ForwardedHeaders:KnownProxies every proxy is trusted
 // (ForwardLimit 1: only the last entry counts).

@@ -18,6 +18,7 @@ public sealed class PortalDbContext(DbContextOptions<PortalDbContext> options) :
     public DbSet<MainStoreCopyRecord> MainStoreCopies => Set<MainStoreCopyRecord>();
     public DbSet<FaqRecord> Faqs => Set<FaqRecord>();
     public DbSet<FaqImageRecord> FaqImages => Set<FaqImageRecord>();
+    public DbSet<FaqAttachmentRecord> FaqAttachments => Set<FaqAttachmentRecord>();
     public DbSet<ReportRecord> Reports => Set<ReportRecord>();
     public DbSet<ReportLocationRecord> ReportLocations => Set<ReportLocationRecord>();
     public DbSet<ReportRecipientRecord> ReportRecipients => Set<ReportRecipientRecord>();
@@ -83,6 +84,16 @@ public sealed class PortalDbContext(DbContextOptions<PortalDbContext> options) :
             b.HasKey(f => f.Id);
             b.Property(f => f.Title).HasMaxLength(255);
             b.HasIndex(f => new { f.Archived, f.SortOrder });
+        });
+        modelBuilder.Entity<FaqAttachmentRecord>(b =>
+        {
+            b.ToTable("faq_attachments");
+            b.HasKey(a => a.Id);
+            b.Property(a => a.FileName).HasMaxLength(255);
+            b.Property(a => a.Extension).HasMaxLength(8);
+            b.HasIndex(a => a.FaqId);
+            // Deleting an entry deletes its attachments (the endpoint removes the files).
+            b.HasOne<FaqRecord>().WithMany().HasForeignKey(a => a.FaqId).OnDelete(DeleteBehavior.Cascade);
         });
         modelBuilder.Entity<FaqImageRecord>(b =>
         {

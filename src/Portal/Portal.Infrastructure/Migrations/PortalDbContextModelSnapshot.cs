@@ -23,6 +23,46 @@ namespace Portal.Infrastructure.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Portal.Infrastructure.Faqs.FaqAttachmentRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Extension")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)")
+                        .HasColumnName("extension");
+
+                    b.Property<Guid>("FaqId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("faq_id");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("file_name");
+
+                    b.Property<long>("Length")
+                        .HasColumnType("bigint")
+                        .HasColumnName("length");
+
+                    b.HasKey("Id")
+                        .HasName("pk_faq_attachments");
+
+                    b.HasIndex("FaqId")
+                        .HasDatabaseName("ix_faq_attachments_faq_id");
+
+                    b.ToTable("faq_attachments", "portal");
+                });
+
             modelBuilder.Entity("Portal.Infrastructure.Faqs.FaqImageRecord", b =>
                 {
                     b.Property<Guid>("Id")
@@ -400,6 +440,16 @@ namespace Portal.Infrastructure.Migrations
                         .HasDatabaseName("ix_outbox_messages_processed_at");
 
                     b.ToTable("outbox_messages", "portal");
+                });
+
+            modelBuilder.Entity("Portal.Infrastructure.Faqs.FaqAttachmentRecord", b =>
+                {
+                    b.HasOne("Portal.Infrastructure.Faqs.FaqRecord", null)
+                        .WithMany()
+                        .HasForeignKey("FaqId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_faq_attachments_faqs_faq_id");
                 });
 
             modelBuilder.Entity("Portal.Infrastructure.Faqs.FaqImageRecord", b =>

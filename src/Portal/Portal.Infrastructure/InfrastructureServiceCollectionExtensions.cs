@@ -38,6 +38,8 @@ public static class InfrastructureServiceCollectionExtensions
         // FAQ images: files outside the application folder (never in the web root); relative paths count from the content root.
         var imagePath = configuration["Portal:Faq:ImagePath"] is { Length: > 0 } configured ? configured : Path.Combine("var", "uploads", "faq");
         services.AddSingleton<IFaqImageStorage>(_ => new FileSystemFaqImageStorage(Path.GetFullPath(imagePath, environment.ContentRootPath)));
+        var attachmentPath = configuration["Portal:Faq:AttachmentPath"] is { Length: > 0 } attachments ? attachments : Path.Combine("var", "uploads", "faq-files");
+        services.AddSingleton<IFaqAttachmentStorage>(_ => new FileSystemFaqAttachmentStorage(Path.GetFullPath(attachmentPath, environment.ContentRootPath)));
 
         // Register the privileges of this API with Access (only if Access is configured).
         if (configuration["Access:BaseUrl"] is { Length: > 0 })

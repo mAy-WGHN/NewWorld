@@ -12,6 +12,20 @@ public sealed class FaqRecord
 }
 
 /// <summary>
+/// A file attached to a FAQ entry (PDF, image, Office document). The id is a random UUID; the file is only reachable through the API after the
+/// sign-in. <see cref="FileName"/> is the cleaned name as shown and offered for download.
+/// </summary>
+public sealed class FaqAttachmentRecord
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid FaqId { get; set; }
+    public required string FileName { get; set; }
+    public required string Extension { get; set; }
+    public long Length { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+}
+
+/// <summary>
 /// An uploaded image. The id is deliberately a random UUID (not version 7): it is the token in the public URL and the only access control.
 /// </summary>
 public sealed class FaqImageRecord
