@@ -72,6 +72,13 @@ Meine Krankmeldungen: Der Link „Krankmeldungen“ auf der Startseite führt hi
 | Genehmigungen | `/approvals` | Workforce (`/api/approvals/pending`, `approve`, `reject`) |
 | Krankmeldungen und AU (HR) | `/sick-notes` | Workforce (`/api/sick-notes`, `/api/absences/{id}/certificates`, `verify`, `reject`, `content`) |
 | Benachrichtigungstexte (HR) | `/admin/templates` | Notifications (`/api/notification-templates`, Vorschau, Zurücksetzen) |
+| Meine Karte | `/employee-card` | Workforce (`/api/me/employee-card`, `/api/me/employee-card/change-requests`) |
+| Team-Abwesenheiten | `/team-absences` | Workforce (`/api/stores/{id}/unavailabilities`, `/api/me/unavailabilities`, `/api/unavailability-kinds`), Portal (Filialen) |
+| FAQ | `/faq` | Portal (`/api/faqs`, `/api/faqs/archived`, `/api/admin/faq/images`) |
+| Statistik | `/statistics` | Portal (`/api/statistics/*`) |
+| Mitarbeitende | `/employees` | Workforce (`/api/employee-change-requests`, `/api/employees`, `/api/employee-lists/{kind}`) |
+| Personal-Einstellungen | `/admin/hr` | Workforce (Urlaubsregeln, Arbeitszeitregeln, AU-Einstellungen, Nummernkreis, Auswahllisten, Nicht-Verfügbarkeitsarten, Feiertagsöffnung) |
+| Rollen und Rechte | `/admin/access` | Access (Rollen, Katalog, Filial-Gruppen, Zuweisungen, Zuständigkeiten, Hauptfiliale) |
 
 Alle Listenseiten folgen demselben Schema: Titel mit einem Knopf oben rechts, Übersicht der Einträge, und was Aufmerksamkeit braucht, steht ganz oben in einem gelb hervorgehobenen Block (jeder Eintrag nur einmal). Die gemeinsamen Stile liegen in `src/app/shared/_list-page.scss`.
 
@@ -113,3 +120,17 @@ Krankmeldungen und AU (HR): alle Krankmeldungen der Reichweite mit dem Stand der
 Mitteilungen führen je nach Art zu einer vorhandenen Seite (`features/notifications/notification-link.ts`), nicht zu den Pfaden der Dienste; wo die Person die Seite nicht öffnen darf, öffnet sich die Mitteilungsliste.
 
 Benachrichtigungstexte (HR, Recht `template:manage`): Alle Benachrichtigungen mit ihrem Namen und Stand („Standard“ oder „Angepasst“). „Bearbeiten“ öffnet Titel und Text je Kanal (Im Portal, Push, E-Mail). Variablen schreibt man mit Dollarzeichen (`$USER.firstName`); ein Klick auf eine Variable fügt sie am Cursor des Feldes ein, angeboten werden nur die dort erlaubten (sensible nur im Portal-Text und im E-Mail-Text, wo die Vorlage es erlaubt). Bei Benachrichtigungen mit sensiblen Daten sind Push-Text und E-Mail-Betreff fest vorgegeben (schreibgeschützt). „Vorschau“ zeigt das Ergebnis mit Beispielwerten, ohne zu speichern; „Auf Standard zurücksetzen“ fragt vorher nach. Der Dienst prüft jeden Text beim Speichern noch einmal; Fehler erscheinen als Klartext.
+
+Meine Karte: die eigene Mitarbeiterkarte (Name, Personalnummer, Beleg-Name, Geschäfts-E-Mail, Ein- und Austritt, privat: Adresse, Telefon, E-Mail, Geburtsdatum). Personen ohne Karte (nur in BC) sehen einen Hinweis. Änderungen **beantragt** man (Straße, PLZ, Ort, Telefon, E-Mail und eine Mitteilung für alles andere), man ändert nichts selbst; nur geänderte Felder gehen raus, ein offener Antrag ist möglich (zurückziehen geht), Antworten von HR stehen mit Grund in der Liste.
+
+Team-Abwesenheiten: Monatsraster je Filiale (Personen in Zeilen, Tage in Spalten, mit Buchstaben und Farben für Krank, Urlaub, KU, Sonstige Abwesenheit und Nicht verfügbar; es wird nur gezeigt, was der Dienst für die Person freigibt). Filialen nach dem Recht der Person, Tab "Meine" mit der eigenen Zeitleiste. Mit `unavailability:create`/`delete` (HR) lassen sich Einträge anlegen und löschen. Grenzen: Die Personenauswahl enthält nur Personen, die in dem Monat einen Eintrag haben (`TODO(Backend)`: Personenliste je Filiale); die eigene Zeitleiste hat keinen Zeitraum-Filter.
+
+FAQ: alle sehen die Fragen mit Suche; Antworten sind Markdown, sicher ohne `innerHTML` dargestellt (nur http(s)/mailto-Links und eigene Bilder). Mit `faq:create/update/delete` neu, bearbeiten, archivieren, Reihenfolge ändern (Pfeile, nicht während einer Suche), löschen nach Rückfrage; mit `faq:read` Archiv (wiederherstellen) und Bilder (PNG, JPEG, WebP bis 5 MB per Ablagefläche, "In Antwort einfügen").
+
+Statistik: die vier Auswertungen der Meldungen (pro Monat, pro Monat und Kategorie, pro Filiale und Schwere, pro Personalnummer) mit Von/Bis-Monat als Tabellen mit Balken.
+
+Mitarbeitende (Tabs nach Recht): "Änderungsanträge" (`employee:decide-change`: genehmigen mit einem Klick, ablehnen mit Rückfrage und optionalem Grund), "Neue Person anlegen" (`employee:create`: alle Felder der Karte, Filialen und Auswahllisten aus den Diensten, Lohnart nur mit `employee:read-wage-type`; danach die vergebene Personalnummer) und "Karte ansehen" (`employee:read`, nur über die Mitarbeiter-ID). `TODO(Backend)`: Es gibt keine Personensuche oder -liste.
+
+Personal-Einstellungen (Abschnitte nach Recht, jeder mit eigenen Speichern-Knöpfen und Erklärungen): Urlaub (Verfall der Zusatztage, Wartezeit, Rundung), Arbeitszeitkonto (Auszahlungsschwelle, Verfall, Minusstunden, Monatsschwelle je Arbeitsverhältnis), Krankmeldung und AU (Löschfrist, Erinnerungen, Zugriffsprotokoll), Mitarbeiterkarte (Nummernkreis mit Hinweis zur Prüfung vor dem Go-live, Auswahllisten), Nicht-Verfügbarkeitsarten und Feiertage (Filialen, die an Feiertagen geöffnet sind, mehrere auf einmal).
+
+Rollen und Rechte (Abschnitte nach Recht): Rollen (Rechte aus dem Katalog mit Beschreibung wählen, Platzhalter `*` und `bereich:*`, eingebaute Rollen geschützt), Rechte-Katalog (eigene Rechte anlegen und löschen), Filial-Gruppen und "Personen" (Zuweisungen, Zuständigkeiten, Hauptfiliale je Personen-ID). Grenzen: keine Personensuche (die ID wird eingegeben), die Liste der Zuständigkeiten liefert keine IDs zum Löschen (`TODO(Backend)`).

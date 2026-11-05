@@ -13,6 +13,13 @@ import { PlaceholderPage } from './pages/placeholder/placeholder';
 /** Areas that are built; they replace the placeholder of the same path. Loaded on demand. */
 const builtAreas: Record<string, () => Promise<Type<unknown>>> = {
   absences: () => import('./features/absences/absences.page').then((m) => m.AbsencesPage),
+  'employee-card': () => import('./features/employee-card/employee-card.page').then((m) => m.EmployeeCardPage),
+  'team-absences': () => import('./features/team-absences/team-absences.page').then((m) => m.TeamAbsencesPage),
+  faq: () => import('./features/faq/faq.page').then((m) => m.FaqPage),
+  statistics: () => import('./features/statistics/statistics.page').then((m) => m.StatisticsPage),
+  employees: () => import('./features/employees/employees.page').then((m) => m.EmployeesPage),
+  'admin/hr': () => import('./features/admin-hr/admin-hr.page').then((m) => m.AdminHrPage),
+  'admin/access': () => import('./features/admin-access/admin-access.page').then((m) => m.AdminAccessPage),
   'admin/templates': () => import('./features/notification-templates/template.page').then((m) => m.TemplatePage),
   'sick-notes': () => import('./features/sick-note-review/sick-note-review.page').then((m) => m.SickNoteReviewPage),
   'my-sick-notes': () => import('./features/sick-notes/sick-notes.page').then((m) => m.SickNotesPage),

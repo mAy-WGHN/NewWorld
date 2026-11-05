@@ -35,7 +35,7 @@ export const NAV: NavGroup[] = [
       { label: 'Team-Abwesenheiten', path: 'team-absences', requires: ['absence:read-availability', 'absence:read-reason'], about: 'Wer ist wann nicht verfügbar.', keywords: ['team', 'kollegen', 'wer ist weg', 'dienstplan'] },
       { label: 'Genehmigungen', path: 'approvals', requires: ['absence:approve'], about: 'Offene Urlaubsanträge entscheiden.', keywords: ['genehmigen', 'antrag', 'urlaubsantrag', 'freigeben'] },
       { label: 'Krankmeldungen und AU', path: 'sick-notes', requires: ['certificate:read-status', 'certificate:review'], about: 'Stand der Arbeitsunfähigkeitsbescheinigungen.', keywords: ['au', 'bescheinigung', 'krankschreibung'] },
-      { label: 'Mitarbeitende', path: 'employees', requires: ['employee:read'], about: 'Mitarbeiterkarten ansehen und anlegen.', keywords: ['personal', 'mitarbeiter', 'anlegen', 'neue mitarbeiter'] },
+      { label: 'Mitarbeitende', path: 'employees', requires: ['employee:read', 'employee:decide-change', 'employee:create'], about: 'Mitarbeiterkarten ansehen und anlegen.', keywords: ['personal', 'mitarbeiter', 'anlegen', 'neue mitarbeiter'] },
     ],
   },
   {
