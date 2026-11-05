@@ -1,0 +1,145 @@
+<app-page-head title="Meine Karte" />
+
+@if (error(); as message) {
+  <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert">{{ message }}</p>
+}
+@if (status(); as message) {
+  <p class="mb-3 rounded-xl bg-primary-container px-4 py-2.5 text-on-primary-container" role="status" data-testid="status">{{ message }}</p>
+}
+@if (loadError(); as message) {
+  <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="load-error">{{ message }}</p>
+}
+
+@if (loaded() && !card() && !loadError()) {
+  <p class="m-0 text-on-surface-variant" data-testid="no-card">
+    Für dich gibt es noch keine Mitarbeiterkarte im Portal. Bei Fragen wende dich bitte an die Personalabteilung.
+  </p>
+}
+
+@if (card(); as c) {
+  <section class="mb-6" aria-labelledby="card-title" data-testid="card">
+    <h2 id="card-title" class="mb-2 text-lg font-medium">Deine Daten</h2>
+    <dl class="m-0 grid gap-x-6 gap-y-3 rounded-xl bg-surface-container px-4 py-3 sm:grid-cols-2">
+      <div><dt class="text-[13px] text-on-surface-variant">Name</dt><dd class="m-0" data-testid="name">{{ c.firstName }} {{ c.lastName }}</dd></div>
+      <div><dt class="text-[13px] text-on-surface-variant">Personalnummer</dt><dd class="m-0" data-testid="personnel-number">{{ c.personnelNumber }}</dd></div>
+      <div><dt class="text-[13px] text-on-surface-variant">Name auf dem Kassenbon</dt><dd class="m-0">{{ c.receiptName }}</dd></div>
+      @if (c.businessEmail) {
+        <div><dt class="text-[13px] text-on-surface-variant">Dienstliche E-Mail</dt><dd class="m-0">{{ c.businessEmail }}</dd></div>
+      }
+      <div><dt class="text-[13px] text-on-surface-variant">Eintritt</dt><dd class="m-0">{{ formatDate(c.hireDate) }}</dd></div>
+      @if (c.exitDate) {
+        <div><dt class="text-[13px] text-on-surface-variant">Austritt</dt><dd class="m-0" data-testid="exit-date">{{ formatDate(c.exitDate) }}</dd></div>
+      }
+    </dl>
+
+    @if (c.private; as p) {
+      <h3 class="mb-2 mt-4 text-base font-medium">Private Daten</h3>
+      <dl class="m-0 grid gap-x-6 gap-y-3 rounded-xl bg-surface-container px-4 py-3 sm:grid-cols-2" data-testid="private">
+        @if (p.street || p.postalCode || p.city) {
+          <div>
+            <dt class="text-[13px] text-on-surface-variant">Adresse</dt>
+            <dd class="m-0">{{ p.street }}<br />{{ p.postalCode }} {{ p.city }}</dd>
+          </div>
+        }
+        @if (p.privatePhone) {
+          <div><dt class="text-[13px] text-on-surface-variant">Private Telefonnummer</dt><dd class="m-0">{{ p.privatePhone }}</dd></div>
+        }
+        @if (p.privateEmail) {
+          <div><dt class="text-[13px] text-on-surface-variant">Private E-Mail</dt><dd class="m-0">{{ p.privateEmail }}</dd></div>
+        }
+        @if (p.birthDate) {
+          <div><dt class="text-[13px] text-on-surface-variant">Geburtsdatum</dt><dd class="m-0">{{ formatDate(p.birthDate) }}</dd></div>
+        }
+        @if (genderLabel(p.gender); as gender) {
+          <div><dt class="text-[13px] text-on-surface-variant">Geschlecht</dt><dd class="m-0">{{ gender }}</dd></div>
+        }
+      </dl>
+    }
+  </section>
+
+  @if (canRequest()) {
+    <section class="mb-6" aria-labelledby="request-title" data-testid="request-section">
+      <h2 id="request-title" class="mb-1 text-lg font-medium">Änderung beantragen</h2>
+      <p class="mb-3 mt-0 text-sm text-on-surface-variant">
+        Du kannst deine Daten nicht selbst ändern. Sende einen Antrag, die Personalabteilung entscheidet darüber.
+      </p>
+
+      @if (requestsError(); as message) {
+        <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert">{{ message }}</p>
+      }
+
+      @if (pending(); as p) {
+        <app-row-card [attention]="true" data-testid="pending">
+          <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+            <div class="flex flex-col">
+              <strong>Dein Antrag vom {{ formatDateTime(p.createdAt) }} wartet auf die Personalabteilung.</strong>
+              <span class="text-[13px]">Bis zur Entscheidung kannst du keinen weiteren Antrag senden.</span>
+            </div>
+            <button mat-stroked-button type="button" data-action="withdraw" [disabled]="busy()" (click)="withdraw(p)">Zurückziehen</button>
+          </div>
+        </app-row-card>
+      } @else {
+        <form class="grid max-w-xl gap-3" novalidate (submit)="$event.preventDefault(); submit()" data-testid="form">
+          <div class="flex flex-col gap-1">
+            <label class="text-sm font-medium" for="ec-street">Straße</label>
+            <input id="ec-street" class="rounded-lg border border-outline bg-surface px-3 py-2" type="text" autocomplete="street-address" [value]="form().street" (input)="set('street', $event)" />
+          </div>
+          <div class="grid grid-cols-[8rem_1fr] gap-3">
+            <div class="flex flex-col gap-1">
+              <label class="text-sm font-medium" for="ec-postal">PLZ</label>
+              <input id="ec-postal" class="rounded-lg border border-outline bg-surface px-3 py-2" type="text" autocomplete="postal-code" [value]="form().postalCode" (input)="set('postalCode', $event)" />
+            </div>
+            <div class="flex flex-col gap-1">
+              <label class="text-sm font-medium" for="ec-city">Ort</label>
+              <input id="ec-city" class="rounded-lg border border-outline bg-surface px-3 py-2" type="text" autocomplete="address-level2" [value]="form().city" (input)="set('city', $event)" />
+            </div>
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="text-sm font-medium" for="ec-phone">Private Telefonnummer</label>
+            <input id="ec-phone" class="rounded-lg border border-outline bg-surface px-3 py-2" type="tel" autocomplete="tel" [value]="form().privatePhone" (input)="set('privatePhone', $event)" />
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="text-sm font-medium" for="ec-email">Private E-Mail</label>
+            <input id="ec-email" class="rounded-lg border border-outline bg-surface px-3 py-2" type="email" autocomplete="email" [value]="form().privateEmail" (input)="set('privateEmail', $event)" />
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="text-sm font-medium" for="ec-message">Mitteilung für alles andere (zum Beispiel ein neuer Name)</label>
+            <textarea id="ec-message" class="rounded-lg border border-outline bg-surface px-3 py-2" rows="3" [attr.maxlength]="maxMessage" [value]="form().message" (input)="set('message', $event)"></textarea>
+          </div>
+          <div>
+            <button mat-flat-button type="submit" data-action="submit" [disabled]="busy()">Antrag senden</button>
+          </div>
+        </form>
+      }
+    </section>
+
+    @if (requests().length > 0) {
+      <section aria-labelledby="history-title">
+        <h2 id="history-title" class="mb-2 text-lg font-medium">Deine Anträge</h2>
+        <div class="flex flex-col gap-2.5" role="list">
+          @for (r of requests(); track r.id) {
+            <app-row-card [attention]="false" data-testid="request-row" [attr.data-id]="r.id">
+              <div class="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
+                <div class="flex flex-col">
+                  <strong>{{ formatDateTime(r.createdAt) }}</strong>
+                  @for (f of requestedFields(r.fields); track f.label) {
+                    <span class="text-[13px]">{{ f.label }}: {{ f.value }}</span>
+                  }
+                  @if (r.message) {
+                    <span class="text-[13px]">Mitteilung: {{ r.message }}</span>
+                  }
+                  @if (r.status === 'Rejected' && r.rejectionReason) {
+                    <span class="text-[13px]" data-testid="reason">Grund: {{ r.rejectionReason }}</span>
+                  }
+                </div>
+                <mat-chip-set aria-label="Stand des Antrags">
+                  <mat-chip data-testid="request-status">{{ statusLabel(r.status) }}</mat-chip>
+                </mat-chip-set>
+              </div>
+            </app-row-card>
+          }
+        </div>
+      </section>
+    }
+  }
+}
