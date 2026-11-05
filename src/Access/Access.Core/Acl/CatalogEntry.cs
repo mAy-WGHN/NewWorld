@@ -31,6 +31,7 @@ public static class AccessPrivileges
     public const string CustomPrivilegeDelete = "access:custom-privilege:delete";
     public const string PersonRead = "access:person:read";
     public const string MainStoreUpdate = "access:main-store:update";
+    public const string EntraLinkManage = "access:entra-link:manage";
 
     public static readonly IReadOnlyList<CatalogEntry> Catalog =
     [
@@ -53,5 +54,6 @@ public static class AccessPrivileges
         new(CustomPrivilegeDelete, Owner, false, "Eigene Rechte löschen."),
         new(PersonRead, Owner, true, "Die Personenkopie in Access (Name, Hauptfiliale, BC-Vorschlag) für Personen in der Reichweite ansehen."),
         new(MainStoreUpdate, Owner, true, "Die Hauptfiliale einer Person festlegen oder auf den BC-Vorschlag zurücksetzen; nur für Personen und Filialen in der Reichweite."),
+        new(EntraLinkManage, Owner, true, "Das Microsoft-Konto (Benutzername) einer Person für die zweite Bestätigung (Authenticator) eintragen, ändern oder entfernen; nur für Personen in der Reichweite."),
     ];
 }

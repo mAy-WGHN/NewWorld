@@ -196,6 +196,12 @@ public sealed class AclGuard(AclData data, DateTimeOffset now, TimeZoneInfo zone
             : GuardResult.Denied(GuardReason.NotInReach);
     }
 
+    /// <summary>Linking, changing or removing the Entra account of a person: reach over the person.</summary>
+    public GuardResult CanManageEntraLink(Guid actor, Guid employeeId) =>
+        Permissions(actor).AppliesToEmployee(AccessPrivileges.EntraLinkManage, employeeId)
+            ? GuardResult.Allowed
+            : GuardResult.Denied(GuardReason.NotInReach);
+
     /// <summary>At least one active person with a valid, permanent, unrestricted assignment of a role containing <c>*</c>.</summary>
     public bool AdministratorsRemain(AclData candidate)
     {

@@ -62,5 +62,16 @@ public sealed record LoginRequest(string PersonnelNumber, string Pin);
 
 public sealed record RefreshRequest(string RefreshToken);
 
+/// <summary>The Microsoft account of a person for the second factor; <see cref="Bound"/> once the first step-up has bound the immutable account id.</summary>
+public sealed record EntraLinkDto(string UserPrincipalName, bool Bound, DateTimeOffset? BoundAt);
+
+public sealed record SetEntraLinkRequest(string? UserPrincipalName);
+
+/// <summary>Where the browser goes to confirm with Microsoft.</summary>
+public sealed record StepUpStartResponse(string AuthorizationUrl);
+
+/// <summary>An access token with the second-factor claim <c>mfa_until</c>; no refresh token (the session stays as it is).</summary>
+public sealed record StepUpTokenResponse(string AccessToken, DateTimeOffset ExpiresAt);
+
 /// <summary>Tokens of a session: a short-lived access token and a single-use refresh token.</summary>
 public sealed record TokenResponse(string AccessToken, DateTimeOffset ExpiresAt, string RefreshToken);

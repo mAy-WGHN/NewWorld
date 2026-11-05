@@ -71,7 +71,7 @@ public sealed class StoreChangedHandler(AccessDbContext db) : IMessageHandler<St
 }
 
 /// <summary>
-/// Deletes everything about the person: copy, stored PIN, sessions, assignments, responsibilities held or targeting them, publication state and the
+/// Deletes everything about the person: copy, stored PIN, sessions, Entra link and second-factor confirmations, assignments, responsibilities held or targeting them, publication state and the
 /// own permission copy. Other people's reach and responsibilities are recalculated.
 /// </summary>
 public sealed class EmployeeDataErasureRequestedHandler(AccessDbContext db, RecalculationRunner runner, PermissionsChangedHandler permissions)
@@ -89,6 +89,10 @@ public sealed class EmployeeDataErasureRequestedHandler(AccessDbContext db, Reca
             await db.RefreshTokens.Where(t => t.EmployeeId == id).ExecuteDeleteAsync(ct);
             await db.MainStoreOverrides.Where(m => m.EmployeeId == id).ExecuteDeleteAsync(ct);
             await db.MainStoreOverrides.Where(m => m.SetBy == id).ExecuteUpdateAsync(s => s.SetProperty(m => m.SetBy, Guid.Empty), ct);
+            await db.EntraLinks.Where(l => l.EmployeeId == id).ExecuteDeleteAsync(ct);
+            await db.EntraLinks.Where(l => l.LinkedBy == id).ExecuteUpdateAsync(s => s.SetProperty(l => l.LinkedBy, Guid.Empty), ct);
+            await db.StepUpConfirmations.Where(c => c.EmployeeId == id).ExecuteDeleteAsync(ct);
+            await db.StepUpRequests.Where(r => r.EmployeeId == id).ExecuteDeleteAsync(ct);
             await db.People.Where(p => p.EmployeeId == id).ExecuteDeleteAsync(ct);
         }, cancellationToken);
         await permissions.EraseAsync(id, cancellationToken);

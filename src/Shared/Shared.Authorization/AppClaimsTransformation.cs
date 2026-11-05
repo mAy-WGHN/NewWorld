@@ -28,6 +28,13 @@ public sealed class AppClaimsTransformation : IClaimsTransformation
             mapped.AddClaim(new Claim(AppClaimTypes.EmployeeId, employeeId.ToString()));
         }
 
+        // Only well-formed values are mapped; anything else counts as "no second factor" (fail closed).
+        if (principal.FindFirst(AppClaimTypes.SecondFactorUntilTokenClaim)?.Value is { } until
+            && long.TryParse(until, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var seconds))
+        {
+            mapped.AddClaim(new Claim(AppClaimTypes.SecondFactorUntil, seconds.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+        }
+
         principal.AddIdentity(mapped);
         return Task.FromResult(principal);
     }

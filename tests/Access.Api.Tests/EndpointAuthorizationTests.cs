@@ -31,6 +31,9 @@ public sealed class EndpointAuthorizationTests(PostgresFixture postgres) : IClas
         { "GET", $"/api/people/{Max}/responsibilities" },
         { "POST", "/api/responsibilities" },
         { "DELETE", $"/api/responsibilities/{Guid.Empty}" },
+        { "GET", $"/api/people/{Max}/entra-link" },
+        { "PUT", $"/api/people/{Max}/entra-link" },
+        { "DELETE", $"/api/people/{Max}/entra-link" },
         { "POST", "/api/custom-privileges" },
         { "DELETE", "/api/custom-privileges/x:y" },
     };

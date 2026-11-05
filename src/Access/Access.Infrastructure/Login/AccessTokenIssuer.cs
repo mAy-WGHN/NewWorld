@@ -87,10 +87,21 @@ public sealed partial class AccessTokenIssuer : IDisposable
         NameClaimType = "sub",
     };
 
-    public IssuedToken Issue(Guid employeeId)
+    /// <param name="employeeId">The person.</param>
+    /// <param name="secondFactorUntil">
+    /// Only the step-up passes it: end of the second-factor confirmation, written as claim <c>mfa_until</c> (Unix seconds).
+    /// Login and refresh never do, so normal tokens never carry the claim.
+    /// </param>
+    public IssuedToken Issue(Guid employeeId, DateTimeOffset? secondFactorUntil = null)
     {
         var now = _time.GetUtcNow();
         var expires = now + _login.AccessTokenLifetime;
+        var claims = new Dictionary<string, object> { ["sub"] = employeeId.ToString(), ["employee_id"] = employeeId.ToString() };
+        if (secondFactorUntil is { } until)
+        {
+            claims[Shared.Authorization.AppClaimTypes.SecondFactorUntilTokenClaim] = until.ToUnixTimeSeconds();
+        }
+
         var descriptor = new SecurityTokenDescriptor
         {
             Issuer = Issuer,
@@ -98,7 +109,7 @@ public sealed partial class AccessTokenIssuer : IDisposable
             IssuedAt = now.UtcDateTime,
             NotBefore = now.UtcDateTime,
             Expires = expires.UtcDateTime,
-            Claims = new Dictionary<string, object> { ["sub"] = employeeId.ToString(), ["employee_id"] = employeeId.ToString() },
+            Claims = claims,
             SigningCredentials = new SigningCredentials(SigningKey, SecurityAlgorithms.RsaSha256),
         };
         return new IssuedToken(new JsonWebTokenHandler { SetDefaultTimesOnTokenCreation = false }.CreateToken(descriptor), expires);

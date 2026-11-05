@@ -2,11 +2,13 @@ using Access.Core;
 using Access.Core.Login;
 using Access.Core.Messaging;
 using Access.Core.Publishing;
+using Access.Core.StepUp;
 using Access.Infrastructure.Acl;
 using Access.Infrastructure.Login;
 using Access.Infrastructure.Messaging;
 using Access.Infrastructure.People;
 using Access.Infrastructure.Publishing;
+using Access.Infrastructure.StepUp;
 using BcIntegration.Contracts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -52,6 +54,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<AclAdministration>();
         services.AddScoped<RoleDefinitionService>();
         services.AddAccessLogin(configuration, environment);
+        services.AddAccessStepUp(configuration);
         services.AddHostedService<AccessBootstrap>();
         services.AddHostedService<RecalculationService>();
 
@@ -96,6 +99,27 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddHttpClient<IBcLoginGateway, BcLoginGateway>((sp, http) =>
                 http.BaseAddress = new Uri(configuration["BcIntegration:BaseUrl"] ?? "http://bc-integration-api"))
             .AddServiceToken(ServiceNames.BcIntegration);
+        return services;
+    }
+
+    /// <summary>
+    /// Second factor with Microsoft Entra (<c>Access:StepUp</c>). The link administration is always there; the sign-in needs the settings, which
+    /// are checked at start when <c>Enabled</c> (a missing setting stops the start, naming the setting but never a value).
+    /// </summary>
+    private static IServiceCollection AddAccessStepUp(this IServiceCollection services, IConfiguration configuration)
+    {
+        var stepUp = configuration.GetSection(StepUpOptions.ConfigurationSection).Get<StepUpOptions>() ?? new StepUpOptions();
+        if (stepUp.Problems() is { Count: > 0 } problems)
+        {
+            throw new InvalidOperationException($"{StepUpOptions.ConfigurationSection} is enabled but incomplete: {string.Join(", ", problems)}.");
+        }
+
+        services.AddSingleton(stepUp);
+        services.AddHttpClient(EntraOidcClient.HttpClientName, http => http.Timeout = TimeSpan.FromSeconds(10));
+        services.AddSingleton<EntraOidcClient>();
+        services.AddSingleton<EntraIdTokenValidator>();
+        services.AddScoped<StepUpService>();
+        services.AddScoped<EntraLinkAdministration>();
         return services;
     }
 

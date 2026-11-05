@@ -393,6 +393,97 @@ namespace Access.Infrastructure.Migrations
                     b.ToTable("publications", "access");
                 });
 
+            modelBuilder.Entity("Access.Infrastructure.StepUp.EntraLinkRecord", b =>
+                {
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("employee_id");
+
+                    b.Property<DateTimeOffset?>("BoundAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("bound_at");
+
+                    b.Property<Guid?>("EntraObjectId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("entra_object_id");
+
+                    b.Property<DateTimeOffset>("LinkedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("linked_at");
+
+                    b.Property<Guid>("LinkedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("linked_by");
+
+                    b.Property<string>("UserPrincipalName")
+                        .IsRequired()
+                        .HasMaxLength(320)
+                        .HasColumnType("character varying(320)")
+                        .HasColumnName("user_principal_name");
+
+                    b.HasKey("EmployeeId")
+                        .HasName("pk_entra_links");
+
+                    b.HasIndex("EntraObjectId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_entra_links_entra_object_id");
+
+                    b.ToTable("entra_links", "access");
+                });
+
+            modelBuilder.Entity("Access.Infrastructure.StepUp.StepUpConfirmationRecord", b =>
+                {
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("employee_id");
+
+                    b.Property<DateTimeOffset>("ConfirmedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("confirmed_at");
+
+                    b.Property<DateTimeOffset>("ValidUntil")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("valid_until");
+
+                    b.HasKey("EmployeeId")
+                        .HasName("pk_step_up_confirmations");
+
+                    b.ToTable("step_up_confirmations", "access");
+                });
+
+            modelBuilder.Entity("Access.Infrastructure.StepUp.StepUpRequestRecord", b =>
+                {
+                    b.Property<string>("StateHash")
+                        .HasColumnType("text")
+                        .HasColumnName("state_hash");
+
+                    b.Property<string>("CodeVerifier")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("code_verifier");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("employee_id");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<string>("Nonce")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("nonce");
+
+                    b.HasKey("StateHash")
+                        .HasName("pk_step_up_requests");
+
+                    b.HasIndex("ExpiresAt")
+                        .HasDatabaseName("ix_step_up_requests_expires_at");
+
+                    b.ToTable("step_up_requests", "access");
+                });
+
             modelBuilder.Entity("Shared.Infrastructure.Authorization.PermissionSnapshotRecord", b =>
                 {
                     b.Property<Guid>("EmployeeId")

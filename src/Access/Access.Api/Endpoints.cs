@@ -5,6 +5,7 @@ using Access.Core.Publishing;
 using Access.Core.Responsibilities;
 using Access.Infrastructure;
 using Access.Infrastructure.Acl;
+using Access.Infrastructure.StepUp;
 using Microsoft.EntityFrameworkCore;
 using Shared.Authorization;
 
@@ -44,6 +45,7 @@ public static class Endpoints
         MapAssignments(api);
         MapResponsibilities(api);
         MapMainStore(api);
+        MapEntraLink(api);
         MapPeople(api);
 
         api.MapPost("/custom-privileges", (CreateCustomPrivilegeRequest request, ClaimsPrincipal user, AclAdministration admin, CancellationToken ct) =>
@@ -117,7 +119,7 @@ public static class Endpoints
 
     // Finding a person for the administration (assignments, responsibilities, main store) by name or personnel number instead of the id.
     private static readonly string[] PersonLookupPrivileges =
-        [AccessPrivileges.PersonRead, AccessPrivileges.AssignmentRead, AccessPrivileges.ResponsibilityRead, AccessPrivileges.MainStoreUpdate];
+        [AccessPrivileges.PersonRead, AccessPrivileges.AssignmentRead, AccessPrivileges.ResponsibilityRead, AccessPrivileges.MainStoreUpdate, AccessPrivileges.EntraLinkManage];
 
     private const int MaxLookupTake = 50;
     private const int MaxLookupIds = 100;
@@ -216,6 +218,29 @@ public static class Endpoints
         api.MapDelete("/people/{employeeId:guid}/main-store", (Guid employeeId, ClaimsPrincipal user, AclAdministration admin, CancellationToken ct) =>
                 Run(user, actor => admin.SetMainStoreAsync(actor, employeeId, null, ct), _ => Results.NoContent()))
             .RequireAuthorization(AppPolicies.Privilege(AccessPrivileges.MainStoreUpdate));
+    }
+
+    // The Microsoft account of a person for the second factor (HR maintains it; the account id is bound by the first step-up).
+    private static void MapEntraLink(RouteGroupBuilder api)
+    {
+        api.MapGet("/people/{employeeId:guid}/entra-link", async (Guid employeeId, ClaimsPrincipal user, IAuthorizationServiceAdapter auth, AccessDbContext db, CancellationToken ct) =>
+            {
+                if (!await auth.AllowsAsync(user, new EmployeeResource(employeeId), AccessPrivileges.PersonRead))
+                {
+                    return Results.Forbid();
+                }
+
+                var link = await db.EntraLinks.AsNoTracking().Where(l => l.EmployeeId == employeeId)
+                    .Select(l => new EntraLinkDto(l.UserPrincipalName, l.EntraObjectId != null, l.BoundAt)).FirstOrDefaultAsync(ct);
+                return link is null ? Results.Problem(statusCode: StatusCodes.Status404NotFound, title: "NoEntraLink") : Results.Ok(link);
+            })
+            .RequireAuthorization(AppPolicies.Privilege(AccessPrivileges.PersonRead));
+        api.MapPut("/people/{employeeId:guid}/entra-link", (Guid employeeId, SetEntraLinkRequest request, ClaimsPrincipal user, EntraLinkAdministration admin, CancellationToken ct) =>
+                Run(user, actor => admin.SetAsync(actor, employeeId, request.UserPrincipalName, ct), _ => Results.NoContent()))
+            .RequireAuthorization(AppPolicies.Privilege(AccessPrivileges.EntraLinkManage));
+        api.MapDelete("/people/{employeeId:guid}/entra-link", (Guid employeeId, ClaimsPrincipal user, EntraLinkAdministration admin, CancellationToken ct) =>
+                Run(user, actor => admin.RemoveAsync(actor, employeeId, ct), _ => Results.NoContent()))
+            .RequireAuthorization(AppPolicies.Privilege(AccessPrivileges.EntraLinkManage));
     }
 
     private static void MapResponsibilities(RouteGroupBuilder api)

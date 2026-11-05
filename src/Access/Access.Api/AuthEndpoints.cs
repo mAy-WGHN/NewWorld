@@ -1,6 +1,8 @@
 using System.Security.Claims;
 using Access.Core.Login;
+using Access.Core.StepUp;
 using Access.Infrastructure.Login;
+using Access.Infrastructure.StepUp;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Authorization;
 
@@ -65,6 +67,8 @@ public static class AuthEndpoints
             })
             .RequireAuthorization();
 
+        MapStepUp(auth);
+
         // Public key and discovery: other services configure Authentication:Authority with the address of Access.
         app.MapGet("/.well-known/openid-configuration", (HttpContext http, AccessTokenIssuer issuer) =>
             {
@@ -82,6 +86,63 @@ public static class AuthEndpoints
         app.MapGet("/.well-known/jwks.json", (AccessTokenIssuer issuer) => Results.Ok(issuer.Jwks())).AllowAnonymous();
         return app;
     }
+
+    /// <summary>
+    /// Second factor with Microsoft Entra: <c>start</c> returns the address for the browser, <c>callback</c> is where Entra sends the browser back
+    /// (anonymous, redirects to the portal with <c>?result=ok</c> or <c>?result=failed</c> and nothing more), <c>token</c> exchanges a valid confirmation
+    /// for an access token with the claim <c>mfa_until</c>. Details of failures are only logged as codes.
+    /// </summary>
+    private static void MapStepUp(RouteGroupBuilder auth)
+    {
+        auth.MapPost("/step-up/start", async (ClaimsPrincipal user, StepUpService stepUp, CancellationToken ct) =>
+            {
+                if (Actor(user) is not { } employeeId)
+                {
+                    return Results.Forbid();
+                }
+
+                var started = await stepUp.StartAsync(employeeId, ct);
+                return started.Status switch
+                {
+                    StartStatus.Started => Results.Ok(new StepUpStartResponse(started.AuthorizationUrl!)),
+                    StartStatus.NoLink => Results.Problem(statusCode: StatusCodes.Status404NotFound, title: "NoEntraLink"),
+                    _ => Results.Problem(statusCode: StatusCodes.Status503ServiceUnavailable, title: "StepUpUnavailable"),
+                };
+            })
+            .RequireAuthorization();
+
+        auth.MapGet("/step-up/callback", async (string? code, string? state, string? error, StepUpService stepUp, StepUpOptions options, CancellationToken ct) =>
+            {
+                if (!options.Enabled)
+                {
+                    return Results.Problem(statusCode: StatusCodes.Status503ServiceUnavailable, title: "StepUpUnavailable");
+                }
+
+                var result = await stepUp.CompleteAsync(code, state, !string.IsNullOrEmpty(error), ct);
+                return Results.Redirect(Microsoft.AspNetCore.WebUtilities.QueryHelpers.AddQueryString(options.ReturnUrl!, "result", result.Succeeded ? "ok" : "failed"));
+            })
+            .AllowAnonymous();
+
+        auth.MapPost("/step-up/token", async (ClaimsPrincipal user, StepUpService stepUp, AccessTokenIssuer issuer, CancellationToken ct) =>
+            {
+                if (Actor(user) is not { } employeeId)
+                {
+                    return Results.Forbid();
+                }
+
+                if (await stepUp.ConfirmedUntilAsync(employeeId, ct) is not { } until)
+                {
+                    return Results.Problem(statusCode: StatusCodes.Status409Conflict, title: "SecondFactorRequired");
+                }
+
+                var access = issuer.Issue(employeeId, until);
+                return Results.Ok(new StepUpTokenResponse(access.Token, access.ExpiresAt));
+            })
+            .RequireAuthorization();
+    }
+
+    private static Guid? Actor(ClaimsPrincipal user) =>
+        Guid.TryParse(user.FindFirst(AppClaimTypes.EmployeeId)?.Value, out var id) ? id : null;
 
     private static async Task<TokenResponse> Tokens(Guid employeeId, SessionService sessions, AccessTokenIssuer issuer, CancellationToken ct)
     {

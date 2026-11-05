@@ -2,6 +2,7 @@ using Access.Infrastructure.Acl;
 using Access.Infrastructure.Login;
 using Access.Infrastructure.People;
 using Access.Infrastructure.Publishing;
+using Access.Infrastructure.StepUp;
 using Microsoft.EntityFrameworkCore;
 using Shared.Infrastructure.Authorization;
 using Shared.Infrastructure.Messaging;
@@ -24,6 +25,9 @@ public sealed class AccessDbContext(DbContextOptions<AccessDbContext> options) :
     public DbSet<PublicationRecord> Publications => Set<PublicationRecord>();
     public DbSet<CredentialRecord> Credentials => Set<CredentialRecord>();
     public DbSet<RefreshTokenRecord> RefreshTokens => Set<RefreshTokenRecord>();
+    public DbSet<EntraLinkRecord> EntraLinks => Set<EntraLinkRecord>();
+    public DbSet<StepUpRequestRecord> StepUpRequests => Set<StepUpRequestRecord>();
+    public DbSet<StepUpConfirmationRecord> StepUpConfirmations => Set<StepUpConfirmationRecord>();
 
     /// <summary>Provider settings shared by runtime and design time (migrations).</summary>
     public static DbContextOptionsBuilder Configure(DbContextOptionsBuilder options, string connectionString) => options
@@ -99,6 +103,26 @@ public sealed class AccessDbContext(DbContextOptions<AccessDbContext> options) :
             b.HasIndex(t => t.TokenHash).IsUnique();
             b.HasIndex(t => t.EmployeeId);
             b.HasIndex(t => t.ExpiresAt);
+        });
+        modelBuilder.Entity<EntraLinkRecord>(b =>
+        {
+            b.ToTable("entra_links");
+            b.HasKey(l => l.EmployeeId);
+            b.Property(l => l.EmployeeId).ValueGeneratedNever();
+            b.Property(l => l.UserPrincipalName).HasMaxLength(320);
+            b.HasIndex(l => l.EntraObjectId).IsUnique();
+        });
+        modelBuilder.Entity<StepUpRequestRecord>(b =>
+        {
+            b.ToTable("step_up_requests");
+            b.HasKey(r => r.StateHash);
+            b.HasIndex(r => r.ExpiresAt);
+        });
+        modelBuilder.Entity<StepUpConfirmationRecord>(b =>
+        {
+            b.ToTable("step_up_confirmations");
+            b.HasKey(c => c.EmployeeId);
+            b.Property(c => c.EmployeeId).ValueGeneratedNever();
         });
         modelBuilder.Entity<PublicationRecord>(b =>
         {

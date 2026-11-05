@@ -16,6 +16,16 @@ public sealed class PrivilegePolicyProvider(IOptions<AuthorizationOptions> optio
                 .Build();
         }
 
+        if (policyName.StartsWith(AppPolicies.PrivilegeWithSecondFactorPrefix, StringComparison.Ordinal))
+        {
+            return new AuthorizationPolicyBuilder()
+                .RequireAuthenticatedUser()
+                .AddRequirements(
+                    new PrivilegeRequirement(policyName[AppPolicies.PrivilegeWithSecondFactorPrefix.Length..]),
+                    new SecondFactorRequirement())
+                .Build();
+        }
+
         return await base.GetPolicyAsync(policyName);
     }
 }

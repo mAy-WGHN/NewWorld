@@ -18,6 +18,9 @@ public static class AuthorizationServiceCollectionExtensions
         services.AddSingleton<IClaimsTransformation, AppClaimsTransformation>();
         services.AddSingleton<IAuthorizationHandler, PrivilegeHandler>();
         services.AddSingleton<IAuthorizationPolicyProvider, PrivilegePolicyProvider>();
+        services.TryAddSingleton(TimeProvider.System);
+        services.AddSingleton<IAuthorizationHandler, SecondFactorHandler>();
+        services.AddSingleton<IAuthorizationMiddlewareResultHandler, SecondFactorResultHandler>();
 
         var policies = services.AddAuthorizationBuilder();
         foreach (var role in options.ServiceRoles)
