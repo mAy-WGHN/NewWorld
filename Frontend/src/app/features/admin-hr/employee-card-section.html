@@ -1,0 +1,128 @@
+<section aria-labelledby="card-title" data-testid="section-employee-card">
+  <h2 id="card-title" class="m-0 mb-4 text-lg font-medium">Mitarbeiterkarte</h2>
+
+  @if (canSeries()) {
+    <h3 class="m-0 mb-1 text-base font-medium">Nummernkreis der Personalnummern</h3>
+    <p class="m-0 mb-3 text-sm text-on-surface-variant">
+      Neue Mitarbeitende bekommen die nächste freie Personalnummer aus diesem Bereich (Standard 1001 bis 99999). Hier trägst du die zuletzt vergebene Nummer ein; ohne sie kann niemand angelegt werden. Anfang und Ende des Bereichs kannst du leer lassen, dann bleiben sie wie sie sind.
+    </p>
+    <p class="mb-3 rounded-xl border border-attention-border bg-attention px-4 py-2.5 text-sm text-on-attention" data-testid="golive-hint">
+      Vor dem Start prüfen: Gleiche die zuletzt vergebene Nummer mit Business Central ab (Stand 27.10.2026: 15301). Sonst kann eine neue Nummer mit einer Person kollidieren, die in BC angelegt wurde.
+    </p>
+    @if (seriesError(); as message) {
+      <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="series-error">{{ message }}</p>
+    }
+    @if (seriesStatus(); as message) {
+      <p class="mb-3 rounded-xl bg-primary-container px-4 py-2.5 text-on-primary-container" role="status" data-testid="series-status">{{ message }}</p>
+    }
+    @if (series(); as s) {
+      @if (seriesSet()) {
+        <p class="m-0 mb-3 text-sm" data-testid="series-state">
+          Zuletzt vergeben: <strong>{{ s.lastNumber }}</strong>. Bereich {{ s.startNumber }} bis {{ s.endNumber }}, noch frei: <strong>{{ s.remaining }}</strong>.
+        </p>
+      } @else {
+        <p class="m-0 mb-3 text-sm text-error" data-testid="series-state">Der Nummernkreis ist noch nicht eingestellt. Neue Mitarbeitende können erst angelegt werden, wenn die zuletzt vergebene Nummer eingetragen ist.</p>
+      }
+      <form novalidate class="mb-8 flex flex-wrap items-start gap-3" (submit)="$event.preventDefault(); saveSeries()">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Zuletzt vergebene Nummer</mat-label>
+          <input matInput inputmode="numeric" data-testid="series-last" [value]="seriesForm().last" (input)="seriesText('last', $event)" />
+        </mat-form-field>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Anfang des Bereichs (optional)</mat-label>
+          <input matInput inputmode="numeric" data-testid="series-start" [value]="seriesForm().start" (input)="seriesText('start', $event)" />
+        </mat-form-field>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Ende des Bereichs (optional)</mat-label>
+          <input matInput inputmode="numeric" data-testid="series-end" [value]="seriesForm().end" (input)="seriesText('end', $event)" />
+        </mat-form-field>
+        <button mat-flat-button type="submit" class="mt-1" data-action="save-series" [disabled]="seriesBusy()">Speichern</button>
+      </form>
+    } @else if (!seriesError()) {
+      <p class="text-sm text-on-surface-variant">Wird geladen …</p>
+    }
+  }
+
+  @if (canLists()) {
+    <h3 class="m-0 mb-1 text-base font-medium">Auswahllisten</h3>
+    <p class="m-0 mb-3 text-sm text-on-surface-variant">
+      Diese Listen stehen bei der Mitarbeiterkarte zur Auswahl. Einträge lassen sich nie löschen, nur deaktivieren; bestehende Karten behalten sie. Der Code ist nach dem Anlegen fest, die Bezeichnung kannst du ändern.
+    </p>
+    @if (listError(); as message) {
+      <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="list-error">{{ message }}</p>
+    }
+    @if (listStatus(); as message) {
+      <p class="mb-3 rounded-xl bg-primary-container px-4 py-2.5 text-on-primary-container" role="status" data-testid="list-status">{{ message }}</p>
+    }
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mb-3 block max-w-sm">
+      <mat-label>Liste</mat-label>
+      <select matNativeControl data-testid="list-kind" (change)="selectKind($event)">
+        @for (k of kinds; track k.kind) {
+          <option [value]="k.kind" [selected]="kind() === k.kind">{{ k.label }}</option>
+        }
+      </select>
+    </mat-form-field>
+
+    <form novalidate class="mb-4 flex flex-wrap items-start gap-3" (submit)="$event.preventDefault(); add()">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Code (nicht mehr änderbar)</mat-label>
+        <input matInput maxlength="30" data-testid="new-code" [value]="newCode()" (input)="text(newCode, $event)" />
+      </mat-form-field>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Bezeichnung</mat-label>
+        <input matInput data-testid="new-name" [value]="newName()" (input)="text(newName, $event)" />
+      </mat-form-field>
+      <button mat-flat-button type="submit" class="mt-1" data-action="add-entry" [disabled]="listBusy()">{{ kindLabel() }} hinzufügen</button>
+    </form>
+
+    @if (entries(); as list) {
+      @if (list.length === 0) {
+        <p class="text-sm text-on-surface-variant" data-testid="list-empty">Diese Liste hat noch keine Einträge.</p>
+      }
+      <div class="flex flex-col gap-2.5" role="list">
+        @for (entry of list; track entry.id) {
+          <app-row-card data-testid="entry-row" [attr.data-id]="entry.id">
+            <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+              @if (editing(); as e) {
+                @if (e.id === entry.id) {
+                  <form novalidate class="flex flex-wrap items-center gap-2" (submit)="$event.preventDefault(); saveName(entry)">
+                    <span class="font-mono text-sm">{{ entry.code }}</span>
+                    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                      <mat-label>Bezeichnung</mat-label>
+                      <input matInput data-testid="edit-name" [value]="e.name" (input)="editName($event)" />
+                    </mat-form-field>
+                    <button mat-flat-button type="submit" data-action="save-name" [disabled]="listBusy()">Speichern</button>
+                    <button mat-stroked-button type="button" data-action="cancel-edit" (click)="editing.set(null)">Abbrechen</button>
+                  </form>
+                } @else {
+                  <div class="flex flex-col">
+                    <strong>{{ entry.name }}</strong>
+                    <span class="font-mono text-[13px]">{{ entry.code }}</span>
+                  </div>
+                }
+              } @else {
+                <div class="flex flex-col">
+                  <strong>{{ entry.name }}</strong>
+                  <span class="font-mono text-[13px]">{{ entry.code }}</span>
+                </div>
+              }
+              <div class="flex flex-wrap items-center gap-2">
+                <mat-chip-set aria-label="Stand">
+                  <mat-chip data-testid="entry-state">{{ entry.isActive ? 'Aktiv' : 'Deaktiviert' }}</mat-chip>
+                </mat-chip-set>
+                <button mat-stroked-button type="button" data-action="edit" [disabled]="listBusy()" (click)="edit(entry)">Umbenennen</button>
+                @if (entry.isActive) {
+                  <button mat-stroked-button type="button" data-action="deactivate" [disabled]="listBusy()" (click)="setActive(entry, false)">Deaktivieren</button>
+                } @else {
+                  <button mat-stroked-button type="button" data-action="activate" [disabled]="listBusy()" (click)="setActive(entry, true)">Aktivieren</button>
+                }
+              </div>
+            </div>
+          </app-row-card>
+        }
+      </div>
+    } @else if (!listError()) {
+      <p class="text-sm text-on-surface-variant">Wird geladen …</p>
+    }
+  }
+</section>

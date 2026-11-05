@@ -1,0 +1,130 @@
+<section aria-labelledby="wt-title" data-testid="section-working-time">
+  <h2 id="wt-title" class="m-0 mb-1 text-lg font-medium">Arbeitszeitkonto</h2>
+  <p class="m-0 mb-4 text-sm text-on-surface-variant">
+    Diese Regeln gelten für alle und wirken auch rückwirkend, weil das Konto immer aus den Buchungen berechnet wird. Eine Änderung der Minusstunden gilt nur für Monate, die danach abgeschlossen werden.
+  </p>
+
+  @if (error(); as message) {
+    <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="error">{{ message }}</p>
+  }
+  @if (status(); as message) {
+    <p class="mb-3 rounded-xl bg-primary-container px-4 py-2.5 text-on-primary-container" role="status" data-testid="status">{{ message }}</p>
+  }
+
+  @if (form(); as f) {
+    <form novalidate class="flex flex-col gap-6" (submit)="$event.preventDefault(); save()">
+      <fieldset class="m-0 flex flex-col gap-2 border-0 p-0">
+        <legend class="mb-1 font-medium">Auszahlung von Überstunden</legend>
+        <p class="m-0 text-sm text-on-surface-variant">
+          Ab diesem Guthaben (in Stunden) darf die Personalabteilung Überstunden auszahlen. Bei 0 ist die Auszahlung immer möglich (Standard). Bei einem Austritt wird das Restguthaben immer ausbezahlt, egal was hier steht.
+        </p>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="max-w-xs">
+          <mat-label>Auszahlungsschwelle in Stunden</mat-label>
+          <input matInput inputmode="decimal" data-testid="payout" [value]="f.payout" (input)="text('payout', $event)" />
+        </mat-form-field>
+      </fieldset>
+
+      <fieldset class="m-0 flex flex-col gap-2 border-0 p-0">
+        <legend class="mb-1 font-medium">Verfall von Überstunden</legend>
+        <p class="m-0 text-sm text-on-surface-variant">
+          Ob Überstunden verfallen. Die Frist zählt ab dem Tag, an dem sie erfasst wurden; verfallen sind sie ab dem Tag danach.
+        </p>
+        <label class="flex items-center gap-2">
+          <input type="radio" name="wt-expiry" data-testid="expiry-never" [checked]="!f.expires" (change)="patch({ expires: false })" />
+          Überstunden verfallen nie (Standard)
+        </label>
+        <label class="flex items-center gap-2">
+          <input type="radio" name="wt-expiry" data-testid="expiry-months" [checked]="f.expires" (change)="patch({ expires: true })" />
+          Überstunden verfallen nach einer Frist
+        </label>
+        @if (f.expires) {
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="ml-6 max-w-xs">
+            <mat-label>Frist in Monaten (1 bis 120)</mat-label>
+            <input matInput type="number" min="1" max="120" data-testid="expiry-value" [value]="f.expiryMonths" (input)="text('expiryMonths', $event)" />
+          </mat-form-field>
+        }
+      </fieldset>
+
+      <fieldset class="m-0 flex flex-col gap-2 border-0 p-0">
+        <legend class="mb-1 font-medium">Minusstunden</legend>
+        <p class="m-0 text-sm text-on-surface-variant">
+          Der Monatsabschluss bucht Stunden unter der Monatsschwelle des Arbeitsverhältnisses nur dann als Minusstunden, wenn die Personalabteilung das einschaltet. Standard: aus, unter der Schwelle wird nichts gebucht.
+        </p>
+        <label class="flex items-center gap-2">
+          <input type="checkbox" data-testid="book-minus" [checked]="f.bookMinus" (change)="patch({ bookMinus: $any($event.target).checked })" />
+          Fehlende Stunden als Minusstunden buchen
+        </label>
+        @if (f.bookMinus) {
+          <label class="flex items-center gap-2">
+            <input type="checkbox" data-testid="limit-minus" [checked]="f.limitMinus" (change)="patch({ limitMinus: $any($event.target).checked })" />
+            Das Konto darf nicht unter eine Untergrenze fallen
+          </label>
+          @if (f.limitMinus) {
+            <p class="m-0 text-sm text-on-surface-variant">
+              Der Abschluss bucht nur so viel Minus, wie bis zur Untergrenze Platz ist; der Rest wird am Abschluss als „nicht gebucht“ angezeigt.
+            </p>
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="ml-6 max-w-xs">
+              <mat-label>Untergrenze: Minus bis zu (Stunden)</mat-label>
+              <input matInput inputmode="decimal" data-testid="max-minus" [value]="f.maxMinus" (input)="text('maxMinus', $event)" />
+            </mat-form-field>
+          }
+        }
+      </fieldset>
+
+      <div class="flex flex-wrap items-center gap-3">
+        <button mat-flat-button type="submit" data-action="save" [disabled]="busy()">Speichern</button>
+        @if (rules(); as r) {
+          <span class="text-sm text-on-surface-variant" data-testid="audit">
+            @if (r.isDefault) {
+              Es gelten noch die Standardwerte.
+            } @else if (r.changedAt) {
+              Zuletzt geändert am {{ formatDateTime(r.changedAt) }}.
+            }
+          </span>
+        }
+      </div>
+    </form>
+  } @else if (!error()) {
+    <p class="text-sm text-on-surface-variant">Wird geladen …</p>
+  }
+
+  <h3 class="mb-1 mt-8 text-base font-medium">Monatsschwelle je Arbeitsverhältnis</h3>
+  <p class="m-0 mb-3 text-sm text-on-surface-variant">
+    Ab dieser Stundenzahl im Monat zählen die weiteren Stunden 1:1 als Überstunden im Konto. Ohne Schwelle kann für das Arbeitsverhältnis kein Monatsabschluss gebucht werden. Ein leeres Feld entfernt die Schwelle.
+  </p>
+  @if (thresholdsError(); as message) {
+    <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="thresholds-error">{{ message }}</p>
+  }
+  @if (rowStatus(); as message) {
+    <p class="mb-3 rounded-xl bg-primary-container px-4 py-2.5 text-on-primary-container" role="status" data-testid="row-status">{{ message }}</p>
+  }
+  @if (rows() && !namesKnown() && hasRows()) {
+    <p class="mb-3 text-sm text-on-surface-variant" data-testid="names-hint">
+      Die Namen der Arbeitsverhältnisse kannst du mit deinen Rechten nicht lesen; deshalb steht die Kennung.
+    </p>
+  }
+  @if (rows() && !hasRows() && !thresholdsError()) {
+    <p class="text-sm text-on-surface-variant" data-testid="no-thresholds">Es gibt noch keine Arbeitsverhältnisse und keine Schwellen.</p>
+  }
+  <div class="flex flex-col gap-2.5" role="list">
+    @for (row of rows(); track row.id) {
+      <app-row-card data-testid="threshold-row" [attr.data-id]="row.id">
+        <form novalidate class="flex flex-wrap items-center justify-between gap-3" (submit)="$event.preventDefault(); saveThreshold(row)">
+          <strong class="break-all">{{ rowLabel(row) }}</strong>
+          <div class="flex flex-wrap items-center gap-2">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Stunden pro Monat</mat-label>
+              <input matInput inputmode="decimal" data-testid="threshold-input" [value]="row.draft" (input)="draft(row.id, $event)" />
+            </mat-form-field>
+            <button mat-stroked-button type="submit" data-action="save-threshold" [disabled]="rowBusy() !== null || row.draft === row.saved">Speichern</button>
+          </div>
+        </form>
+        @if (rowError(); as e) {
+          @if (e.id === row.id) {
+            <p class="m-0 mt-2 text-sm text-error" role="alert" data-testid="row-error">{{ e.message }}</p>
+          }
+        }
+      </app-row-card>
+    }
+  </div>
+</section>

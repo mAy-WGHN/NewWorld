@@ -1,0 +1,50 @@
+<app-page-head title="Personal-Einstellungen" />
+
+@if (tabs().length === 0) {
+  <p class="text-on-surface-variant" data-testid="no-sections">Für deine Rechte gibt es hier keine Einstellungen.</p>
+} @else {
+  <div class="mb-5 flex flex-wrap gap-2" role="tablist" aria-label="Einstellungen">
+    @for (tab of tabs(); track tab.id; let i = $index) {
+      <button
+        mat-stroked-button
+        type="button"
+        role="tab"
+        data-testid="tab"
+        [id]="'tab-' + tab.id"
+        [attr.aria-selected]="active() === tab.id"
+        [attr.aria-controls]="'panel-' + tab.id"
+        [attr.tabindex]="active() === tab.id ? 0 : -1"
+        [class.!bg-primary-container]="active() === tab.id"
+        (click)="choose(tab.id)"
+        (keydown)="move($event, i)"
+      >
+        {{ tab.label }}
+      </button>
+    }
+  </div>
+
+  @if (active(); as id) {
+    <div role="tabpanel" [id]="'panel-' + id" [attr.aria-labelledby]="'tab-' + id">
+      @switch (id) {
+        @case ('vacation') {
+          <app-vacation-section />
+        }
+        @case ('working-time') {
+          <app-working-time-section />
+        }
+        @case ('certificates') {
+          <app-certificates-section />
+        }
+        @case ('employee-card') {
+          <app-employee-card-section />
+        }
+        @case ('unavailability') {
+          <app-unavailability-section />
+        }
+        @case ('holidays') {
+          <app-holiday-section />
+        }
+      }
+    </div>
+  }
+}

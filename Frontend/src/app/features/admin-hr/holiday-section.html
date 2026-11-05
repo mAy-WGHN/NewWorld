@@ -1,0 +1,65 @@
+<section aria-labelledby="holiday-title" data-testid="section-holidays">
+  <h2 id="holiday-title" class="m-0 mb-1 text-lg font-medium">Feiertage</h2>
+  <p class="m-0 mb-4 text-sm text-on-surface-variant">
+    Gesetzliche Feiertage sind Schließtage. Filialen, die an Feiertagen öffnen (vor allem Bahnhofsfilialen), markierst du hier als „an Feiertagen geöffnet“; dann zählen Feiertage für deren Mitarbeitende als Arbeitstage (Urlaubstage, Abwesenheiten). Die Einstellung wirkt auch rückwirkend. Du kannst viele Filialen auf einmal ändern: Sind eine oder mehrere außerhalb deiner Reichweite, wird nichts geändert.
+  </p>
+
+  @if (loadError(); as message) {
+    <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="load-error">{{ message }}</p>
+  }
+  @if (error(); as message) {
+    <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="error">{{ message }}</p>
+  }
+  @if (status(); as message) {
+    <p class="mb-3 rounded-xl bg-primary-container px-4 py-2.5 text-on-primary-container" role="status" data-testid="status">{{ message }}</p>
+  }
+
+  @if (stores(); as all) {
+    <div class="mb-3 flex flex-wrap items-start gap-3">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Filiale suchen (Name oder Nummer)</mat-label>
+        <input matInput type="search" data-testid="search" [value]="query()" (input)="setQuery($event)" />
+      </mat-form-field>
+      <button mat-stroked-button type="button" class="mt-1" data-action="select-shown" (click)="selectShown()">Alle angezeigten auswählen</button>
+      <button mat-stroked-button type="button" class="mt-1" data-action="clear" [disabled]="selectedCount() === 0" (click)="clearSelection()">Auswahl aufheben</button>
+    </div>
+
+    @if (stateLoading()) {
+      <p class="m-0 mb-2 text-sm text-on-surface-variant" role="status" data-testid="state-loading">
+        Der Stand der Filialen wird geladen ({{ loadedCount() }} von {{ all.length }}) …
+      </p>
+    }
+
+    <div class="mb-4 flex flex-wrap items-center gap-3" data-testid="bulk-bar">
+      <span class="text-sm" data-testid="selected-count">{{ selectedCount() }} ausgewählt</span>
+      <button mat-flat-button type="button" data-action="set-open" [disabled]="busy() || selectedCount() === 0" (click)="apply(true)">Als „an Feiertagen geöffnet“ markieren</button>
+      <button mat-stroked-button type="button" data-action="set-closed" [disabled]="busy() || selectedCount() === 0" (click)="apply(false)">Als „an Feiertagen geschlossen“ markieren</button>
+    </div>
+
+    @if (visible().length === 0) {
+      <p class="text-sm text-on-surface-variant" data-testid="no-stores">Keine Filiale gefunden.</p>
+    }
+    <div class="flex flex-col gap-2" role="list">
+      @for (store of visible(); track store.id) {
+        <app-row-card data-testid="store-row" [attr.data-id]="store.id">
+          <label class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+            <span class="flex items-center gap-3">
+              <input
+                type="checkbox"
+                data-testid="store-check"
+                [checked]="selected().has(store.id)"
+                [disabled]="!canSelect(store.id)"
+                (change)="toggle(store.id, $any($event.target).checked)"
+              />
+              <strong>{{ store.name }}</strong>
+              <span class="text-[13px]">({{ store.storeCode }})</span>
+            </span>
+            <span class="text-[13px]" data-testid="store-state" [attr.data-state]="stateOf(store.id)">{{ stateLabel(store.id) }}</span>
+          </label>
+        </app-row-card>
+      }
+    </div>
+  } @else if (!loadError()) {
+    <p class="text-sm text-on-surface-variant">Wird geladen …</p>
+  }
+</section>

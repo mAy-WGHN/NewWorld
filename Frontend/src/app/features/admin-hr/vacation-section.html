@@ -1,0 +1,113 @@
+<section aria-labelledby="vacation-title" data-testid="section-vacation">
+  <h2 id="vacation-title" class="m-0 mb-1 text-lg font-medium">Urlaub</h2>
+  <p class="m-0 mb-4 text-sm text-on-surface-variant">
+    Diese Regeln gelten für alle. Sie wirken auch rückwirkend, weil das Urlaubskonto immer neu aus den Zeiträumen berechnet wird.
+  </p>
+
+  @if (error(); as message) {
+    <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="error">{{ message }}</p>
+  }
+  @if (status(); as message) {
+    <p class="mb-3 rounded-xl bg-primary-container px-4 py-2.5 text-on-primary-container" role="status" data-testid="status">{{ message }}</p>
+  }
+
+  @if (form(); as f) {
+    <form novalidate class="flex flex-col gap-6" (submit)="$event.preventDefault(); save()">
+      <fieldset class="m-0 flex flex-col gap-2 border-0 p-0">
+        <legend class="mb-1 font-medium">Zusatztage: Verfall</legend>
+        <p class="m-0 text-sm text-on-surface-variant">
+          Zusatztage sind Resturlaub aus dem Vorjahr und Zusatz- oder Sonderurlaub. Hier legst du fest, ob und wann sie im Jahr nach dem Bezugsjahr
+          verfallen, zum Beispiel am 31.3. („nach dem ersten Quartal des nächsten Jahres“). Die Einstellung gilt auch für alle schon erfassten Zusatztage.
+        </p>
+        <label class="flex items-center gap-2">
+          <input type="radio" name="expiry" data-testid="expiry-never" [checked]="!f.expires" (change)="patch({ expires: false })" />
+          Sie verfallen nie (Standard)
+        </label>
+        <label class="flex items-center gap-2">
+          <input type="radio" name="expiry" data-testid="expiry-date" [checked]="f.expires" (change)="patch({ expires: true })" />
+          Sie verfallen am
+        </label>
+        @if (f.expires) {
+          <div class="flex flex-wrap items-start gap-3 pl-6">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Tag</mat-label>
+              <input matInput type="number" min="1" max="31" data-testid="expiry-day" [value]="f.day" (input)="text('day', $event)" />
+            </mat-form-field>
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Monat</mat-label>
+              <select matNativeControl data-testid="expiry-month" (change)="text('month', $event)">
+                @for (m of months; track m; let i = $index) {
+                  <option [value]="i + 1" [selected]="f.month === '' + (i + 1)">{{ m }}</option>
+                }
+              </select>
+            </mat-form-field>
+            <span class="pt-4 text-sm text-on-surface-variant">des Jahres nach dem Bezugsjahr</span>
+          </div>
+        }
+      </fieldset>
+
+      <fieldset class="m-0 flex flex-col gap-2 border-0 p-0">
+        <legend class="mb-1 font-medium">Wartezeit für neue Mitarbeitende</legend>
+        <p class="m-0 text-sm text-on-surface-variant">
+          So viele Monate nach dem Eintritt gilt die Wartezeit. Bei 0 gibt es keine. Die Wartezeit prüft nur neue Anträge; das angezeigte Urlaubskonto ändert sie nicht.
+        </p>
+        <div class="flex flex-wrap items-start gap-3">
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>Monate (0 bis 24)</mat-label>
+            <input matInput type="number" min="0" max="24" data-testid="waiting-months" [value]="f.waitingMonths" (input)="text('waitingMonths', $event)" />
+          </mat-form-field>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>In der Wartezeit</mat-label>
+            <select matNativeControl data-testid="waiting-mode" (change)="text('waitingMode', $event)">
+              @for (m of modes; track m.value) {
+                <option [value]="m.value" [selected]="f.waitingMode === m.value">{{ m.label }}</option>
+              }
+            </select>
+          </mat-form-field>
+        </div>
+        <p class="m-0 text-sm text-on-surface-variant" data-testid="mode-hint">{{ modeHint() }}</p>
+      </fieldset>
+
+      <fieldset class="m-0 flex flex-col gap-2 border-0 p-0">
+        <legend class="mb-1 font-medium">Rundung anteiliger Urlaubstage</legend>
+        <p class="m-0 text-sm text-on-surface-variant">
+          Im Jahr des Eintritts und des Austritts und bei Änderungen des Jahresanspruchs gilt Jahresanspruch ÷ 12 × volle Monate. Hier legst du fest, wie das Ergebnis gerundet wird.
+        </p>
+        <div class="flex flex-wrap items-start gap-3">
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>Rundung</mat-label>
+            <select matNativeControl data-testid="rounding" (change)="text('rounding', $event)">
+              @for (r of roundings; track r.value) {
+                <option [value]="r.value" [selected]="f.rounding === r.value">{{ r.label }}</option>
+              }
+            </select>
+          </mat-form-field>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>Schritt</mat-label>
+            <select matNativeControl data-testid="rounding-step" (change)="text('step', $event)">
+              @for (s of steps; track s.value) {
+                <option [value]="s.value" [selected]="f.step === '' + s.value">{{ s.label }}</option>
+              }
+            </select>
+          </mat-form-field>
+        </div>
+        <p class="m-0 text-sm text-on-surface-variant" data-testid="rounding-hint">{{ roundingHint() }}</p>
+      </fieldset>
+
+      <div class="flex flex-wrap items-center gap-3">
+        <button mat-flat-button type="submit" data-action="save" [disabled]="busy()">Speichern</button>
+        @if (rules(); as r) {
+          <span class="text-sm text-on-surface-variant" data-testid="audit">
+            @if (r.isDefault) {
+              Es gelten noch die Standardwerte.
+            } @else if (r.changedAt) {
+              Zuletzt geändert am {{ formatDateTime(r.changedAt) }}.
+            }
+          </span>
+        }
+      </div>
+    </form>
+  } @else if (!error()) {
+    <p class="text-sm text-on-surface-variant">Wird geladen …</p>
+  }
+</section>

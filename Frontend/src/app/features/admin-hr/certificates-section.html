@@ -1,0 +1,111 @@
+<section aria-labelledby="cert-title" data-testid="section-certificates">
+  <h2 id="cert-title" class="m-0 mb-4 text-lg font-medium">Krankmeldung und AU</h2>
+
+  @if (canManage()) {
+    <h3 class="m-0 mb-1 text-base font-medium">Löschfrist</h3>
+    <p class="m-0 mb-3 text-sm text-on-surface-variant">
+      So viele Tage nach dem Ende der Krankmeldung werden die hochgeladenen AU-Dateien automatisch gelöscht, auch abgelehnte. Die Personalabteilung kann Dateien außerdem jederzeit von Hand löschen. Erlaubt sind 0 bis 3650 Tage; ohne eigene Einstellung gilt der Standard (365 Tage).
+    </p>
+    @if (retentionError(); as message) {
+      <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="retention-error">{{ message }}</p>
+    }
+    @if (retentionStatus(); as message) {
+      <p class="mb-3 rounded-xl bg-primary-container px-4 py-2.5 text-on-primary-container" role="status" data-testid="retention-status">{{ message }}</p>
+    }
+    <form novalidate class="mb-8 flex flex-wrap items-center gap-3" (submit)="$event.preventDefault(); saveRetention()">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Löschfrist in Tagen</mat-label>
+        <input matInput type="number" min="0" max="3650" data-testid="retention-days" [value]="days()" (input)="value(days, $event)" />
+      </mat-form-field>
+      <button mat-flat-button type="submit" data-action="save-retention" [disabled]="retentionBusy() || !retention()">Speichern</button>
+      @if (retention(); as r) {
+        <span class="text-sm text-on-surface-variant" data-testid="retention-audit">
+          @if (r.isDefault) {
+            Es gilt noch der Standard.
+          } @else if (r.changedAt) {
+            Zuletzt geändert am {{ formatDateTime(r.changedAt) }}.
+          }
+        </span>
+      }
+    </form>
+
+    <h3 class="m-0 mb-1 text-base font-medium">Erinnerungen an die AU</h3>
+    <p class="m-0 mb-3 text-sm text-on-surface-variant">
+      Wer noch keine AU hochgeladen hat, wird erinnert (im Portal und als Push ohne Inhalt), frühestens am ersten Tag zurück, also am Tag nach dem Ende der Krankmeldung. Krankmeldungen ohne Ende bekommen keine Erinnerung. Mit 0 Erinnerungen sind sie ausgeschaltet.
+    </p>
+    @if (remindersError(); as message) {
+      <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="reminders-error">{{ message }}</p>
+    }
+    @if (remindersStatus(); as message) {
+      <p class="mb-3 rounded-xl bg-primary-container px-4 py-2.5 text-on-primary-container" role="status" data-testid="reminders-status">{{ message }}</p>
+    }
+    <form novalidate class="mb-8 flex flex-col gap-3" (submit)="$event.preventDefault(); saveReminders()">
+      <div class="flex flex-wrap items-start gap-3">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Erste Erinnerung nach (Tage, 0 bis 90)</mat-label>
+          <input matInput type="number" min="0" max="90" data-testid="first-days" [value]="first()" (input)="value(first, $event)" />
+        </mat-form-field>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Danach alle (Tage, 1 bis 90)</mat-label>
+          <input matInput type="number" min="1" max="90" data-testid="every-days" [value]="every()" (input)="value(every, $event)" />
+        </mat-form-field>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Höchstens so viele Erinnerungen (0 bis 90)</mat-label>
+          <input matInput type="number" min="0" max="90" data-testid="max-reminders" [value]="max()" (input)="value(max, $event)" />
+        </mat-form-field>
+      </div>
+      <div class="flex flex-wrap items-center gap-3">
+        <button mat-flat-button type="submit" data-action="save-reminders" [disabled]="remindersBusy() || !reminders()">Speichern</button>
+        @if (reminders(); as r) {
+          <span class="text-sm text-on-surface-variant" data-testid="reminders-audit">
+            @if (r.isDefault) {
+              Es gelten noch die Standardwerte.
+            } @else if (r.changedAt) {
+              Zuletzt geändert am {{ formatDateTime(r.changedAt) }}.
+            }
+          </span>
+        }
+      </div>
+    </form>
+  }
+
+  @if (canReadLog()) {
+    <h3 class="m-0 mb-1 text-base font-medium">Zugriffsprotokoll</h3>
+    <p class="m-0 mb-3 text-sm text-on-surface-variant">
+      Wer hat wann welche AU hochgeladen, geöffnet, geprüft oder gelöscht. Der Inhalt der Dateien steht nie im Protokoll.
+    </p>
+    @if (logError(); as message) {
+      <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="log-error">{{ message }}</p>
+    }
+    <form novalidate class="mb-3 flex flex-wrap items-start gap-3" (submit)="$event.preventDefault(); loadLog(true)">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Von</mat-label>
+        <input matInput type="date" data-testid="log-from" [value]="from()" (input)="value(from, $event)" />
+      </mat-form-field>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Bis</mat-label>
+        <input matInput type="date" data-testid="log-to" [value]="to()" (input)="value(to, $event)" />
+      </mat-form-field>
+      <button mat-stroked-button type="submit" class="mt-1" data-action="filter-log" [disabled]="logBusy()">Anzeigen</button>
+    </form>
+    @if (logLoaded() && log().length === 0 && !logError()) {
+      <p class="text-sm text-on-surface-variant" data-testid="log-empty">Keine Einträge in diesem Zeitraum.</p>
+    }
+    <div class="flex flex-col gap-2" role="list">
+      @for (e of log(); track e.id) {
+        <app-row-card data-testid="log-row">
+          <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+            <strong>{{ actionLabel(e.action) }}</strong>
+            <span class="text-[13px]">{{ formatDateTime(e.at) }}</span>
+          </div>
+          <div class="break-all text-[13px] opacity-80">
+            Durch {{ e.actorId ?? 'das System' }} · Person {{ e.employeeId }} · Krankmeldung {{ e.absenceId }}
+          </div>
+        </app-row-card>
+      }
+    </div>
+    @if (hasMore()) {
+      <button mat-stroked-button type="button" class="mt-3" data-action="more-log" [disabled]="logBusy()" (click)="loadLog(false)">Mehr anzeigen</button>
+    }
+  }
+</section>
