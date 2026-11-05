@@ -29,11 +29,11 @@
       <mat-label>Frage</mat-label>
       <input matInput id="faq-title" maxlength="255" [value]="d.title" (input)="setTitle($event)" />
     </mat-form-field>
-    <mat-form-field appearance="outline" class="mt-3 w-full" subscriptSizing="dynamic">
-      <mat-label>Antwort</mat-label>
-      <textarea matInput id="faq-description" rows="8" [value]="d.description" (input)="setDescription($event)"></textarea>
-      <mat-hint>Du kannst **fett**, *kursiv*, Listen mit "- " und Links schreiben. Bilder fügst du unter "Bilder" ein.</mat-hint>
-    </mat-form-field>
+    <div class="mt-3">
+      <span id="faq-answer-label" class="mb-1 block text-sm text-on-surface-variant">Antwort</span>
+      <app-faq-editor [content]="d.content" [disabled]="busy()" (changed)="setContent($event)" />
+      <p class="m-0 mt-1 text-sm text-on-surface-variant">Bilder fügst du unter "Bilder" mit "In Antwort einfügen" ein.</p>
+    </div>
     @if (canUpdate()) {
       <section class="mt-4" aria-labelledby="attachments-title" data-testid="attachments-editor">
         <h3 id="attachments-title" class="m-0 mb-1 text-base font-medium">Anhänge</h3>
@@ -94,7 +94,7 @@
                 }
               </div>
             </div>
-            <app-faq-answer class="mt-2 block" [markdown]="f.description" />
+            <app-faq-content-view class="mt-2 block" [content]="f.content" />
             <app-faq-attachments [attachments]="f.attachments ?? []" />
           </app-row-card>
         }
@@ -152,7 +152,7 @@
         <app-row-card data-testid="faq-row" [attr.data-id]="f.id">
           <mat-expansion-panel>
             <mat-expansion-panel-header><mat-panel-title>{{ f.title }}</mat-panel-title></mat-expansion-panel-header>
-            <app-faq-answer [markdown]="f.description" />
+            <app-faq-content-view [content]="f.content" />
             <app-faq-attachments [attachments]="f.attachments ?? []" />
           </mat-expansion-panel>
           @if (canUpdate() || canDelete()) {

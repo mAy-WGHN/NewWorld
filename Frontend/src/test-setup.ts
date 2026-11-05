@@ -23,3 +23,17 @@ if (typeof window !== 'undefined') {
     };
   }
 }
+
+// ProseMirror (the FAQ editor) measures the document when the selection changes; jsdom has no layout, so it gets empty measurements.
+if (typeof document !== 'undefined') {
+  const emptyRect = (): DOMRect => ({ x: 0, y: 0, top: 0, left: 0, right: 0, bottom: 0, width: 0, height: 0, toJSON: () => ({}) }) as DOMRect;
+  const emptyRects = (): DOMRectList => Object.assign([] as unknown as DOMRectList, { item: () => null });
+  const range = Range.prototype as Partial<Range>;
+  range.getClientRects ??= emptyRects;
+  range.getBoundingClientRect ??= emptyRect;
+  const text = Text.prototype as unknown as { getClientRects?: () => DOMRectList };
+  text.getClientRects ??= emptyRects;
+  document.elementFromPoint ??= () => null;
+  document.elementsFromPoint ??= () => [];
+  Element.prototype.scrollIntoView ??= () => undefined;
+}

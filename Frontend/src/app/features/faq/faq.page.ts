@@ -1,13 +1,14 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal, viewChild } from '@angular/core';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { AuthService } from '../../core/auth/auth.service';
 import { PAGE_UI } from '../../shared/ui/material';
 import { envelopeMessage } from '../reports/report-models';
 import { formatSize } from '../sick-note-review/sick-note-review-models';
-import { FaqAnswer } from './faq-answer';
+import { FaqContentView } from './faq-content-view';
+import { FaqEditor } from './faq-editor';
 import { FaqAttachments } from './faq-attachments';
 import { FaqFileDrop } from './faq-file-drop';
-import { ATTACHMENT_ACCEPT, Faq, FaqAttachment, FaqImage, IMAGE_ACCEPT, MAX_ATTACHMENTS, attachmentProblem, filterFaqs, imageProblem, imageStatusLabel, move } from './faq-models';
+import { ATTACHMENT_ACCEPT, Faq, FaqAttachment, FaqDoc, FaqImage, IMAGE_ACCEPT, MAX_ATTACHMENTS, attachmentProblem, docHasContent, emptyDoc, filterFaqs, imageProblem, imageStatusLabel, move } from './faq-models';
 import { FaqApi } from './faq.api';
 
 type Mode = 'list' | 'archive' | 'images';
@@ -16,7 +17,8 @@ type Mode = 'list' | 'archive' | 'images';
 interface Draft {
   id: string | null;
   title: string;
-  description: string;
+  /** The answer as the editor gave it back last (the start document of the editor). */
+  content: FaqDoc;
   /** The files of the entry that are attached already (a change). */
   attachments: FaqAttachment[];
   /** Files chosen for a new entry; they are attached when it is saved. */
@@ -29,7 +31,7 @@ interface Draft {
  */
 @Component({
   selector: 'app-faq',
-  imports: [MatExpansionModule, FaqAnswer, FaqAttachments, FaqFileDrop, ...PAGE_UI],
+  imports: [MatExpansionModule, FaqContentView, FaqEditor, FaqAttachments, FaqFileDrop, ...PAGE_UI],
   templateUrl: './faq.page.html',
 })
 export class FaqPage {
@@ -57,6 +59,7 @@ export class FaqPage {
   protected readonly busy = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly status = signal<string | null>(null);
+  private readonly editor = viewChild(FaqEditor);
 
   protected readonly confirmAttachmentDelete = signal<string | null>(null);
   private attachQueue: Promise<void> = Promise.resolve();
@@ -88,13 +91,13 @@ export class FaqPage {
 
   protected startCreate(): void {
     this.mode.set('list');
-    this.draft.set({ id: null, title: '', description: '', attachments: [], pending: [] });
+    this.draft.set({ id: null, title: '', content: emptyDoc(), attachments: [], pending: [] });
     this.error.set(null);
     this.status.set(null);
   }
 
   protected startEdit(faq: Faq): void {
-    this.draft.set({ id: faq.id, title: faq.title, description: faq.description, attachments: [...(faq.attachments ?? [])], pending: [] });
+    this.draft.set({ id: faq.id, title: faq.title, content: faq.content ?? emptyDoc(), attachments: [...(faq.attachments ?? [])], pending: [] });
     this.confirmAttachmentDelete.set(null);
     this.error.set(null);
     this.status.set(null);
@@ -109,9 +112,8 @@ export class FaqPage {
     this.draft.update((d) => d && { ...d, title: value });
   }
 
-  protected setDescription(event: Event): void {
-    const value = (event.target as HTMLTextAreaElement).value;
-    this.draft.update((d) => d && { ...d, description: value });
+  protected setContent(content: FaqDoc): void {
+    this.draft.update((d) => d && { ...d, content });
   }
 
   protected async save(): Promise<void> {
@@ -119,16 +121,16 @@ export class FaqPage {
     if (!draft) {
       return;
     }
-    if (!draft.title.trim() || !draft.description.trim()) {
+    if (!draft.title.trim() || !docHasContent(draft.content)) {
       this.error.set('Bitte gib eine Frage und eine Antwort ein.');
       return;
     }
     let failures: string[] = [];
     await this.act(draft.id ? 'Eintrag gespeichert.' : 'Eintrag angelegt.', async () => {
       if (draft.id) {
-        await this.api.update(draft.id, { title: draft.title, description: draft.description });
+        await this.api.update(draft.id, { title: draft.title, content: draft.content });
       } else {
-        const created = await this.api.create(draft.title, draft.description);
+        const created = await this.api.create(draft.title, draft.content);
         failures = await this.attachPending(created.id, draft.pending);
       }
       this.draft.set(null);
@@ -254,7 +256,11 @@ export class FaqPage {
   }
 
   protected insertImage(image: FaqImage): void {
-    this.draft.update((d) => d && { ...d, description: `${d.description}${d.description && !d.description.endsWith('\n') ? '\n\n' : ''}![Bild](${image.url})\n` });
+    const editor = this.editor();
+    if (!editor) {
+      return;
+    }
+    editor.insertImage(image.url, 'Bild');
     this.status.set('Bild in die Antwort eingefügt.');
   }
 

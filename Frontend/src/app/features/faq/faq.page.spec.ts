@@ -1,19 +1,25 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { AuthService } from '../../core/auth/auth.service';
 import { PrivilegeSet } from '../../core/auth/privileges';
-import { Faq, FaqAttachment, FaqImage } from './faq-models';
+import { FaqEditor } from './faq-editor';
+import { Faq, FaqAttachment, FaqDoc, FaqImage } from './faq-models';
 import { FaqApi } from './faq.api';
 import { FaqPage } from './faq.page';
 
 const IMG = '3f2b8c1e-1111-4222-8333-944455556666';
-const faq = (id: string, title: string, description: string, archived = false): Faq => ({ id, title, description, order: 0, archived, createdAt: '2026-11-01T08:00:00+00:00' });
+const text = (value: string, marks?: FaqDoc['marks']): FaqDoc => ({ type: 'text', text: value, ...(marks ? { marks } : {}) });
+const doc = (...blocks: FaqDoc[]): FaqDoc => ({ type: 'doc', content: blocks });
+const para = (...inline: FaqDoc[]): FaqDoc => ({ type: 'paragraph', content: inline });
+const faq = (id: string, title: string, content: FaqDoc, archived = false): Faq => ({ id, title, content, order: 0, archived, createdAt: '2026-11-01T08:00:00+00:00' });
 
-const f1 = faq('f1', 'Wie beantrage ich Urlaub?', 'Im **Portal** unter Abwesenheiten.');
-const f2 = faq('f2', 'Wo melde ich eine Störung?', `Mit dem Formular.\n\n![Formular](https://portal.example/api/faqs/images/${IMG})`);
-const f3 = faq('f3', 'Gefährlich', '<img src=x onerror=alert(1)> [x](javascript:alert(1))');
-const old = faq('a1', 'Alte Frage', 'Alt', true);
+const f1 = faq('f1', 'Wie beantrage ich Urlaub?', doc(para(text('Im '), text('Portal', [{ type: 'bold' }]), text(' unter Abwesenheiten.'))));
+const f2 = faq('f2', 'Wo melde ich eine Störung?', doc(para(text('Mit dem Formular.')), { type: 'image', attrs: { src: `https://portal.example/api/faqs/images/${IMG}`, alt: 'Formular' } }));
+const f3 = faq('f3', 'Gefährlich', doc(para(text('<img src=x onerror=alert(1)> '), text('x', [{ type: 'link', attrs: { href: 'javascript:alert(1)' } }])), { type: 'image', attrs: { src: 'https://evil.example/x.png' } }));
+const old = faq('a1', 'Alte Frage', doc(para(text('Alt'))), true);
+
 const image: FaqImage = { id: IMG, url: `https://portal.example/api/faqs/images/${IMG}`, createdAt: '2026-11-01T08:00:00+00:00', status: 'active', faqId: 'f2', faqTitle: f2.title };
 
 const attached = (fileName: string, over: Partial<FaqAttachment> = {}): FaqAttachment => ({
@@ -48,6 +54,13 @@ describe('FaqPage', () => {
       await fixture.whenStable();
       await new Promise((r) => setTimeout(r));
     }
+  }
+
+  /** Writes into the rich-text editor of the page like a person would (the editor reports the change). */
+  async function write(content: string | FaqDoc): Promise<void> {
+    const editor = fixture.debugElement.query(By.directive(FaqEditor)).componentInstance as FaqEditor;
+    editor.editor.commands.insertContent(content);
+    await settle();
   }
 
   const q = <T extends Element = HTMLElement>(selector: string): T | null => root.querySelector<T>(selector);
@@ -104,6 +117,13 @@ describe('FaqPage', () => {
     expect(q('[data-id="f3"]')!.textContent).toContain('<img src=x onerror=alert(1)>');
   });
 
+  it('finds text inside formatted content', async () => {
+    await create(grant());
+
+    await type('[data-testid="search"]', 'portal unter');
+    expect(ids()).toEqual(['f1']);
+  });
+
   it('filters by the search text and says so when nothing matches', async () => {
     await create(grant());
 
@@ -154,13 +174,26 @@ describe('FaqPage', () => {
 
     await click('[data-testid="new-entry"]');
     await type('#faq-title', 'Neue Frage');
-    await type('#faq-description', 'Neue Antwort');
+    await write('Neue Antwort');
     api['list'].mockClear();
     await click('[data-testid="save-entry"]');
 
-    expect(api['create']).toHaveBeenCalledWith('Neue Frage', 'Neue Antwort');
+    expect(api['create']).toHaveBeenCalledWith('Neue Frage', doc(para(text('Neue Antwort'))));
+    expect(JSON.stringify(api['create'].mock.calls[0])).not.toContain('description');
     expect(api['list']).toHaveBeenCalled();
     expect(q('[data-testid="editor"]')).toBeNull();
+  });
+
+  it('does not send an entry whose answer is only an empty paragraph', async () => {
+    await create();
+
+    await click('[data-testid="new-entry"]');
+    await type('#faq-title', 'Frage');
+    await write('   ');
+    await click('[data-testid="save-entry"]');
+
+    expect(api['create']).not.toHaveBeenCalled();
+    expect(q('[data-testid="error"]')!.textContent).toContain('Frage und eine Antwort');
   });
 
   it('does not send an entry without question or answer', async () => {
@@ -182,7 +215,7 @@ describe('FaqPage', () => {
     await type('#faq-title', 'Geänderte Frage');
     await click('[data-testid="save-entry"]');
 
-    expect(api['update']).toHaveBeenCalledWith('f1', { title: 'Geänderte Frage', description: f1.description });
+    expect(api['update']).toHaveBeenCalledWith('f1', { title: 'Geänderte Frage', content: f1.content });
   });
 
   it('shows the answer of the portal when saving is refused', async () => {
@@ -331,7 +364,11 @@ describe('FaqPage', () => {
     await click('[data-testid="images-button"]');
     await click('[data-action="insert-image"]');
 
-    expect(q<HTMLTextAreaElement>('#faq-description')!.value).toContain(`![Bild](${image.url})`);
+    const surface = q('[data-testid="editor-surface"]')!;
+    expect(surface.querySelector('img')!.getAttribute('src')).toBe(image.url);
+    await click('[data-testid="save-entry"]');
+    const sent = api['update'].mock.calls[0][1].content as FaqDoc;
+    expect(sent.content!.some((n) => n.type === 'image' && n.attrs!['src'] === image.url)).toBe(true);
   });
 
   // ---------------------------------------------------------------- attachments
@@ -467,7 +504,7 @@ describe('FaqPage', () => {
     await create();
     await click('[data-testid="new-entry"]');
     await type('#faq-title', 'Neue Frage');
-    await type('#faq-description', 'Antwort');
+    await write('Antwort');
 
     fileDrop([pdf('eins.pdf'), pdf('zwei.pdf')]);
     await settle();
@@ -475,7 +512,7 @@ describe('FaqPage', () => {
     expect(root.querySelectorAll('[data-testid="pending-file"]')).toHaveLength(2);
     await click('[data-testid="save-entry"]');
 
-    expect(api['create']).toHaveBeenCalledWith('Neue Frage', 'Antwort');
+    expect(api['create']).toHaveBeenCalledWith('Neue Frage', doc(para(text('Antwort'))));
     expect(api['uploadAttachment'].mock.calls.map((c) => [c[0], (c[1] as File).name])).toEqual([['neu', 'eins.pdf'], ['neu', 'zwei.pdf']]);
     expect(q('[data-testid="editor"]')).toBeNull();
     expect(q('[data-testid="error"]')).toBeNull();
@@ -503,7 +540,7 @@ describe('FaqPage', () => {
     await create();
     await click('[data-testid="new-entry"]');
     await type('#faq-title', 'Neue Frage');
-    await type('#faq-description', 'Antwort');
+    await write('Antwort');
     fileDrop([pdf('gut.pdf'), pdf('kaputt.pdf')]);
     await settle();
 

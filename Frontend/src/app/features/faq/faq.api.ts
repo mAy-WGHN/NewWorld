@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom, map } from 'rxjs';
 import { ConfigService } from '../../core/config';
-import { Faq, FaqAttachment, FaqImage, FaqImageStatus, FaqImageUpload } from './faq-models';
+import { Faq, FaqAttachment, FaqDoc, FaqImage, FaqImageStatus, FaqImageUpload } from './faq-models';
 
 /** The portal wraps answers as `{success, data}`; this unwraps them. Errors are left to the caller. */
 interface Envelope<T> {
@@ -28,11 +28,11 @@ export class FaqApi {
     return firstValueFrom(this.http.get<Envelope<Faq[]>>(this.url('/api/faqs/archived')).pipe(map((a) => a.data)));
   }
 
-  create(title: string, description: string): Promise<Faq> {
-    return firstValueFrom(this.http.post<Envelope<Faq>>(this.url('/api/faqs'), { title, description }).pipe(map((a) => a.data)));
+  create(title: string, content: FaqDoc): Promise<Faq> {
+    return firstValueFrom(this.http.post<Envelope<Faq>>(this.url('/api/faqs'), { title, content }).pipe(map((a) => a.data)));
   }
 
-  update(id: string, body: { title?: string; description?: string; archived?: boolean }): Promise<Faq> {
+  update(id: string, body: { title?: string; content?: FaqDoc; archived?: boolean }): Promise<Faq> {
     return firstValueFrom(this.http.patch<Envelope<Faq>>(this.url(`/api/faqs/${id}`), body).pipe(map((a) => a.data)));
   }
 

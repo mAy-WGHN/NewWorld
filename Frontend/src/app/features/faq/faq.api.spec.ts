@@ -3,6 +3,8 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 import { FaqApi } from './faq.api';
 
+const DOC = { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Antwort' }] }] };
+
 describe('FaqApi', () => {
   let api: FaqApi;
   let http: HttpTestingController;
@@ -61,10 +63,10 @@ describe('FaqApi', () => {
   });
 
   it('creates an entry', async () => {
-    const done = api.create('Frage', 'Antwort');
+    const done = api.create('Frage', DOC);
     const request = http.expectOne('/svc/portal/api/faqs');
     expect(request.request.method).toBe('POST');
-    expect(request.request.body).toEqual({ title: 'Frage', description: 'Antwort' });
+    expect(request.request.body).toEqual({ title: 'Frage', content: DOC });
     request.flush({ success: true, data: { id: 'f1' } });
 
     expect((await done).id).toBe('f1');

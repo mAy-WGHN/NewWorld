@@ -1,0 +1,87 @@
+<div class="faq-content" data-testid="answer">
+  @for (node of nodes(); track $index) {
+    <ng-container [ngTemplateOutlet]="block" [ngTemplateOutletContext]="{ $implicit: node }" />
+  }
+</div>
+
+<ng-template #children let-list>
+  @for (child of list; track $index) {
+    <ng-container [ngTemplateOutlet]="block" [ngTemplateOutletContext]="{ $implicit: child }" />
+  }
+</ng-template>
+
+<ng-template #block let-node>
+  @switch (node.kind) {
+    @case ('paragraph') {
+      <p [style.text-align]="node.align"><ng-container [ngTemplateOutlet]="children" [ngTemplateOutletContext]="{ $implicit: node.children }" /></p>
+    }
+    @case ('heading') {
+      @switch (node.level) {
+        @case (1) { <h1 [style.text-align]="node.align"><ng-container [ngTemplateOutlet]="children" [ngTemplateOutletContext]="{ $implicit: node.children }" /></h1> }
+        @case (3) { <h3 [style.text-align]="node.align"><ng-container [ngTemplateOutlet]="children" [ngTemplateOutletContext]="{ $implicit: node.children }" /></h3> }
+        @default { <h2 [style.text-align]="node.align"><ng-container [ngTemplateOutlet]="children" [ngTemplateOutletContext]="{ $implicit: node.children }" /></h2> }
+      }
+    }
+    @case ('bulletList') {
+      <ul><ng-container [ngTemplateOutlet]="children" [ngTemplateOutletContext]="{ $implicit: node.children }" /></ul>
+    }
+    @case ('orderedList') {
+      <ol [attr.start]="node.start === 1 ? null : node.start"><ng-container [ngTemplateOutlet]="children" [ngTemplateOutletContext]="{ $implicit: node.children }" /></ol>
+    }
+    @case ('listItem') {
+      <li><ng-container [ngTemplateOutlet]="children" [ngTemplateOutletContext]="{ $implicit: node.children }" /></li>
+    }
+    @case ('blockquote') {
+      <blockquote><ng-container [ngTemplateOutlet]="children" [ngTemplateOutletContext]="{ $implicit: node.children }" /></blockquote>
+    }
+    @case ('hr') {
+      <hr />
+    }
+    @case ('table') {
+      <div class="tableWrapper">
+        <table><tbody><ng-container [ngTemplateOutlet]="children" [ngTemplateOutletContext]="{ $implicit: node.children }" /></tbody></table>
+      </div>
+    }
+    @case ('row') {
+      <tr><ng-container [ngTemplateOutlet]="children" [ngTemplateOutletContext]="{ $implicit: node.children }" /></tr>
+    }
+    @case ('cell') {
+      @if (node.header) {
+        <th [attr.colspan]="node.colspan" [attr.rowspan]="node.rowspan"><ng-container [ngTemplateOutlet]="children" [ngTemplateOutletContext]="{ $implicit: node.children }" /></th>
+      } @else {
+        <td [attr.colspan]="node.colspan" [attr.rowspan]="node.rowspan"><ng-container [ngTemplateOutlet]="children" [ngTemplateOutletContext]="{ $implicit: node.children }" /></td>
+      }
+    }
+    @case ('image') {
+      <img loading="lazy" [src]="node.src" [alt]="node.alt" />
+    }
+    @case ('break') {
+      <br />
+    }
+    @case ('text') {
+      <ng-container [ngTemplateOutlet]="marked" [ngTemplateOutletContext]="{ $implicit: node, i: 0 }" />
+    }
+  }
+</ng-template>
+
+<!-- Wraps the text in its marks, one after the other (recursion on the mark index). -->
+<ng-template #marked let-node let-i="i">
+  @let mark = node.marks[i];
+  @if (!mark) {<ng-container>{{ node.text }}</ng-container>} @else {
+    @switch (mark.kind) {
+      @case ('bold') { <strong><ng-container [ngTemplateOutlet]="marked" [ngTemplateOutletContext]="{ $implicit: node, i: i + 1 }" /></strong> }
+      @case ('italic') { <em><ng-container [ngTemplateOutlet]="marked" [ngTemplateOutletContext]="{ $implicit: node, i: i + 1 }" /></em> }
+      @case ('underline') { <u><ng-container [ngTemplateOutlet]="marked" [ngTemplateOutletContext]="{ $implicit: node, i: i + 1 }" /></u> }
+      @case ('strike') { <s><ng-container [ngTemplateOutlet]="marked" [ngTemplateOutletContext]="{ $implicit: node, i: i + 1 }" /></s> }
+      @case ('link') {
+        <a [href]="mark.href" target="_blank" rel="noopener noreferrer"><ng-container [ngTemplateOutlet]="marked" [ngTemplateOutletContext]="{ $implicit: node, i: i + 1 }" /></a>
+      }
+      @case ('highlight') {
+        <mark [style.background-color]="mark.color"><ng-container [ngTemplateOutlet]="marked" [ngTemplateOutletContext]="{ $implicit: node, i: i + 1 }" /></mark>
+      }
+      @case ('style') {
+        <span [style.color]="mark.color" [style.font-size]="mark.fontSize"><ng-container [ngTemplateOutlet]="marked" [ngTemplateOutletContext]="{ $implicit: node, i: i + 1 }" /></span>
+      }
+    }
+  }
+</ng-template>

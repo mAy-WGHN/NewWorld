@@ -1,0 +1,108 @@
+<div class="rounded-xl border border-outline bg-surface focus-within:border-primary focus-within:ring-2 focus-within:ring-primary" data-testid="faq-editor">
+  <div class="flex flex-wrap items-center gap-x-1 gap-y-1 border-b border-outline-variant p-1.5" role="toolbar" aria-label="Formatierung" data-testid="toolbar">
+    <div class="flex items-center gap-1">
+      <button mat-icon-button type="button" data-action="bold" aria-label="Fett" title="Fett (Strg+B)" [attr.aria-pressed]="active('bold')" [class.bg-secondary-container]="active('bold')" [disabled]="disabled()" (mousedown)="$event.preventDefault()" (click)="toggle('bold')"><mat-icon>format_bold</mat-icon></button>
+      <button mat-icon-button type="button" data-action="italic" aria-label="Kursiv" title="Kursiv (Strg+I)" [attr.aria-pressed]="active('italic')" [class.bg-secondary-container]="active('italic')" [disabled]="disabled()" (mousedown)="$event.preventDefault()" (click)="toggle('italic')"><mat-icon>format_italic</mat-icon></button>
+      <button mat-icon-button type="button" data-action="underline" aria-label="Unterstrichen" title="Unterstrichen (Strg+U)" [attr.aria-pressed]="active('underline')" [class.bg-secondary-container]="active('underline')" [disabled]="disabled()" (mousedown)="$event.preventDefault()" (click)="toggle('underline')"><mat-icon>format_underlined</mat-icon></button>
+      <button mat-icon-button type="button" data-action="strike" aria-label="Durchgestrichen" title="Durchgestrichen" [attr.aria-pressed]="active('strike')" [class.bg-secondary-container]="active('strike')" [disabled]="disabled()" (mousedown)="$event.preventDefault()" (click)="toggle('strike')"><mat-icon>strikethrough_s</mat-icon></button>
+    </div>
+
+    <select class="h-9 rounded-lg border border-outline bg-surface px-2 text-sm text-on-surface" aria-label="Absatzformat" title="Absatz oder Überschrift" data-action="block" [value]="blockValue()" [disabled]="disabled()" (change)="setBlock($event)">
+      <option value="p">Absatz</option>
+      <option value="1">Überschrift 1</option>
+      <option value="2">Überschrift 2</option>
+      <option value="3">Überschrift 3</option>
+    </select>
+    <select class="h-9 rounded-lg border border-outline bg-surface px-2 text-sm text-on-surface" aria-label="Schriftgröße" title="Schriftgröße" data-action="font-size" [value]="sizeValue()" [disabled]="disabled()" (change)="setFontSize($event)">
+      @for (size of fontSizes; track size.label) {
+        <option [value]="size.value" [selected]="size.value === sizeValue()">{{ size.label }}</option>
+      }
+    </select>
+
+    <div class="flex items-center gap-1">
+      <button mat-icon-button type="button" data-action="color-menu" aria-label="Textfarbe" title="Textfarbe" aria-haspopup="true" [attr.aria-expanded]="palette() === 'color'" [class.bg-secondary-container]="palette() === 'color'" [disabled]="disabled()" (mousedown)="$event.preventDefault()" (click)="togglePalette('color')">
+        <mat-icon [style.color]="currentColor('color')">format_color_text</mat-icon>
+      </button>
+      <button mat-icon-button type="button" data-action="highlight-menu" aria-label="Hervorhebung" title="Hervorhebung" aria-haspopup="true" [attr.aria-expanded]="palette() === 'highlight'" [class.bg-secondary-container]="palette() === 'highlight' || active('highlight')" [disabled]="disabled()" (mousedown)="$event.preventDefault()" (click)="togglePalette('highlight')">
+        <mat-icon>format_color_fill</mat-icon>
+      </button>
+    </div>
+
+    <div class="flex items-center gap-1" role="group" aria-label="Ausrichtung">
+      <button mat-icon-button type="button" data-action="align-left" aria-label="Linksbündig" title="Linksbündig" [attr.aria-pressed]="active('paragraph', { textAlign: 'left' }) || active('heading', { textAlign: 'left' })" [disabled]="disabled()" (mousedown)="$event.preventDefault()" (click)="setAlign('left')"><mat-icon>format_align_left</mat-icon></button>
+      <button mat-icon-button type="button" data-action="align-center" aria-label="Zentriert" title="Zentriert" [attr.aria-pressed]="active('paragraph', { textAlign: 'center' }) || active('heading', { textAlign: 'center' })" [class.bg-secondary-container]="active('paragraph', { textAlign: 'center' }) || active('heading', { textAlign: 'center' })" [disabled]="disabled()" (mousedown)="$event.preventDefault()" (click)="setAlign('center')"><mat-icon>format_align_center</mat-icon></button>
+      <button mat-icon-button type="button" data-action="align-right" aria-label="Rechtsbündig" title="Rechtsbündig" [attr.aria-pressed]="active('paragraph', { textAlign: 'right' }) || active('heading', { textAlign: 'right' })" [class.bg-secondary-container]="active('paragraph', { textAlign: 'right' }) || active('heading', { textAlign: 'right' })" [disabled]="disabled()" (mousedown)="$event.preventDefault()" (click)="setAlign('right')"><mat-icon>format_align_right</mat-icon></button>
+      <button mat-icon-button type="button" data-action="align-justify" aria-label="Blocksatz" title="Blocksatz" [attr.aria-pressed]="active('paragraph', { textAlign: 'justify' }) || active('heading', { textAlign: 'justify' })" [class.bg-secondary-container]="active('paragraph', { textAlign: 'justify' }) || active('heading', { textAlign: 'justify' })" [disabled]="disabled()" (mousedown)="$event.preventDefault()" (click)="setAlign('justify')"><mat-icon>format_align_justify</mat-icon></button>
+    </div>
+
+    <div class="flex items-center gap-1">
+      <button mat-icon-button type="button" data-action="bullet-list" aria-label="Liste mit Punkten" title="Liste mit Punkten" [attr.aria-pressed]="active('bulletList')" [class.bg-secondary-container]="active('bulletList')" [disabled]="disabled()" (mousedown)="$event.preventDefault()" (click)="list('bullet')"><mat-icon>format_list_bulleted</mat-icon></button>
+      <button mat-icon-button type="button" data-action="ordered-list" aria-label="Nummerierte Liste" title="Nummerierte Liste" [attr.aria-pressed]="active('orderedList')" [class.bg-secondary-container]="active('orderedList')" [disabled]="disabled()" (mousedown)="$event.preventDefault()" (click)="list('ordered')"><mat-icon>format_list_numbered</mat-icon></button>
+      <button mat-icon-button type="button" data-action="blockquote" aria-label="Zitat" title="Zitat" [attr.aria-pressed]="active('blockquote')" [class.bg-secondary-container]="active('blockquote')" [disabled]="disabled()" (mousedown)="$event.preventDefault()" (click)="quote()"><mat-icon>format_quote</mat-icon></button>
+      <button mat-icon-button type="button" data-action="rule" aria-label="Trennlinie" title="Trennlinie" [disabled]="disabled()" (mousedown)="$event.preventDefault()" (click)="rule()"><mat-icon>horizontal_rule</mat-icon></button>
+    </div>
+
+    <div class="flex items-center gap-1">
+      <button mat-icon-button type="button" data-action="link-menu" aria-label="Link" title="Link" aria-haspopup="true" [attr.aria-pressed]="active('link')" [attr.aria-expanded]="palette() === 'link'" [class.bg-secondary-container]="palette() === 'link' || active('link')" [disabled]="disabled()" (mousedown)="$event.preventDefault()" (click)="togglePalette('link')"><mat-icon>link</mat-icon></button>
+      <button mat-icon-button type="button" data-action="table-menu" aria-label="Tabelle einfügen" title="Tabelle einfügen" aria-haspopup="true" [attr.aria-expanded]="palette() === 'table'" [class.bg-secondary-container]="palette() === 'table'" [disabled]="disabled()" (mousedown)="$event.preventDefault()" (click)="togglePalette('table')"><mat-icon>table_chart</mat-icon></button>
+    </div>
+
+    <div class="flex items-center gap-1">
+      <button mat-icon-button type="button" data-action="undo" aria-label="Rückgängig" title="Rückgängig (Strg+Z)" [disabled]="disabled() || !canUndo()" (mousedown)="$event.preventDefault()" (click)="undo()"><mat-icon>undo</mat-icon></button>
+      <button mat-icon-button type="button" data-action="redo" aria-label="Wiederholen" title="Wiederholen (Strg+Y)" [disabled]="disabled() || !canRedo()" (mousedown)="$event.preventDefault()" (click)="redo()"><mat-icon>redo</mat-icon></button>
+      <button mat-icon-button type="button" data-action="clear-format" aria-label="Formatierung entfernen" title="Formatierung entfernen" [disabled]="disabled()" (mousedown)="$event.preventDefault()" (click)="clearFormat()"><mat-icon>format_clear</mat-icon></button>
+    </div>
+  </div>
+
+  @if (active('table')) {
+    <div class="flex flex-wrap items-center gap-2 border-b border-outline-variant px-2 py-1.5" role="group" aria-label="Tabelle bearbeiten" data-testid="table-tools">
+      <span class="text-sm text-on-surface-variant">Tabelle:</span>
+      <button mat-stroked-button type="button" data-action="add-row" [disabled]="disabled()" (mousedown)="$event.preventDefault()" (click)="table('addRow')">Zeile hinzufügen</button>
+      <button mat-stroked-button type="button" data-action="delete-row" [disabled]="disabled()" (mousedown)="$event.preventDefault()" (click)="table('deleteRow')">Zeile löschen</button>
+      <button mat-stroked-button type="button" data-action="add-col" [disabled]="disabled()" (mousedown)="$event.preventDefault()" (click)="table('addCol')">Spalte hinzufügen</button>
+      <button mat-stroked-button type="button" data-action="delete-col" [disabled]="disabled()" (mousedown)="$event.preventDefault()" (click)="table('deleteCol')">Spalte löschen</button>
+      <button mat-stroked-button type="button" data-action="delete-table" [disabled]="disabled()" (mousedown)="$event.preventDefault()" (click)="table('deleteTable')">Tabelle löschen</button>
+    </div>
+  }
+
+  @switch (palette()) {
+    @case ('color') {
+      <div class="flex flex-wrap items-center gap-2 border-b border-outline-variant px-2 py-1.5" role="group" aria-label="Textfarbe wählen" data-testid="color-palette">
+        @for (preset of textColors; track preset.value) {
+          <button type="button" class="size-7 rounded-full border border-outline" data-action="set-color" [attr.data-color]="preset.value" [attr.aria-label]="preset.label" [title]="preset.label" [style.background-color]="preset.value" [attr.aria-pressed]="currentColor('color') === preset.value" [class.ring-2]="currentColor('color') === preset.value" [class.ring-primary]="currentColor('color') === preset.value" (mousedown)="$event.preventDefault()" (click)="applyColor('color', preset)"></button>
+        }
+        <button mat-stroked-button type="button" data-action="reset-color" (mousedown)="$event.preventDefault()" (click)="applyColor('color', null)">Zurücksetzen</button>
+      </div>
+    }
+    @case ('highlight') {
+      <div class="flex flex-wrap items-center gap-2 border-b border-outline-variant px-2 py-1.5" role="group" aria-label="Hervorhebung wählen" data-testid="highlight-palette">
+        @for (preset of highlightColors; track preset.value) {
+          <button type="button" class="size-7 rounded-full border border-outline" data-action="set-highlight" [attr.data-color]="preset.value" [attr.aria-label]="preset.label" [title]="preset.label" [style.background-color]="preset.value" [attr.aria-pressed]="currentColor('highlight') === preset.value" [class.ring-2]="currentColor('highlight') === preset.value" [class.ring-primary]="currentColor('highlight') === preset.value" (mousedown)="$event.preventDefault()" (click)="applyColor('highlight', preset)"></button>
+        }
+        <button mat-stroked-button type="button" data-action="reset-highlight" (mousedown)="$event.preventDefault()" (click)="applyColor('highlight', null)">Zurücksetzen</button>
+      </div>
+    }
+    @case ('link') {
+      <form class="flex flex-wrap items-center gap-2 border-b border-outline-variant px-2 py-1.5" data-testid="link-form" (submit)="$event.preventDefault(); applyLink(address.value)">
+        <label class="text-sm" for="faq-link-address">Adresse</label>
+        <input #address id="faq-link-address" class="h-9 min-w-56 flex-1 rounded-lg border border-outline bg-surface px-2 text-sm text-on-surface" type="url" inputmode="url" placeholder="https://" autocomplete="off" [value]="currentHref()" />
+        <button mat-flat-button type="submit" data-action="apply-link">Übernehmen</button>
+        <button mat-stroked-button type="button" data-action="remove-link" [disabled]="!active('link')" (click)="removeLink()">Link entfernen</button>
+        @if (linkError(); as message) {
+          <p class="m-0 basis-full text-sm text-error" role="alert" data-testid="link-error">{{ message }}</p>
+        }
+      </form>
+    }
+    @case ('table') {
+      <form class="flex flex-wrap items-center gap-2 border-b border-outline-variant px-2 py-1.5" data-testid="table-form" (submit)="$event.preventDefault(); insertTable()">
+        <label class="text-sm" for="faq-table-rows">Zeilen</label>
+        <input id="faq-table-rows" class="h-9 w-16 rounded-lg border border-outline bg-surface px-2 text-sm text-on-surface" type="number" min="1" max="20" [value]="tableRows()" (input)="setCount('rows', $event)" />
+        <label class="text-sm" for="faq-table-cols">Spalten</label>
+        <input id="faq-table-cols" class="h-9 w-16 rounded-lg border border-outline bg-surface px-2 text-sm text-on-surface" type="number" min="1" max="10" [value]="tableCols()" (input)="setCount('cols', $event)" />
+        <button mat-flat-button type="submit" data-action="insert-table">Einfügen</button>
+      </form>
+    }
+  }
+
+  <div #surface class="p-3" data-testid="editor-host"></div>
+</div>
