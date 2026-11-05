@@ -75,7 +75,24 @@ export interface StoreOption {
   archived: boolean;
 }
 
-export const ADMINISTRATOR_ROLE_ID = 'a0000000-0000-0000-0000-000000000001';
+/** A person of the copy in Access (`GET /api/people`): found by name or personnel number. */
+export interface Person {
+  employeeId: string;
+  personnelNumber: string;
+  name: string;
+  homeStoreId: string | null;
+  position: string | null;
+  exitDate: string | null;
+}
+
+/** "Erika Mustermann (10042)". */
+export const personLabel = (person: Pick<Person, 'name' | 'personnelNumber'>): string =>
+  person.personnelNumber ? `${person.name} (${person.personnelNumber})` : person.name;
+
+/** The service wants at least this many characters to search. */
+export const PERSON_SEARCH_MIN = 2;
+
+export const ADMINISTRATOR_ROLE_ID ='a0000000-0000-0000-0000-000000000001';
 
 /** Topics that are in use (decisions 17, 30, 32, 37); free topics are allowed too. */
 export const KNOWN_TOPICS: readonly { topic: string; label: string }[] = [

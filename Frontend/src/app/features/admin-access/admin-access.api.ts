@@ -8,6 +8,7 @@ import {
   CreateAssignmentRequest,
   CreateResponsibilityRequest,
   MainStore,
+  Person,
   Role,
   StoreGroup,
   StoreOption,
@@ -95,6 +96,16 @@ export class AdminAccessApi {
 
   removeResponsibility(id: string): Promise<unknown> {
     return firstValueFrom(this.http.delete(this.url(`/responsibilities/${id}`)));
+  }
+
+  // finding people by name or personnel number (only people in the caller's reach)
+  searchPeople(query: string, take = 20): Promise<Person[]> {
+    return firstValueFrom(this.http.get<Person[]>(this.url('/people'), { params: { query, take } }));
+  }
+
+  /** The people for known ids (to show names instead of ids); unknown ids and people out of reach are missing in the answer. */
+  peopleByIds(ids: readonly string[]): Promise<Person[]> {
+    return ids.length === 0 ? Promise.resolve([]) : firstValueFrom(this.http.get<Person[]>(this.url('/people'), { params: { ids: ids.join(',') } }));
   }
 
   // main store

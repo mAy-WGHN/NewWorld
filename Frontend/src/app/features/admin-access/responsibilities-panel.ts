@@ -4,6 +4,7 @@ import { AuthService } from '../../core/auth/auth.service';
 import { AdminAccessApi } from './admin-access.api';
 import {
   KNOWN_TOPICS,
+  Person,
   StoreGroup,
   StoreOption,
   TARGET_KINDS,
@@ -13,10 +14,12 @@ import {
   dayStart,
   isGuid,
   isValidTopic,
+  personLabel,
   storeLabel,
   validatePeriod,
 } from './admin-access-models';
 import { ADMIN_UI, ActionMessages, ActionState } from './admin-ui';
+import { PersonPicker } from './person-picker';
 
 interface CreatedResponsibility {
   id: string;
@@ -32,7 +35,7 @@ interface CreatedResponsibility {
  */
 @Component({
   selector: 'app-responsibilities-panel',
-  imports: [...ADMIN_UI, ActionMessages],
+  imports: [...ADMIN_UI, ActionMessages, PersonPicker],
   templateUrl: './responsibilities-panel.html',
 })
 export class ResponsibilitiesPanel {
@@ -48,6 +51,8 @@ export class ResponsibilitiesPanel {
   protected readonly loaded = signal(false);
   protected readonly loadError = signal<string | null>(null);
   protected readonly created = signal<CreatedResponsibility[]>([]);
+  /** Names of the people that are shown by id (responsible persons) or were chosen here. */
+  protected readonly names = signal<Record<string, string>>({});
 
   protected readonly canCreate = computed(() => this.auth.privileges().has('access:responsibility:create'));
   protected readonly canDelete = computed(() => this.auth.privileges().has('access:responsibility:delete'));
@@ -89,6 +94,7 @@ export class ResponsibilitiesPanel {
     try {
       this.items.set(await this.api.responsibilities(id));
       this.loadError.set(null);
+      void this.loadNames(this.items().flatMap((i) => i.responsibleEmployeeIds));
     } catch (error) {
       this.items.set([]);
       this.loadError.set(
@@ -102,6 +108,40 @@ export class ResponsibilitiesPanel {
     const [stores, scopes] = await Promise.allSettled([this.api.stores(), this.api.scopes()]);
     this.stores.set(stores.status === 'fulfilled' ? stores.value : []);
     this.scopes.set(scopes.status === 'fulfilled' ? scopes.value : []);
+  }
+
+  /** Looks up the names of the responsible people so that the list shows names instead of ids. */
+  private async loadNames(ids: readonly string[]): Promise<void> {
+    const missing = [...new Set(ids)].filter((id) => !(id in this.names()));
+    if (missing.length === 0) {
+      return;
+    }
+    try {
+      const people = await this.api.peopleByIds(missing);
+      this.names.update((known) => ({ ...known, ...Object.fromEntries(people.map((p) => [p.employeeId, personLabel(p)])) }));
+    } catch {
+      // the ids stay as they are
+    }
+  }
+
+  protected nameOf(id: string): string {
+    return this.names()[id] ?? id;
+  }
+
+  protected onResponsible(person: Person | null): void {
+    this.responsibleId.set(person?.employeeId ?? '');
+    if (person) {
+      this.names.update((known) => ({ ...known, [person.employeeId]: personLabel(person) }));
+    }
+    this.formError.set(null);
+  }
+
+  protected onTargetPerson(person: Person | null): void {
+    this.targetId.set(person?.employeeId ?? '');
+    if (person) {
+      this.names.update((known) => ({ ...known, [person.employeeId]: personLabel(person) }));
+    }
+    this.formError.set(null);
   }
 
   protected set(field: 'topic' | 'responsibleId' | 'targetId' | 'from' | 'to' | 'removeId', event: Event): void {
@@ -121,10 +161,10 @@ export class ResponsibilitiesPanel {
       return 'Bitte ein Thema angeben (Kleinbuchstaben, Ziffern, Bindestriche und Punkte, zum Beispiel absence.approval).';
     }
     if (!isGuid(this.responsibleId())) {
-      return 'Bitte die Personen-ID der zuständigen Person angeben (eine GUID).';
+      return 'Bitte die zuständige Person auswählen.';
     }
     if (!this.targetId() || (this.kind() === 'employee' && !isGuid(this.targetId()))) {
-      return this.kind() === 'employee' ? 'Bitte die Personen-ID angeben, für die die Zuständigkeit gilt.' : 'Bitte das Ziel wählen.';
+      return this.kind() === 'employee' ? 'Bitte die Person auswählen, für die die Zuständigkeit gilt.' : 'Bitte das Ziel wählen.';
     }
     return validatePeriod(this.from(), this.to());
   }
@@ -135,7 +175,7 @@ export class ResponsibilitiesPanel {
       ? (this.stores().find((s) => s.id === id) ? storeLabel(this.stores().find((s) => s.id === id)!) : id)
       : this.kind() === 'scope'
         ? (this.scopes().find((s) => s.id === id)?.name ?? id)
-        : id;
+        : (this.names()[id] ?? id);
   }
 
   protected async add(): Promise<void> {

@@ -48,6 +48,8 @@ describe('AdminAccessPage', () => {
       stores: vi.fn().mockResolvedValue([]),
       assignments: vi.fn().mockResolvedValue([]),
       responsibilities: vi.fn().mockResolvedValue([]),
+      searchPeople: vi.fn().mockResolvedValue([{ employeeId: PERSON, personnelNumber: '10042', name: 'Erika Mustermann', homeStoreId: null, position: null, exitDate: null }]),
+      peopleByIds: vi.fn().mockResolvedValue([{ employeeId: PERSON, personnelNumber: '10042', name: 'Erika Mustermann', homeStoreId: null, position: null, exitDate: null }]),
       mainStore: vi.fn().mockResolvedValue({ effectiveStoreId: null, overrideStoreId: null, suggestedStoreId: null }),
     };
   });
@@ -113,22 +115,22 @@ describe('AdminAccessPage', () => {
     expect(q('[data-key="scopes"]')!.getAttribute('aria-selected')).toBe('true');
   });
 
-  it('asks for a valid person ID before it loads anything, and shows the panels the privileges allow', async () => {
+  it('finds a person by name before it loads anything, and shows the panels the privileges allow', async () => {
     privileges.set(grant('access:assignment:read', 'access:main-store:update'));
     await create();
     expect(q('[data-testid="assignments-panel"]')).toBeNull();
+    expect(q('[data-testid="person-id"]')).toBeNull(); // no field for ids any more
 
-    await set('[data-testid="person-id"]', 'nicht-gueltig');
-    q<HTMLButtonElement>('[data-action="open-person"]')!.click();
+    await set('[data-testid="person-search"]', 'muster');
+    await new Promise((r) => setTimeout(r, 400));
     await settle();
-    expect(q('[data-testid="person-error"]')!.textContent).toContain('Personen-ID');
-    expect(api['assignments']).not.toHaveBeenCalled();
-
-    await set('[data-testid="person-id"]', PERSON.toUpperCase());
-    q<HTMLButtonElement>('[data-action="open-person"]')!.click();
+    expect(api['searchPeople']).toHaveBeenCalledWith('muster');
+    expect(api['assignments']).not.toHaveBeenCalled(); // nothing is loaded before a person is chosen
+    q<HTMLButtonElement>('[data-testid="person-result"]')!.click();
     await settle();
 
     expect(api['assignments']).toHaveBeenCalledWith(PERSON);
+    expect(q('[data-testid="person-selected"]')!.textContent).toContain('Erika Mustermann');
     expect(q('[data-testid="assignments-panel"]')).not.toBeNull();
     expect(q('[data-testid="main-store-panel"]')).not.toBeNull();
     expect(q('[data-testid="responsibilities-panel"]')).toBeNull();

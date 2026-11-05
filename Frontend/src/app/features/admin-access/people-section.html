@@ -1,27 +1,11 @@
 <p class="m-0 mb-4 text-sm text-on-surface-variant">
-  Hier verwaltest du, was eine einzelne Person darf: ihre Rollen, wer für sie zuständig ist und welche Hauptfiliale gilt. Es gibt noch keine Personensuche, deshalb gibst du die
-  Personen-ID der Person ein (eine lange Kennung aus Buchstaben und Ziffern).
+  Hier verwaltest du, was eine einzelne Person darf: ihre Rollen, wer für sie zuständig ist und welche Hauptfiliale gilt. Suche die Person nach Name oder Personalnummer.
+  Du findest nur Personen, die du mit deinen Rechten erreichst.
 </p>
-<!-- TODO(Backend): Personensuche (Name oder Personalnummer), bis dahin Eingabe der Personen-ID. -->
 
-<div class="mb-4 flex flex-wrap items-start gap-3">
-  <mat-form-field appearance="outline" class="min-w-80" subscriptSizing="dynamic">
-    <mat-label>Personen-ID</mat-label>
-    <input
-      matInput
-      data-testid="person-id"
-      autocomplete="off"
-      [value]="input()"
-      [attr.aria-invalid]="error() ? 'true' : null"
-      (input)="onInput($event)"
-      (keydown.enter)="open()"
-    />
-  </mat-form-field>
-  <button mat-flat-button type="button" data-action="open-person" (click)="open()">Person laden</button>
+<div class="mb-4 max-w-xl">
+  <app-person-picker label="Person" inputId="person-search-main" [selectedId]="personId()" (picked)="onPicked($event)" />
 </div>
-@if (error(); as message) {
-  <p class="mb-3 text-[13px] text-error" role="alert" data-testid="person-error">{{ message }}</p>
-}
 
 @if (personId(); as id) {
   <div class="flex flex-col gap-8">

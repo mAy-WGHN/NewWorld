@@ -4,7 +4,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { AuthService } from '../../core/auth/auth.service';
 import { PrivilegeSet } from '../../core/auth/privileges';
 import { AdminAccessApi } from './admin-access.api';
-import { StoreGroup, StoreOption, dayAfter } from './admin-access-models';
+import { Person, StoreGroup, StoreOption, dayAfter } from './admin-access-models';
 import { ResponsibilitiesPanel } from './responsibilities-panel';
 
 const grant = (...keys: string[]) => new PrivilegeSet(keys.map((key) => ({ key, unrestricted: true, storeIds: [], employeeIds: [] })));
@@ -12,11 +12,14 @@ const ALL = ['access:responsibility:read', 'access:responsibility:create', 'acce
 
 const PERSON = '3f2504e0-4f89-11d3-9a0c-0305e82c3301';
 const BOSS = '9b2c1f64-1111-4222-8333-444455556666';
+const person = (employeeId: string, name: string, personnelNumber: string): Person => ({ employeeId, name, personnelNumber, homeStoreId: null, position: null, exitDate: null });
+const ERIKA = person(PERSON, 'Erika Mustermann', '10042');
+const MAX = person(BOSS, 'Max Chef', '10001');
 const stores: StoreOption[] = [{ id: 's1', name: 'Augsburg Mitte', storeCode: '101', archived: false }];
 const scopes: StoreGroup[] = [{ id: 'g1', name: 'Bezirk Süd', storeIds: ['s1'] }];
 
 describe('ResponsibilitiesPanel', () => {
-  let api: Record<'responsibilities' | 'stores' | 'scopes' | 'addResponsibility' | 'removeResponsibility', ReturnType<typeof vi.fn>>;
+  let api: Record<'responsibilities' | 'stores' | 'scopes' | 'addResponsibility' | 'removeResponsibility' | 'searchPeople' | 'peopleByIds', ReturnType<typeof vi.fn>>;
   const privileges = signal(grant(...ALL));
   let fixture: ComponentFixture<ResponsibilitiesPanel>;
   let root: HTMLElement;
@@ -50,9 +53,20 @@ describe('ResponsibilitiesPanel', () => {
     await settle();
   }
 
+  /** Types into the person search of the field and takes the first hit (the search waits a moment after typing). */
+  async function pickPerson(field: string, text: string, found: Person): Promise<void> {
+    api['searchPeople'].mockResolvedValue([found]);
+    await set(`[data-testid="${field}"] [data-testid="person-search"]`, text);
+    await new Promise((r) => setTimeout(r, 400));
+    await settle();
+    await click(`[data-testid="${field}"] [data-testid="person-result"]`);
+  }
+
   beforeEach(() => {
     privileges.set(grant(...ALL));
     api = {
+      searchPeople: vi.fn().mockResolvedValue([]),
+      peopleByIds: vi.fn().mockImplementation(async (ids: string[]) => [ERIKA, MAX].filter((p) => ids.includes(p.employeeId))),
       responsibilities: vi.fn().mockResolvedValue([{ topic: 'absence.approval', responsibleEmployeeIds: [BOSS] }]),
       stores: vi.fn().mockResolvedValue(stores),
       scopes: vi.fn().mockResolvedValue(scopes),
@@ -67,7 +81,7 @@ describe('ResponsibilitiesPanel', () => {
     const r = q('[data-testid="topic-row"]')!;
     expect(r.textContent).toContain('Urlaub genehmigen');
     expect(r.textContent).toContain('absence.approval');
-    expect(r.querySelector('[data-testid="responsible"]')!.textContent).toContain(BOSS);
+    expect(r.querySelector('[data-testid="responsible"]')!.textContent).toContain('Max Chef (10001)'); // the name, not the id
   });
 
   it('offers the known topics as suggestions', async () => {
@@ -93,9 +107,9 @@ describe('ResponsibilitiesPanel', () => {
   it('creates a responsibility for the loaded person, with the end day inclusive', async () => {
     await create();
 
-    expect(q<HTMLInputElement>('[data-testid="target-employee"]')!.value).toBe(PERSON);
+    expect(q('[data-testid="target-employee"] [data-testid="person-selected"]')!.textContent).toContain('Erika Mustermann');
     await set('[data-testid="topic"]', ' absence.approval ');
-    await set('[data-testid="responsible-id"]', BOSS);
+    await pickPerson('responsible-id', 'max', MAX);
     await set('[data-testid="to"]', '2026-12-31');
     await click('[data-action="add"]');
 
@@ -113,7 +127,7 @@ describe('ResponsibilitiesPanel', () => {
   it('creates a responsibility for a store and for a group', async () => {
     await create();
     await set('[data-testid="topic"]', 'schedule.adjustment');
-    await set('[data-testid="responsible-id"]', BOSS);
+    await pickPerson('responsible-id', 'max', MAX);
 
     await set('[data-testid="kind"]', 'store', 'change');
     await set('[data-testid="target-store"]', 's1', 'change');
@@ -121,7 +135,7 @@ describe('ResponsibilitiesPanel', () => {
     expect(api['addResponsibility']).toHaveBeenLastCalledWith(expect.objectContaining({ target: { kind: 'store', id: 's1' } }));
 
     await set('[data-testid="topic"]', 'schedule.adjustment');
-    await set('[data-testid="responsible-id"]', BOSS);
+    await pickPerson('responsible-id', 'max', MAX); // the form is empty again after an entry
     await set('[data-testid="kind"]', 'scope', 'change');
     await set('[data-testid="target-scope"]', 'g1', 'change');
     await click('[data-action="add"]');
@@ -139,11 +153,10 @@ describe('ResponsibilitiesPanel', () => {
     expect(q('[data-testid="form-error"]')!.textContent).toContain('Thema');
 
     await set('[data-testid="topic"]', 'absence.approval');
-    await set('[data-testid="responsible-id"]', '4711');
     await click('[data-action="add"]');
-    expect(q('[data-testid="form-error"]')!.textContent).toContain('Personen-ID der zuständigen');
+    expect(q('[data-testid="form-error"]')!.textContent).toContain('zuständige Person auswählen');
 
-    await set('[data-testid="responsible-id"]', BOSS);
+    await pickPerson('responsible-id', 'max', MAX);
     await set('[data-testid="kind"]', 'store', 'change');
     await click('[data-action="add"]');
     expect(q('[data-testid="form-error"]')!.textContent).toContain('Ziel');
@@ -161,7 +174,7 @@ describe('ResponsibilitiesPanel', () => {
     api['addResponsibility'].mockRejectedValue(new HttpErrorResponse({ status: 403, error: { title: 'NotInReach' } }));
     await create();
     await set('[data-testid="topic"]', 'absence.approval');
-    await set('[data-testid="responsible-id"]', BOSS);
+    await pickPerson('responsible-id', 'max', MAX);
 
     await click('[data-action="add"]');
 
@@ -171,7 +184,7 @@ describe('ResponsibilitiesPanel', () => {
   it('removes a responsibility created in this session only after a confirmation', async () => {
     await create();
     await set('[data-testid="topic"]', 'absence.approval');
-    await set('[data-testid="responsible-id"]', BOSS);
+    await pickPerson('responsible-id', 'max', MAX);
     await click('[data-action="add"]');
 
     await click('[data-testid="created-row"] [data-action="ask-delete"]');

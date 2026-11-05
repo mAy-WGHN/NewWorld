@@ -1,0 +1,71 @@
+<div class="flex flex-col gap-1" data-testid="person-picker">
+  @if (selected(); as p) {
+    <span class="text-sm font-medium">{{ label() }}</span>
+    <div class="flex flex-wrap items-center gap-2 rounded-lg border border-outline-variant px-3 py-2" data-testid="person-selected">
+      <strong>{{ p.name }}</strong>
+      @if (p.personnelNumber) {
+        <span class="text-sm">Personalnummer {{ p.personnelNumber }}</span>
+      }
+      @if (p.exitDate) {
+        <span class="text-[13px] text-error">ausgeschieden</span>
+      }
+      <button mat-stroked-button type="button" data-action="clear-person" [disabled]="disabled()" (click)="clear()">Ändern</button>
+    </div>
+  } @else {
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>{{ label() }} (Name oder Personalnummer)</mat-label>
+      <input
+        matInput
+        type="search"
+        role="combobox"
+        autocomplete="off"
+        data-testid="person-search"
+        [id]="inputId()"
+        [value]="query()"
+        [disabled]="disabled()"
+        [attr.aria-expanded]="results().length > 0"
+        [attr.aria-controls]="inputId() + '-list'"
+        (input)="onInput($event)"
+        (keydown.enter)="enter($event)"
+        (keydown.arrowdown)="focusFirst($event)"
+        (keydown.escape)="closeList()"
+      />
+      <mat-hint>Mindestens zwei Zeichen, zum Beispiel einen Teil des Namens oder die Personalnummer.</mat-hint>
+    </mat-form-field>
+
+    @if (error(); as message) {
+      <p class="m-0 text-[13px] text-error" role="alert" data-testid="person-error">{{ message }}</p>
+    }
+    @if (searching()) {
+      <p class="m-0 text-[13px] text-on-surface-variant" role="status" data-testid="person-searching">Suche läuft …</p>
+    }
+    @if (results().length) {
+      <ul class="m-0 max-h-64 list-none overflow-auto rounded-lg border border-outline-variant p-0" role="listbox" [id]="inputId() + '-list'" [attr.aria-label]="label()">
+        @for (r of results(); track r.employeeId) {
+          <li role="option" class="border-b border-outline-variant last:border-b-0">
+            <button
+              type="button"
+              class="block w-full cursor-pointer border-0 bg-transparent px-3 py-2 text-left text-on-surface hover:bg-surface-container"
+              data-testid="person-result"
+              [attr.data-id]="r.employeeId"
+              (click)="pick(r)"
+              (keydown.arrowdown)="move($event, 1)"
+              (keydown.arrowup)="move($event, -1)"
+            >
+              <strong>{{ r.name }}</strong>
+              <span class="ml-2 text-sm">Personalnummer {{ r.personnelNumber }}</span>
+              @if (r.position) {
+                <span class="ml-2 text-[13px] opacity-70">{{ r.position }}</span>
+              }
+              @if (r.exitDate) {
+                <span class="ml-2 text-[13px] text-error">ausgeschieden</span>
+              }
+            </button>
+          </li>
+        }
+      </ul>
+    } @else if (searched() && !searching() && !error()) {
+      <p class="m-0 text-[13px] text-on-surface-variant" data-testid="person-none">Keine Person gefunden. Du siehst nur Personen in deiner Reichweite.</p>
+    }
+  }
+</div>

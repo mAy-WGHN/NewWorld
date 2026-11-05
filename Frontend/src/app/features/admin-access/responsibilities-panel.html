@@ -19,7 +19,7 @@
         <strong>{{ topicLabel(i.topic) }}</strong> <code class="text-[13px]">{{ i.topic }}</code>
         <ul class="m-0 mt-1 list-none p-0 text-sm">
           @for (e of i.responsibleEmployeeIds; track e) {
-            <li data-testid="responsible">{{ e }}</li>
+            <li data-testid="responsible">{{ nameOf(e) }}</li>
           }
         </ul>
       </app-row-card>
@@ -64,12 +64,7 @@
             <option [value]="t.topic">{{ t.label }}</option>
           }
         </datalist>
-        <mat-form-field appearance="outline" subscriptSizing="dynamic">
-          <mat-label>Zuständige Person (Personen-ID)</mat-label>
-          <input matInput data-testid="responsible-id" autocomplete="off" [value]="responsibleId()" (input)="set('responsibleId', $event)" />
-          <!-- TODO(Backend): Personensuche; bis dahin wird die ID der Person (GUID) eingegeben. -->
-          <mat-hint>Es gibt noch keine Personensuche; trage die ID ein.</mat-hint>
-        </mat-form-field>
+        <app-person-picker data-testid="responsible-id" label="Zuständige Person" inputId="responsible-person" [selectedId]="responsibleId() || null" (picked)="onResponsible($event)" />
         <mat-form-field appearance="outline" subscriptSizing="dynamic">
           <mat-label>Gilt für</mat-label>
           <select matNativeControl data-testid="kind" [value]="kind()" (change)="onKind($event)">
@@ -102,10 +97,7 @@
             </mat-form-field>
           }
           @default {
-            <mat-form-field appearance="outline" subscriptSizing="dynamic">
-              <mat-label>Person, für die die Zuständigkeit gilt (Personen-ID)</mat-label>
-              <input matInput data-testid="target-employee" autocomplete="off" [value]="targetId()" (input)="set('targetId', $event)" />
-            </mat-form-field>
+            <app-person-picker data-testid="target-employee" label="Person, für die die Zuständigkeit gilt" inputId="target-person" [selectedId]="targetId() || null" (picked)="onTargetPerson($event)" />
           }
         }
         <div class="flex flex-wrap gap-3">
