@@ -18,5 +18,8 @@
     @if (showMainStore()) {
       <app-main-store-panel [personId]="id" />
     }
+    @if (showEntraLink()) {
+      <app-entra-link-panel [personId]="id" />
+    }
   </div>
 }

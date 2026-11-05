@@ -1,0 +1,58 @@
+<section class="flex flex-col gap-3" aria-label="Microsoft-Konto" data-testid="entra-link-panel">
+  <h2 class="m-0 text-lg font-medium">Microsoft-Konto (zweiter Faktor)</h2>
+  <p class="m-0 text-sm text-on-surface-variant">
+    Für die Lohnabrechnung bestätigt die Person zusätzlich mit der Microsoft Authenticator App. Trage hier ihr Microsoft-Konto ein (die E-Mail-Adresse, mit der sie sich bei Microsoft anmeldet).
+    Beim ersten erfolgreichen Bestätigen merkt sich das Portal das Konto selbst, danach zählt nur noch genau dieses. Ein verlorenes Handy oder Passwort löst die IT im Microsoft-Konto, nicht hier.
+  </p>
+
+  <app-action-messages [state]="act" />
+  @if (loadError(); as message) {
+    <p class="rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="load-error">{{ message }}</p>
+  }
+
+  @if (canRead()) {
+    <app-row-card data-testid="entra-state">
+      @if (link(); as l) {
+        <dl class="m-0 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+          <dt class="opacity-70">Konto</dt>
+          <dd class="m-0 font-medium" data-testid="upn">{{ l.userPrincipalName }}</dd>
+          <dt class="opacity-70">Bestätigt</dt>
+          <dd class="m-0" data-testid="bound">{{ l.bound ? 'Ja, das Konto ist fest zugeordnet.' : 'Noch nicht: die Person hat noch nicht bestätigt.' }}</dd>
+        </dl>
+      } @else if (loaded() && !loadError()) {
+        <p class="m-0 text-sm" data-testid="no-link">Es ist noch kein Microsoft-Konto eingetragen.</p>
+      }
+    </app-row-card>
+  } @else {
+    <p class="m-0 text-sm text-on-surface-variant" data-testid="no-read">Du darfst das Microsoft-Konto nicht ansehen (Recht „access:person:read“), aber ändern.</p>
+  }
+
+  @if (canManage()) {
+    <app-row-card data-testid="set-panel">
+      <div class="flex flex-col gap-3">
+        <h3 class="m-0 text-base font-medium">Microsoft-Konto eintragen</h3>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>E-Mail-Adresse des Microsoft-Kontos</mat-label>
+          <input matInput type="email" data-testid="upn-input" autocomplete="off" [value]="name()" [attr.aria-invalid]="formError() ? 'true' : null" (input)="onName($event)" />
+        </mat-form-field>
+        @if (formError(); as message) {
+          <p class="m-0 text-[13px] text-error" role="alert" data-testid="form-error">{{ message }}</p>
+        }
+        @if (confirmingRemove()) {
+          <div class="flex flex-wrap items-center gap-2" data-testid="remove-panel">
+            <span class="text-sm">Die Zuordnung wird entfernt. Danach kann die Person den zweiten Faktor nicht nutzen, bis ein Konto neu eingetragen ist. Wirklich entfernen?</span>
+            <button mat-flat-button type="button" data-action="remove" [disabled]="act.busy()" (click)="remove()">Ja, entfernen</button>
+            <button mat-stroked-button type="button" data-action="cancel-remove" (click)="cancelRemove()">Abbrechen</button>
+          </div>
+        } @else {
+          <div class="flex flex-wrap gap-2">
+            <button mat-flat-button type="button" data-action="save" [disabled]="act.busy()" (click)="save()">Eintragen</button>
+            @if (link()) {
+              <button mat-stroked-button type="button" data-action="ask-remove" [disabled]="act.busy()" (click)="askRemove()">Zuordnung entfernen</button>
+            }
+          </div>
+        }
+      </div>
+    </app-row-card>
+  }
+</section>

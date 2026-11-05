@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { catchError, from, switchMap, throwError } from 'rxjs';
 import { ConfigService } from '../config';
 import { AuthService } from './auth.service';
+import { StepUpService, isSecondFactorRequired } from './step-up.service';
 
 const withToken = (request: HttpRequest<unknown>, token: string | null) =>
   token ? request.clone({ setHeaders: { Authorization: `Bearer ${token}` } }) : request;
@@ -16,6 +17,7 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
   const config = inject(ConfigService);
   const auth = inject(AuthService);
   const router = inject(Router);
+  const stepUp = inject(StepUpService);
 
   if (!config.isServiceUrl(request.url) || request.url.includes('/api/auth/login') || request.url.includes('/api/auth/refresh')) {
     return next(request);
@@ -23,6 +25,11 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
 
   return next(withToken(request, auth.token)).pipe(
     catchError((error: unknown) => {
+      if (isSecondFactorRequired(error) && !request.url.includes('/api/auth/step-up/')) {
+        // A service wants the second factor: send the person to Microsoft and bring them back here.
+        void stepUp.begin(router.url).catch(() => undefined);
+        return throwError(() => error);
+      }
       if (!(error instanceof HttpErrorResponse) || error.status !== 401) {
         return throwError(() => error);
       }

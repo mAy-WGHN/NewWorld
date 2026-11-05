@@ -7,6 +7,7 @@ import {
   CatalogEntry,
   CreateAssignmentRequest,
   CreateResponsibilityRequest,
+  EntraLink,
   MainStore,
   Person,
   Role,
@@ -47,6 +48,19 @@ export class AdminAccessApi {
   // catalogue and own privileges
   catalog(): Promise<CatalogEntry[]> {
     return firstValueFrom(this.http.get<CatalogEntry[]>(this.url('/catalog')));
+  }
+
+  // Microsoft account (second factor)
+  entraLink(employeeId: string): Promise<EntraLink> {
+    return firstValueFrom(this.http.get<EntraLink>(this.url(`/people/${employeeId}/entra-link`)));
+  }
+
+  setEntraLink(employeeId: string, userPrincipalName: string): Promise<unknown> {
+    return firstValueFrom(this.http.put(this.url(`/people/${employeeId}/entra-link`), { userPrincipalName }));
+  }
+
+  clearEntraLink(employeeId: string): Promise<unknown> {
+    return firstValueFrom(this.http.delete(this.url(`/people/${employeeId}/entra-link`)));
   }
 
   // roles as a file

@@ -60,6 +60,11 @@ export class AuthService {
     return this.accessToken();
   }
 
+  /** Takes a new access token (e.g. the one that carries the second factor); the refresh token stays as it is. */
+  acceptAccessToken(token: string): void {
+    this.accessToken.set(token);
+  }
+
   /** Restores the session after a reload from the refresh token. */
   async restore(): Promise<void> {
     if (this.readRefreshToken()) {

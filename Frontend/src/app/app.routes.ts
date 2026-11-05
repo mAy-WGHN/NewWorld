@@ -56,6 +56,7 @@ export const routes: Routes = [
       { path: 'settings', loadComponent: () => import('./features/settings/settings.page').then((m) => m.SettingsPage), title: 'Einstellungen' },
       { path: 'help', component: PlaceholderPage, title: 'Hilfe', data: { title: 'Hilfe', about: 'Anleitungen und Ansprechpersonen.' } },
       ...areaRoutes,
+      { path: 'step-up/done', loadComponent: () => import('./pages/step-up/step-up-done').then((m) => m.StepUpDonePage), title: 'Bestätigung mit Microsoft' },
       { path: 'forbidden', component: ForbiddenPage, title: 'Kein Zugriff' },
     ],
   },

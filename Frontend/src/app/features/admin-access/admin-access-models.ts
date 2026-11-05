@@ -247,6 +247,24 @@ export function storeName(id: string | null, stores: readonly StoreOption[]): st
   return store ? storeLabel(store) : id;
 }
 
+// ---------- Microsoft account (second factor) ----------
+
+/** The Microsoft account of a person (`GET /api/people/{id}/entra-link`): the name HR entered and whether Access has bound the account itself already. */
+export interface EntraLink {
+  userPrincipalName: string;
+  bound: boolean;
+  boundAt: string | null;
+}
+
+/** The account name as an e-mail address; this only guards against typos, Microsoft decides whether the account exists. */
+export function validateUserPrincipalName(value: string): string | null {
+  const text = value.trim();
+  if (!text) {
+    return 'Bitte die E-Mail-Adresse des Microsoft-Kontos eintragen.';
+  }
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(text) && text.length <= 256 ? null : 'Das ist keine gültige E-Mail-Adresse.';
+}
+
 // ---------- roles as a file ----------
 
 /** The roles of an environment as a file (`GET /api/role-definitions`): own privileges and roles with their privilege patterns; nothing environment-specific. */

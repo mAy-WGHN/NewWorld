@@ -4,6 +4,7 @@ import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { authInterceptor } from './auth.interceptor';
 import { AuthService } from './auth.service';
+import { StepUpService } from './step-up.service';
 
 const TOKENS = { accessToken: 'access-1', expiresAt: '2026-11-04T12:15:00Z', refreshToken: 'refresh-1' };
 const ME = { employeeId: 'e1', roles: [], privileges: [] };
@@ -96,5 +97,28 @@ describe('authInterceptor', () => {
 
     expect(status).toBe(403);
     http.expectNone('/svc/access/api/auth/refresh');
+  });
+
+  it('starts the second factor when a service only lacks it, and still passes the error on', async () => {
+    const stepUp = TestBed.inject(StepUpService);
+    const navigated: string[] = [];
+    stepUp.navigate = (url) => navigated.push(url);
+    let status = 0;
+    client.get('/svc/workforce/api/me/payslips').subscribe({ error: (e) => (status = e.status) });
+
+    http.expectOne('/svc/workforce/api/me/payslips').flush({ title: 'SecondFactorRequired' }, { status: 403, statusText: 'Forbidden' });
+    http.expectOne('/svc/access/api/auth/step-up/start').flush({ authorizationUrl: 'https://login.microsoftonline.com/x' });
+    await new Promise((r) => setTimeout(r));
+
+    expect(status).toBe(403);
+    expect(navigated).toEqual(['https://login.microsoftonline.com/x']);
+  });
+
+  it('does not start the second factor for an ordinary refusal', () => {
+    client.get('/svc/workforce/api/me/payslips').subscribe({ error: () => undefined });
+
+    http.expectOne('/svc/workforce/api/me/payslips').flush({ title: 'Forbidden' }, { status: 403, statusText: 'Forbidden' });
+
+    http.expectNone('/svc/access/api/auth/step-up/start');
   });
 });

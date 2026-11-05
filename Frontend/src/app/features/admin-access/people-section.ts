@@ -3,6 +3,7 @@ import { AuthService } from '../../core/auth/auth.service';
 import { Person } from './admin-access-models';
 import { ADMIN_UI } from './admin-ui';
 import { AssignmentsPanel } from './assignments-panel';
+import { EntraLinkPanel } from './entra-link-panel';
 import { MainStorePanel } from './main-store-panel';
 import { PersonPicker } from './person-picker';
 import { ResponsibilitiesPanel } from './responsibilities-panel';
@@ -13,7 +14,7 @@ import { ResponsibilitiesPanel } from './responsibilities-panel';
  */
 @Component({
   selector: 'app-people-section',
-  imports: [...ADMIN_UI, PersonPicker, AssignmentsPanel, ResponsibilitiesPanel, MainStorePanel],
+  imports: [...ADMIN_UI, PersonPicker, AssignmentsPanel, ResponsibilitiesPanel, MainStorePanel, EntraLinkPanel],
   templateUrl: './people-section.html',
 })
 export class PeopleSection {
@@ -24,6 +25,8 @@ export class PeopleSection {
   protected readonly showAssignments = computed(() => this.auth.privileges().has('access:assignment:read'));
   protected readonly showResponsibilities = computed(() => this.auth.privileges().has('access:responsibility:read'));
   protected readonly showMainStore = computed(() => this.auth.privileges().hasAny(['access:person:read', 'access:main-store:update']));
+
+  protected readonly showEntraLink = computed(() => this.auth.privileges().hasAny(['access:person:read', 'access:entra-link:manage']));
 
   protected onPicked(person: Person | null): void {
     this.personId.set(person?.employeeId ?? null);
