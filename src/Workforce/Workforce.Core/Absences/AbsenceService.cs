@@ -40,15 +40,25 @@ public sealed class AbsenceService(
 
     // ------------------------------------------------------------------ sickness
 
-    /// <summary>Records a sick note (no approval). Sickness wins over vacation: affected vacation days are cancelled and credited.</summary>
-    public async Task<AbsenceResult> ReportSickAsync(Guid employeeId, DateOnly from, DateOnly? to, CancellationToken cancellationToken)
+    /// <summary>
+    /// Records a sick note (no approval). The last day is mandatory; the note is a first or a follow-up certificate, a follow-up only
+    /// directly after another sick note of the person (which then has its own certificate). <paramref name="electronicCertificate"/> marks
+    /// that the certificate is an eAU that HR finds in DATEV. Sickness wins over vacation: affected vacation days are cancelled and credited.
+    /// </summary>
+    public async Task<AbsenceResult> ReportSickAsync(
+        Guid employeeId, DateOnly from, DateOnly to, SickNoteKind kind, bool electronicCertificate, CancellationToken cancellationToken)
     {
+        if (kind is not (SickNoteKind.First or SickNoteKind.FollowUp))
+        {
+            return AbsenceResult.Fail(AbsenceError.InvalidKind);
+        }
+
         if (await people.GetAsync(employeeId, cancellationToken) is not { } person)
         {
             return AbsenceResult.Fail(AbsenceError.UnknownPerson);
         }
 
-        if (to is { } end && end < from)
+        if (to < from)
         {
             return AbsenceResult.Fail(AbsenceError.InvalidPeriod);
         }
@@ -66,9 +76,16 @@ public sealed class AbsenceService(
             return AbsenceResult.Fail(AbsenceError.Overlap);
         }
 
+        if (kind == SickNoteKind.FollowUp && !existing.Any(a => a is { Type: AbsenceType.Sickness, Status: AbsenceStatus.Reported } && a.To == from.AddDays(-1)))
+        {
+            return AbsenceResult.Fail(AbsenceError.NoPredecessor);
+        }
+
         var now = time.GetUtcNow();
         var correlationId = Guid.CreateVersion7(now);
         var sick = NewAbsence(employeeId, AbsenceType.Sickness, from, to, AbsenceStatus.Reported, now);
+        sick.Kind = kind;
+        sick.ElectronicCertificate = electronicCertificate;
         store.Add(sick);
 
         foreach (var vacation in existing.Where(a => a.Type == AbsenceType.Vacation && a.Status is AbsenceStatus.Requested or AbsenceStatus.Approved && a.Range.Overlaps(range)))
@@ -81,8 +98,30 @@ public sealed class AbsenceService(
         await ReportUncoveredAsync(sick, range, correlationId, cancellationToken);
         Notify(
             SickNoteTemplate, await ApproversAsync(employeeId, cancellationToken), sick, correlationId, now,
-            new Dictionary<string, string> { ["employeeName"] = person.Name, ["from"] = Iso(from), ["to"] = to is { } t ? Iso(t) : "unbefristet" });
+            new Dictionary<string, string> { ["employeeName"] = person.Name, ["from"] = Iso(from), ["to"] = Iso(to) });
         return AbsenceResult.Ok(sick);
+    }
+
+    /// <summary>
+    /// The person says that the certificate of this sick note is an electronic one (eAU, found in DATEV) or takes it back. Not possible while a
+    /// paper certificate is uploaded and waiting or confirmed (the upload stays possible at any time and removes the mark). The mark is not
+    /// part of what goes to BC, so the version does not change.
+    /// </summary>
+    public async Task<AbsenceResult> SetElectronicCertificateAsync(Guid absenceId, bool electronic, CancellationToken cancellationToken)
+    {
+        if (await store.GetAsync(absenceId, cancellationToken) is not { } absence)
+        {
+            return AbsenceResult.Fail(AbsenceError.NotFound);
+        }
+
+        if (absence is not { Type: AbsenceType.Sickness, Status: AbsenceStatus.Reported }
+            || electronic && absence.CertificateStatus is Certificates.CertificateStatus.Submitted or Certificates.CertificateStatus.Verified)
+        {
+            return AbsenceResult.Fail(AbsenceError.InvalidState);
+        }
+
+        absence.ElectronicCertificate = electronic;
+        return AbsenceResult.Ok(absence);
     }
 
     /// <summary>Gives an open-ended sick note its last day.</summary>

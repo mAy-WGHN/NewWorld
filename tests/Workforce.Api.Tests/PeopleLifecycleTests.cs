@@ -69,7 +69,7 @@ public sealed class PeopleLifecycleTests(PostgresFixture postgres) : IClassFixtu
     public async Task Employee_left_ends_an_open_sick_note_at_the_exit_date()
     {
         await using var api = await StartAsync(postgres);
-        var open = await api.PostAbsenceAsync("/api/me/absences/sick", Erika, new ReportSickRequest(new DateOnly(2026, 10, 23), null));
+        var open = await api.PostOpenSickAsync(Erika, new DateOnly(2026, 10, 23));
 
         await api.DeliverAsync(new EmployeeLeft(Guid.NewGuid(), Guid.NewGuid(), Start, Erika, new DateOnly(2026, 10, 30)));
 
@@ -82,7 +82,7 @@ public sealed class PeopleLifecycleTests(PostgresFixture postgres) : IClassFixtu
     {
         await using var api = await StartAsync(postgres);
         await api.SetEntitlementAsync(Erika, 2026, 30);
-        await api.PostAbsenceAsync("/api/me/absences/sick", Erika, new ReportSickRequest(new DateOnly(2026, 10, 23), new DateOnly(2026, 10, 24)));
+        await api.PostAbsenceAsync("/api/me/absences/sick", Erika, new ReportSickRequest(new DateOnly(2026, 10, 23), new DateOnly(2026, 10, 24), "First"));
         await api.PostAbsenceAsync("/api/me/absences/vacation", Erika, new RequestVacationRequest(new DateOnly(2026, 11, 2), new DateOnly(2026, 11, 3)));
         var special = (await api.GetAsync<List<UnavailabilityKindDto>>("/api/unavailability-kinds", Hanna)).Single(k => k.Code == "SONDERURLAUB");
         (await api.SendAsync(HttpMethod.Post, $"/api/employees/{Erika}/unavailabilities", Hanna, new AddUnavailabilityRequest(special.Id, new DateOnly(2026, 12, 1), new DateOnly(2026, 12, 2)))).StatusCode.ShouldBe(HttpStatusCode.OK);

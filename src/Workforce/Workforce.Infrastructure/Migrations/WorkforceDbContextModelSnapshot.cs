@@ -237,6 +237,12 @@ namespace Workforce.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
+                    b.Property<bool>("ElectronicCertificate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("electronic_certificate");
+
                     b.Property<Guid>("EmployeeId")
                         .HasColumnType("uuid")
                         .HasColumnName("employee_id");
@@ -244,6 +250,14 @@ namespace Workforce.Infrastructure.Migrations
                     b.Property<DateOnly>("From")
                         .HasColumnType("date")
                         .HasColumnName("from");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("Unknown")
+                        .HasColumnName("kind");
 
                     b.Property<DateTimeOffset?>("LastReminderAt")
                         .HasColumnType("timestamp with time zone")

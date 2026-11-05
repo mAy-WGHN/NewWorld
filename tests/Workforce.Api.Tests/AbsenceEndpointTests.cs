@@ -15,7 +15,7 @@ namespace Workforce.Api.Tests;
 
 public sealed class AbsenceEndpointTests(PostgresFixture postgres) : IClassFixture<PostgresFixture>
 {
-    private static readonly ReportSickRequest SickToday = new(new DateOnly(2026, 10, 23), new DateOnly(2026, 10, 25));
+    private static readonly ReportSickRequest SickToday = new(new DateOnly(2026, 10, 23), new DateOnly(2026, 10, 25), "First");
 
     [Fact]
     public async Task Many_stores_can_be_marked_open_on_holidays_at_once_all_or_none()
@@ -369,7 +369,7 @@ public sealed class AbsenceEndpointTests(PostgresFixture postgres) : IClassFixtu
     public async Task Open_sick_note_can_be_ended_and_overlap_is_a_conflict()
     {
         await using var api = await StartAsync(postgres);
-        var open = await api.PostAbsenceAsync("/api/me/absences/sick", Erika, new ReportSickRequest(new DateOnly(2026, 10, 23), null));
+        var open = await api.PostOpenSickAsync(Erika, new DateOnly(2026, 10, 23));
         open.To.ShouldBeNull();
 
         using var overlap = await api.SendAsync(HttpMethod.Post, "/api/me/absences/sick", Erika, SickToday);
@@ -396,7 +396,7 @@ public sealed class AbsenceEndpointTests(PostgresFixture postgres) : IClassFixtu
     public async Task Sync_status_is_visible_to_hr_and_follows_the_confirmed_version()
     {
         await using var api = await StartAsync(postgres);
-        var absence = await api.PostAbsenceAsync("/api/me/absences/sick", Erika, new ReportSickRequest(new DateOnly(2026, 10, 23), null));
+        var absence = await api.PostOpenSickAsync(Erika, new DateOnly(2026, 10, 23));
         (await api.GetAsync<List<AbsenceDto>>($"/api/employees/{Erika}/absences", Hanna)).Single().SyncStatus.ShouldBe("Pending");
 
         await api.DeliverAsync(new BcSyncSucceeded(Guid.NewGuid(), Guid.NewGuid(), Start, SourceService.Workforce, BcSyncEntityType.Absence, absence.Id, 1, Guid.NewGuid()));

@@ -1,7 +1,13 @@
 namespace Workforce.Api;
 
-/// <summary>A sick note. The medical certificate (AU) is optional here and can be uploaded afterwards.</summary>
-public sealed record ReportSickRequest(DateOnly From, DateOnly? To);
+/// <summary>
+/// A sick note: first and last day are mandatory, <see cref="Kind"/> is `First` or `FollowUp` (a follow-up only directly after another sick
+/// note). The medical certificate (AU) follows as an upload; <see cref="ElectronicCertificate"/> says that it is an eAU that HR finds in DATEV.
+/// </summary>
+public sealed record ReportSickRequest(DateOnly From, DateOnly To, string? Kind, bool ElectronicCertificate = false);
+
+/// <summary>Marks (or unmarks) the certificate of a sick note as an electronic one (eAU).</summary>
+public sealed record SetElectronicCertificateRequest(bool ElectronicCertificate);
 
 public sealed record RequestVacationRequest(DateOnly From, DateOnly To);
 
@@ -15,7 +21,8 @@ public sealed record SetEntitlementRequest(decimal Days);
 /// <see cref="SyncStatus"/> only for those who may see the BC transfer.
 /// </summary>
 public sealed record AbsenceDto(
-    Guid Id, Guid EmployeeId, string? Type, string Status, DateOnly From, DateOnly? To, string? CertificateStatus, DateOnly? CertifiedThrough, long? Version, string? SyncStatus);
+    Guid Id, Guid EmployeeId, string? Type, string Status, DateOnly From, DateOnly? To, string? CertificateStatus, DateOnly? CertifiedThrough, long? Version, string? SyncStatus,
+    string? SickNoteKind = null, bool? ElectronicCertificate = null);
 
 /// <summary>What colleagues in a store see: that somebody is absent. Name and period; type and status only with the reason privilege.</summary>
 public sealed record StoreAbsenceDto(Guid EmployeeId, string EmployeeName, DateOnly From, DateOnly? To, string Status, string? Type);
@@ -89,7 +96,7 @@ public sealed record SetCertificateReminderSettingsRequest(int FirstReminderAfte
 /// <summary>One sick note in the HR overview: whether the certificate is missing, submitted, verified or rejected.</summary>
 public sealed record SickNoteOverviewDto(
     Guid AbsenceId, Guid EmployeeId, string EmployeeName, Guid? StoreId, DateOnly From, DateOnly? To, string CertificateStatus,
-    DateOnly? CertifiedThrough, int RemindersSent, DateTimeOffset? LastReminderAt);
+    DateOnly? CertifiedThrough, int RemindersSent, DateTimeOffset? LastReminderAt, string Kind, bool ElectronicCertificate);
 
 public sealed record PageDto<T>(IReadOnlyList<T> Items, int Total, int Page, int PageSize);
 

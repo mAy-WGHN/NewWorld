@@ -66,6 +66,8 @@ public sealed class WorkforceDbContext(DbContextOptions<WorkforceDbContext> opti
             b.Property(a => a.Status).HasConversion<string>().HasMaxLength(20);
             b.Property(a => a.SyncStatus).HasConversion<string>().HasMaxLength(20);
             b.Property(a => a.CertificateStatus).HasConversion<string>().HasMaxLength(20);
+            b.Property(a => a.Kind).HasConversion<string>().HasMaxLength(20).HasDefaultValue(SickNoteKind.Unknown);
+            b.Property(a => a.ElectronicCertificate).HasDefaultValue(false);
             b.HasIndex(a => new { a.EmployeeId, a.From });
             b.HasIndex(a => new { a.Type, a.Status, a.CertificateStatus });
             b.HasIndex(a => a.ApprovalRequestId);

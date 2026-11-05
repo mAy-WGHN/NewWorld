@@ -50,8 +50,13 @@ public static class Endpoints
             .RequireAuthorization(AppPolicies.Privilege(AbsencePrivileges.ReadOwn));
 
         me.MapPost("/absences/sick", (ReportSickRequest request, ClaimsPrincipal user, AbsenceService service, WorkforceUnitOfWork uow, CancellationToken ct) =>
-                Mutate(user, id => uow.RunAsync(() => service.ReportSickAsync(id, request.From, request.To, ct), ct)))
+                Mutate(user, id => uow.RunAsync(() => service.ReportSickAsync(id, request.From, request.To, ParseKind(request.Kind), request.ElectronicCertificate, ct), ct)))
             .RequireAuthorization(AppPolicies.Privilege(AbsencePrivileges.CreateOwn));
+
+        // The certificate is an eAU (found in DATEV by HR) or not; the paper upload stays possible and removes the mark.
+        me.MapPut("/absences/{absenceId:guid}/electronic-certificate", (Guid absenceId, SetElectronicCertificateRequest request, ClaimsPrincipal user, WorkforceDbContext db, AbsenceService service, WorkforceUnitOfWork uow, CancellationToken ct) =>
+                MutateOwn(user, db, absenceId, _ => uow.RunAsync(() => service.SetElectronicCertificateAsync(absenceId, request.ElectronicCertificate, ct), ct), ct))
+            .RequireAuthorization(AppPolicies.Privilege(CertificatePrivileges.UploadOwn));
 
         me.MapPost("/absences/vacation", (RequestVacationRequest request, ClaimsPrincipal user, AbsenceService service, WorkforceUnitOfWork uow, CancellationToken ct) =>
                 Mutate(user, id => uow.RunAsync(() => service.RequestVacationAsync(id, request.From, request.To, ct), ct)))
@@ -135,7 +140,7 @@ public static class Endpoints
                 Guid employeeId, ReportSickRequest request, ClaimsPrincipal user, IAuthorizationService auth, AbsenceService service, WorkforceUnitOfWork uow, CancellationToken ct) =>
                 !await Allows(auth, user, new EmployeeResource(employeeId), AbsencePrivileges.Create)
                     ? Results.Forbid()
-                    : ToResult(await uow.RunAsync(() => service.ReportSickAsync(employeeId, request.From, request.To, ct), ct)))
+                    : ToResult(await uow.RunAsync(() => service.ReportSickAsync(employeeId, request.From, request.To, ParseKind(request.Kind), request.ElectronicCertificate, ct), ct)))
             .RequireAuthorization();
 
         api.MapGet("/approvals/pending", async (ClaimsPrincipal user, WorkforceDbContext db, CancellationToken ct) =>
@@ -453,7 +458,7 @@ public static class Endpoints
             AbsenceError.NotAllowed => StatusCodes.Status403Forbidden,
             AbsenceError.FileTooLarge => StatusCodes.Status413PayloadTooLarge,
             AbsenceError.UnsupportedFileType => StatusCodes.Status415UnsupportedMediaType,
-            AbsenceError.InvalidPeriod or AbsenceError.AfterExit or AbsenceError.NoEntitlement or AbsenceError.InsufficientBalance or AbsenceError.FileRejected or AbsenceError.InvalidRetention or AbsenceError.InvalidReminderSettings or AbsenceError.InvalidVacationRules or AbsenceError.WaitingPeriod => StatusCodes.Status422UnprocessableEntity,
+            AbsenceError.InvalidPeriod or AbsenceError.InvalidKind or AbsenceError.NoPredecessor or AbsenceError.AfterExit or AbsenceError.NoEntitlement or AbsenceError.InsufficientBalance or AbsenceError.FileRejected or AbsenceError.InvalidRetention or AbsenceError.InvalidReminderSettings or AbsenceError.InvalidVacationRules or AbsenceError.WaitingPeriod => StatusCodes.Status422UnprocessableEntity,
             _ => StatusCodes.Status409Conflict,
         },
         title: error.ToString());
@@ -461,7 +466,13 @@ public static class Endpoints
     private static AbsenceDto ToDto(Absence a, bool reason, bool sync, bool certificate) => new(
         a.Id, a.EmployeeId, reason ? a.Type.ToString() : null, a.Status.ToString(), a.From, a.To,
         reason && certificate && a.Type == AbsenceType.Sickness ? a.CertificateStatus.ToString() : null, reason && certificate ? a.CertifiedThrough : null,
-        sync ? a.Version : null, sync ? a.SyncStatus.ToString() : null);
+        sync ? a.Version : null, sync ? a.SyncStatus.ToString() : null,
+        reason && certificate && a.Type == AbsenceType.Sickness ? a.Kind.ToString() : null,
+        reason && certificate && a.Type == AbsenceType.Sickness ? a.ElectronicCertificate : null);
+
+    /// <summary>`First` or `FollowUp`; anything else (also nothing) is `Unknown`, which the service refuses.</summary>
+    private static SickNoteKind ParseKind(string? kind) =>
+        Enum.TryParse<SickNoteKind>(kind, ignoreCase: true, out var parsed) && Enum.IsDefined(parsed) ? parsed : SickNoteKind.Unknown;
 
     internal static async Task<bool> Allows(IAuthorizationService auth, ClaimsPrincipal user, object resource, string privilege) =>
         (await auth.AuthorizeAsync(user, resource, AppPolicies.Privilege(privilege))).Succeeded;

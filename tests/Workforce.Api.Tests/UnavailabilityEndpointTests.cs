@@ -216,7 +216,7 @@ public sealed class UnavailabilityEndpointTests(PostgresFixture postgres) : ICla
         await api.SetEntitlementAsync(Erika, 2026, 30);
         var vacation = await api.PostAbsenceAsync("/api/me/absences/vacation", Erika, new RequestVacationRequest(new DateOnly(2026, 11, 2), new DateOnly(2026, 11, 13)));
         await api.PostAbsenceAsync($"/api/absences/{vacation.Id}/approve", Max);
-        await api.PostAbsenceAsync("/api/me/absences/sick", Erika, new ReportSickRequest(new DateOnly(2026, 11, 4), new DateOnly(2026, 11, 5)));
+        await api.PostAbsenceAsync("/api/me/absences/sick", Erika, new ReportSickRequest(new DateOnly(2026, 11, 4), new DateOnly(2026, 11, 5), "First"));
 
         var own = await api.GetAsync<List<UnavailabilityDto>>("/api/me/unavailabilities", Erika);
 
@@ -237,7 +237,7 @@ public sealed class UnavailabilityEndpointTests(PostgresFixture postgres) : ICla
     public async Task Colleagues_see_sickness_by_name_but_every_other_kind_only_as_unavailable()
     {
         await using var api = await StartAsync(postgres);
-        await api.PostAbsenceAsync("/api/me/absences/sick", Erika, new ReportSickRequest(new DateOnly(2026, 10, 23), new DateOnly(2026, 10, 24)));
+        await api.PostAbsenceAsync("/api/me/absences/sick", Erika, new ReportSickRequest(new DateOnly(2026, 10, 23), new DateOnly(2026, 10, 24), "First"));
         await EnterAsync(api, Hanna, Erika, (await KindAsync(api, "REHA")).Id, "2026-11-02", "2026-11-03");
         await EnterAsync(api, Hanna, Erika, (await KindAsync(api, "FREI")).Id, "2026-11-04", "2026-11-04");
 

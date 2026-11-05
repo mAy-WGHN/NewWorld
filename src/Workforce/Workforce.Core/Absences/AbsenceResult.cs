@@ -38,6 +38,12 @@ public enum AbsenceError
     InvalidReminderSettings = 17,
     InvalidVacationRules = 18,
     WaitingPeriod = 19,
+
+    /// <summary>A sick note is either a first or a follow-up certificate.</summary>
+    InvalidKind = 20,
+
+    /// <summary>A follow-up sick note has to follow directly on another sick note of the person.</summary>
+    NoPredecessor = 21,
 }
 
 public sealed record AbsenceResult(AbsenceError Error, Absence? Absence = null)

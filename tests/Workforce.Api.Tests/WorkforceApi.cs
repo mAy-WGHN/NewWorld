@@ -141,6 +141,19 @@ public sealed class WorkforceApi : WebApplicationFactory<ApiMarker>
         return (await response.Content.ReadFromJsonAsync<AbsenceDto>())!;
     }
 
+    /// <summary>
+    /// A sick note without a last day: only sick notes reported before the end became mandatory look like this, so the test reports one with
+    /// a last day and takes it away in the database.
+    /// </summary>
+    public async Task<AbsenceDto> PostOpenSickAsync(Guid person, DateOnly from)
+    {
+        var absence = await PostAbsenceAsync("/api/me/absences/sick", person, new ReportSickRequest(from, from, "First"));
+        using var scope = Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<WorkforceDbContext>();
+        await db.Absences.Where(a => a.Id == absence.Id).ExecuteUpdateAsync(s => s.SetProperty(a => a.To, (DateOnly?)null));
+        return absence with { To = null };
+    }
+
     /// <summary>Uploads a certificate as a form (file, first and last day from the certificate).</summary>
     public async Task<HttpResponseMessage> UploadCertificateAsync(string url, Guid? person, byte[] file, string from, string to, string fileName = "au.pdf")
     {

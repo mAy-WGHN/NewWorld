@@ -775,4 +775,43 @@ public class CertificateServiceTests
 
         _certificates.LogEntries.Count(e => e.Action == CertificateAction.Uploaded).ShouldBe(0);
     }
+
+    // ------------------------------------------------------------------ eAU mark
+
+    [Fact]
+    public async Task The_electronic_certificate_mark_stops_the_reminders_and_an_uploaded_paper_certificate_removes_it()
+    {
+        var sick = (await Absences().ReportSickAsync(Erika, D("2026-07-15"), D("2026-07-16"), SickNoteKind.First, electronicCertificate: true, CancellationToken.None)).Absence!;
+        _messages.Sent.Clear();
+        _time.Advance(TimeSpan.FromDays(2));
+
+        (await Service().SendRemindersAsync(CancellationToken.None)).ShouldBe(0);
+
+        var upload = await Service().UploadAsync(sick.Id, Erika, Pdf, D("2026-07-15"), D("2026-07-16"), CancellationToken.None);
+        upload.Error.ShouldBe(AbsenceError.None);
+        sick.ElectronicCertificate.ShouldBeFalse();
+        sick.CertificateStatus.ShouldBe(CertificateStatus.Submitted);
+    }
+
+    [Fact]
+    public async Task Without_the_mark_the_reminder_still_comes()
+    {
+        await SickNote("2026-07-15", "2026-07-16");
+        _time.Advance(TimeSpan.FromDays(2));
+
+        (await Service().SendRemindersAsync(CancellationToken.None)).ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task The_mark_cannot_be_set_while_a_paper_certificate_waits_or_is_confirmed_but_can_be_taken_back()
+    {
+        var sick = await SickNote("2026-07-15", "2026-07-16");
+        await Upload(sick, "2026-07-15", "2026-07-16");
+
+        (await Absences().SetElectronicCertificateAsync(sick.Id, true, CancellationToken.None)).Error.ShouldBe(AbsenceError.InvalidState);
+
+        sick.ElectronicCertificate = true; // e.g. set before
+        (await Absences().SetElectronicCertificateAsync(sick.Id, false, CancellationToken.None)).Error.ShouldBe(AbsenceError.None);
+        sick.ElectronicCertificate.ShouldBeFalse();
+    }
 }

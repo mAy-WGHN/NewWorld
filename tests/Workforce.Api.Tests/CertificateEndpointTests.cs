@@ -26,7 +26,7 @@ namespace Workforce.Api.Tests;
 public sealed class CertificateEndpointTests(PostgresFixture postgres) : IClassFixture<PostgresFixture>
 {
     private static readonly byte[] Pdf = Encoding.ASCII.GetBytes("%PDF-1.7 the certificate of Erika");
-    private static readonly ReportSickRequest Sick = new(new DateOnly(2026, 10, 23), new DateOnly(2026, 10, 25));
+    private static readonly ReportSickRequest Sick = new(new DateOnly(2026, 10, 23), new DateOnly(2026, 10, 25), "First");
 
     private static string Own(Guid absenceId) => $"/api/me/absences/{absenceId}/certificates";
 
@@ -68,7 +68,7 @@ public sealed class CertificateEndpointTests(PostgresFixture postgres) : IClassF
     public async Task The_period_from_the_certificate_gives_an_open_sick_note_its_end_and_goes_to_bc()
     {
         await using var api = await StartAsync(postgres);
-        var open = await ReportedAsync(api, new ReportSickRequest(new DateOnly(2026, 10, 23), null));
+        var open = await api.PostOpenSickAsync(Erika, new DateOnly(2026, 10, 23));
 
         await api.UploadOkAsync(Own(open.Id), Erika, Pdf, "2026-10-23", "2026-10-30");
 
@@ -439,7 +439,7 @@ public sealed class CertificateEndpointTests(PostgresFixture postgres) : IClassF
     public async Task The_maintenance_removes_files_that_no_document_refers_to_but_keeps_the_ones_that_do()
     {
         await using var api = await StartAsync(postgres);
-        var open = await ReportedAsync(api, new ReportSickRequest(new DateOnly(2026, 10, 23), null));
+        var open = await api.PostOpenSickAsync(Erika, new DateOnly(2026, 10, 23));
         await api.UploadOkAsync(Own(open.Id), Erika, Pdf, "2026-10-23", "2026-10-25");
         (await api.SendAsync(HttpMethod.Put, "/api/certificates/retention", Hanna, new { retentionAfterEndDays = 3650 })).StatusCode.ShouldBe(HttpStatusCode.OK); // the document is not due
         var storage = api.Services.GetRequiredService<ICertificateFileStorage>();
@@ -606,5 +606,104 @@ public sealed class CertificateEndpointTests(PostgresFixture postgres) : IClassF
         (await db2.CertificateDocuments.AnyAsync(d => d.UploadedBy == Max)).ShouldBeFalse();
         (await db2.CertificateAccessLog.AnyAsync(e => e.ActorId == Max)).ShouldBeFalse();
         (await db2.CertificateDocuments.CountAsync(d => d.EmployeeId == Ben)).ShouldBe(1);
+    }
+
+    // ------------------------------------------------------------------ first / follow-up, mandatory end, eAU mark
+
+    private static string Electronic(Guid absenceId) => $"/api/me/absences/{absenceId}/electronic-certificate";
+
+    [Fact]
+    public async Task A_sick_note_needs_a_last_day_and_a_kind()
+    {
+        await using var api = await StartAsync(postgres);
+
+        using var noEnd = await api.SendAsync(HttpMethod.Post, "/api/me/absences/sick", Erika, new { from = "2026-10-23", kind = "First" });
+        using var noKind = await api.SendAsync(HttpMethod.Post, "/api/me/absences/sick", Erika, new { from = "2026-10-23", to = "2026-10-25" });
+        using var wrongKind = await api.SendAsync(HttpMethod.Post, "/api/me/absences/sick", Erika, new { from = "2026-10-23", to = "2026-10-25", kind = "Something" });
+        using var backwards = await api.SendAsync(HttpMethod.Post, "/api/me/absences/sick", Erika, new { from = "2026-10-25", to = "2026-10-23", kind = "First" });
+
+        noEnd.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity); // a missing last day is no valid period
+        noKind.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+        wrongKind.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+        backwards.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+        (await api.GetAsync<List<AbsenceDto>>("/api/me/absences", Erika)).ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task A_follow_up_is_only_possible_directly_after_a_sick_note()
+    {
+        await using var api = await StartAsync(postgres);
+
+        using var alone = await api.SendAsync(HttpMethod.Post, "/api/me/absences/sick", Erika, new ReportSickRequest(new DateOnly(2026, 10, 26), new DateOnly(2026, 10, 28), "FollowUp"));
+        alone.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+        (await alone.Content.ReadAsStringAsync()).ShouldContain("NoPredecessor");
+
+        await ReportedAsync(api); // 23. to 25.
+        using var gap = await api.SendAsync(HttpMethod.Post, "/api/me/absences/sick", Erika, new ReportSickRequest(new DateOnly(2026, 10, 27), new DateOnly(2026, 10, 28), "FollowUp"));
+        gap.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+
+        var followUp = await api.PostAbsenceAsync("/api/me/absences/sick", Erika, new ReportSickRequest(new DateOnly(2026, 10, 26), new DateOnly(2026, 10, 28), "followup"));
+        followUp.SickNoteKind.ShouldBe("FollowUp");
+        followUp.CertificateStatus.ShouldBe("Missing"); // its own certificate is needed
+    }
+
+    [Fact]
+    public async Task Kind_and_the_electronic_mark_are_shown_to_the_person_and_HR()
+    {
+        await using var api = await StartAsync(postgres);
+        var absence = await api.PostAbsenceAsync("/api/me/absences/sick", Erika, Sick with { ElectronicCertificate = true });
+
+        (absence.SickNoteKind, absence.ElectronicCertificate).ShouldBe(("First", true));
+        var byHr = (await api.GetAsync<List<AbsenceDto>>($"/api/employees/{Erika}/absences", Hanna)).Single();
+        (byHr.SickNoteKind, byHr.ElectronicCertificate).ShouldBe(("First", true));
+        var overview = (await api.GetAsync<PageDto<SickNoteOverviewDto>>("/api/sick-notes", Hanna)).Items.Single();
+        (overview.Kind, overview.ElectronicCertificate).ShouldBe(("First", true));
+    }
+
+    [Fact]
+    public async Task The_person_marks_the_certificate_as_electronic_afterwards_and_takes_the_mark_back()
+    {
+        await using var api = await StartAsync(postgres);
+        var absence = await ReportedAsync(api);
+
+        using var marked = await api.SendAsync(HttpMethod.Put, Electronic(absence.Id), Erika, new { electronicCertificate = true });
+        marked.StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await marked.Content.ReadFromJsonAsync<AbsenceDto>())!.ElectronicCertificate.ShouldBe(true);
+        (await api.GetAsync<PageDto<SickNoteOverviewDto>>("/api/sick-notes?electronic=true", Hanna)).Items.Select(i => i.AbsenceId).ShouldBe([absence.Id]);
+        (await api.GetAsync<PageDto<SickNoteOverviewDto>>("/api/sick-notes?electronic=false", Hanna)).Items.ShouldBeEmpty();
+
+        using var back = await api.SendAsync(HttpMethod.Put, Electronic(absence.Id), Erika, new { electronicCertificate = false });
+        (await back.Content.ReadFromJsonAsync<AbsenceDto>())!.ElectronicCertificate.ShouldBe(false);
+        (await api.OutboxAsync()).Count(m => m.MessageType == "SyncAbsenceToBc").ShouldBe(1); // the mark is not part of what goes to BC
+    }
+
+    [Fact]
+    public async Task A_paper_certificate_uploaded_later_removes_the_electronic_mark_and_the_upload_never_goes_away()
+    {
+        await using var api = await StartAsync(postgres);
+        var absence = await api.PostAbsenceAsync("/api/me/absences/sick", Erika, Sick with { ElectronicCertificate = true });
+
+        await api.UploadOkAsync(Own(absence.Id), Erika, Pdf, "2026-10-23", "2026-10-25");
+
+        var own = (await api.GetAsync<List<AbsenceDto>>("/api/me/absences", Erika)).Single();
+        (own.ElectronicCertificate, own.CertificateStatus).ShouldBe((false, "Submitted"));
+        using var tooLate = await api.SendAsync(HttpMethod.Put, Electronic(absence.Id), Erika, new { electronicCertificate = true });
+        tooLate.StatusCode.ShouldBe(HttpStatusCode.Conflict); // a certificate is waiting: it counts
+    }
+
+    [Fact]
+    public async Task The_electronic_mark_needs_the_upload_privilege_and_is_only_for_the_own_sick_note()
+    {
+        await using var api = await StartAsync(postgres);
+        var absence = await ReportedAsync(api);
+
+        using var stranger = await api.SendAsync(HttpMethod.Put, Electronic(absence.Id), Lena, new { electronicCertificate = true });
+        using var anonymous = await api.SendAsync(HttpMethod.Put, Electronic(absence.Id), null, new { electronicCertificate = true });
+        api.Services.GetRequiredService<IPermissionCache>().Grant(Erika, new TestGrant(AbsencePrivileges.ReadOwn));
+        using var without = await api.SendAsync(HttpMethod.Put, Electronic(absence.Id), Erika, new { electronicCertificate = true });
+
+        stranger.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        anonymous.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        without.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
     }
 }

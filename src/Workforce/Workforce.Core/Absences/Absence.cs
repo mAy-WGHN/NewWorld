@@ -12,6 +12,14 @@ public enum SyncStatus
     Failed = 3,
 }
 
+/// <summary>Sickness only: the first certificate of an illness, or one that follows directly on a sick note.</summary>
+public enum SickNoteKind
+{
+    Unknown = 0,
+    First = 1,
+    FollowUp = 2,
+}
+
 /// <summary>
 /// An absence of a person: sickness (period and the state of the medical certificate (AU), no free text and no diagnosis) or vacation (approved through
 /// <c>Shared.Approvals</c>). Every change raises <see cref="Version"/>; the version goes to BC and makes the transfer an upsert.
@@ -26,7 +34,7 @@ public sealed class Absence
 
     public DateOnly From { get; set; }
 
-    /// <summary>Last day; <c>null</c> = until further notice (sickness only).</summary>
+    /// <summary>Last day; <c>null</c> = until further notice (only sick notes reported before the end became mandatory).</summary>
     public DateOnly? To { get; set; }
 
     public AbsenceStatus Status { get; set; }
@@ -36,6 +44,15 @@ public sealed class Absence
     /// Nothing else about the illness is stored.
     /// </summary>
     public CertificateStatus CertificateStatus { get; set; }
+
+    /// <summary>Sickness only: first or follow-up sick note (`Unknown` for sick notes reported before the distinction existed). Stays in Workforce, never goes to BC.</summary>
+    public SickNoteKind Kind { get; set; }
+
+    /// <summary>
+    /// Sickness only: the person says the certificate is an electronic one (eAU) that HR finds in DATEV, so there is nothing to upload and no
+    /// reminder. An uploaded paper certificate removes the mark again. Stays in Workforce, never goes to BC.
+    /// </summary>
+    public bool ElectronicCertificate { get; set; }
 
     /// <summary>Sickness only: last day covered by an uploaded certificate (as entered by the uploader).</summary>
     public DateOnly? CertifiedThrough { get; set; }

@@ -161,7 +161,7 @@ public static class CertificateEndpoints
 
         // HR overview: which sick notes still lack a certificate, which are waiting for the check. Filterable; only people in the caller's reach.
         app.MapGet("/api/sick-notes", async (
-                string? certificateStatus, DateOnly? from, DateOnly? to, Guid? storeId, Guid? employeeId, int? page, int? pageSize,
+                string? certificateStatus, bool? electronic, DateOnly? from, DateOnly? to, Guid? storeId, Guid? employeeId, int? page, int? pageSize,
                 ClaimsPrincipal user, IPermissionCache cache, WorkforceDbContext db, CancellationToken ct) =>
             {
                 if (Endpoints.Me(user) is not { } me || !cache.TryGet(me, out var snapshot) || snapshot is null
@@ -199,6 +199,11 @@ public static class CertificateEndpoints
                     query = query.Where(x => statuses.Contains(x.Absence.CertificateStatus));
                 }
 
+                if (electronic is { } isElectronic)
+                {
+                    query = query.Where(x => x.Absence.ElectronicCertificate == isElectronic);
+                }
+
                 if (from is { } start)
                 {
                     query = query.Where(x => x.Absence.To == null || x.Absence.To >= start);
@@ -224,7 +229,7 @@ public static class CertificateEndpoints
                 return Results.Ok(new PageDto<SickNoteOverviewDto>(
                     [.. rows.Select(x => new SickNoteOverviewDto(
                         x.Absence.Id, x.Absence.EmployeeId, x.Person.Name, x.Person.HomeStoreId, x.Absence.From, x.Absence.To, x.Absence.CertificateStatus.ToString(),
-                        x.Absence.CertifiedThrough, x.Absence.RemindersSent, x.Absence.LastReminderAt))],
+                        x.Absence.CertifiedThrough, x.Absence.RemindersSent, x.Absence.LastReminderAt, x.Absence.Kind.ToString(), x.Absence.ElectronicCertificate))],
                     total, number, size));
             })
             .RequireAuthorization(AppPolicies.Privilege(CertificatePrivileges.ReadStatus));

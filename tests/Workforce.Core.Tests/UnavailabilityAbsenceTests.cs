@@ -73,11 +73,11 @@ public class UnavailabilityAbsenceTests
     }
 
     [Fact]
-    public async Task Open_ended_sickness_starting_inside_the_vacation_gets_KU_until_the_vacation_ends()
+    public async Task Sickness_starting_inside_the_vacation_and_lasting_longer_gets_KU_until_the_vacation_ends()
     {
         await ApprovedVacation("2026-08-03", "2026-08-14");
 
-        await Service().ReportSickAsync(Erika, D("2026-08-10"), null, CancellationToken.None);
+        await Service().ReportSickAsync(Erika, D("2026-08-10"), D("2026-08-31"), CancellationToken.None);
 
         var ku = _unavailability.Entries.Single();
         (ku.From, ku.To).ShouldBe((D("2026-08-10"), D("2026-08-14")));

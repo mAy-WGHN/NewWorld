@@ -457,11 +457,11 @@ public class AbsenceServiceTests
     }
 
     [Fact]
-    public async Task Open_ended_sickness_cuts_off_the_rest_of_the_vacation()
+    public async Task Sickness_cuts_off_the_rest_of_the_vacation()
     {
         var vacation = await ApprovedVacation("2026-08-03", "2026-08-15");
 
-        await Service().ReportSickAsync(Erika, D("2026-08-06"), null, CancellationToken.None);
+        await Service().ReportSickAsync(Erika, D("2026-08-06"), D("2026-08-20"), CancellationToken.None);
 
         vacation.To.ShouldBe(D("2026-08-05"));
         _store.Absences.Count(a => a.Type == AbsenceType.Vacation).ShouldBe(1);
@@ -764,6 +764,89 @@ public class AbsenceServiceTests
     [Fact]
     public async Task Additional_days_of_an_unknown_person_are_refused() =>
         (await Service().AddExtraVacationAsync(Guid.NewGuid(), ExtraVacationKind.Additional, 2026, 1, Max, CancellationToken.None)).Error.ShouldBe(AbsenceError.UnknownPerson);
+
+    // ------------------------------------------------------------------ first / follow-up sick note, eAU mark
+
+    [Fact]
+    public async Task A_sick_note_is_recorded_as_first_with_its_kind_and_the_electronic_mark()
+    {
+        var sick = (await Service().ReportSickAsync(Erika, D("2026-07-15"), D("2026-07-17"), SickNoteKind.First, electronicCertificate: true, CancellationToken.None)).Absence!;
+
+        (sick.Kind, sick.ElectronicCertificate, sick.To).ShouldBe((SickNoteKind.First, true, D("2026-07-17")));
+    }
+
+    [Fact]
+    public async Task The_kind_has_to_be_first_or_follow_up()
+    {
+        (await Service().ReportSickAsync(Erika, D("2026-07-15"), D("2026-07-17"), SickNoteKind.Unknown, false, CancellationToken.None)).Error.ShouldBe(AbsenceError.InvalidKind);
+        (await Service().ReportSickAsync(Erika, D("2026-07-15"), D("2026-07-17"), (SickNoteKind)99, false, CancellationToken.None)).Error.ShouldBe(AbsenceError.InvalidKind);
+    }
+
+    [Fact]
+    public async Task The_last_day_cannot_be_before_the_first_day()
+    {
+        (await Service().ReportSickAsync(Erika, D("2026-07-17"), D("2026-07-15"), SickNoteKind.First, false, CancellationToken.None)).Error.ShouldBe(AbsenceError.InvalidPeriod);
+    }
+
+    [Fact]
+    public async Task A_follow_up_has_to_follow_directly_on_a_sick_note()
+    {
+        await Service().ReportSickAsync(Erika, D("2026-07-15"), D("2026-07-17"), SickNoteKind.First, false, CancellationToken.None);
+
+        (await Service().ReportSickAsync(Erika, D("2026-07-19"), D("2026-07-21"), SickNoteKind.FollowUp, false, CancellationToken.None)).Error.ShouldBe(AbsenceError.NoPredecessor);
+        var followUp = await Service().ReportSickAsync(Erika, D("2026-07-18"), D("2026-07-21"), SickNoteKind.FollowUp, false, CancellationToken.None);
+
+        followUp.Error.ShouldBe(AbsenceError.None);
+        followUp.Absence!.Kind.ShouldBe(SickNoteKind.FollowUp);
+    }
+
+    [Fact]
+    public async Task A_follow_up_without_any_sick_note_before_is_refused()
+    {
+        (await Service().ReportSickAsync(Erika, D("2026-07-18"), D("2026-07-21"), SickNoteKind.FollowUp, false, CancellationToken.None)).Error.ShouldBe(AbsenceError.NoPredecessor);
+    }
+
+    [Fact]
+    public async Task A_withdrawn_or_other_persons_sick_note_does_not_count_as_predecessor()
+    {
+        await Service().ReportSickAsync(Max, D("2026-07-15"), D("2026-07-17"), SickNoteKind.First, false, CancellationToken.None);
+
+        (await Service().ReportSickAsync(Erika, D("2026-07-18"), D("2026-07-21"), SickNoteKind.FollowUp, false, CancellationToken.None)).Error.ShouldBe(AbsenceError.NoPredecessor);
+    }
+
+    [Fact]
+    public async Task A_follow_up_needs_its_own_certificate()
+    {
+        var first = (await Service().ReportSickAsync(Erika, D("2026-07-15"), D("2026-07-17"), SickNoteKind.First, false, CancellationToken.None)).Absence!;
+        var follow = (await Service().ReportSickAsync(Erika, D("2026-07-18"), D("2026-07-21"), SickNoteKind.FollowUp, false, CancellationToken.None)).Absence!;
+        first.CertificateStatus = Certificates.CertificateStatus.Verified;
+
+        follow.CertificateStatus.ShouldBe(Certificates.CertificateStatus.Missing);
+    }
+
+    [Fact]
+    public async Task The_electronic_mark_can_be_set_and_taken_back_without_a_new_version()
+    {
+        var sick = (await Service().ReportSickAsync(Erika, D("2026-07-15"), D("2026-07-17"), SickNoteKind.First, false, CancellationToken.None)).Absence!;
+        _messages.Sent.Clear();
+
+        (await Service().SetElectronicCertificateAsync(sick.Id, true, CancellationToken.None)).Error.ShouldBe(AbsenceError.None);
+        sick.ElectronicCertificate.ShouldBeTrue();
+        (await Service().SetElectronicCertificateAsync(sick.Id, false, CancellationToken.None)).Error.ShouldBe(AbsenceError.None);
+
+        sick.ElectronicCertificate.ShouldBeFalse();
+        sick.Version.ShouldBe(1);
+        _messages.Sent.ShouldBeEmpty(); // not part of what goes to BC
+    }
+
+    [Fact]
+    public async Task The_electronic_mark_only_exists_for_a_reported_sick_note()
+    {
+        var vacation = await ApprovedVacation("2026-08-03", "2026-08-07");
+
+        (await Service().SetElectronicCertificateAsync(vacation.Id, true, CancellationToken.None)).Error.ShouldBe(AbsenceError.InvalidState);
+        (await Service().SetElectronicCertificateAsync(Guid.NewGuid(), true, CancellationToken.None)).Error.ShouldBe(AbsenceError.NotFound);
+    }
 }
 
 public class AbsenceSyncStatusTests

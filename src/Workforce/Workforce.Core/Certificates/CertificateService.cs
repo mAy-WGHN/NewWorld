@@ -123,6 +123,7 @@ public sealed class CertificateService(
         await certificates.AddAsync(document, content.ToArray(), cancellationToken);
         absence.CertifiedThrough = absence.CertifiedThrough is { } through && through > certifiedTo ? through : certifiedTo;
         absence.CertificateStatus = Derive([.. existing, document]);
+        absence.ElectronicCertificate = false; // a paper certificate after all: the eAU mark no longer applies
         Log(document, CertificateAction.Uploaded, uploaderId, now);
         return CertificateResult.Ok(document, absence);
     }
@@ -351,6 +352,11 @@ public sealed class CertificateService(
         var sent = 0;
         foreach (var absence in await certificates.WithoutCertificateAsync(settings.MaxReminders, cancellationToken))
         {
+            if (absence.ElectronicCertificate)
+            {
+                continue; // an eAU: HR finds it in DATEV, the person has nothing to upload
+            }
+
             if (absence.To is not { } end)
             {
                 continue; // no end yet: the person may still be ill, so nobody is reminded before the return

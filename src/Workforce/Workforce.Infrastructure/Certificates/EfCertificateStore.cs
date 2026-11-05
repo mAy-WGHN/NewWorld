@@ -178,7 +178,7 @@ public sealed class EfCertificateStore(
         await db.Absences
             .Where(a => a.Type == AbsenceType.Sickness && a.Status == AbsenceStatus.Reported
                         && (a.CertificateStatus == CertificateStatus.Missing || a.CertificateStatus == CertificateStatus.Rejected)
-                        && a.RemindersSent < maxReminders)
+                        && !a.ElectronicCertificate && a.RemindersSent < maxReminders)
             .ToListAsync(cancellationToken);
 }
 
