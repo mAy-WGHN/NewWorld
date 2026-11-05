@@ -10,6 +10,8 @@ import {
   MainStore,
   Person,
   Role,
+  RoleDefinitionFile,
+  RoleImportResult,
   StoreGroup,
   StoreOption,
   TopicResponsibility,
@@ -45,6 +47,16 @@ export class AdminAccessApi {
   // catalogue and own privileges
   catalog(): Promise<CatalogEntry[]> {
     return firstValueFrom(this.http.get<CatalogEntry[]>(this.url('/catalog')));
+  }
+
+  // roles as a file
+  roleDefinitions(): Promise<RoleDefinitionFile> {
+    return firstValueFrom(this.http.get<RoleDefinitionFile>(this.url('/role-definitions')));
+  }
+
+  /** Compares the file with the existing roles (apply false), or applies the selected items (names; empty: all that differ). */
+  importRoles(document: RoleDefinitionFile, apply: boolean, selected: string[]): Promise<RoleImportResult> {
+    return firstValueFrom(this.http.post<RoleImportResult>(this.url('/role-definitions/import') + (apply ? '?apply=true' : ''), { document, selected }));
   }
 
   createCustomPrivilege(key: string, scopable: boolean, description: string | null): Promise<unknown> {

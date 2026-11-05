@@ -247,6 +247,58 @@ export function storeName(id: string | null, stores: readonly StoreOption[]): st
   return store ? storeLabel(store) : id;
 }
 
+// ---------- roles as a file ----------
+
+/** The roles of an environment as a file (`GET /api/role-definitions`): own privileges and roles with their privilege patterns; nothing environment-specific. */
+export interface RoleDefinitionFile {
+  version: number;
+  customPrivileges: { key: string; scopable: boolean; description: string | null }[];
+  roles: { name: string; privileges: string[] }[];
+}
+
+/** One line of the comparison of a file with the existing roles; `added`/`removed` are the diff. */
+export interface RoleImportItem {
+  kind: 'role' | 'customPrivilege' | 'file';
+  name: string;
+  action: 'create' | 'update' | 'unchanged' | 'error';
+  added: string[];
+  removed: string[];
+  error: string | null;
+}
+
+export interface RoleImportResult {
+  applied: boolean;
+  hasErrors: boolean;
+  items: RoleImportItem[];
+}
+
+/** Reads a role file; anything that is not one gives a plain message instead of a half-valid object. */
+export function parseRoleFile(text: string): { file: RoleDefinitionFile } | { error: string } {
+  let data: unknown;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    return { error: 'Die Datei ist keine gültige JSON-Datei.' };
+  }
+  const file = data as Partial<RoleDefinitionFile> | null;
+  if (!file || typeof file !== 'object' || typeof file.version !== 'number' || !Array.isArray(file.roles)) {
+    return { error: 'Die Datei ist keine Rollen-Datei (Version und Rollen fehlen).' };
+  }
+  const roles = file.roles.every((r) => r && typeof r.name === 'string' && Array.isArray(r.privileges) && r.privileges.every((p) => typeof p === 'string'));
+  return roles ? { file: { version: file.version, customPrivileges: file.customPrivileges ?? [], roles: file.roles } } : { error: 'In der Datei sind Rollen ohne Namen oder Rechte.' };
+}
+
+/** The text of an item that cannot be imported (the codes come from Access). */
+export function importErrorText(code: string | null): string {
+  if (code === 'UnsupportedVersion') return 'Diese Version der Datei kennt das Portal nicht.';
+  if (code === 'BuiltInRole') return 'Der Administrator lässt sich nicht ändern.';
+  if (code === 'Duplicate') return 'Der Name kommt in der Datei mehrfach vor.';
+  if (code === 'Invalid') return 'Name oder Recht ist ungültig.';
+  if (code === 'InUse') return 'Dieses Recht gibt es schon bei einem Dienst.';
+  if (code?.startsWith('UnknownPrivilege')) return `Das Recht „${code.slice(code.indexOf(':') + 1).trim()}“ gibt es in diesem System nicht (ein Dienst hat es nicht angemeldet).`;
+  return code ?? 'Unbekannter Fehler.';
+}
+
 // ---------- errors ----------
 
 const MESSAGES: Record<string, string> = {

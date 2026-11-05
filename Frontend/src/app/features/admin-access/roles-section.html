@@ -13,6 +13,8 @@
   </p>
 }
 
+<app-role-transfer (imported)="onImported()" />
+
 @if (canCreate() && !catalogMissing()) {
   @if (creating()) {
     <app-row-card class="mb-3" data-testid="create-panel">

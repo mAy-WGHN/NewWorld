@@ -1,0 +1,73 @@
+<app-row-card class="mb-4" data-testid="role-transfer">
+  <div class="flex flex-col gap-3">
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <div class="flex flex-col">
+        <strong>Rollen als Datei</strong>
+        <span class="text-[13px] opacity-70">Exportiere die Rollen und ihre Rechte und spiele sie in einem anderen System ein, zum Beispiel lokal → Produktion. Personen, Zuweisungen und Filialgruppen sind nicht enthalten.</span>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        @if (canExport()) {
+          <button mat-stroked-button type="button" data-action="export" [disabled]="act.busy()" (click)="export()">Exportieren</button>
+        }
+        @if (canImport()) {
+          <button mat-stroked-button type="button" data-action="pick" [disabled]="act.busy()" (click)="picker.click()">Datei vergleichen …</button>
+          <input #picker type="file" accept=".json,application/json" class="hidden" data-testid="file-input" (change)="choose($event)" />
+        }
+      </div>
+    </div>
+
+    <app-action-messages [state]="act" />
+    @if (fileError(); as message) {
+      <p class="m-0 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="file-error">{{ message }}</p>
+    }
+
+    @if (result(); as r) {
+      <div class="flex flex-col gap-2 border-t border-outline-variant pt-3" data-testid="diff">
+        <strong>Vergleich mit „{{ fileName() }}“</strong>
+
+        @for (e of errors(); track e.kind + e.name) {
+          <p class="m-0 rounded-xl border border-error px-3 py-2 text-sm text-error" role="alert" data-testid="diff-error">
+            <strong>{{ e.name }}:</strong> {{ errorText(e.error) }}
+          </p>
+        }
+        @if (r.hasErrors) {
+          <p class="m-0 text-sm">Wegen der Fehler kann nichts übernommen werden. Bitte die Datei korrigieren.</p>
+        }
+
+        @for (c of changes(); track c.kind + c.name) {
+          <div class="flex flex-col gap-1 rounded-xl bg-surface-container px-3 py-2" data-testid="diff-item" [attr.data-name]="c.name">
+            <mat-checkbox [checked]="isSelected(c)" [disabled]="r.hasErrors || act.busy()" (change)="toggle(c)">
+              <strong>{{ c.name }}</strong>
+              <span class="text-[13px] opacity-80"> – {{ c.kind === 'customPrivilege' ? 'eigenes Recht neu' : c.action === 'create' ? 'Rolle neu' : 'Rolle ändert sich' }}</span>
+            </mat-checkbox>
+            @if (c.added.length || c.removed.length) {
+              <ul class="m-0 ml-10 flex list-none flex-col gap-0.5 p-0 font-mono text-[13px]">
+                @for (p of c.added; track p) {
+                  <li class="text-primary" data-testid="diff-added">+ {{ p }}</li>
+                }
+                @for (p of c.removed; track p) {
+                  <li class="text-error" data-testid="diff-removed">− {{ p }}</li>
+                }
+              </ul>
+            }
+          </div>
+        }
+        @if (changes().length === 0 && !r.hasErrors) {
+          <p class="m-0 text-sm" data-testid="diff-empty">Kein Unterschied: Alle {{ unchangedCount() }} Einträge der Datei sind schon so vorhanden.</p>
+        }
+        @if (changes().length && unchangedCount()) {
+          <span class="text-[13px] opacity-70">{{ unchangedCount() }} Einträge sind schon gleich.</span>
+        }
+
+        <div class="flex flex-wrap gap-2">
+          @if (changes().length && !r.hasErrors) {
+            <button mat-flat-button type="button" data-action="apply" [disabled]="act.busy() || selected().size === 0" (click)="apply()">
+              Ausgewählte übernehmen ({{ selected().size }})
+            </button>
+          }
+          <button mat-stroked-button type="button" data-action="cancel-import" (click)="cancel()">Verwerfen</button>
+        </div>
+      </div>
+    }
+  </div>
+</app-row-card>

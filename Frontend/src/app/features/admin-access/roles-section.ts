@@ -4,6 +4,7 @@ import { AdminAccessApi } from './admin-access.api';
 import { CatalogEntry, Role, builtInHint, canChangeRole, canDeleteRole, validateRoleName } from './admin-access-models';
 import { ADMIN_UI, ActionMessages, ActionState } from './admin-ui';
 import { PrivilegePicker } from './privilege-picker';
+import { RoleTransfer } from './role-transfer';
 
 /**
  * "Rollen": a role is a named set of privileges. People get roles in "Personen". Built-in roles cannot be deleted; the administrator role
@@ -11,7 +12,7 @@ import { PrivilegePicker } from './privilege-picker';
  */
 @Component({
   selector: 'app-roles-section',
-  imports: [...ADMIN_UI, ActionMessages, PrivilegePicker],
+  imports: [...ADMIN_UI, ActionMessages, PrivilegePicker, RoleTransfer],
   templateUrl: './roles-section.html',
 })
 export class RolesSection {
@@ -152,6 +153,10 @@ export class RolesSection {
     if (ok) {
       this.closeCreate();
     }
+  }
+
+  protected async onImported(): Promise<void> {
+    await this.reloadRoles();
   }
 
   private async reloadRoles(): Promise<void> {
