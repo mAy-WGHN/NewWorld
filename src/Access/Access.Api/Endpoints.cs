@@ -68,6 +68,13 @@ public static class Endpoints
         api.MapPut("/roles/{roleId:guid}", (Guid roleId, UpdateRoleRequest request, ClaimsPrincipal user, AclAdministration admin, CancellationToken ct) =>
                 Run(user, actor => admin.UpdateRoleAsync(actor, roleId, request.Privileges.ToHashSet(StringComparer.Ordinal), ct), _ => Results.NoContent()))
             .RequireAuthorization(AppPolicies.Privilege(AccessPrivileges.RoleUpdate));
+        // Roles as a file for moving them between environments: the export is a plain document, the import compares it with the existing roles (diff)
+        // and applies only when asked to, and only the selected items.
+        api.MapGet("/role-definitions", async (RoleDefinitionService service, CancellationToken ct) => Results.Ok(await service.ExportAsync(ct)))
+            .RequireAuthorization(AppPolicies.Privilege(AccessPrivileges.RoleRead));
+        api.MapPost("/role-definitions/import", async (ImportRolesRequest request, bool? apply, ClaimsPrincipal user, RoleDefinitionService service, CancellationToken ct) =>
+                Actor(user) is not { } actor ? Results.Forbid() : Results.Ok(await service.ImportAsync(actor, request.Document, apply == true, request.Selected, ct)))
+            .RequireAuthorization(AppPolicies.Privilege(AccessPrivileges.RoleUpdate));
         api.MapDelete("/roles/{roleId:guid}", (Guid roleId, ClaimsPrincipal user, AclAdministration admin, CancellationToken ct) =>
                 Run(user, actor => admin.DeleteRoleAsync(actor, roleId, ct), _ => Results.NoContent()))
             .RequireAuthorization(AppPolicies.Privilege(AccessPrivileges.RoleDelete));

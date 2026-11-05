@@ -50,6 +50,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<Recalculator>();
         services.AddScoped<RecalculationRunner>();
         services.AddScoped<AclAdministration>();
+        services.AddScoped<RoleDefinitionService>();
         services.AddAccessLogin(configuration, environment);
         services.AddHostedService<AccessBootstrap>();
         services.AddHostedService<RecalculationService>();

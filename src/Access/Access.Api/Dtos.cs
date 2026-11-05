@@ -1,3 +1,4 @@
+using Access.Infrastructure.Acl;
 namespace Access.Api;
 
 public sealed record MainStoreDto(Guid? EffectiveStoreId, Guid? OverrideStoreId, Guid? SuggestedStoreId);
@@ -20,6 +21,9 @@ public sealed record RoleDto(Guid Id, string Name, IReadOnlyList<string> Privile
 public sealed record CreateRoleRequest(string Name, IReadOnlyList<string> Privileges);
 
 public sealed record UpdateRoleRequest(IReadOnlyList<string> Privileges);
+
+/// <summary>An import of roles: the file and, when applying, the names of the items to apply (empty: all that differ).</summary>
+public sealed record ImportRolesRequest(RoleDefinitionDocument? Document, IReadOnlyList<string>? Selected = null);
 
 public sealed record ScopeDto(Guid Id, string Name, IReadOnlyList<Guid> StoreIds);
 
