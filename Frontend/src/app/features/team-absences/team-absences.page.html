@@ -1,0 +1,195 @@
+<app-page-head title="Team-Abwesenheiten"></app-page-head>
+
+@if (canSeeOwn()) {
+  <div class="mb-4 flex flex-wrap gap-2" role="group" aria-label="Ansicht">
+    <button mat-stroked-button type="button" data-testid="view-team" [class.!bg-primary-container]="view() === 'team'" [attr.aria-pressed]="view() === 'team'" (click)="showView('team')">Team</button>
+    <button mat-stroked-button type="button" data-testid="view-mine" [class.!bg-primary-container]="view() === 'mine'" [attr.aria-pressed]="view() === 'mine'" (click)="showView('mine')">Meine</button>
+  </div>
+}
+
+@if (view() === 'team') {
+  @if (loadError(); as message) {
+    <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="load-error">{{ message }}</p>
+  }
+
+  @if (loaded() && stores().length === 0 && !loadError()) {
+    <p class="m-0 text-sm text-on-surface-variant" data-testid="no-stores">Für Dich ist keine Filiale freigegeben.</p>
+  } @else if (stores().length > 0) {
+    <div class="mb-3 flex flex-wrap items-end gap-3">
+      <div class="flex flex-col gap-1">
+        <label class="text-sm font-medium" for="team-store">Filiale</label>
+        <select id="team-store" class="rounded-lg border border-outline bg-surface px-2 py-2" data-testid="store" [value]="storeId()" (change)="chooseStore($event)">
+          @for (s of stores(); track s.id) {
+            <option [value]="s.id" [selected]="s.id === storeId()">{{ s.name }}</option>
+          }
+        </select>
+      </div>
+      <div class="flex items-center gap-2" role="group" aria-label="Monat">
+        <button mat-stroked-button type="button" data-action="previous" aria-label="Vorheriger Monat" (click)="step(-1)">‹</button>
+        <strong class="min-w-36 text-center" data-testid="month" aria-live="polite">{{ title() }}</strong>
+        <button mat-stroked-button type="button" data-action="next" aria-label="Nächster Monat" (click)="step(1)">›</button>
+        <button mat-stroked-button type="button" data-action="today" (click)="thisMonth()">Heute</button>
+      </div>
+    </div>
+
+    <ul class="m-0 mb-3 flex list-none flex-wrap gap-x-4 gap-y-1 p-0 text-[13px]" aria-label="Legende" data-testid="legend">
+      @for (l of legend; track l.kind) {
+        <li class="flex items-center gap-1.5">
+          <span class="inline-flex h-5 w-6 items-center justify-center rounded text-[11px] font-semibold" [class]="cellClass(l.kind)" aria-hidden="true">{{ cellText(l.kind) }}</span>
+          {{ l.label }}
+        </li>
+      }
+    </ul>
+
+    @if (loaded() && members().length === 0 && !loadError()) {
+      <p class="m-0 mb-2 text-sm text-on-surface-variant" data-testid="empty">In diesem Monat ist niemand abwesend.</p>
+    }
+
+    @if (members().length > 0) {
+      <div class="overflow-x-auto rounded-xl border border-outline-variant" data-testid="grid-scroll" tabindex="0" role="region" [attr.aria-label]="'Abwesenheiten im Monat ' + title()">
+        <table class="border-collapse text-[13px]" data-testid="grid">
+          <thead>
+            <tr>
+              <th scope="col" class="sticky left-0 z-10 min-w-36 bg-surface px-2 py-1 text-left font-medium">Name</th>
+              @for (d of days(); track d.iso) {
+                <th
+                  scope="col"
+                  class="w-8 min-w-8 px-0.5 py-1 text-center font-normal"
+                  [class.bg-surface-container-high]="d.weekend"
+                  [class.!bg-primary-container]="d.iso === today"
+                  [attr.data-weekend]="d.weekend"
+                  [attr.data-today]="d.iso === today"
+                  [attr.aria-current]="d.iso === today ? 'date' : null"
+                  data-testid="day"
+                >
+                  <div class="text-[11px] opacity-70">{{ d.weekday }}</div>
+                  <div>{{ d.day }}</div>
+                </th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (r of grid(); track r.member.employeeId) {
+              <tr data-testid="person-row" [attr.data-id]="r.member.employeeId">
+                <th scope="row" class="sticky left-0 z-10 bg-surface px-2 py-1 text-left font-medium whitespace-nowrap">{{ r.member.name }}</th>
+                @for (c of r.cells; track $index) {
+                  <td
+                    class="h-7 border-l border-outline-variant p-0 text-center"
+                    [class.bg-surface-container-high]="!c && days()[$index].weekend"
+                    [class.!bg-primary-container]="!c && days()[$index].iso === today"
+                  >
+                    @if (c) {
+                      <span
+                        class="flex h-full w-full items-center justify-center text-[11px] font-semibold"
+                        [class]="cellClass(c.kind)"
+                        [attr.data-kind]="c.kind"
+                        [attr.title]="c.label"
+                        [attr.aria-label]="c.label"
+                        data-testid="cell"
+                      >{{ cellText(c.kind) }}{{ c.afterExit ? '!' : '' }}</span>
+                    }
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+
+    @if (manage() && loaded()) {
+      <section class="mt-5 flex flex-col gap-3 rounded-xl bg-surface-container p-4" aria-labelledby="entries-title" data-testid="manage">
+        <h2 id="entries-title" class="m-0 text-base font-medium">Einträge der Personalabteilung</h2>
+        @if (error(); as message) {
+          <p class="m-0 rounded-xl border border-error px-4 py-2.5 text-error" role="alert">{{ message }}</p>
+        }
+        @if (status(); as message) {
+          <p class="m-0 rounded-xl bg-primary-container px-4 py-2.5 text-on-primary-container" role="status" data-testid="status">{{ message }}</p>
+        }
+
+        <div class="flex flex-col gap-1">
+          <label class="text-sm font-medium" for="entry-person">Person</label>
+          <select id="entry-person" class="rounded-lg border border-outline bg-surface px-2 py-2" data-testid="person" (change)="setPerson($event)">
+            <option value="">Bitte wählen</option>
+            @for (m of members(); track m.employeeId) {
+              <option [value]="m.employeeId">{{ m.name }}</option>
+            }
+          </select>
+          <span class="text-[13px] text-on-surface-variant">Hier stehen die Personen, die in diesem Monat einen Eintrag haben.</span>
+        </div>
+
+        @if (canCreate()) {
+          <form class="flex flex-wrap items-end gap-3" data-testid="add-form" (submit)="$event.preventDefault(); add()">
+            <div class="flex flex-col gap-1">
+              <label class="text-sm font-medium" for="entry-kind">Art</label>
+              <select id="entry-kind" class="rounded-lg border border-outline bg-surface px-2 py-2" data-testid="kind" (change)="setKind($event)">
+                <option value="">Bitte wählen</option>
+                @for (k of enterableKinds(); track k.id) {
+                  <option [value]="k.id">{{ k.description }}</option>
+                }
+              </select>
+            </div>
+            <div class="flex flex-col gap-1">
+              <label class="text-sm font-medium" for="entry-from">Von</label>
+              <input id="entry-from" type="date" class="rounded-lg border border-outline bg-surface px-2 py-2" data-testid="from" [value]="from()" (input)="setFrom($event)" />
+            </div>
+            <div class="flex flex-col gap-1">
+              <label class="text-sm font-medium" for="entry-to">Bis</label>
+              <input id="entry-to" type="date" class="rounded-lg border border-outline bg-surface px-2 py-2" data-testid="to" [value]="to()" (input)="setTo($event)" />
+            </div>
+            <button mat-flat-button type="submit" data-action="add" [disabled]="busy()">Eintragen</button>
+          </form>
+        }
+
+        @if (canDelete() && selectedPerson()) {
+          <div class="flex flex-col gap-2" data-testid="entries">
+            @if (personEntries().length === 0) {
+              <p class="m-0 text-sm text-on-surface-variant" data-testid="no-entries">{{ selectedPerson()!.name }} hat in diesem Monat keine Einträge von Hand.</p>
+            }
+            @for (e of personEntries(); track e.id) {
+              <div class="flex flex-col gap-2 rounded-lg bg-surface px-3 py-2.5" data-testid="entry" [attr.data-id]="e.id">
+                <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+                  <div class="flex flex-col">
+                    <strong>{{ periodLabel(e) }}</strong>
+                    <span class="text-[13px]">{{ formatDate(e.from) }} – {{ formatDate(e.to) }}</span>
+                    @if (e.afterExit) {
+                      <span class="text-[13px] text-error" data-testid="after-exit">Reicht über den Austritt der Person hinaus. Der Eintrag bleibt unverändert.</span>
+                    }
+                  </div>
+                  <button mat-stroked-button type="button" data-action="ask-delete" [disabled]="busy()" (click)="askDelete(e)">Löschen …</button>
+                </div>
+                @if (deleting() === e.id) {
+                  <div class="flex flex-wrap items-center gap-2" data-testid="delete-panel">
+                    <span class="text-sm">Den Eintrag wirklich löschen?</span>
+                    <button mat-flat-button type="button" data-action="delete" [disabled]="busy()" (click)="remove(e)">Ja, löschen</button>
+                    <button mat-stroked-button type="button" data-action="cancel-delete" (click)="cancelDelete()">Abbrechen</button>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        }
+      </section>
+    }
+  }
+} @else {
+  @if (mineError(); as message) {
+    <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="mine-error">{{ message }}</p>
+  }
+  @if (mineLoaded() && mine().length === 0 && !mineError()) {
+    <p class="m-0 text-sm text-on-surface-variant" data-testid="mine-empty">Du hast keine Abwesenheiten.</p>
+  }
+  <div class="flex flex-col gap-2.5" role="list">
+    @for (p of mine(); track $index) {
+      <app-row-card data-testid="mine-row">
+        <div class="flex flex-col">
+          <strong>{{ periodLabel(p) }}</strong>
+          <span class="text-[13px]">{{ formatDate(p.from) }}{{ p.to ? ' – ' + formatDate(p.to) : ' (offen)' }}</span>
+          @if (p.afterExit) {
+            <span class="text-[13px]" data-testid="mine-after-exit">Reicht über Deinen Austritt hinaus.</span>
+          }
+        </div>
+      </app-row-card>
+    }
+  </div>
+}
