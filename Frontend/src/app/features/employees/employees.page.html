@@ -1,0 +1,201 @@
+<app-page-head title="Mitarbeitende" />
+
+@if (tabs().length > 1) {
+  <div class="mb-4 flex flex-wrap gap-2" role="tablist" aria-label="Bereiche">
+    @for (t of tabs(); track t.id) {
+      <button
+        mat-stroked-button
+        type="button"
+        role="tab"
+        data-testid="tab"
+        [attr.data-tab]="t.id"
+        [class.!bg-primary-container]="active() === t.id"
+        [attr.aria-selected]="active() === t.id"
+        (click)="select(t.id)"
+      >
+        {{ t.label }}
+      </button>
+    }
+  </div>
+}
+
+@if (error(); as message) {
+  <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="error">{{ message }}</p>
+}
+@if (status(); as message) {
+  <p class="mb-3 rounded-xl bg-primary-container px-4 py-2.5 text-on-primary-container" role="status" data-testid="status">{{ message }}</p>
+}
+
+@if (active() === 'requests') {
+  @if (requestsError(); as message) {
+    <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert">{{ message }}</p>
+  }
+  @if (requestsLoaded() && requests().length === 0 && !requestsError()) {
+    <p class="m-0 mb-2 text-sm text-on-surface-variant" data-testid="no-requests">Keine offenen Änderungsanträge.</p>
+  }
+  <div class="flex flex-col gap-2.5" role="list">
+    @for (r of requests(); track r.id) {
+      <app-row-card [attention]="true" data-testid="request" [attr.data-id]="r.id">
+        <div class="flex flex-col gap-1">
+          <strong>{{ r.personName ?? 'Unbekannte Person' }}@if (r.personnelNumber) { <span class="font-normal"> (Personalnummer {{ r.personnelNumber }})</span> }</strong>
+          <span class="text-[13px] opacity-80">Gestellt am {{ formatDateTime(r.createdAt) }}</span>
+          @for (f of changedFields(r.fields); track f.label) {
+            <span class="text-[13px]" data-testid="changed-field">{{ f.label }} neu: {{ f.value }}</span>
+          }
+          @if (r.message) {
+            <span class="text-[13px]" data-testid="message">Mitteilung: {{ r.message }}</span>
+          }
+        </div>
+        <div class="mt-3 flex flex-wrap items-center gap-2">
+          <button mat-flat-button type="button" data-action="approve" [disabled]="busy()" (click)="approve(r)">Genehmigen</button>
+          <button mat-stroked-button type="button" data-action="ask-reject" [disabled]="busy()" (click)="askReject(r)">Ablehnen …</button>
+        </div>
+        @if (rejecting(); as rej) {
+          @if (rej.id === r.id) {
+            <div class="mt-3 flex flex-wrap items-center gap-2" data-testid="reject-panel">
+              <label class="text-sm font-medium" [for]="'reason-' + r.id">Grund (freiwillig)</label>
+              <input class="rounded-lg border border-outline bg-surface px-2 py-1.5" [id]="'reason-' + r.id" type="text" maxlength="500" [value]="rej.reason" (input)="setRejectReason($event)" />
+              <button mat-flat-button type="button" data-action="reject" [disabled]="busy()" (click)="reject(r)">Antrag ablehnen</button>
+              <button mat-stroked-button type="button" data-action="cancel-reject" (click)="cancelReject()">Abbrechen</button>
+            </div>
+          }
+        }
+      </app-row-card>
+    }
+  </div>
+}
+
+@if (active() === 'create') {
+  @if (formError(); as message) {
+    <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert">{{ message }}</p>
+  }
+  @if (created(); as c) {
+    <p class="mb-3 rounded-xl bg-primary-container px-4 py-2.5 text-on-primary-container" role="status" data-testid="created">
+      Die Person ist angelegt. Personalnummer: <strong data-testid="personnel-number">{{ c.personnelNumber }}</strong>. Die Karte wartet auf die Übernahme durch Business Central.
+      @if (canRead()) {
+        <button mat-stroked-button type="button" class="ml-2" data-action="open-created" (click)="openCreated()">Karte ansehen</button>
+      }
+    </p>
+  }
+  <form class="grid gap-3 sm:grid-cols-2" novalidate (submit)="$event.preventDefault(); submit()">
+    @for (f of textFields; track f.key) {
+      <div class="flex flex-col gap-1">
+        <label class="text-sm font-medium" [for]="'f-' + f.key">{{ f.label }}@if (f.required) { <span> *</span> }</label>
+        <input
+          class="rounded-lg border border-outline bg-surface px-2 py-1.5"
+          [id]="'f-' + f.key"
+          [type]="f.type"
+          [attr.step]="f.type === 'number' ? '0.5' : null"
+          [attr.min]="f.type === 'number' ? '0' : null"
+          [attr.autocomplete]="f.autocomplete ?? null"
+          [attr.aria-invalid]="fieldErrors()[f.key] ? 'true' : null"
+          [value]="form()[f.key]"
+          (input)="setText(f.key, $event)"
+        />
+        @if (fieldErrors()[f.key]; as message) {
+          <span class="text-[13px] text-error" role="alert" data-testid="field-error">{{ message }}</span>
+        }
+      </div>
+    }
+
+    <div class="flex flex-col gap-1">
+      <label class="text-sm font-medium" for="f-gender">Geschlecht <span>*</span></label>
+      <select id="f-gender" class="rounded-lg border border-outline bg-surface px-2 py-1.5" [attr.aria-invalid]="fieldErrors().gender ? 'true' : null" [value]="form().gender" (change)="setSelect('gender', $event)">
+        <option value="">Bitte wählen</option>
+        @for (g of genders; track g.value) {
+          <option [value]="g.value">{{ g.label }}</option>
+        }
+      </select>
+      @if (fieldErrors().gender; as message) {
+        <span class="text-[13px] text-error" role="alert" data-testid="field-error">{{ message }}</span>
+      }
+    </div>
+
+    <div class="flex flex-col gap-1">
+      <label class="text-sm font-medium" for="f-mainStoreId">Hauptfiliale</label>
+      <select id="f-mainStoreId" class="rounded-lg border border-outline bg-surface px-2 py-1.5" [value]="form().mainStoreId" (change)="setSelect('mainStoreId', $event)">
+        <option value="">Keine (Zentrale)</option>
+        @for (s of stores(); track s.id) {
+          <option [value]="s.id">{{ s.name }} ({{ s.storeCode }})</option>
+        }
+      </select>
+    </div>
+
+    @for (l of listFields(); track l.key) {
+      <div class="flex flex-col gap-1">
+        <label class="text-sm font-medium" [for]="'f-' + l.key">{{ l.label }}</label>
+        <select [id]="'f-' + l.key" class="rounded-lg border border-outline bg-surface px-2 py-1.5" [value]="form()[l.key]" (change)="setSelect(l.key, $event)">
+          <option value="">Keine Angabe</option>
+          @for (e of lists()[l.key] ?? []; track e.id) {
+            <option [value]="e.id">{{ e.name }}</option>
+          }
+        </select>
+      </div>
+    }
+
+    <div class="flex flex-col gap-2 sm:col-span-2">
+      <label class="flex items-center gap-2 text-sm"><input type="checkbox" data-testid="qtrado" [checked]="form().qtradoExport" (change)="setFlag('qtradoExport', $event)" /> Qtrado-Export</label>
+      <label class="flex items-center gap-2 text-sm"><input type="checkbox" data-testid="web-time" [checked]="form().webTimeTrackingAllowed" (change)="setFlag('webTimeTrackingAllowed', $event)" /> Zeiterfassung im Web erlaubt</label>
+      <label class="flex items-center gap-2 text-sm"><input type="checkbox" data-testid="password-change" [checked]="form().passwordChangeRequired" (change)="setFlag('passwordChangeRequired', $event)" /> Kennwort muss geändert werden</label>
+    </div>
+
+    <div class="sm:col-span-2">
+      <button mat-flat-button type="submit" data-action="create" [disabled]="busy()">Person anlegen</button>
+    </div>
+  </form>
+}
+
+@if (active() === 'card') {
+  <p class="m-0 mb-3 text-sm text-on-surface-variant">Eine Suche nach Personen gibt es noch nicht. Die Karte lässt sich mit der Mitarbeiter-ID öffnen.</p>
+  <div class="mb-3 flex flex-wrap items-end gap-2">
+    <div class="flex flex-col gap-1">
+      <label class="text-sm font-medium" for="card-id">Mitarbeiter-ID</label>
+      <input id="card-id" class="w-80 max-w-full rounded-lg border border-outline bg-surface px-2 py-1.5" type="text" autocomplete="off" [value]="cardId()" (input)="setCardId($event)" />
+    </div>
+    <button mat-flat-button type="button" data-action="load-card" [disabled]="busy()" (click)="loadCard()">Karte öffnen</button>
+  </div>
+  @if (cardError(); as message) {
+    <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="card-error">{{ message }}</p>
+  }
+  @if (card(); as c) {
+    <app-row-card data-testid="card">
+      <div class="flex flex-col gap-1 text-[14px]">
+        <strong>{{ c.firstName }} {{ c.lastName }} (Personalnummer {{ c.personnelNumber }})</strong>
+        <span>{{ cardStateLabel(c.state) }}</span>
+        <span>Name auf dem Kassenbon: {{ c.receiptName }}</span>
+        <span>Eintritt: {{ formatDate(c.hireDate) }}@if (c.exitDate) { , Austritt: {{ formatDate(c.exitDate) }} }</span>
+        @if (c.businessEmail) {
+          <span>Geschäftliche E-Mail: {{ c.businessEmail }}</span>
+        }
+        @for (l of listFields(); track l.key) {
+          @if (l.key !== 'wageTypeId' && lists()[l.key]) {
+            <span>{{ l.label }}: {{ entryName(l.key, cardValue(c, l.key)) }}</span>
+          }
+        }
+        <span>Qtrado-Export: {{ c.qtradoExport ? 'ja' : 'nein' }}, Zeiterfassung im Web: {{ c.webTimeTrackingAllowed ? 'erlaubt' : 'nicht erlaubt' }}, Kennwort ändern: {{ c.passwordChangeRequired ? 'ja' : 'nein' }}</span>
+        @if (c.note) {
+          <span>Notiz: {{ c.note }}</span>
+        }
+        @if (c.private; as p) {
+          <div class="mt-2 border-t border-outline-variant pt-2" data-testid="private">
+            <strong>Private Angaben</strong>
+            <div class="flex flex-col">
+              <span>Geschlecht: {{ p.gender }}</span>
+              @if (p.birthDate) { <span>Geburtsdatum: {{ formatDate(p.birthDate) }}</span> }
+              @if (p.street || p.postalCode || p.city) { <span>Adresse: {{ p.street }} {{ p.postalCode }} {{ p.city }}</span> }
+              @if (p.privatePhone) { <span>Telefon: {{ p.privatePhone }}</span> }
+              @if (p.privateEmail) { <span>E-Mail: {{ p.privateEmail }}</span> }
+            </div>
+          </div>
+        }
+        @if (c.wage; as w) {
+          <span data-testid="wage">Lohnart: {{ entryName('wageTypeId', w.wageTypeId) }}</span>
+        }
+      </div>
+    </app-row-card>
+  }
+}
+
+@if (tabs().length === 0) {
+  <p class="m-0 text-sm text-on-surface-variant">Für diesen Bereich hast du keine Berechtigung.</p>
+}
