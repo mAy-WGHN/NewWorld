@@ -1,0 +1,157 @@
+<app-page-head title="Benachrichtigungstexte" />
+
+<p class="m-0 mb-4 text-sm text-on-surface-variant">
+  Hier pflegst du die Texte der Benachrichtigungen. Ohne eigene Änderung gilt der Standardtext. Variablen schreibst du mit einem Dollarzeichen, zum Beispiel
+  $USER.firstName; mit einem Klick fügst du sie an der Stelle des Cursors ein.
+</p>
+
+@if (error(); as message) {
+  <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="error">{{ message }}</p>
+}
+@if (status(); as message) {
+  <p class="mb-3 rounded-xl bg-primary-container px-4 py-2.5 text-on-primary-container" role="status" data-testid="status">{{ message }}</p>
+}
+@if (listError(); as message) {
+  <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert">{{ message }}</p>
+}
+@if (loaded() && rows().length === 0 && !listError()) {
+  <p class="m-0 text-sm text-on-surface-variant">Es gibt keine Benachrichtigungen.</p>
+}
+
+<div class="flex flex-col gap-2.5" role="list">
+  @for (t of rows(); track t.key) {
+    <app-row-card data-testid="template-row" [attr.data-key]="t.key">
+      <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <div class="flex flex-col">
+          <strong>{{ typeLabel(t.key) }}</strong>
+          <span class="text-[13px] opacity-70">{{ t.key }}</span>
+          @if (t.customized && t.changedAt) {
+            <span class="text-[13px] opacity-80">Geändert am {{ formatDateTime(t.changedAt) }}</span>
+          }
+        </div>
+        <mat-chip-set aria-label="Eigenschaften">
+          <mat-chip data-testid="state-chip">{{ t.customized ? 'Angepasst' : 'Standard' }}</mat-chip>
+          @if (t.mandatory) {
+            <mat-chip>Pflicht</mat-chip>
+          }
+          @if (t.sensitiveText) {
+            <mat-chip data-testid="sensitive-chip">Sensible Daten</mat-chip>
+          }
+        </mat-chip-set>
+        <button mat-stroked-button type="button" data-action="edit" [attr.aria-expanded]="editingKey() === t.key" (click)="edit(t)">
+          {{ editingKey() === t.key ? 'Schließen' : 'Bearbeiten' }}
+        </button>
+      </div>
+
+      @if (editingKey() === t.key && draft()) {
+        <div class="mt-3 flex flex-col gap-4 border-t border-outline-variant pt-3 text-on-surface" data-testid="editor">
+          @if (t.sensitiveText) {
+            <p class="m-0 rounded-lg bg-surface-container px-3 py-2 text-sm" data-testid="locked-note">
+              Diese Benachrichtigung enthält sensible Daten. Push-Text und E-Mail-Betreff sind deshalb fest vorgegeben{{ t.mailMayContainSensitive ? ' (der E-Mail-Text lässt sich ändern)' : '' }}.
+            </p>
+          }
+
+          @for (c of channels; track c.key) {
+            <section class="flex flex-col gap-1" [attr.aria-label]="c.label" [attr.data-channel]="c.key">
+              <h3 class="m-0 text-base font-medium">{{ c.label }}</h3>
+              <p class="m-0 text-sm text-on-surface-variant">{{ c.hint }}</p>
+              <mat-form-field appearance="outline">
+                <mat-label>Titel{{ c.key === 'email' ? ' (Betreff)' : '' }}</mat-label>
+                <input
+                  matInput
+                  [id]="fieldId(c.key, 'title')"
+                  [value]="textOf(c.key, 'title')"
+                  [readonly]="!canEdit(t, c.key, 'title')"
+                  (focus)="focus(c.key, 'title')"
+                  (input)="type(c.key, 'title', $event)"
+                />
+                @if (!canEdit(t, c.key, 'title')) {
+                  <mat-hint>Fest vorgegeben</mat-hint>
+                }
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>Text</mat-label>
+                <textarea
+                  matInput
+                  rows="3"
+                  [id]="fieldId(c.key, 'body')"
+                  [value]="textOf(c.key, 'body')"
+                  [readonly]="!canEdit(t, c.key, 'body')"
+                  (focus)="focus(c.key, 'body')"
+                  (input)="type(c.key, 'body', $event)"
+                ></textarea>
+                @if (!canEdit(t, c.key, 'body')) {
+                  <mat-hint>Fest vorgegeben</mat-hint>
+                }
+              </mat-form-field>
+            </section>
+          }
+
+          <section class="flex flex-col gap-1" aria-label="Variablen" data-testid="variables">
+            <h3 class="m-0 text-base font-medium">Variablen</h3>
+            @if (offered().length) {
+              <p class="m-0 text-sm text-on-surface-variant">Klicke eine Variable an, um sie an der Stelle des Cursors einzufügen.</p>
+              <div class="flex flex-wrap gap-2">
+                @for (v of offered(); track v.name) {
+                  <button
+                    mat-stroked-button
+                    type="button"
+                    data-action="insert"
+                    [attr.data-name]="v.name"
+                    (mousedown)="$event.preventDefault()"
+                    (click)="insert(v)"
+                  >
+                    ${{ v.name }}
+                  </button>
+                }
+              </div>
+            } @else {
+              <p class="m-0 text-sm text-on-surface-variant" data-testid="no-variables">
+                Klicke in ein Textfeld, das du ändern darfst, dann siehst du hier die Variablen, die dort erlaubt sind.
+              </p>
+            }
+            <p class="m-0 text-sm text-on-surface-variant">
+              Verfügbar in dieser Benachrichtigung:
+              @for (v of t.variables; track v.name; let last = $last) {
+                <code>${{ v.name }}</code>{{ v.class === 2 ? ' (sensibel)' : '' }}{{ last ? '' : ', ' }}
+              }
+            </p>
+          </section>
+
+          @if (preview(); as p) {
+            <section class="flex flex-col gap-2 rounded-lg bg-surface-container px-3 py-2.5" aria-label="Vorschau" data-testid="preview">
+              <h3 class="m-0 text-base font-medium">Vorschau</h3>
+              @for (c of channels; track c.key) {
+                @if (p[c.key]; as text) {
+                  <div [attr.data-channel]="c.key">
+                    <strong class="text-sm">{{ c.label }}</strong>
+                    <p class="m-0 font-medium">{{ text.title }}</p>
+                    <p class="m-0 text-sm">{{ text.body }}</p>
+                  </div>
+                }
+              }
+              <p class="m-0 text-[13px] opacity-70">Mit Beispielwerten; was der Absender mitgibt, steht in geschweiften Klammern.</p>
+            </section>
+          }
+
+          @if (confirmingReset()) {
+            <div class="flex flex-wrap items-center gap-2" data-testid="reset-panel">
+              <span class="text-sm">Die eigenen Texte gehen verloren und der Standard gilt wieder. Wirklich zurücksetzen?</span>
+              <button mat-flat-button type="button" data-action="reset" [disabled]="busy()" (click)="reset()">Ja, zurücksetzen</button>
+              <button mat-stroked-button type="button" data-action="cancel-reset" (click)="cancelReset()">Abbrechen</button>
+            </div>
+          } @else {
+            <div class="flex flex-wrap gap-2">
+              <button mat-flat-button type="button" data-action="save" [disabled]="busy() || !changed()" (click)="save()">Speichern</button>
+              <button mat-stroked-button type="button" data-action="preview" [disabled]="busy()" (click)="showPreview()">Vorschau</button>
+              @if (t.customized) {
+                <button mat-stroked-button type="button" data-action="ask-reset" [disabled]="busy()" (click)="askReset()">Auf Standard zurücksetzen</button>
+              }
+              <button mat-stroked-button type="button" data-action="close" (click)="close()">Abbrechen</button>
+            </div>
+          }
+        </div>
+      }
+    </app-row-card>
+  }
+</div>
