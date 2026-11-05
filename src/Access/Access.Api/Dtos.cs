@@ -2,6 +2,9 @@ namespace Access.Api;
 
 public sealed record MainStoreDto(Guid? EffectiveStoreId, Guid? OverrideStoreId, Guid? SuggestedStoreId);
 
+/// <summary>A person of the copy for finding them by name or personnel number (organisation data, class 1).</summary>
+public sealed record PersonDto(Guid EmployeeId, string PersonnelNumber, string Name, Guid? HomeStoreId, string? Position, DateOnly? ExitDate);
+
 public sealed record SetMainStoreRequest(Guid StoreId);
 
 public sealed record PrivilegeDto(string Key, bool Unrestricted, IReadOnlyList<Guid> StoreIds, IReadOnlyList<Guid> EmployeeIds);

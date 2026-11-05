@@ -37,6 +37,7 @@ public static class Endpoints
         MapAssignments(api);
         MapResponsibilities(api);
         MapMainStore(api);
+        MapPeople(api);
 
         api.MapPost("/custom-privileges", (CreateCustomPrivilegeRequest request, ClaimsPrincipal user, AclAdministration admin, CancellationToken ct) =>
                 Run(user, actor => admin.CreateCustomPrivilegeAsync(actor, request.Key, request.Scopable, request.Description, ct), _ => Results.NoContent()))
@@ -99,6 +100,81 @@ public static class Endpoints
                 Run(user, actor => admin.RemoveAssignmentAsync(actor, assignmentId, ct), _ => Results.NoContent()))
             .RequireAuthorization(AppPolicies.Privilege(AccessPrivileges.AssignmentDelete));
     }
+
+    // Finding a person for the administration (assignments, responsibilities, main store) by name or personnel number instead of the id.
+    private static readonly string[] PersonLookupPrivileges =
+        [AccessPrivileges.PersonRead, AccessPrivileges.AssignmentRead, AccessPrivileges.ResponsibilityRead, AccessPrivileges.MainStoreUpdate];
+
+    private const int MaxLookupTake = 50;
+    private const int MaxLookupIds = 100;
+    private const int MaxSearchWords = 5;
+
+    /// <summary>
+    /// People of the copy (organisation data, class 1), by <c>query</c> (every word has to be part of the name or the personnel number, no case,
+    /// at least two characters) or by <c>ids</c> (comma separated, to show the names of known ids). Only people in the caller's reach for
+    /// at least one of the privileges that need a person (person:read, assignment:read, responsibility:read, main-store:update); without
+    /// any of them nothing is offered at all.
+    /// </summary>
+    private static void MapPeople(RouteGroupBuilder api) =>
+        api.MapGet("/people", async (string? query, string? ids, int? take, ClaimsPrincipal user, IAuthorizationServiceAdapter auth, AccessDbContext db, CancellationToken ct) =>
+            {
+                var usable = new List<string>();
+                foreach (var privilege in PersonLookupPrivileges)
+                {
+                    if (await auth.AllowsAsync(user, new object(), privilege))
+                    {
+                        usable.Add(privilege);
+                    }
+                }
+
+                if (usable.Count == 0)
+                {
+                    return Results.Forbid();
+                }
+
+                IQueryable<Access.Infrastructure.People.PersonRecord> people = db.People.AsNoTracking();
+                if (!string.IsNullOrWhiteSpace(ids))
+                {
+                    var wanted = ids.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Take(MaxLookupIds).Select(i => Guid.TryParse(i, out var g) ? g : Guid.Empty).Where(g => g != Guid.Empty).Distinct().ToList();
+                    people = people.Where(p => wanted.Contains(p.EmployeeId));
+                }
+                else
+                {
+                    var words = (query ?? string.Empty).Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Take(MaxSearchWords).ToList();
+                    if (words.Sum(w => w.Length) < 2)
+                    {
+                        return Results.Problem(statusCode: StatusCodes.Status422UnprocessableEntity, title: "QueryTooShort");
+                    }
+
+                    foreach (var word in words)
+                    {
+                        var pattern = "%" + word.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_") + "%";
+                        people = people.Where(p => EF.Functions.ILike(p.Name, pattern, "\\") || EF.Functions.ILike(p.PersonnelNumber, pattern, "\\"));
+                    }
+                }
+
+                var limit = Math.Clamp(take ?? 20, 1, MaxLookupTake);
+                var result = new List<PersonDto>();
+                foreach (var person in await people.OrderBy(p => p.Name).ThenBy(p => p.PersonnelNumber).Take(MaxLookupTake * 4).ToListAsync(ct))
+                {
+                    foreach (var privilege in usable)
+                    {
+                        if (await auth.AllowsAsync(user, new EmployeeResource(person.EmployeeId), privilege))
+                        {
+                            result.Add(new PersonDto(person.EmployeeId, person.PersonnelNumber, person.Name, person.HomeStoreId, person.Position, person.ExitDate));
+                            break;
+                        }
+                    }
+
+                    if (result.Count >= limit)
+                    {
+                        break;
+                    }
+                }
+
+                return Results.Ok(result);
+            })
+            .RequireAuthorization();
 
     // The main store (Hauptfiliale): BC's "Vorgabefiliale" is only a suggestion; what is maintained here wins.
     private static void MapMainStore(RouteGroupBuilder api)
