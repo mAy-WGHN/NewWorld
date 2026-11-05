@@ -46,10 +46,10 @@
     </div>
     @if (balance(); as b) {
       <dl class="m-0 mt-3 grid grid-cols-[repeat(auto-fit,minmax(110px,1fr))] gap-3">
-        <div class="flex flex-col"><dt class="text-[13px] text-on-surface-variant">Anspruch</dt><dd class="m-0 text-2xl font-semibold">{{ b.entitlement }}</dd></div>
+        <div class="flex flex-col"><dt class="text-[13px] text-on-surface-variant">Urlaub pro Jahr gesamt</dt><dd class="m-0 text-2xl font-semibold">{{ b.entitlement }}</dd></div>
         <div class="flex flex-col"><dt class="text-[13px] text-on-surface-variant">Genommen</dt><dd class="m-0 text-2xl font-semibold">{{ b.taken }}</dd></div>
         <div class="flex flex-col"><dt class="text-[13px] text-on-surface-variant">Geplant</dt><dd class="m-0 text-2xl font-semibold">{{ b.planned }}</dd></div>
-        <div class="flex flex-col"><dt class="text-[13px] text-on-surface-variant">Verbleibend</dt><dd class="m-0 text-2xl font-semibold text-primary">{{ b.remaining }}</dd></div>
+        <div class="flex flex-col"><dt class="text-[13px] text-on-surface-variant">Verfügbare Urlaubstage</dt><dd class="m-0 text-2xl font-semibold text-primary">{{ b.remaining }}</dd></div>
       </dl>
     } @else if (balanceError(); as message) {
       <p class="m-0 mt-2 text-sm text-on-surface-variant">{{ message }}</p>
