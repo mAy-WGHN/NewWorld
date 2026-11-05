@@ -1,0 +1,126 @@
+<app-action-messages [state]="act" />
+
+@if (loadError(); as message) {
+  <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="load-error">{{ message }}</p>
+}
+
+<p class="m-0 mb-3 text-sm text-on-surface-variant">
+  Hier siehst du alle Rollen nebeneinander und kannst Rechte vergeben oder entziehen. Ein Klick ändert nur den Entwurf, gespeichert wird erst mit "Speichern".
+  Hat eine Rolle ein Recht nur über ein Sammelrecht ("Alles" oder "Alles in bereich"), erscheint es abgeblendet und lässt sich dort nicht einzeln ändern:
+  nimm das Sammelrecht weg und vergib stattdessen einzelne Rechte.
+</p>
+<ul class="m-0 mb-3 flex list-none flex-wrap gap-x-5 gap-y-1 p-0 text-sm" aria-label="Legende">
+  <li class="flex items-center gap-1.5"><input type="checkbox" checked disabled class="size-4" aria-hidden="true" /> Recht der Rolle</li>
+  <li class="flex items-center gap-1.5"><input type="checkbox" checked disabled class="size-4 opacity-50" aria-hidden="true" /> durch ein Sammelrecht</li>
+  <li class="flex items-center gap-1.5"><span class="inline-block size-4 rounded bg-primary-container" aria-hidden="true"></span> ungespeicherte Änderung</li>
+</ul>
+
+<mat-form-field appearance="outline" subscriptSizing="dynamic" class="mb-3 w-full max-w-md">
+  <mat-label>Rechte suchen</mat-label>
+  <input matInput type="search" autocomplete="off" data-testid="matrix-search" [value]="query()" (input)="onQuery($event)" />
+</mat-form-field>
+
+@if (!canUpdate() && loaded()) {
+  <p class="m-0 mb-3 rounded-lg bg-surface-container px-3 py-2 text-sm" data-testid="read-only">Du darfst Rollen nur ansehen, nicht ändern.</p>
+}
+
+<ng-template #line let-row let-kind="kind">
+  <tr [attr.data-row]="row.key" [attr.data-kind]="kind">
+    <th
+      scope="row"
+      class="sticky left-0 z-10 min-w-56 max-w-80 border-b border-outline-variant px-3 py-1.5 text-left font-normal"
+      [class.bg-surface-container]="kind !== 'privilege'"
+      [class.bg-surface]="kind === 'privilege'"
+      [class.font-medium]="kind !== 'privilege'"
+    >
+      <div [class.pl-4]="kind === 'privilege'"><code>{{ row.label }}</code></div>
+      <div class="text-[12px] opacity-70" [class.pl-4]="kind === 'privilege'">{{ row.description }}</div>
+    </th>
+    @for (role of roles(); track role.id) {
+      <td class="border-b border-outline-variant px-2 py-1.5 text-center" [class.bg-primary-container]="dirty(role, row.key)" [class.bg-surface-container]="kind !== 'privilege' && !dirty(role, row.key)">
+        <input
+          type="checkbox"
+          class="size-5 accent-[var(--mat-sys-primary)]"
+          [class.cursor-pointer]="toggleable(role, row.key)"
+          [class.opacity-50]="state(role, row.key) === 'covered'"
+          [checked]="state(role, row.key) !== 'none'"
+          [disabled]="!toggleable(role, row.key)"
+          [title]="title(role, row)"
+          [attr.aria-label]="title(role, row)"
+          [attr.data-role]="role.id"
+          [attr.data-key]="row.key"
+          [attr.data-state]="state(role, row.key)"
+          (change)="toggle(role, row.key)"
+        />
+      </td>
+    }
+  </tr>
+</ng-template>
+
+@if (loaded() && roles().length > 0) {
+  <div class="max-h-[70vh] overflow-auto rounded-xl border border-outline-variant" data-testid="matrix-scroll">
+    <table class="w-full border-separate border-spacing-0 text-sm" data-testid="matrix">
+      <thead>
+        <tr>
+          <th scope="col" class="sticky left-0 top-0 z-30 min-w-56 border-b border-outline-variant bg-surface-container px-3 py-2 text-left">Recht</th>
+          @for (role of roles(); track role.id) {
+            <th scope="col" class="sticky top-0 z-20 min-w-28 border-b border-outline-variant bg-surface-container px-2 py-2 text-center font-medium" [attr.data-role]="role.id">
+              {{ role.name }}
+              @if (!changeable(role)) {
+                <div class="text-[12px] font-normal opacity-70">{{ canUpdate() ? 'fest' : 'nur lesen' }}</div>
+              }
+            </th>
+          }
+        </tr>
+      </thead>
+      <tbody>
+        <ng-container [ngTemplateOutlet]="line" [ngTemplateOutletContext]="{ $implicit: rows().all, kind: 'all' }" />
+        @for (g of rows().groups; track g.area) {
+          <ng-container [ngTemplateOutlet]="line" [ngTemplateOutletContext]="{ $implicit: g.head, kind: 'area' }" />
+          @for (r of g.rows; track r.key) {
+            <ng-container [ngTemplateOutlet]="line" [ngTemplateOutletContext]="{ $implicit: r, kind: 'privilege' }" />
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+  @if (rows().groups.length === 0) {
+    <p class="m-0 mt-3 text-sm text-on-surface-variant" data-testid="no-match">Kein Recht passt zur Suche.</p>
+  }
+} @else if (loaded() && !loadError()) {
+  <p class="m-0 text-sm text-on-surface-variant">Es gibt noch keine Rollen.</p>
+}
+
+@if (count() > 0) {
+  <div class="sticky bottom-2 z-40 mt-3 flex flex-col gap-2 rounded-xl border border-outline bg-surface-container-high px-4 py-3 shadow-lg" data-testid="change-bar">
+    <div class="flex flex-wrap items-center gap-3">
+      <strong data-testid="change-count">{{ count() }} {{ count() === 1 ? 'Änderung' : 'Änderungen' }} in {{ changed().length }} {{ changed().length === 1 ? 'Rolle' : 'Rollen' }}</strong>
+      @if (!confirming()) {
+        <button mat-flat-button type="button" data-action="ask-save" [disabled]="act.busy()" (click)="askSave()">Speichern</button>
+        <button mat-stroked-button type="button" data-action="discard" [disabled]="act.busy()" (click)="discard()">Verwerfen</button>
+      }
+    </div>
+    @if (confirming()) {
+      <div data-testid="confirm">
+        <p class="m-0 mb-1 text-sm">Diese Änderungen werden gespeichert und wirken sofort:</p>
+        <ul class="m-0 mb-2 list-none p-0 text-sm">
+          @for (r of changed(); track r.id) {
+            <li [attr.data-role]="r.id">
+              <strong>{{ r.name }}</strong>:
+              @for (key of diff(r).added; track key) {
+                <code class="mr-1">+ {{ key }}</code>
+              }
+              @for (key of diff(r).removed; track key) {
+                <code class="mr-1">- {{ key }}</code>
+              }
+            </li>
+          }
+        </ul>
+        <div class="flex flex-wrap gap-2">
+          <button mat-flat-button type="button" data-action="save" [disabled]="act.busy()" (click)="save()">Ja, speichern</button>
+          <button mat-stroked-button type="button" data-action="cancel-save" (click)="cancelSave()">Zurück</button>
+        </div>
+      </div>
+    }
+  </div>
+}

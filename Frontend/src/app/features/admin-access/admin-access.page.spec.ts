@@ -63,15 +63,15 @@ describe('AdminAccessPage', () => {
     privileges.set(grant('access:role:read', 'access:scope:read'));
     await create();
 
-    expect(tabs()).toEqual(['roles', 'scopes']);
+    expect(tabs()).toEqual(['roles', 'matrix', 'scopes']);
     expect(q('app-roles-section')).not.toBeNull();
     expect(api['catalog']).toHaveBeenCalled(); // the roles section loads the catalogue for the privilege choice
   });
 
-  it('shows all four tabs with all read privileges, and the person tab for any of its privileges', async () => {
+  it('shows all five tabs with all read privileges, and the person tab for any of its privileges', async () => {
     privileges.set(grant('access:role:read', 'access:catalog:read', 'access:scope:read', 'access:assignment:read'));
     await create();
-    expect(tabs()).toEqual(['roles', 'catalog', 'scopes', 'people']);
+    expect(tabs()).toEqual(['roles', 'matrix', 'catalog', 'scopes', 'people']);
     fixture.destroy();
     TestBed.resetTestingModule();
 

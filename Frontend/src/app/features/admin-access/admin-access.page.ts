@@ -2,14 +2,16 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { AuthService } from '../../core/auth/auth.service';
 import { PAGE_UI } from '../../shared/ui/material';
 import { CatalogSection } from './catalog-section';
+import { MatrixSection } from './matrix-section';
 import { PeopleSection } from './people-section';
 import { RolesSection } from './roles-section';
 import { ScopesSection } from './scopes-section';
 
-type SectionKey = 'roles' | 'catalog' | 'scopes' | 'people';
+type SectionKey = 'roles' | 'matrix' | 'catalog' | 'scopes' | 'people';
 
 const SECTIONS: readonly { key: SectionKey; label: string; any: readonly string[] }[] = [
   { key: 'roles', label: 'Rollen', any: ['access:role:read'] },
+  { key: 'matrix', label: 'Matrix', any: ['access:role:read'] },
   { key: 'catalog', label: 'Rechte-Katalog', any: ['access:catalog:read'] },
   { key: 'scopes', label: 'Filial-Gruppen', any: ['access:scope:read'] },
   {
@@ -25,7 +27,7 @@ const SECTIONS: readonly { key: SectionKey; label: string; any: readonly string[
  */
 @Component({
   selector: 'app-admin-access',
-  imports: [...PAGE_UI, RolesSection, CatalogSection, ScopesSection, PeopleSection],
+  imports: [...PAGE_UI, RolesSection, MatrixSection, CatalogSection, ScopesSection, PeopleSection],
   templateUrl: './admin-access.page.html',
 })
 export class AdminAccessPage {
