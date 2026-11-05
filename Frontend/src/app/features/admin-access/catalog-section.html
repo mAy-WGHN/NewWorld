@@ -1,0 +1,82 @@
+<p class="m-0 mb-4 text-sm text-on-surface-variant">
+  Hier stehen alle Rechte, die es gibt, je Anwendung und mit ihrer Bedeutung. Nur Rechte aus dem Katalog wirken. „Auf Filialen begrenzbar“ heißt: Das Recht kann
+  für bestimmte Filialen vergeben werden; sonst gilt es nur uneingeschränkt. Eigene Rechte kannst du selbst anlegen, wenn kein Dienst sie mitbringt.
+</p>
+
+<app-action-messages [state]="act" />
+@if (loadError(); as message) {
+  <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="load-error">{{ message }}</p>
+}
+
+<div class="mb-3 flex flex-wrap items-center gap-3">
+  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-label>Rechte suchen</mat-label>
+    <input matInput type="search" autocomplete="off" data-testid="catalog-search" [value]="query()" (input)="onQuery($event)" />
+  </mat-form-field>
+  @if (canCreate() && !creating()) {
+    <button mat-flat-button type="button" data-action="open-create" (click)="openCreate()">Eigenes Recht anlegen</button>
+  }
+</div>
+
+@if (canCreate() && creating()) {
+  <app-row-card class="mb-3" data-testid="create-panel">
+    <div class="flex flex-col gap-3">
+      <h2 class="m-0 text-lg font-medium">Eigenes Recht</h2>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Schlüssel (bereich:aktion)</mat-label>
+        <input matInput data-testid="new-key" autocomplete="off" [value]="newKey()" [attr.aria-invalid]="keyError() ? 'true' : null" (input)="onKey($event)" />
+        <mat-hint>Zum Beispiel inventur:freigeben</mat-hint>
+      </mat-form-field>
+      @if (keyError(); as message) {
+        <p class="m-0 text-[13px] text-error" role="alert" data-testid="key-error">{{ message }}</p>
+      }
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Beschreibung (freiwillig)</mat-label>
+        <textarea matInput rows="2" maxlength="500" data-testid="new-description" [value]="newDescription()" (input)="onDescription($event)"></textarea>
+        <mat-hint>Was erlaubt das Recht? In einfachen Worten.</mat-hint>
+      </mat-form-field>
+      <mat-checkbox [checked]="newScopable()" data-testid="new-scopable" (change)="onScopable($event)">Auf Filialen begrenzbar</mat-checkbox>
+      <div class="flex flex-wrap gap-2">
+        <button mat-flat-button type="button" data-action="create" [disabled]="act.busy()" (click)="create()">Recht anlegen</button>
+        <button mat-stroked-button type="button" data-action="cancel-create" (click)="closeCreate()">Abbrechen</button>
+      </div>
+    </div>
+  </app-row-card>
+}
+
+@if (loaded() && groups().length === 0 && !loadError()) {
+  <p class="m-0 text-sm text-on-surface-variant" data-testid="empty">Kein Recht gefunden.</p>
+}
+
+@for (g of groups(); track g.owner) {
+  <section class="mb-5" [attr.aria-label]="g.title" [attr.data-owner]="g.owner">
+    <h2 class="m-0 mb-2 text-lg font-medium">{{ g.title }}</h2>
+    <div class="flex flex-col gap-2" role="list">
+      @for (e of g.entries; track e.key) {
+        <app-row-card data-testid="privilege-row" [attr.data-key]="e.key">
+          <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+            <div class="flex flex-col">
+              <code>{{ e.key }}</code>
+              <span class="text-sm text-on-surface-variant" data-testid="description">{{ e.description || 'Keine Beschreibung.' }}</span>
+            </div>
+            <mat-chip-set aria-label="Eigenschaften">
+              @if (e.scopable) {
+                <mat-chip data-testid="scopable-chip">Auf Filialen begrenzbar</mat-chip>
+              }
+            </mat-chip-set>
+            @if (e.owner === 'custom' && canDelete()) {
+              <button mat-stroked-button type="button" data-action="ask-delete" [disabled]="act.busy()" (click)="askDelete(e.key)">Löschen</button>
+            }
+          </div>
+          @if (confirmingDeleteKey() === e.key) {
+            <div class="mt-3 flex flex-wrap items-center gap-2 border-t border-outline-variant pt-3" data-testid="delete-panel">
+              <span class="text-sm">Das Recht „{{ e.key }}“ wird gelöscht und wirkt dann nirgends mehr, auch nicht in Rollen, die es enthalten. Wirklich löschen?</span>
+              <button mat-flat-button type="button" data-action="delete" [disabled]="act.busy()" (click)="remove(e.key)">Ja, löschen</button>
+              <button mat-stroked-button type="button" data-action="cancel-delete" (click)="cancelDelete()">Abbrechen</button>
+            </div>
+          }
+        </app-row-card>
+      }
+    </div>
+  </section>
+}

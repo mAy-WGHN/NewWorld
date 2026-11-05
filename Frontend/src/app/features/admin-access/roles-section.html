@@ -1,0 +1,99 @@
+<p class="m-0 mb-4 text-sm text-on-surface-variant">
+  Eine Rolle ist eine Sammlung von Rechten, zum Beispiel „Filialleitung“. Wer eine Rolle bekommt, darf alles, was ihre Rechte erlauben. Die Rolle weist du einer Person unter
+  „Personen“ zu, mit Reichweite (welche Filialen) und Laufzeit. Du kannst nur Rechte vergeben, die du selbst hast.
+</p>
+
+<app-action-messages [state]="act" />
+@if (loadError(); as message) {
+  <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="load-error">{{ message }}</p>
+}
+@if (catalogMissing()) {
+  <p class="mb-3 rounded-xl bg-surface-container px-4 py-2.5 text-sm" data-testid="catalog-missing">
+    Der Rechte-Katalog ist für dich nicht sichtbar (Recht „access:catalog:read“). Ohne ihn kannst du Rollen ansehen, aber ihre Rechte nicht auswählen.
+  </p>
+}
+
+@if (canCreate() && !catalogMissing()) {
+  @if (creating()) {
+    <app-row-card class="mb-3" data-testid="create-panel">
+      <div class="flex flex-col gap-3">
+        <h2 class="m-0 text-lg font-medium">Neue Rolle</h2>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Name der Rolle</mat-label>
+          <input matInput data-testid="new-name" autocomplete="off" [value]="newName()" [attr.aria-invalid]="nameError() ? 'true' : null" (input)="onName($event)" />
+        </mat-form-field>
+        @if (nameError(); as message) {
+          <p class="m-0 text-[13px] text-error" role="alert" data-testid="name-error">{{ message }}</p>
+        }
+        <app-privilege-picker [catalog]="catalog()" [(selected)]="newPrivileges" />
+        <div class="flex flex-wrap gap-2">
+          <button mat-flat-button type="button" data-action="create" [disabled]="act.busy()" (click)="create()">Rolle anlegen</button>
+          <button mat-stroked-button type="button" data-action="cancel-create" (click)="closeCreate()">Abbrechen</button>
+        </div>
+      </div>
+    </app-row-card>
+  } @else {
+    <button mat-flat-button type="button" class="mb-3" data-action="open-create" (click)="openCreate()">Neue Rolle</button>
+  }
+}
+
+@if (loaded() && roles().length === 0 && !loadError()) {
+  <p class="m-0 text-sm text-on-surface-variant">Es gibt keine Rollen.</p>
+}
+
+<div class="flex flex-col gap-2.5" role="list">
+  @for (r of roles(); track r.id) {
+    <app-row-card data-testid="role-row" [attr.data-id]="r.id">
+      <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <div class="flex flex-col">
+          <strong>{{ r.name }}</strong>
+          <span class="text-[13px] opacity-70">{{ r.privileges.length }} {{ r.privileges.length === 1 ? 'Recht' : 'Rechte' }}</span>
+          @if (r.builtIn) {
+            <span class="text-[13px] opacity-80" data-testid="built-in-hint">{{ builtInHint(r) }}</span>
+          }
+        </div>
+        <mat-chip-set aria-label="Eigenschaften">
+          @if (r.builtIn) {
+            <mat-chip data-testid="built-in-chip">Eingebaut</mat-chip>
+          }
+        </mat-chip-set>
+        <div class="flex flex-wrap gap-2">
+          <button mat-stroked-button type="button" data-action="edit" [attr.aria-expanded]="editingId() === r.id" (click)="edit(r)">
+            {{ editingId() === r.id ? 'Schließen' : canUpdate() && canChange(r) ? 'Rechte ändern' : 'Rechte ansehen' }}
+          </button>
+          @if (canDelete() && canRemove(r)) {
+            <button mat-stroked-button type="button" data-action="ask-delete" [disabled]="act.busy()" (click)="askDelete(r)">Löschen</button>
+          }
+        </div>
+      </div>
+
+      @if (confirmingDeleteId() === r.id) {
+        <div class="mt-3 flex flex-wrap items-center gap-2 border-t border-outline-variant pt-3" data-testid="delete-panel">
+          <span class="text-sm">Die Rolle „{{ r.name }}“ wird gelöscht. Das geht nur, wenn niemand sie mehr hat. Wirklich löschen?</span>
+          <button mat-flat-button type="button" data-action="delete" [disabled]="act.busy()" (click)="remove(r)">Ja, löschen</button>
+          <button mat-stroked-button type="button" data-action="cancel-delete" (click)="cancelDelete()">Abbrechen</button>
+        </div>
+      }
+
+      @if (editingId() === r.id) {
+        <div class="mt-3 flex flex-col gap-3 border-t border-outline-variant pt-3" data-testid="editor">
+          @if (catalogMissing()) {
+            <ul class="m-0 list-disc pl-5 text-sm">
+              @for (p of r.privileges; track p) {
+                <li><code>{{ p }}</code></li>
+              }
+            </ul>
+          } @else {
+            <app-privilege-picker [catalog]="catalog()" [(selected)]="draft" [disabled]="!canUpdate() || !canChange(r)" />
+            @if (canUpdate() && canChange(r)) {
+              <div class="flex flex-wrap gap-2">
+                <button mat-flat-button type="button" data-action="save" [disabled]="act.busy() || !changed()" (click)="save()">Speichern</button>
+                <button mat-stroked-button type="button" data-action="close" (click)="closeEditor()">Abbrechen</button>
+              </div>
+            }
+          }
+        </div>
+      }
+    </app-row-card>
+  }
+</div>

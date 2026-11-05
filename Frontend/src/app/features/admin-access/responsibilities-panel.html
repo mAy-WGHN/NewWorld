@@ -1,0 +1,150 @@
+<section class="flex flex-col gap-3" aria-label="Zuständigkeiten" data-testid="responsibilities-panel">
+  <h2 class="m-0 text-lg font-medium">Zuständigkeiten</h2>
+  <p class="m-0 text-sm text-on-surface-variant">
+    Eine Zuständigkeit legt fest, wer sich um ein Thema kümmert, zum Beispiel „Urlaub genehmigen“ für eine Filiale. Sie gilt für eine Person, eine Filiale oder eine Filial-Gruppe und
+    kann befristet sein. Ohne Zuständige läuft zum Beispiel ein Urlaubsantrag ins Leere. Darunter siehst du, wer für die oben geladene Person zuständig ist.
+  </p>
+
+  <app-action-messages [state]="act" />
+  @if (loadError(); as message) {
+    <p class="rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="load-error">{{ message }}</p>
+  }
+  @if (loaded() && items().length === 0 && !loadError()) {
+    <p class="m-0 text-sm text-on-surface-variant" data-testid="no-items">Für diese Person ist zurzeit niemand zuständig.</p>
+  }
+
+  <div class="flex flex-col gap-2" role="list">
+    @for (i of items(); track i.topic) {
+      <app-row-card data-testid="topic-row" [attr.data-topic]="i.topic">
+        <strong>{{ topicLabel(i.topic) }}</strong> <code class="text-[13px]">{{ i.topic }}</code>
+        <ul class="m-0 mt-1 list-none p-0 text-sm">
+          @for (e of i.responsibleEmployeeIds; track e) {
+            <li data-testid="responsible">{{ e }}</li>
+          }
+        </ul>
+      </app-row-card>
+    }
+  </div>
+
+  @if (created().length) {
+    <div class="flex flex-col gap-2" role="list" data-testid="created-list">
+      <h3 class="m-0 text-base font-medium">In dieser Sitzung eingerichtet</h3>
+      @for (c of created(); track c.id) {
+        <app-row-card data-testid="created-row" [attr.data-id]="c.id">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <span><strong>{{ topicLabel(c.topic) }}</strong> für {{ c.target }}</span>
+            @if (canDelete()) {
+              <button mat-stroked-button type="button" data-action="ask-delete" [disabled]="act.busy()" (click)="askDelete(c.id)">Entfernen</button>
+            }
+          </div>
+        </app-row-card>
+      }
+    </div>
+  }
+
+  @if (confirmingDeleteId(); as id) {
+    <div class="flex flex-wrap items-center gap-2 rounded-lg border border-outline-variant px-3 py-2" data-testid="delete-panel">
+      <span class="text-sm">Die Zuständigkeit wird entfernt. Wirklich entfernen?</span>
+      <button mat-flat-button type="button" data-action="delete" [disabled]="act.busy()" (click)="remove(id)">Ja, entfernen</button>
+      <button mat-stroked-button type="button" data-action="cancel-delete" (click)="cancelDelete()">Abbrechen</button>
+    </div>
+  }
+
+  @if (canCreate()) {
+    <app-row-card data-testid="add-panel">
+      <div class="flex flex-col gap-3">
+        <h3 class="m-0 text-base font-medium">Zuständigkeit einrichten</h3>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Thema</mat-label>
+          <input matInput list="topic-suggestions" data-testid="topic" autocomplete="off" [value]="topic()" (input)="set('topic', $event)" />
+          <mat-hint>Zum Beispiel absence.approval</mat-hint>
+        </mat-form-field>
+        <datalist id="topic-suggestions">
+          @for (t of topics; track t.topic) {
+            <option [value]="t.topic">{{ t.label }}</option>
+          }
+        </datalist>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Zuständige Person (Personen-ID)</mat-label>
+          <input matInput data-testid="responsible-id" autocomplete="off" [value]="responsibleId()" (input)="set('responsibleId', $event)" />
+          <!-- TODO(Backend): Personensuche; bis dahin wird die ID der Person (GUID) eingegeben. -->
+          <mat-hint>Es gibt noch keine Personensuche; trage die ID ein.</mat-hint>
+        </mat-form-field>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Gilt für</mat-label>
+          <select matNativeControl data-testid="kind" [value]="kind()" (change)="onKind($event)">
+            @for (k of kinds; track k.kind) {
+              <option [value]="k.kind">{{ k.label }}</option>
+            }
+          </select>
+        </mat-form-field>
+        @switch (kind()) {
+          @case ('store') {
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Filiale</mat-label>
+              <select matNativeControl data-testid="target-store" [value]="targetId()" (change)="set('targetId', $event)">
+                <option value="">Bitte wählen</option>
+                @for (s of stores(); track s.id) {
+                  <option [value]="s.id">{{ storeLabel(s) }}</option>
+                }
+              </select>
+            </mat-form-field>
+          }
+          @case ('scope') {
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Filial-Gruppe</mat-label>
+              <select matNativeControl data-testid="target-scope" [value]="targetId()" (change)="set('targetId', $event)">
+                <option value="">Bitte wählen</option>
+                @for (s of scopes(); track s.id) {
+                  <option [value]="s.id">{{ s.name }}</option>
+                }
+              </select>
+            </mat-form-field>
+          }
+          @default {
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Person, für die die Zuständigkeit gilt (Personen-ID)</mat-label>
+              <input matInput data-testid="target-employee" autocomplete="off" [value]="targetId()" (input)="set('targetId', $event)" />
+            </mat-form-field>
+          }
+        }
+        <div class="flex flex-wrap gap-3">
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>Von (freiwillig)</mat-label>
+            <input matInput type="date" data-testid="from" [value]="from()" (input)="set('from', $event)" />
+          </mat-form-field>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>Bis einschließlich (freiwillig)</mat-label>
+            <input matInput type="date" data-testid="to" [value]="to()" (input)="set('to', $event)" />
+          </mat-form-field>
+        </div>
+        @if (formError(); as message) {
+          <p class="m-0 text-[13px] text-error" role="alert" data-testid="form-error">{{ message }}</p>
+        }
+        <div>
+          <button mat-flat-button type="button" data-action="add" [disabled]="act.busy()" (click)="add()">Einrichten</button>
+        </div>
+      </div>
+    </app-row-card>
+  }
+
+  @if (canDelete()) {
+    <app-row-card data-testid="remove-by-id">
+      <div class="flex flex-col gap-2">
+        <h3 class="m-0 text-base font-medium">Zuständigkeit per ID entfernen</h3>
+        <!-- TODO(Backend): Liste aller Zuständigkeiten mit IDs; bis dahin nur per ID. -->
+        <p class="m-0 text-sm text-on-surface-variant">Die Liste zeigt keine IDs. Hast du die ID einer Zuständigkeit, kannst du sie hier entfernen.</p>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>ID der Zuständigkeit</mat-label>
+          <input matInput data-testid="remove-id" autocomplete="off" [value]="removeId()" (input)="set('removeId', $event)" />
+        </mat-form-field>
+        @if (removeError(); as message) {
+          <p class="m-0 text-[13px] text-error" role="alert" data-testid="remove-error">{{ message }}</p>
+        }
+        <div>
+          <button mat-stroked-button type="button" data-action="ask-delete-by-id" [disabled]="act.busy()" (click)="askDeleteById()">Entfernen</button>
+        </div>
+      </div>
+    </app-row-card>
+  }
+</section>

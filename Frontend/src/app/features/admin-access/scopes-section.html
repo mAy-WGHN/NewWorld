@@ -1,0 +1,89 @@
+<p class="m-0 mb-4 text-sm text-on-surface-variant">
+  Eine Filial-Gruppe ist eine benannte Menge von Filialen, zum Beispiel ein Bezirk oder eine Region. Statt jede Filiale einzeln zu nennen, begrenzt du eine Rolle oder eine
+  Zuständigkeit auf die Gruppe. Wenn du die Filialen einer Gruppe änderst, ändert sich die Reichweite aller, die diese Gruppe haben. Den Namen kannst du nachträglich nicht ändern.
+</p>
+
+<app-action-messages [state]="act" />
+@if (loadError(); as message) {
+  <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="load-error">{{ message }}</p>
+}
+@if (storesError()) {
+  <p class="mb-3 rounded-xl bg-surface-container px-4 py-2.5 text-sm" data-testid="stores-error">Die Filialliste konnte nicht geladen werden; die Filialen lassen sich deshalb nicht auswählen.</p>
+}
+
+@if (canCreate()) {
+  @if (creating()) {
+    <app-row-card class="mb-3" data-testid="create-panel">
+      <div class="flex flex-col gap-3">
+        <h2 class="m-0 text-lg font-medium">Neue Filial-Gruppe</h2>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Name der Gruppe</mat-label>
+          <input matInput data-testid="new-name" autocomplete="off" [value]="newName()" [attr.aria-invalid]="nameError() ? 'true' : null" (input)="onName($event)" />
+        </mat-form-field>
+        @if (nameError(); as message) {
+          <p class="m-0 text-[13px] text-error" role="alert" data-testid="name-error">{{ message }}</p>
+        }
+        <app-store-picker inputId="scope-new-stores" [locations]="stores()" [(selected)]="newStores" />
+        <div class="flex flex-wrap gap-2">
+          <button mat-flat-button type="button" data-action="create" [disabled]="act.busy()" (click)="create()">Gruppe anlegen</button>
+          <button mat-stroked-button type="button" data-action="cancel-create" (click)="closeCreate()">Abbrechen</button>
+        </div>
+      </div>
+    </app-row-card>
+  } @else {
+    <button mat-flat-button type="button" class="mb-3" data-action="open-create" (click)="openCreate()">Neue Filial-Gruppe</button>
+  }
+}
+
+@if (loaded() && scopes().length === 0 && !loadError()) {
+  <p class="m-0 text-sm text-on-surface-variant">Es gibt keine Filial-Gruppen.</p>
+}
+
+<div class="flex flex-col gap-2.5" role="list">
+  @for (s of scopes(); track s.id) {
+    <app-row-card data-testid="scope-row" [attr.data-id]="s.id">
+      <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <div class="flex flex-col">
+          <strong>{{ s.name }}</strong>
+          <span class="text-[13px] opacity-70">{{ s.storeIds.length }} {{ s.storeIds.length === 1 ? 'Filiale' : 'Filialen' }}: {{ namesOf(s) }}</span>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button mat-stroked-button type="button" data-action="edit" [attr.aria-expanded]="editingId() === s.id" (click)="edit(s)">
+            {{ editingId() === s.id ? 'Schließen' : canUpdate() ? 'Filialen ändern' : 'Filialen ansehen' }}
+          </button>
+          @if (canDelete()) {
+            <button mat-stroked-button type="button" data-action="ask-delete" [disabled]="act.busy()" (click)="askDelete(s)">Löschen</button>
+          }
+        </div>
+      </div>
+
+      @if (confirmingDeleteId() === s.id) {
+        <div class="mt-3 flex flex-wrap items-center gap-2 border-t border-outline-variant pt-3" data-testid="delete-panel">
+          <span class="text-sm">Die Gruppe „{{ s.name }}“ wird gelöscht. Das geht nur, wenn sie nirgends mehr verwendet wird. Wirklich löschen?</span>
+          <button mat-flat-button type="button" data-action="delete" [disabled]="act.busy()" (click)="remove(s)">Ja, löschen</button>
+          <button mat-stroked-button type="button" data-action="cancel-delete" (click)="cancelDelete()">Abbrechen</button>
+        </div>
+      }
+
+      @if (editingId() === s.id) {
+        <div class="mt-3 flex flex-col gap-3 border-t border-outline-variant pt-3" data-testid="editor">
+          @if (canUpdate()) {
+            <app-store-picker [inputId]="'scope-stores-' + s.id" [locations]="stores()" [(selected)]="draft" />
+            @if (keptIds().length) {
+              <p class="m-0 text-sm text-on-surface-variant" data-testid="kept-note">
+                {{ keptIds().length }} {{ keptIds().length === 1 ? 'Filiale der Gruppe steht' : 'Filialen der Gruppe stehen' }} nicht in der Filialliste (zum Beispiel geschlossen) und
+                {{ keptIds().length === 1 ? 'bleibt' : 'bleiben' }} unverändert.
+              </p>
+            }
+            <div class="flex flex-wrap gap-2">
+              <button mat-flat-button type="button" data-action="save" [disabled]="act.busy() || !changed()" (click)="save()">Speichern</button>
+              <button mat-stroked-button type="button" data-action="close" (click)="closeEditor()">Abbrechen</button>
+            </div>
+          } @else {
+            <p class="m-0 text-sm">{{ namesOf(s) }}</p>
+          }
+        </div>
+      }
+    </app-row-card>
+  }
+</div>

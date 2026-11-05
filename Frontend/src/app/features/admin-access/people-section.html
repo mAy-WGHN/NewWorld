@@ -1,0 +1,38 @@
+<p class="m-0 mb-4 text-sm text-on-surface-variant">
+  Hier verwaltest du, was eine einzelne Person darf: ihre Rollen, wer für sie zuständig ist und welche Hauptfiliale gilt. Es gibt noch keine Personensuche, deshalb gibst du die
+  Personen-ID der Person ein (eine lange Kennung aus Buchstaben und Ziffern).
+</p>
+<!-- TODO(Backend): Personensuche (Name oder Personalnummer), bis dahin Eingabe der Personen-ID. -->
+
+<div class="mb-4 flex flex-wrap items-start gap-3">
+  <mat-form-field appearance="outline" class="min-w-80" subscriptSizing="dynamic">
+    <mat-label>Personen-ID</mat-label>
+    <input
+      matInput
+      data-testid="person-id"
+      autocomplete="off"
+      [value]="input()"
+      [attr.aria-invalid]="error() ? 'true' : null"
+      (input)="onInput($event)"
+      (keydown.enter)="open()"
+    />
+  </mat-form-field>
+  <button mat-flat-button type="button" data-action="open-person" (click)="open()">Person laden</button>
+</div>
+@if (error(); as message) {
+  <p class="mb-3 text-[13px] text-error" role="alert" data-testid="person-error">{{ message }}</p>
+}
+
+@if (personId(); as id) {
+  <div class="flex flex-col gap-8">
+    @if (showAssignments()) {
+      <app-assignments-panel [personId]="id" />
+    }
+    @if (showResponsibilities()) {
+      <app-responsibilities-panel [personId]="id" />
+    }
+    @if (showMainStore()) {
+      <app-main-store-panel [personId]="id" />
+    }
+  </div>
+}

@@ -1,0 +1,54 @@
+<div class="flex flex-col gap-3" data-testid="picker">
+  <p class="m-0 text-sm text-on-surface-variant">
+    {{ selected().length }} ausgewählt. Ein Recht erlaubt genau eine Handlung. Mit einem Sammelrecht (Stern) bekommt die Rolle alle Rechte eines Bereichs, auch die,
+    die später dazukommen.
+  </p>
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-label>Rechte suchen</mat-label>
+    <input matInput type="search" autocomplete="off" data-testid="picker-search" [value]="query()" (input)="onQuery($event)" />
+  </mat-form-field>
+
+  @if (unknown().length) {
+    <div class="rounded-lg border border-error px-3 py-2" data-testid="unknown">
+      <p class="m-0 text-sm text-error">Diese Rechte stehen nicht (mehr) im Katalog und wirken nicht. Entferne sie, sonst lehnt der Dienst das Speichern ab:</p>
+      <div class="mt-1 flex flex-wrap gap-2">
+        @for (p of unknown(); track p) {
+          <button mat-stroked-button type="button" data-action="remove-unknown" [attr.data-key]="p" [disabled]="disabled()" (click)="remove(p)">
+            {{ p }} entfernen
+          </button>
+        }
+      </div>
+    </div>
+  }
+
+  <fieldset class="m-0 flex flex-col gap-1 rounded-lg border border-outline-variant px-3 py-2" data-testid="wildcards">
+    <legend class="px-1 text-sm font-medium">Sammelrechte</legend>
+    @for (w of wildcards(); track w) {
+      <mat-checkbox [checked]="on(w)" [disabled]="disabled()" [attr.data-key]="w" (change)="toggle(w, $event)">
+        {{ wildcardLabel(w) }} <code>{{ w }}</code> <span class="text-[13px] opacity-70">({{ count(w) }} Rechte)</span>
+      </mat-checkbox>
+    }
+  </fieldset>
+
+  @for (g of groups(); track g.area) {
+    <fieldset class="m-0 flex flex-col gap-1 rounded-lg border border-outline-variant px-3 py-2" [attr.data-area]="g.area">
+      <legend class="px-1 text-sm font-medium">{{ g.area }}</legend>
+      @for (e of g.entries; track e.key) {
+        <div class="flex flex-col">
+          <mat-checkbox [checked]="on(e.key)" [disabled]="disabled()" [attr.data-key]="e.key" (change)="toggle(e.key, $event)">
+            <code>{{ e.key }}</code>
+          </mat-checkbox>
+          <span class="ml-10 text-sm text-on-surface-variant" data-testid="description">
+            {{ e.description || 'Keine Beschreibung.' }}
+            @if (e.scopable) {
+              <span class="opacity-80"> Kann auf Filialen begrenzt werden.</span>
+            }
+          </span>
+        </div>
+      }
+    </fieldset>
+  } @empty {
+    <p class="m-0 text-sm text-on-surface-variant" data-testid="no-match">Kein Recht passt zur Suche.</p>
+  }
+</div>

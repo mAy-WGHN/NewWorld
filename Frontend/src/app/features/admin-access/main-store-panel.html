@@ -1,0 +1,61 @@
+<section class="flex flex-col gap-3" aria-label="Hauptfiliale" data-testid="main-store-panel">
+  <h2 class="m-0 text-lg font-medium">Hauptfiliale</h2>
+  <p class="m-0 text-sm text-on-surface-variant">
+    Die Hauptfiliale ist die Filiale, zu der eine Person hauptsächlich gehört. Business Central liefert dafür nur einen Vorschlag („Vorgabefiliale“), der nicht bei jeder Person gepflegt ist.
+    Was du hier einstellst, gilt immer und wird von BC nie überschrieben. Entfernst du die Einstellung, gilt wieder der Vorschlag aus BC.
+  </p>
+
+  <app-action-messages [state]="act" />
+  @if (loadError(); as message) {
+    <p class="rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="load-error">{{ message }}</p>
+  }
+
+  @if (canRead() && main(); as m) {
+    <app-row-card data-testid="main-store-state">
+      <dl class="m-0 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+        <dt class="opacity-70">Es gilt</dt>
+        <dd class="m-0 font-medium" data-testid="effective">{{ name(m.effectiveStoreId) }}</dd>
+        <dt class="opacity-70">Von Hand eingestellt</dt>
+        <dd class="m-0" data-testid="override">{{ name(m.overrideStoreId) }}</dd>
+        <dt class="opacity-70">Vorschlag aus BC</dt>
+        <dd class="m-0" data-testid="suggested">{{ name(m.suggestedStoreId) }}</dd>
+      </dl>
+    </app-row-card>
+  } @else if (!canRead()) {
+    <p class="m-0 text-sm text-on-surface-variant" data-testid="no-read">Du darfst die Hauptfiliale nicht ansehen (Recht „access:person:read“), aber ändern.</p>
+  }
+
+  @if (canUpdate()) {
+    <app-row-card data-testid="set-panel">
+      <div class="flex flex-col gap-3">
+        <h3 class="m-0 text-base font-medium">Hauptfiliale festlegen</h3>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Filiale</mat-label>
+          <select matNativeControl data-testid="store-select" [value]="choice()" (change)="onChoice($event)">
+            <option value="">Bitte wählen</option>
+            @for (s of stores(); track s.id) {
+              <option [value]="s.id">{{ storeLabel(s) }}</option>
+            }
+          </select>
+        </mat-form-field>
+        @if (formError(); as message) {
+          <p class="m-0 text-[13px] text-error" role="alert" data-testid="form-error">{{ message }}</p>
+        }
+        @if (confirmingClear()) {
+          <div class="flex flex-wrap items-center gap-2" data-testid="clear-panel">
+            <span class="text-sm">Die eigene Einstellung wird entfernt, danach gilt der Vorschlag aus BC. Wirklich entfernen?</span>
+            <button mat-flat-button type="button" data-action="clear" [disabled]="act.busy()" (click)="clear()">Ja, entfernen</button>
+            <button mat-stroked-button type="button" data-action="cancel-clear" (click)="cancelClear()">Abbrechen</button>
+          </div>
+        } @else {
+          <div class="flex flex-wrap gap-2">
+            <button mat-flat-button type="button" data-action="save" [disabled]="act.busy()" (click)="save()">Festlegen</button>
+            @if (main()?.overrideStoreId) {
+              <button mat-stroked-button type="button" data-action="ask-clear" [disabled]="act.busy()" (click)="askClear()">Einstellung entfernen</button>
+            }
+          </div>
+        }
+      </div>
+    </app-row-card>
+  }
+</section>

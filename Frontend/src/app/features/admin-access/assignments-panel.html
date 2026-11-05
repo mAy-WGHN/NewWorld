@@ -1,0 +1,102 @@
+<section class="flex flex-col gap-3" aria-label="Zuweisungen" data-testid="assignments-panel">
+  <h2 class="m-0 text-lg font-medium">Rollen dieser Person</h2>
+  <p class="m-0 text-sm text-on-surface-variant">
+    Eine Zuweisung gibt der Person eine Rolle. Die Reichweite sagt, wo die Rechte der Rolle gelten: überall oder nur in den gewählten Filial-Gruppen (und auf Wunsch der Hauptfiliale).
+    Ohne Datum gilt die Zuweisung unbefristet; mit „Bis“ endet sie am Ende dieses Tages, zum Beispiel für eine Vertretung.
+  </p>
+
+  <app-action-messages [state]="act" />
+  @if (loadError(); as message) {
+    <p class="rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="load-error">{{ message }}</p>
+  }
+  @if (lookupsMissing()) {
+    <p class="rounded-xl bg-surface-container px-4 py-2.5 text-sm" data-testid="lookups-missing">
+      Rollen oder Filial-Gruppen konnten nicht geladen werden (dafür brauchst du die Rechte „access:role:read“ und „access:scope:read“). Namen erscheinen dann als ID, und eine neue Zuweisung ist nicht möglich.
+    </p>
+  }
+  @if (loaded() && assignments().length === 0 && !loadError()) {
+    <p class="m-0 text-sm text-on-surface-variant" data-testid="no-assignments">Die Person hat keine Zuweisungen.</p>
+  }
+
+  <div class="flex flex-col gap-2" role="list">
+    @for (a of assignments(); track a.id) {
+      <app-row-card data-testid="assignment-row" [attr.data-id]="a.id">
+        <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+          <div class="flex flex-col">
+            <strong>{{ roleName(a.roleId) }}</strong>
+            <span class="text-[13px] opacity-80" data-testid="reach">{{ reachText(a) }}</span>
+            <span class="text-[13px] opacity-80" data-testid="period">{{ periodText(a.validFrom, a.validTo) }}</span>
+          </div>
+          <mat-chip-set aria-label="Herkunft"><mat-chip>{{ sourceText(a.source) }}</mat-chip></mat-chip-set>
+          @if (canDelete()) {
+            <button mat-stroked-button type="button" data-action="ask-delete" [disabled]="act.busy()" (click)="askDelete(a.id)">Entziehen</button>
+          }
+        </div>
+        @if (confirmingDeleteId() === a.id) {
+          <div class="mt-3 flex flex-wrap items-center gap-2 border-t border-outline-variant pt-3" data-testid="delete-panel">
+            <span class="text-sm">Die Rolle „{{ roleName(a.roleId) }}“ wird der Person entzogen. Wirklich entziehen?</span>
+            <button mat-flat-button type="button" data-action="delete" [disabled]="act.busy()" (click)="remove(a)">Ja, entziehen</button>
+            <button mat-stroked-button type="button" data-action="cancel-delete" (click)="cancelDelete()">Abbrechen</button>
+          </div>
+        }
+      </app-row-card>
+    }
+  </div>
+
+  @if (canCreate() && !lookupsMissing()) {
+    <app-row-card data-testid="add-panel">
+      <div class="flex flex-col gap-3">
+        <h3 class="m-0 text-base font-medium">Rolle zuweisen</h3>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Rolle</mat-label>
+          <select matNativeControl data-testid="role-select" [value]="roleId()" (change)="onRole($event)">
+            <option value="">Bitte wählen</option>
+            @for (r of roles(); track r.id) {
+              <option [value]="r.id">{{ r.name }}</option>
+            }
+          </select>
+        </mat-form-field>
+
+        <fieldset class="m-0 flex flex-col gap-1 rounded-lg border border-outline-variant px-3 py-2">
+          <legend class="px-1 text-sm font-medium">Reichweite</legend>
+          <label class="flex items-center gap-2">
+            <input type="radio" name="reach" data-testid="reach-unrestricted" [checked]="reach() === 'unrestricted'" (change)="onReach('unrestricted')" />
+            Überall (uneingeschränkt)
+          </label>
+          <label class="flex items-center gap-2">
+            <input type="radio" name="reach" data-testid="reach-scopes" [checked]="reach() === 'scopes'" (change)="onReach('scopes')" />
+            Nur bestimmte Filialen
+          </label>
+          @if (reach() === 'scopes') {
+            <div class="ml-6 flex flex-col gap-1" data-testid="scope-choices">
+              @for (s of scopes(); track s.id) {
+                <mat-checkbox [checked]="scopeIds().includes(s.id)" [attr.data-id]="s.id" (change)="toggleScope(s.id, $event)">{{ s.name }}</mat-checkbox>
+              } @empty {
+                <span class="text-sm text-on-surface-variant">Es gibt keine Filial-Gruppen. Lege zuerst eine an.</span>
+              }
+              <mat-checkbox [checked]="includeHome()" data-testid="include-home" (change)="onIncludeHome($event)">Auch die Hauptfiliale der Person</mat-checkbox>
+            </div>
+          }
+        </fieldset>
+
+        <div class="flex flex-wrap gap-3">
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>Von (freiwillig)</mat-label>
+            <input matInput type="date" data-testid="from" [value]="from()" (input)="onFrom($event)" />
+          </mat-form-field>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>Bis einschließlich (freiwillig)</mat-label>
+            <input matInput type="date" data-testid="to" [value]="to()" (input)="onTo($event)" />
+          </mat-form-field>
+        </div>
+
+        @if (formError(); as message) {
+          <p class="m-0 text-[13px] text-error" role="alert" data-testid="form-error">{{ message }}</p>
+        }
+        <div>
+          <button mat-flat-button type="button" data-action="add" [disabled]="act.busy()" (click)="add()">Zuweisen</button>
+        </div>
+      </div>
+    </app-row-card>
+  }
+</section>

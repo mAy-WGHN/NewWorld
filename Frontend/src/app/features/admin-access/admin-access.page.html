@@ -1,0 +1,46 @@
+<app-page-head title="Rollen und Rechte" />
+
+@if (sections().length === 0) {
+  <p class="m-0 text-sm text-on-surface-variant" data-testid="nothing">Dir fehlen die Rechte, um hier etwas zu sehen.</p>
+} @else {
+  <div class="mb-5 flex flex-wrap gap-1 border-b border-outline-variant" role="tablist" aria-label="Bereiche der Rechteverwaltung" (keydown)="onKey($event)">
+    @for (s of sections(); track s.key) {
+      <button
+        type="button"
+        role="tab"
+        data-testid="tab"
+        class="cursor-pointer rounded-t-lg border-0 bg-transparent px-4 py-2.5 text-on-surface"
+        [class.font-medium]="active() === s.key"
+        [class.border-b-2]="active() === s.key"
+        [class.border-primary]="active() === s.key"
+        [id]="'access-tab-' + s.key"
+        [attr.data-key]="s.key"
+        [attr.aria-selected]="active() === s.key"
+        [attr.aria-controls]="'access-panel-' + s.key"
+        [attr.tabindex]="active() === s.key ? 0 : -1"
+        (click)="select(s.key)"
+      >
+        {{ s.label }}
+      </button>
+    }
+  </div>
+
+  @if (active(); as key) {
+    <div role="tabpanel" [id]="'access-panel-' + key" [attr.aria-labelledby]="'access-tab-' + key" data-testid="panel">
+      @switch (key) {
+        @case ('roles') {
+          <app-roles-section />
+        }
+        @case ('catalog') {
+          <app-catalog-section />
+        }
+        @case ('scopes') {
+          <app-scopes-section />
+        }
+        @case ('people') {
+          <app-people-section />
+        }
+      }
+    </div>
+  }
+}
