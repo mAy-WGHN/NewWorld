@@ -10,6 +10,9 @@ export interface MyPrivileges {
   employeeId: string;
   roles: string[];
   privileges: PrivilegeGrant[];
+  /** Who is signed in, from the copy of the people in Access (empty if the person is not known there). */
+  name?: string | null;
+  personnelNumber?: string | null;
 }
 
 /**

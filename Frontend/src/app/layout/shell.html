@@ -4,7 +4,7 @@
   }
 
   <mat-toolbar class="topbar z-10 shrink-0 border-b border-outline-variant bg-surface! h-auto! min-h-16 py-2!">
-    <div class="flex w-full flex-wrap items-center gap-x-3 gap-y-2">
+    <div class="flex w-full flex-wrap items-center gap-x-1 gap-y-2 min-[430px]:gap-x-3">
     @if (small()) {
       <button mat-icon-button type="button" class="menu-toggle" aria-label="Menü" [attr.aria-expanded]="menuOpen()" (click)="toggleMenu()">
         <mat-icon>menu</mat-icon>
@@ -18,7 +18,7 @@
         <path d="M24 24c0-8 5-13 13-13 0 8-5 13-13 13z" fill="#2f7a4b" />
         <path d="M24 36c6 0 10-4 10-10-6 0-10 4-10 10z" fill="#6cc08a" />
       </svg>
-      <span class="flex flex-col leading-tight">
+      <span class="flex flex-col leading-tight max-[430px]:hidden">
         <strong class="text-xl">Wintergerst</strong>
         <small class="text-xs text-on-surface-variant">Mitarbeiterportal</small>
       </span>
@@ -39,14 +39,14 @@
     <button mat-button type="button" class="user !h-auto !py-1" [matMenuTriggerFor]="userMenu" aria-label="Benutzermenü">
       <span class="flex items-center gap-2.5">
         <span class="avatar grid size-10 place-items-center rounded-full bg-primary-container font-bold text-on-primary-container" aria-hidden="true">{{ initials() }}</span>
-        @if (!small()) {
-          <span class="who flex flex-col text-left leading-tight">
-            <strong>{{ displayName() ?? 'Angemeldet' }}</strong>
-            @if (personnelNumber(); as number) {
+        <span class="who flex min-w-0 flex-col text-left leading-tight">
+          <strong class="max-w-20 truncate min-[430px]:max-w-36 sm:max-w-48 lg:max-w-64" data-testid="user-name" [attr.title]="displayName()">{{ displayName() ?? 'Angemeldet' }}</strong>
+          @if (personnelNumber(); as number) {
+            @if (!small()) {
               <small class="text-xs font-normal text-on-surface-variant">Personalnummer {{ number }}</small>
             }
-          </span>
-        }
+          }
+        </span>
         <mat-icon>expand_more</mat-icon>
       </span>
     </button>

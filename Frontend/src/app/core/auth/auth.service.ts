@@ -36,6 +36,9 @@ export class AuthService {
   readonly isAuthenticated = computed(() => this.me() !== null);
   readonly employeeId = computed(() => this.me()?.employeeId ?? null);
   readonly roles = computed(() => this.me()?.roles ?? []);
+  /** The name and personnel number as Access knows them: there for everybody who is signed in, with or without an employee card. */
+  readonly name = computed(() => this.me()?.name?.trim() || null);
+  readonly personnelNumber = computed(() => this.me()?.personnelNumber?.trim() || null);
   readonly privileges = computed(() => (this.me() ? new PrivilegeSet(this.me()!.privileges) : PrivilegeSet.empty));
 
   get token(): string | null {

@@ -57,6 +57,24 @@ describe('Shell', () => {
     expect(root.querySelector('.avatar')!.textContent).toContain('MD');
   });
 
+  it('shows the name always, on a phone too, but the personnel number only on wide screens', async () => {
+    TestBed.configureTestingModule({
+      providers: [
+        provideRouter([]),
+        { provide: AuthService, useValue: auth },
+        { provide: ProfileService, useValue: profile },
+        { provide: NotificationsService, useValue: notifications },
+        { provide: BreakpointObserver, useValue: { observe: () => of({ matches: true, breakpoints: {} }) } },
+      ],
+    });
+    fixture = TestBed.createComponent(Shell);
+    root = fixture.nativeElement as HTMLElement;
+    await fixture.whenStable();
+
+    expect(root.querySelector('[data-testid="user-name"]')!.textContent).toContain('Mehmet Demir');
+    expect(root.querySelector('.who')!.textContent).not.toContain('Personalnummer');
+  });
+
   it('says only "Angemeldet" if no name is known', async () => {
     displayName.set(null);
     personnelNumber.set(null);
