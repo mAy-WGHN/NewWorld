@@ -88,6 +88,29 @@ export function formatPeriod(from: string, to: string | null): string {
   return from === to ? formatDate(from) : `${formatDate(from)} – ${formatDate(to)}`;
 }
 
+/** What the file chooser offers (the type of the file is checked again after the choice and by the service from the content). */
+export const CERTIFICATE_ACCEPT = '.pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg';
+
+/** The service takes files up to 10 MB. */
+export const MAX_CERTIFICATE_BYTES = 10 * 1024 * 1024;
+
+const CERTIFICATE_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
+const CERTIFICATE_EXTENSIONS = ['.pdf', '.jpg', '.jpeg', '.png'];
+
+/** The message for a file that cannot be an AU (only PDF, JPEG and PNG, not empty, not too big), or `null` if it is fine. */
+export function validateCertificateFile(file: File): string | null {
+  const name = file.name.toLowerCase();
+  const typeOk = CERTIFICATE_TYPES.includes(file.type) || (!file.type && CERTIFICATE_EXTENSIONS.some((e) => name.endsWith(e)));
+  const extensionOk = CERTIFICATE_EXTENSIONS.some((e) => name.endsWith(e));
+  if (!typeOk || !extensionOk) {
+    return 'Erlaubt sind nur PDF, JPEG und PNG.';
+  }
+  if (file.size === 0 || file.size > MAX_CERTIFICATE_BYTES) {
+    return 'Die Datei ist leer oder zu groß (höchstens 10 MB).';
+  }
+  return null;
+}
+
 /** The message for a sick note that cannot be sent as it is, or `null` if it is fine. */
 export function validateSickNote(input: SickNoteInput): string | null {
   if (!input.kind) {
@@ -95,6 +118,12 @@ export function validateSickNote(input: SickNoteInput): string | null {
   }
   if (input.electronic && input.file) {
     return 'Bitte entweder die AU hochladen oder „eAU“ wählen.';
+  }
+  if (input.file) {
+    const fileProblem = validateCertificateFile(input.file);
+    if (fileProblem) {
+      return fileProblem;
+    }
   }
   return validatePeriod(input.from, input.to, true);
 }

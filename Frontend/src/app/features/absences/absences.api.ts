@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { ConfigService } from '../../core/config';
-import { Absence, SickNoteInput, VacationBalance } from './absence-models';
+import { Absence, SickNoteInput, VacationBalance, errorMessage, problemTitle } from './absence-models';
 
 /** The own absences in Workforce (`/api/me/...`). Errors are left to the caller; see `problemTitle`. */
 @Injectable({ providedIn: 'root' })
@@ -33,7 +33,7 @@ export class AbsencesApi {
    * Reports the sick note and hands in the AU with it if there is a file (it covers the period of the sick note). A failed upload does not
    * undo the sick note: the answer says so and the person hands the AU in later ("AU bearbeiten").
    */
-  async reportSickNote(input: SickNoteInput): Promise<{ certificateFailed: boolean }> {
+  async reportSickNote(input: SickNoteInput): Promise<{ certificateFailed: boolean; reason?: string }> {
     const absence = await this.reportSick(input);
     if (!input.file || input.electronic) {
       return { certificateFailed: false };
@@ -41,8 +41,8 @@ export class AbsencesApi {
     try {
       await this.uploadCertificate(absence.id, input.file, input.from, input.to);
       return { certificateFailed: false };
-    } catch {
-      return { certificateFailed: true };
+    } catch (error) {
+      return { certificateFailed: true, reason: errorMessage(problemTitle(error)) };
     }
   }
 

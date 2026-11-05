@@ -91,16 +91,19 @@ export class SickNotesPage {
   /** Reports the sick note, with the AU if the person handed one in; a failed upload does not undo the sick note. */
   protected async report(input: SickNoteInput): Promise<void> {
     let certificateFailed = false;
+    let failureReason = '';
     await this.act(
       () => (input.file && !certificateFailed ? 'Krankmeldung gemeldet, die AU ist hochgeladen. Gute Besserung!' : 'Krankmeldung gemeldet. Gute Besserung!'),
       async () => {
-        certificateFailed = (await this.api.reportSickNote(input)).certificateFailed;
+        const result = await this.api.reportSickNote(input);
+        certificateFailed = result.certificateFailed;
+        failureReason = result.reason ?? '';
       },
       () => {
         this.sickForm()?.reset();
         this.reporting.set(false);
         if (certificateFailed) {
-          this.error.set('Die Krankmeldung ist gemeldet, aber die AU konnte nicht hochgeladen werden. Bitte reiche sie über "AU bearbeiten" nach.');
+          this.error.set(`Die Krankmeldung ist gemeldet, aber die AU wurde nicht hochgeladen. ${failureReason} Bitte reiche sie über "AU bearbeiten" nach.`);
         }
       },
     );

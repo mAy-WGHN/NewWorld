@@ -1,8 +1,8 @@
 <div class="mt-3 flex flex-col gap-3 border-t border-outline-variant pt-3 text-on-surface" data-testid="certificate-editor">
   <section class="flex flex-col gap-1" aria-label="AU hochladen">
     <strong class="text-sm">AU hochladen</strong>
-    <label class="text-sm" for="cert-file">AU (PDF, JPEG oder PNG)</label>
-    <input id="cert-file" type="file" class="mb-2" accept="application/pdf,image/jpeg,image/png" (change)="pickFile($event)" />
+    <span class="text-sm">AU (nur PDF, JPEG oder PNG)</span>
+    <div class="mb-2"><app-file-drop inputId="cert-file" [accept]="accept" [file]="file()" [disabled]="busy()" (chosen)="chooseFile($event)" (cleared)="clearFile()" /></div>
     <div class="grid gap-x-3 sm:grid-cols-2">
       <mat-form-field appearance="outline">
         <mat-label>Laut AU von</mat-label>
@@ -26,7 +26,7 @@
     <strong class="text-sm">eAU</strong>
     @if (canMark()) {
       <mat-checkbox [checked]="!!absence().electronicCertificate" [disabled]="busy()" data-testid="electronic" (change)="electronic.emit($event.checked)">
-        Das ist eine eAU (liegt bei der Personalabteilung in DATEV)
+        Das ist eine eAU
       </mat-checkbox>
     } @else {
       <p class="m-0 text-sm text-on-surface-variant" data-testid="electronic-locked">Es wurde schon eine AU hochgeladen, deshalb kann keine eAU angegeben werden.</p>

@@ -294,7 +294,7 @@ describe('SickNotesPage', () => {
   });
 
   it('keeps the sick note and says what to do if the AU could not be uploaded', async () => {
-    api['reportSickNote'].mockResolvedValue({ certificateFailed: true });
+    api['reportSickNote'].mockResolvedValue({ certificateFailed: true, reason: 'Die Datei ist zu groß oder leer.' });
     await create();
 
     await click('[data-testid="report-button"]');
@@ -303,8 +303,77 @@ describe('SickNotesPage', () => {
     await pickFile('#sick-file', pdf());
     await submitForm();
 
+    expect(q('[role="alert"]')!.textContent).toContain('Die Datei ist zu groß oder leer.');
     expect(q('[role="alert"]')!.textContent).toContain('AU bearbeiten');
     expect(q('[data-testid="status"]')!.textContent).not.toContain('hochgeladen');
+  });
+
+  it('accepts only PDF, JPEG and PNG: another file is dropped at once with a message', async () => {
+    await create();
+
+    await click('[data-testid="report-button"]');
+    expect(q('#sick-file')!.getAttribute('accept')).toBe('.pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg');
+    await chooseKind('first');
+    await type('#sick-to', '2026-11-06');
+    await pickFile('#sick-file', new File(['x'], 'au.docx', { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }));
+
+    expect(q('[data-testid="form-error"]')!.textContent).toContain('Erlaubt sind nur PDF, JPEG und PNG.');
+    await submitForm();
+    expect(api['reportSickNote']).toHaveBeenCalledWith(expect.objectContaining({ file: null }));
+  });
+
+  it('takes a JPEG and a PNG, too', async () => {
+    await create();
+    const jpeg = new File([new Uint8Array([1])], 'photo.JPG', { type: 'image/jpeg' });
+    const png = new File([new Uint8Array([1])], 'scan.png', { type: 'image/png' });
+
+    await click('[data-testid="report-button"]');
+    await chooseKind('first');
+    await type('#sick-to', '2026-11-06');
+    await pickFile('#sick-file', jpeg);
+    expect(q('[data-testid="form-error"]')).toBeNull();
+    await pickFile('#sick-file', png);
+    await submitForm();
+
+    expect(api['reportSickNote']).toHaveBeenCalledWith(expect.objectContaining({ file: png }));
+  });
+
+  it('takes an AU that is dragged onto the form, shows it, and sends it with the sick note', async () => {
+    await create();
+    const file = pdf();
+
+    await click('[data-testid="report-button"]');
+    await chooseKind('first');
+    await type('#sick-to', '2026-11-06');
+    const drop = new Event('drop', { bubbles: true, cancelable: true });
+    Object.defineProperty(drop, 'dataTransfer', { value: { files: [file] } });
+    q('[data-testid="sick-form"] [data-testid="file-drop"]')!.dispatchEvent(drop);
+    await settle();
+
+    expect(q('[data-testid="sick-form"] [data-testid="file-name"]')!.textContent).toContain('au.pdf');
+    await submitForm();
+    expect(api['reportSickNote']).toHaveBeenCalledWith(expect.objectContaining({ file }));
+  });
+
+  it('can remove the chosen AU again', async () => {
+    await create();
+
+    await click('[data-testid="report-button"]');
+    await pickFile('#sick-file', pdf());
+    await click('[data-testid="sick-form"] [data-testid="remove-file"]');
+
+    expect(q('[data-testid="sick-form"] [data-testid="file-name"]')).toBeNull();
+  });
+
+  it('also refuses another file when an AU is handed in afterwards', async () => {
+    await create();
+
+    await click('[data-id="missing"] [data-action="certificate"]');
+    await pickFile('#cert-file', new File(['x'], 'au.exe', { type: 'application/x-msdownload' }));
+
+    expect(q('[data-testid="editor-error"]')!.textContent).toContain('Erlaubt sind nur PDF, JPEG und PNG.');
+    await click('[data-id="missing"] [data-testid="certificate-editor"] [data-action="confirm"]');
+    expect(api['uploadCertificate']).not.toHaveBeenCalled();
   });
 
   it('shows the answer of the service in plain words and keeps the form open', async () => {

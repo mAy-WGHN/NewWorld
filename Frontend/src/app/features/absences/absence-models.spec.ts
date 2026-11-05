@@ -13,6 +13,7 @@ import {
   splitVacation,
   statusLabel,
   typeLabel,
+  validateCertificateFile,
   validatePeriod,
 } from './absence-models';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -223,5 +224,34 @@ describe('splitVacation', () => {
   it('has nothing waiting when everything is decided', () => {
     expect(splitVacation([vac('a', '2026-12-21', 'Approved')]).pending).toEqual([]);
     expect(splitVacation([])).toEqual({ pending: [], others: [] });
+  });
+});
+
+describe('validateCertificateFile', () => {
+  const file = (name: string, type: string, size = 10) => new File([new Uint8Array(size)], name, { type });
+
+  it('accepts PDF, JPEG and PNG', () => {
+    expect(validateCertificateFile(file('au.pdf', 'application/pdf'))).toBeNull();
+    expect(validateCertificateFile(file('au.jpg', 'image/jpeg'))).toBeNull();
+    expect(validateCertificateFile(file('au.JPEG', 'image/jpeg'))).toBeNull();
+    expect(validateCertificateFile(file('au.png', 'image/png'))).toBeNull();
+  });
+
+  it('knows a file by its ending if the system gives no type', () => {
+    expect(validateCertificateFile(file('au.pdf', ''))).toBeNull();
+    expect(validateCertificateFile(file('au.docx', ''))).not.toBeNull();
+  });
+
+  it('refuses everything else, also a wrong ending on a right type', () => {
+    expect(validateCertificateFile(file('au.docx', 'application/msword'))).toBe('Erlaubt sind nur PDF, JPEG und PNG.');
+    expect(validateCertificateFile(file('au.gif', 'image/gif'))).not.toBeNull();
+    expect(validateCertificateFile(file('au.exe', 'application/pdf'))).not.toBeNull();
+    expect(validateCertificateFile(file('au', 'application/pdf'))).not.toBeNull();
+  });
+
+  it('refuses an empty file and one over 10 MB', () => {
+    expect(validateCertificateFile(file('au.pdf', 'application/pdf', 0))).toContain('leer oder zu groß');
+    expect(validateCertificateFile(file('au.pdf', 'application/pdf', 10 * 1024 * 1024 + 1))).toContain('leer oder zu groß');
+    expect(validateCertificateFile(file('au.pdf', 'application/pdf', 10 * 1024 * 1024))).toBeNull();
   });
 });

@@ -1,0 +1,26 @@
+<div
+  class="flex flex-col items-center gap-2 rounded-xl border-2 border-dashed px-4 py-4 text-center"
+  [class.border-primary]="over()"
+  [class.bg-primary-container]="over()"
+  [class.border-outline]="!over()"
+  data-testid="file-drop"
+  (dragover)="dragOver($event)"
+  (dragleave)="dragLeave()"
+  (drop)="drop($event)"
+>
+  <input #picker [id]="inputId()" type="file" class="hidden" tabindex="-1" [accept]="accept()" [disabled]="disabled()" (change)="onChange($event)" />
+
+  @if (file(); as f) {
+    <p class="m-0 flex items-center gap-2" data-testid="file-name">
+      <mat-icon aria-hidden="true">description</mat-icon>
+      <span>{{ f.name }} ({{ formatSize(f.size) }})</span>
+    </p>
+    <div class="flex flex-wrap justify-center gap-2">
+      <button mat-stroked-button type="button" data-testid="choose-file" [disabled]="disabled()" (click)="open()">Andere Datei wählen</button>
+      <button mat-stroked-button type="button" data-testid="remove-file" [disabled]="disabled()" (click)="cleared.emit()">Entfernen</button>
+    </div>
+  } @else {
+    <p class="m-0 text-sm text-on-surface-variant">Datei hierher ziehen oder</p>
+    <button mat-stroked-button type="button" data-testid="choose-file" [disabled]="disabled()" (click)="open()">Datei auswählen</button>
+  }
+</div>

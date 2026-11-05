@@ -1,9 +1,10 @@
-import { Component, ElementRef, input, output, signal, viewChild } from '@angular/core';
+import { Component, input, output, signal } from '@angular/core';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatRadioModule } from '@angular/material/radio';
 import { todayIso } from '../../core/dates';
 import { PAGE_UI } from '../../shared/ui/material';
-import { SickNoteInput, SickNoteKind, validateSickNote } from '../absences/absence-models';
+import { FileDrop } from './file-drop';
+import { CERTIFICATE_ACCEPT, SickNoteInput, SickNoteKind, validateCertificateFile, validateSickNote } from '../absences/absence-models';
 
 /**
  * The form "Krankmeldung", the same on "Meine Krankmeldungen" and "Meine Abwesenheiten": first or follow-up certificate (a choice,
@@ -13,7 +14,7 @@ import { SickNoteInput, SickNoteKind, validateSickNote } from '../absences/absen
  */
 @Component({
   selector: 'app-sick-note-form',
-  imports: [MatCheckboxModule, MatRadioModule, ...PAGE_UI],
+  imports: [FileDrop, MatCheckboxModule, MatRadioModule, ...PAGE_UI],
   templateUrl: './sick-note-form.html',
 })
 export class SickNoteForm {
@@ -26,7 +27,7 @@ export class SickNoteForm {
   protected readonly electronic = signal(false);
   protected readonly file = signal<File | null>(null);
   protected readonly error = signal<string | null>(null);
-  private readonly fileInput = viewChild<ElementRef<HTMLInputElement>>('fileInput');
+  protected readonly accept = CERTIFICATE_ACCEPT;
 
   protected set(target: { set(value: string): void }, event: Event): void {
     target.set((event.target as HTMLInputElement).value);
@@ -38,12 +39,17 @@ export class SickNoteForm {
   }
 
   /** A file and "eAU" exclude each other: the one that is chosen last wins. */
-  protected pickFile(event: Event): void {
-    const file = (event.target as HTMLInputElement).files?.[0] ?? null;
-    this.file.set(file);
-    if (file) {
-      this.electronic.set(false);
+  protected chooseFile(file: File): void {
+    const problem = validateCertificateFile(file);
+    if (problem) {
+      // Not an AU: the choice is dropped at once, so a wrong file never travels.
+      this.file.set(null);
+      this.error.set(problem);
+      return;
     }
+    this.error.set(null);
+    this.file.set(file);
+    this.electronic.set(false);
   }
 
   protected toggleElectronic(checked: boolean): void {
@@ -53,12 +59,8 @@ export class SickNoteForm {
     }
   }
 
-  private clearFile(): void {
+  protected clearFile(): void {
     this.file.set(null);
-    const input = this.fileInput();
-    if (input) {
-      input.nativeElement.value = '';
-    }
   }
 
   protected submit(event: Event): void {

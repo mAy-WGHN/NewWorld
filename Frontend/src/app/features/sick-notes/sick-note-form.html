@@ -28,17 +28,10 @@
 
     <div class="mb-3 flex flex-col gap-1 rounded-xl bg-surface-container px-3 py-2.5" data-testid="certificate-section">
       <strong class="text-sm">AU einreichen</strong>
-      <label class="text-sm" for="sick-file">AU (PDF, JPEG oder PNG)</label>
-      <input
-        #fileInput
-        id="sick-file"
-        type="file"
-        accept="application/pdf,image/jpeg,image/png"
-        [disabled]="busy()"
-        (change)="pickFile($event)"
-      />
+      <span class="text-sm">AU (nur PDF, JPEG oder PNG)</span>
+      <app-file-drop inputId="sick-file" [accept]="accept" [file]="file()" [disabled]="busy()" (chosen)="chooseFile($event)" (cleared)="clearFile()" />
       <mat-checkbox [checked]="electronic()" [disabled]="busy()" data-testid="electronic" (change)="toggleElectronic($event.checked)">
-        Das ist eine eAU (liegt bei der Personalabteilung in DATEV)
+        Das ist eine eAU
       </mat-checkbox>
       <p class="m-0 text-sm text-on-surface-variant">Die AU kannst du auch später hochladen oder eine eAU nachträglich angeben.</p>
     </div>

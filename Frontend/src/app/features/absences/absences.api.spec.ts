@@ -57,9 +57,9 @@ describe('AbsencesApi', () => {
     const done = api.reportSickNote({ kind: 'First', from: '2026-12-01', to: '2026-12-03', electronic: false, file });
     http.expectOne('/svc/workforce/api/me/absences/sick').flush({ id: 'a1' });
     await new Promise((r) => setTimeout(r));
-    http.expectOne('/svc/workforce/api/me/absences/a1/certificates').flush({}, { status: 415, statusText: 'Unsupported' });
+    http.expectOne('/svc/workforce/api/me/absences/a1/certificates').flush({ title: 'UnsupportedFileType' }, { status: 415, statusText: 'Unsupported' });
 
-    expect(await done).toEqual({ certificateFailed: true });
+    expect(await done).toEqual({ certificateFailed: true, reason: 'Erlaubt sind nur PDF, JPEG und PNG.' });
   });
 
   it('uploads nothing when there is no file or the AU is an eAU', async () => {

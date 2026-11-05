@@ -1,7 +1,8 @@
 import { Component, effect, input, output, signal } from '@angular/core';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { PAGE_UI } from '../../shared/ui/material';
-import { Absence, canMarkElectronic, validatePeriod } from '../absences/absence-models';
+import { FileDrop } from './file-drop';
+import { Absence, CERTIFICATE_ACCEPT, canMarkElectronic, validateCertificateFile, validatePeriod } from '../absences/absence-models';
 
 /** A paper AU the person hands in afterwards: the file and the period the AU covers. */
 export interface CertificateUpload {
@@ -17,7 +18,7 @@ export interface CertificateUpload {
  */
 @Component({
   selector: 'app-certificate-editor',
-  imports: [MatCheckboxModule, ...PAGE_UI],
+  imports: [FileDrop, MatCheckboxModule, ...PAGE_UI],
   templateUrl: './certificate-editor.html',
 })
 export class CertificateEditor {
@@ -31,6 +32,7 @@ export class CertificateEditor {
   protected readonly from = signal('');
   protected readonly to = signal('');
   protected readonly error = signal<string | null>(null);
+  protected readonly accept = CERTIFICATE_ACCEPT;
 
   constructor() {
     // Starts with the period of the sick note (the AU usually covers it); a new sick note resets the fields.
@@ -49,8 +51,20 @@ export class CertificateEditor {
     target.set((event.target as HTMLInputElement).value);
   }
 
-  protected pickFile(event: Event): void {
-    this.file.set((event.target as HTMLInputElement).files?.[0] ?? null);
+  protected chooseFile(file: File): void {
+    const problem = validateCertificateFile(file);
+    if (problem) {
+      // Not an AU: the choice is dropped at once.
+      this.file.set(null);
+      this.error.set(problem);
+      return;
+    }
+    this.error.set(null);
+    this.file.set(file);
+  }
+
+  protected clearFile(): void {
+    this.file.set(null);
   }
 
   protected submitUpload(): void {
