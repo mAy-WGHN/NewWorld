@@ -16,6 +16,8 @@ import { AuthService } from '../core/auth/auth.service';
 import { visibleNav } from '../core/nav/nav-items';
 import { NavigationState, PageReloader } from '../core/navigation-state.service';
 import { NotificationsService } from '../core/notifications.service';
+import { notificationTarget } from '../features/notifications/notification-link';
+import { NotificationItem } from '../features/notifications/notification-models';
 import { ProfileService } from '../core/profile.service';
 import { SearchBox } from './search-box';
 
@@ -84,11 +86,11 @@ export class Shell {
   }
 
   /** Highlights new notifications in a snackbar; one is shown with its title and text, several as a count. */
-  private announce(items: readonly { title: string; body: string; deepLink?: string | null }[]): void {
+  private announce(items: readonly NotificationItem[]): void {
     const first = items[0];
     const message = items.length === 1 ? `${first.title}: ${first.body}` : `${items.length} neue Mitteilungen`;
     const ref = this.snackBar.open(message, 'Ansehen', { duration: SNACKBAR_MS, horizontalPosition: 'end', verticalPosition: 'bottom', panelClass: 'notification-snackbar' });
-    ref.onAction().subscribe(() => void this.router.navigateByUrl(items.length === 1 && first.deepLink ? first.deepLink : '/notifications'));
+    ref.onAction().subscribe(() => void this.router.navigateByUrl(items.length === 1 ? notificationTarget(first, this.auth.privileges()) : '/notifications'));
   }
 
   protected toggleMenu(): void {

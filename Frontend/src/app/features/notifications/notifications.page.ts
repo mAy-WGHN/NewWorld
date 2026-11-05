@@ -5,6 +5,7 @@ import { AuthService } from '../../core/auth/auth.service';
 import { NotificationsService } from '../../core/notifications.service';
 import { PAGE_UI } from '../../shared/ui/material';
 import { errorMessage, problemTitle } from '../absences/absence-models';
+import { notificationTarget } from './notification-link';
 import { NotificationItem, formatDateTime, safeDeepLink } from './notification-models';
 import { NotificationPreferences } from './notification-preferences';
 import { NotificationsApi, PAGE_SIZE } from './notifications.api';
@@ -42,6 +43,11 @@ export class NotificationsPage {
   // Plain functions for the template.
   protected readonly formatDateTime = formatDateTime;
   protected readonly safeDeepLink = safeDeepLink;
+
+  /** The page the notification leads to (always one that exists and that the person may open). */
+  protected target(item: NotificationItem): string {
+    return notificationTarget(item, this.auth.privileges());
+  }
 
   constructor() {
     void this.load();

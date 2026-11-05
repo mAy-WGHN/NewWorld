@@ -93,18 +93,19 @@ describe('Shell', () => {
   });
 
   it('highlights an incoming notification in a snackbar and opens its link on "Ansehen"', async () => {
+    privileges.set(grant('notification:read-own', 'absence:approve'));
     await create();
     const router = TestBed.inject(Router);
     const navigate = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
 
-    arrived.set({ id: 1, items: [{ id: 'n1', templateKey: 'k', title: 'Urlaubsantrag', body: 'Erika hat Urlaub beantragt.', deepLink: '/absences/1', createdAt: '2026-11-05T10:00:00Z', readAt: null }] });
+    arrived.set({ id: 1, items: [{ id: 'n1', templateKey: 'workforce.vacation-request.supervisor', title: 'Urlaubsantrag', body: 'Erika hat Urlaub beantragt.', deepLink: '/absences/1', createdAt: '2026-11-05T10:00:00Z', readAt: null }] });
     fixture.detectChanges();
     await fixture.whenStable();
 
     const bar = TestBed.inject(OverlayContainer).getContainerElement();
     expect(bar.textContent).toContain('Urlaubsantrag: Erika hat Urlaub beantragt.');
     (bar.querySelector('button') as HTMLButtonElement).click();
-    expect(navigate).toHaveBeenCalledWith('/absences/1');
+    expect(navigate).toHaveBeenCalledWith('/approvals');
   });
 
   it('sums up several incoming notifications and opens the list', async () => {

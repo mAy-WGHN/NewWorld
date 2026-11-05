@@ -47,8 +47,8 @@
         <span class="text-[13px] opacity-80">{{ formatDateTime(n.createdAt) }}</span>
       </div>
       <div class="flex flex-wrap items-center gap-2">
-        @if (safeDeepLink(n.deepLink); as link) {
-          <a mat-stroked-button data-action="open" [routerLink]="link" (click)="opened(n)">Öffnen</a>
+        @if (safeDeepLink(n.deepLink)) {
+          <a mat-stroked-button data-action="open" [routerLink]="target(n)" (click)="opened(n)">Öffnen</a>
         }
         @if (canUpdate() && !n.readAt) {
           <button mat-stroked-button type="button" data-action="read" [disabled]="busy()" (click)="markRead(n)">Gelesen</button>

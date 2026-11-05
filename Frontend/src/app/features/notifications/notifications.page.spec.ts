@@ -41,7 +41,7 @@ describe('NotificationsPage', () => {
   async function create(privileges = grant(...ALL)): Promise<void> {
     TestBed.configureTestingModule({
       providers: [
-        provideRouter([{ path: 'approvals', children: [] }]),
+        provideRouter([{ path: 'my-vacation', children: [] }]),
         { provide: NotificationsApi, useValue: api },
         { provide: AuthService, useValue: { privileges: signal(privileges) } },
         { provide: NotificationsService, useValue: { refresh: refreshCount } },
@@ -143,11 +143,11 @@ describe('NotificationsPage', () => {
     expect(refreshCount).toHaveBeenCalled();
   });
 
-  it('opens the page a notification points to and marks it as read on the way', async () => {
-    await create();
+  it('opens the page a notification points to (by its kind) and marks it as read on the way', async () => {
+    await create(grant(...ALL, 'absence:read-own', 'absence:create-own'));
 
     const link = q<HTMLAnchorElement>('[data-id="u1"] a[data-action="open"]')!;
-    expect(link.getAttribute('href')).toBe('/approvals');
+    expect(link.getAttribute('href')).toBe('/my-vacation');
     link.addEventListener('click', (e) => e.preventDefault());
     link.click();
     await settle();
