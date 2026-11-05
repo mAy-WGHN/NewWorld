@@ -1,7 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { AuthService } from '../../core/auth/auth.service';
 import { PAGE_UI } from '../../shared/ui/material';
-import { errorMessage, formatDate, formatPeriod, problemTitle } from '../absences/absence-models';
+import { errorMessage, formatDate, formatPeriod, kindLabel, problemTitle } from '../absences/absence-models';
 import { formatDateTime } from '../notifications/notification-models';
 import {
   CertificateDocument,
@@ -61,6 +61,7 @@ export class SickNoteReviewPage {
   protected readonly hasMore = computed(() => this.items().length < this.total());
 
   protected readonly formatPeriod = formatPeriod;
+  protected readonly kindLabel = kindLabel;
   protected readonly formatDate = formatDate;
   protected readonly formatDateTime = formatDateTime;
   protected readonly formatSize = formatSize;

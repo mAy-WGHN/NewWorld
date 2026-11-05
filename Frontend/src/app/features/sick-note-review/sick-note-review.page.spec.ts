@@ -11,7 +11,7 @@ const grant = (...keys: string[]) => new PrivilegeSet(keys.map((key) => ({ key, 
 
 const row = (over: Partial<SickNoteOverview> = {}): SickNoteOverview => ({
   absenceId: 'a1', employeeId: 'e1', employeeName: 'Erika Mustermann', storeId: null, from: '2026-11-05', to: '2026-11-07',
-  certificateStatus: 'Submitted', certifiedThrough: null, remindersSent: 0, lastReminderAt: null, ...over,
+  certificateStatus: 'Submitted', certifiedThrough: null, remindersSent: 0, lastReminderAt: null, kind: 'First', electronicCertificate: false, ...over,
 });
 
 const doc = (over: Partial<CertificateDocument> = {}): CertificateDocument => ({
@@ -69,6 +69,25 @@ describe('SickNoteReviewPage', () => {
     expect(r.textContent).toContain('05.11.2026 – 07.11.2026');
     expect(r.textContent).toContain('Wartet auf Prüfung');
     expect(r.classList.contains('attention')).toBe(true);
+  });
+
+  it('shows the kind of the sick note and marks an eAU instead of "AU fehlt"', async () => {
+    api['list'].mockResolvedValue({ items: [row({ kind: 'FollowUp', certificateStatus: 'Missing', electronicCertificate: true })], total: 1, page: 1, pageSize: 25 });
+    await create();
+
+    const r = q('[data-testid="sick-row"]')!;
+    expect(r.querySelector('[data-testid="kind"]')!.textContent).toContain('Folgekrankmeldung');
+    expect(r.querySelector('[data-testid="electronic-chip"]')!.textContent).toContain('eAU');
+    expect(r.textContent).not.toContain('AU fehlt');
+  });
+
+  it('asks for the sick notes marked as eAU with the filter "eAU"', async () => {
+    await create();
+
+    [...root.querySelectorAll<HTMLButtonElement>('[data-testid="filter"]')].find((b) => b.textContent!.trim() === 'eAU')!.click();
+    await settle();
+
+    expect(api['list']).toHaveBeenLastCalledWith('electronic', 1, 25);
   });
 
   it('does not mark rows yellow that need no check', async () => {

@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { ConfigService } from '../../core/config';
-import { CertificateDocument, Page, SickNoteOverview } from './sick-note-review-models';
+import { CertificateDocument, ELECTRONIC_FILTER, Page, SickNoteOverview } from './sick-note-review-models';
 
 /** The sick notes and certificates (AU) as HR sees them, in Workforce. Errors are left to the caller; see `problemTitle`. */
 @Injectable({ providedIn: 'root' })
@@ -16,7 +16,9 @@ export class SickNoteReviewApi {
 
   list(certificateStatus: string | null, page: number, pageSize: number): Promise<Page<SickNoteOverview>> {
     let params = new HttpParams().set('page', page).set('pageSize', pageSize);
-    if (certificateStatus) {
+    if (certificateStatus === ELECTRONIC_FILTER) {
+      params = params.set('electronic', true);
+    } else if (certificateStatus) {
       params = params.set('certificateStatus', certificateStatus);
     }
     return firstValueFrom(this.http.get<Page<SickNoteOverview>>(this.url('/sick-notes'), { params }));

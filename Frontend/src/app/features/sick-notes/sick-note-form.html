@@ -1,0 +1,54 @@
+<mat-card appearance="outlined" data-testid="sick-form-card">
+  <form class="flex flex-col gap-1 p-4" data-testid="sick-form" (submit)="submit($event)" novalidate>
+    <h2 class="m-0 text-lg font-medium">Krank melden</h2>
+
+    <fieldset class="m-0 mb-2 border-0 p-0">
+      <legend class="mb-1 p-0 text-sm font-medium">Art der Krankmeldung</legend>
+      <mat-radio-group class="flex flex-col" aria-label="Art der Krankmeldung" [value]="kind()" (change)="setKind($event.value)">
+        <mat-radio-button value="First" data-testid="kind-first" [disabled]="busy()">Erstkrankmeldung</mat-radio-button>
+        <mat-radio-button value="FollowUp" data-testid="kind-follow-up" [disabled]="busy()">Folgekrankmeldung</mat-radio-button>
+      </mat-radio-group>
+      @if (kind() === 'FollowUp') {
+        <p class="m-0 mt-1 text-sm text-on-surface-variant" data-testid="follow-up-hint">
+          Eine Folgekrankmeldung schließt direkt an deine vorherige Krankmeldung an (der erste Tag ist der Tag danach) und braucht eine eigene AU.
+        </p>
+      }
+    </fieldset>
+
+    <div class="grid gap-x-3 sm:grid-cols-2">
+      <mat-form-field appearance="outline">
+        <mat-label>Erster Tag</mat-label>
+        <input matInput id="sick-from" type="date" [value]="from()" (input)="set(from, $event)" [disabled]="busy()" />
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Letzter Tag</mat-label>
+        <input matInput id="sick-to" type="date" [value]="to()" (input)="set(to, $event)" [disabled]="busy()" />
+      </mat-form-field>
+    </div>
+
+    <div class="mb-3 flex flex-col gap-1 rounded-xl bg-surface-container px-3 py-2.5" data-testid="certificate-section">
+      <strong class="text-sm">AU einreichen</strong>
+      <label class="text-sm" for="sick-file">AU (PDF, JPEG oder PNG)</label>
+      <input
+        #fileInput
+        id="sick-file"
+        type="file"
+        accept="application/pdf,image/jpeg,image/png"
+        [disabled]="busy()"
+        (change)="pickFile($event)"
+      />
+      <mat-checkbox [checked]="electronic()" [disabled]="busy()" data-testid="electronic" (change)="toggleElectronic($event.checked)">
+        Das ist eine eAU (liegt bei der Personalabteilung in DATEV)
+      </mat-checkbox>
+      <p class="m-0 text-sm text-on-surface-variant">Die AU kannst du auch später hochladen oder eine eAU nachträglich angeben.</p>
+    </div>
+
+    @if (error(); as message) {
+      <p class="mb-2 rounded-xl border border-error px-3 py-2 text-error" role="alert" data-testid="form-error">{{ message }}</p>
+    }
+    <div class="flex flex-wrap gap-2">
+      <button mat-flat-button type="submit" data-testid="submit" [disabled]="busy()">Krank melden</button>
+      <ng-content />
+    </div>
+  </form>
+</mat-card>

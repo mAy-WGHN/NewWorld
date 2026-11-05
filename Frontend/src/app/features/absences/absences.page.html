@@ -32,21 +32,7 @@
 
 @if (canCreate()) {
   <div class="mb-4 grid items-start gap-4 md:grid-cols-2">
-    <mat-card appearance="outlined">
-      <form class="flex flex-col gap-1 p-4" data-testid="sick-form" (submit)="reportSick($event)" novalidate>
-        <h2 class="m-0 text-lg font-medium">Krankmeldung</h2>
-        <p class="m-0 mb-2 text-sm text-on-surface-variant">Das Ende kannst du offen lassen und später eintragen. Die AU kannst du jederzeit nachreichen.</p>
-        <mat-form-field appearance="outline">
-          <mat-label>Erster Tag</mat-label>
-          <input matInput id="sick-from" type="date" [value]="sickFrom()" (input)="set(sickFrom, $event)" [disabled]="busy()" />
-        </mat-form-field>
-        <mat-form-field appearance="outline">
-          <mat-label>Letzter Tag (optional)</mat-label>
-          <input matInput id="sick-to" type="date" [value]="sickTo()" (input)="set(sickTo, $event)" [disabled]="busy()" />
-        </mat-form-field>
-        <div><button mat-flat-button type="submit" [disabled]="busy()">Krank melden</button></div>
-      </form>
-    </mat-card>
+    <app-sick-note-form [busy]="busy()" (submitted)="reportSick($event)" />
 
     <mat-card appearance="outlined">
       <form class="flex flex-col gap-1 p-4" data-testid="vacation-form" (submit)="requestVacation($event)" novalidate>
@@ -82,8 +68,13 @@
             <span class="ml-2.5 text-sm text-on-surface-variant">{{ formatPeriod(a.from, a.to) }}</span>
           </div>
           <mat-chip-set aria-label="Stand">
+            @if (kindLabel(a.sickNoteKind); as kind) {
+              <mat-chip data-testid="kind-chip">{{ kind }}</mat-chip>
+            }
             <mat-chip>{{ statusLabel(a.status) }}</mat-chip>
-            @if (certificateLabel(a.certificateStatus); as cert) {
+            @if (a.electronicCertificate) {
+              <mat-chip data-testid="electronic-chip">eAU</mat-chip>
+            } @else if (certificateLabel(a.certificateStatus); as cert) {
               <mat-chip>{{ cert }}</mat-chip>
             }
           </mat-chip-set>
@@ -95,38 +86,33 @@
               <button mat-stroked-button type="button" data-action="end" (click)="openPanel(a, 'end')">Beenden</button>
             }
             @if (canUploadCertificate() && canUpload(a)) {
-              <button mat-stroked-button type="button" data-action="upload" (click)="openPanel(a, 'upload')">AU hochladen</button>
+              <button mat-stroked-button type="button" data-action="certificate" (click)="openPanel(a, 'certificate')">AU bearbeiten</button>
             }
           </div>
         </div>
 
         @if (panel(); as p) {
           @if (p.id === a.id) {
-            <div class="mt-3 flex flex-col gap-1 border-t border-outline-variant pt-3">
-              @if (p.kind === 'end') {
+            @if (p.kind === 'certificate') {
+              <app-certificate-editor
+                [absence]="a"
+                [busy]="busy()"
+                (upload)="uploadCertificate(a, $event)"
+                (electronic)="setElectronic(a, $event)"
+                (closed)="openPanel(a, 'certificate')"
+              />
+            } @else {
+              <div class="mt-3 flex flex-col gap-1 border-t border-outline-variant pt-3">
                 <mat-form-field appearance="outline" class="max-w-xs">
                   <mat-label>Letzter Tag der Krankmeldung</mat-label>
                   <input matInput id="end-to" type="date" [value]="endTo()" (input)="set(endTo, $event)" />
                 </mat-form-field>
-              } @else {
-                <label class="text-sm font-medium" for="cert-file">AU (PDF, JPEG oder PNG)</label>
-                <input id="cert-file" type="file" class="mb-3" accept="application/pdf,image/jpeg,image/png" (change)="pickFile($event)" />
-                <div class="grid gap-x-3 sm:grid-cols-2">
-                  <mat-form-field appearance="outline">
-                    <mat-label>Laut AU von</mat-label>
-                    <input matInput id="cert-from" type="date" [value]="certFrom()" (input)="set(certFrom, $event)" />
-                  </mat-form-field>
-                  <mat-form-field appearance="outline">
-                    <mat-label>Laut AU bis</mat-label>
-                    <input matInput id="cert-to" type="date" [value]="certTo()" (input)="set(certTo, $event)" />
-                  </mat-form-field>
+                <div class="flex flex-wrap gap-2">
+                  <button mat-flat-button type="button" data-action="confirm" [disabled]="busy()" (click)="confirmPanel(a)">Speichern</button>
+                  <button mat-stroked-button type="button" (click)="openPanel(a, p.kind)">Abbrechen</button>
                 </div>
-              }
-              <div class="flex flex-wrap gap-2">
-                <button mat-flat-button type="button" data-action="confirm" [disabled]="busy()" (click)="confirmPanel(a)">Speichern</button>
-                <button mat-stroked-button type="button" (click)="openPanel(a, p.kind)">Abbrechen</button>
               </div>
-            </div>
+            }
           }
         }
       </app-row-card>

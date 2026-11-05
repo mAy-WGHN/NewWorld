@@ -10,6 +10,10 @@ export interface SickNoteOverview {
   certifiedThrough: string | null;
   remindersSent: number;
   lastReminderAt: string | null;
+  /** `First`, `FollowUp` or `Unknown` (reported before the distinction existed). */
+  kind: string;
+  /** The person says the AU is an eAU: HR finds it in DATEV. */
+  electronicCertificate: boolean;
 }
 
 export interface Page<T> {
@@ -35,11 +39,15 @@ export interface CertificateDocument {
   canOpen: boolean;
 }
 
+/** The filter "eAU" is no certificate status: it asks for the sick notes marked as eAU. */
+export const ELECTRONIC_FILTER = 'electronic';
+
 /** The filter above the list; `null` is "all". The order is the order of the buttons. */
 export const STATUS_FILTERS: readonly { value: string | null; label: string }[] = [
   { value: 'Submitted', label: 'Wartet auf Prüfung' },
   { value: 'Missing', label: 'AU fehlt' },
   { value: 'Rejected', label: 'Abgelehnt' },
+  { value: ELECTRONIC_FILTER, label: 'eAU' },
   { value: 'Verified', label: 'Geprüft' },
   { value: null, label: 'Alle' },
 ];

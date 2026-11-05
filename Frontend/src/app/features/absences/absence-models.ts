@@ -10,7 +10,24 @@ export interface Absence {
   to: string | null;
   certificateStatus: string | null;
   certifiedThrough: string | null;
+  /** Sickness only: `First` or `FollowUp` (`Unknown` for sick notes from before the distinction). */
+  sickNoteKind?: string | null;
+  /** Sickness only: the AU is an eAU that HR finds in DATEV. */
+  electronicCertificate?: boolean | null;
 }
+
+/** What the form "Krankmeldung" hands over: the sick note and, optionally, the AU that goes with it. */
+export interface SickNoteInput {
+  kind: SickNoteKind | null;
+  from: string;
+  to: string;
+  /** The AU is an eAU (then nothing is uploaded). */
+  electronic: boolean;
+  /** The AU as a file, if the person has it already; it covers the period of the sick note. */
+  file: File | null;
+}
+
+export type SickNoteKind = 'First' | 'FollowUp';
 
 /** The vacation account of a year (`GET /api/me/vacation-balance`). */
 export interface VacationBalance {
@@ -43,6 +60,11 @@ const CERTIFICATES: Record<string, string> = {
   Rejected: 'AU abgelehnt',
 };
 
+const KINDS: Record<string, string> = { First: 'Erstkrankmeldung', FollowUp: 'Folgekrankmeldung' };
+
+/** Empty for sick notes from before the distinction existed. */
+export const kindLabel = (kind: string | null | undefined): string => (kind && KINDS[kind]) || '';
+
 export const typeLabel = (type: string | null): string => (type && TYPES[type]) || 'Abwesenheit';
 
 /** An unknown state is shown as it is, so a new state of the service never disappears silently. */
@@ -66,6 +88,17 @@ export function formatPeriod(from: string, to: string | null): string {
   return from === to ? formatDate(from) : `${formatDate(from)} – ${formatDate(to)}`;
 }
 
+/** The message for a sick note that cannot be sent as it is, or `null` if it is fine. */
+export function validateSickNote(input: SickNoteInput): string | null {
+  if (!input.kind) {
+    return 'Bitte wählen: Erst- oder Folgekrankmeldung.';
+  }
+  if (input.electronic && input.file) {
+    return 'Bitte entweder die AU hochladen oder „eAU“ wählen.';
+  }
+  return validatePeriod(input.from, input.to, true);
+}
+
 /** The message for a wrong period, or `null` if it is fine. ISO dates compare correctly as text. */
 export function validatePeriod(from: string, to: string, toRequired: boolean): string | null {
   if (!from) {
@@ -87,7 +120,11 @@ export const canUpload = (a: Absence): boolean => a.type === 'Sickness' && a.sta
  * An AU that was handed in and waits for the check, or that was checked, needs nothing more from the person.
  */
 export const needsCertificate = (a: Absence): boolean =>
-  a.type === 'Sickness' && a.status === 'Reported' && (a.certificateStatus === 'Missing' || a.certificateStatus === 'Rejected');
+  a.type === 'Sickness' && a.status === 'Reported' && !a.electronicCertificate && (a.certificateStatus === 'Missing' || a.certificateStatus === 'Rejected');
+
+/** Whether the person can still mark the AU as an eAU: not while an uploaded AU waits for the check or was confirmed. */
+export const canMarkElectronic = (a: Absence): boolean =>
+  a.type === 'Sickness' && a.status === 'Reported' && a.certificateStatus !== 'Submitted' && a.certificateStatus !== 'Verified';
 
 /** The own sick notes: those that still need an AU first (apart, each note only once), the others below; newest first in both. */
 export function splitSickNotes(absences: readonly Absence[]): { attention: Absence[]; others: Absence[] } {
@@ -109,6 +146,8 @@ const ERRORS: Record<string, string> = {
   InsufficientBalance: 'Dafür reichen deine Urlaubstage nicht aus.',
   NoApprover: 'Es ist niemand für die Genehmigung hinterlegt. Bitte wende dich an die Personalabteilung.',
   InvalidState: 'Das ist im aktuellen Stand nicht möglich.',
+  InvalidKind: 'Bitte wählen: Erst- oder Folgekrankmeldung.',
+  NoPredecessor: 'Eine Folgekrankmeldung muss direkt an eine vorherige Krankmeldung anschließen. Wähle sonst „Erstkrankmeldung“.',
   NotAllowed: 'Das darfst du nicht.',
   AlreadyStarted: 'Der Urlaub hat schon begonnen und kann nicht mehr zurückgezogen werden.',
   WaitingPeriod: 'Für neue Mitarbeitende gilt noch die Wartezeit für Urlaub.',

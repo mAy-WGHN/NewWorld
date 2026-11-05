@@ -37,6 +37,9 @@
       <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <div class="flex flex-col">
           <strong>{{ n.employeeName }}</strong>
+          @if (kindLabel(n.kind); as kind) {
+            <span class="text-[13px]" data-testid="kind">{{ kind }}</span>
+          }
           <span class="text-[13px]">{{ formatPeriod(n.from, n.to) }}</span>
           @if (n.certifiedThrough) {
             <span class="text-[13px] opacity-80">AU gilt bis {{ formatDate(n.certifiedThrough) }}</span>
@@ -46,7 +49,11 @@
           }
         </div>
         <mat-chip-set aria-label="Stand">
-          <mat-chip>{{ statusLabel(n.certificateStatus) }}</mat-chip>
+          @if (n.electronicCertificate) {
+            <mat-chip data-testid="electronic-chip">eAU (DATEV)</mat-chip>
+          } @else {
+            <mat-chip>{{ statusLabel(n.certificateStatus) }}</mat-chip>
+          }
         </mat-chip-set>
         <button mat-stroked-button type="button" data-action="toggle" [attr.aria-expanded]="expanded() === n.absenceId" (click)="toggle(n)">
           {{ expanded() === n.absenceId ? 'Schließen' : 'Dokumente' }}

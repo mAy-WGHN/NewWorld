@@ -1,10 +1,10 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal, viewChild } from '@angular/core';
 import { AuthService } from '../../core/auth/auth.service';
 import { PAGE_UI } from '../../shared/ui/material';
-import { todayIso } from '../../core/dates';
 import {
   Absence,
   GENERIC_ERROR,
+  SickNoteInput,
   VacationBalance,
   canEnd,
   canUpload,
@@ -13,19 +13,23 @@ import {
   errorMessage,
   formatDate,
   formatPeriod,
+  kindLabel,
   problemTitle,
   statusLabel,
   typeLabel,
   validatePeriod,
 } from './absence-models';
 import { AbsencesApi } from './absences.api';
+import { CertificateEditor, CertificateUpload } from '../sick-notes/certificate-editor';
+import { SickNoteForm } from '../sick-notes/sick-note-form';
 
-type PanelKind = 'end' | 'upload';
+/** `end` gives an old sick note without a last day its end, `certificate` is "AU bearbeiten". */
+type PanelKind = 'end' | 'certificate';
 
 /** "Meine Abwesenheiten": report a sick note, request vacation, see the vacation account, end or withdraw, hand in the certificate (AU). */
 @Component({
   selector: 'app-absences',
-  imports: [...PAGE_UI],
+  imports: [CertificateEditor, SickNoteForm, ...PAGE_UI],
   templateUrl: './absences.page.html',
 })
 export class AbsencesPage {
@@ -49,22 +53,19 @@ export class AbsencesPage {
   protected readonly error = signal<string | null>(null);
   protected readonly status = signal<string | null>(null);
 
-  protected readonly sickFrom = signal(todayIso());
-  protected readonly sickTo = signal('');
+  private readonly sickForm = viewChild(SickNoteForm);
   protected readonly vacationFrom = signal('');
   protected readonly vacationTo = signal('');
 
   protected readonly panel = signal<{ id: string; kind: PanelKind } | null>(null);
   protected readonly endTo = signal('');
-  protected readonly certFile = signal<File | null>(null);
-  protected readonly certFrom = signal('');
-  protected readonly certTo = signal('');
 
   // Plain functions for the template.
   protected readonly typeLabel = typeLabel;
   protected readonly statusLabel = statusLabel;
   protected readonly certificateLabel = certificateLabel;
   protected readonly formatPeriod = formatPeriod;
+  protected readonly kindLabel = kindLabel;
   protected readonly formatDate = formatDate;
   protected readonly canWithdraw = canWithdraw;
   protected readonly canEnd = canEnd;
@@ -78,18 +79,11 @@ export class AbsencesPage {
     target.set((event.target as HTMLInputElement).value);
   }
 
-  protected pickFile(event: Event): void {
-    this.certFile.set((event.target as HTMLInputElement).files?.[0] ?? null);
-  }
-
   protected openPanel(absence: Absence, kind: PanelKind): void {
     const same = this.panel()?.id === absence.id && this.panel()?.kind === kind;
     this.panel.set(same ? null : { id: absence.id, kind });
     this.error.set(null);
     this.endTo.set('');
-    this.certFile.set(null);
-    this.certFrom.set(absence.from);
-    this.certTo.set(absence.to ?? '');
   }
 
   protected async changeYear(delta: number): Promise<void> {
@@ -97,14 +91,32 @@ export class AbsencesPage {
     await this.loadBalance();
   }
 
-  protected async reportSick(event: Event): Promise<void> {
-    event.preventDefault();
-    const problem = validatePeriod(this.sickFrom(), this.sickTo(), false);
-    if (problem) {
-      this.error.set(problem);
-      return;
-    }
-    await this.act('Krankmeldung gemeldet. Gute Besserung!', () => this.api.reportSick(this.sickFrom(), this.sickTo() || null), () => this.sickTo.set(''));
+  /** Reports the sick note, with the AU if the person handed one in; a failed upload does not undo the sick note. */
+  protected async reportSick(input: SickNoteInput): Promise<void> {
+    let certificateFailed = false;
+    await this.act(
+      () => (input.file && !certificateFailed ? 'Krankmeldung gemeldet, die AU ist hochgeladen. Gute Besserung!' : 'Krankmeldung gemeldet. Gute Besserung!'),
+      async () => {
+        certificateFailed = (await this.api.reportSickNote(input)).certificateFailed;
+      },
+      () => {
+        this.sickForm()?.reset();
+        if (certificateFailed) {
+          this.error.set('Die Krankmeldung ist gemeldet, aber die AU konnte nicht hochgeladen werden. Bitte reiche sie über "AU bearbeiten" nach.');
+        }
+      },
+    );
+  }
+
+  protected async uploadCertificate(absence: Absence, upload: CertificateUpload): Promise<void> {
+    await this.act(() => 'AU hochgeladen. Die Personalabteilung prüft sie.', () => this.api.uploadCertificate(absence.id, upload.file, upload.from, upload.to), () => this.panel.set(null));
+  }
+
+  protected async setElectronic(absence: Absence, electronic: boolean): Promise<void> {
+    await this.act(
+      () => (electronic ? 'Als eAU gekennzeichnet. Die Personalabteilung findet sie in DATEV.' : 'Die eAU-Kennzeichnung wurde entfernt.'),
+      () => this.api.setElectronic(absence.id, electronic),
+    );
   }
 
   protected async requestVacation(event: Event): Promise<void> {
@@ -133,30 +145,18 @@ export class AbsencesPage {
         return;
       }
       await this.act('Krankmeldung beendet.', () => this.api.endSick(absence.id, this.endTo()), () => this.panel.set(null));
-    } else if (kind === 'upload') {
-      const file = this.certFile();
-      if (!file) {
-        this.error.set('Bitte eine Datei auswählen.');
-        return;
-      }
-      const problem = validatePeriod(this.certFrom(), this.certTo(), true);
-      if (problem) {
-        this.error.set(problem);
-        return;
-      }
-      await this.act('AU hochgeladen. Die Personalabteilung prüft sie.', () => this.api.uploadCertificate(absence.id, file, this.certFrom(), this.certTo()), () => this.panel.set(null));
     }
   }
 
   /** Runs a change, then reloads list and account; shows what the service answered if it refuses. */
-  private async act(success: string, action: () => Promise<unknown>, afterSuccess?: () => void): Promise<void> {
+  private async act(success: string | (() => string), action: () => Promise<unknown>, afterSuccess?: () => void): Promise<void> {
     this.busy.set(true);
     this.error.set(null);
     this.status.set(null);
     try {
       await action();
+      this.status.set(typeof success === 'string' ? success : success());
       afterSuccess?.();
-      this.status.set(success);
       await this.reload();
     } catch (error) {
       this.error.set(errorMessage(problemTitle(error)));

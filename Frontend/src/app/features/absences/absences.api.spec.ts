@@ -31,18 +31,56 @@ describe('AbsencesApi', () => {
     expect((await done).remaining).toBe(25);
   });
 
-  it('reports a sick note, with and without an end', async () => {
-    const open = api.reportSick('2026-12-01', null);
-    const first = http.expectOne('/svc/workforce/api/me/absences/sick');
-    expect(first.request.body).toEqual({ from: '2026-12-01', to: null });
-    first.flush({ id: 'a1' });
-    await open;
+  it('reports a sick note with its kind and the eAU mark', async () => {
+    const done = api.reportSick({ kind: 'FollowUp', from: '2026-12-01', to: '2026-12-03', electronic: true });
+    const request = http.expectOne('/svc/workforce/api/me/absences/sick');
+    expect(request.request.body).toEqual({ from: '2026-12-01', to: '2026-12-03', kind: 'FollowUp', electronicCertificate: true });
+    request.flush({ id: 'a1' });
+    await done;
+  });
 
-    const closed = api.reportSick('2026-12-01', '2026-12-03');
-    const second = http.expectOne('/svc/workforce/api/me/absences/sick');
-    expect(second.request.body).toEqual({ from: '2026-12-01', to: '2026-12-03' });
-    second.flush({ id: 'a2' });
-    await closed;
+  it('hands in the AU with the sick note, for the period of the sick note', async () => {
+    const file = new File(['x'], 'au.pdf', { type: 'application/pdf' });
+    const done = api.reportSickNote({ kind: 'First', from: '2026-12-01', to: '2026-12-03', electronic: false, file });
+    http.expectOne('/svc/workforce/api/me/absences/sick').flush({ id: 'a1' });
+    await new Promise((r) => setTimeout(r));
+    const upload = http.expectOne('/svc/workforce/api/me/absences/a1/certificates');
+    const form = upload.request.body as FormData;
+    expect([form.get('certifiedFrom'), form.get('certifiedTo')]).toEqual(['2026-12-01', '2026-12-03']);
+    upload.flush({});
+
+    expect(await done).toEqual({ certificateFailed: false });
+  });
+
+  it('keeps the sick note if the upload fails and says so', async () => {
+    const file = new File(['x'], 'au.pdf', { type: 'application/pdf' });
+    const done = api.reportSickNote({ kind: 'First', from: '2026-12-01', to: '2026-12-03', electronic: false, file });
+    http.expectOne('/svc/workforce/api/me/absences/sick').flush({ id: 'a1' });
+    await new Promise((r) => setTimeout(r));
+    http.expectOne('/svc/workforce/api/me/absences/a1/certificates').flush({}, { status: 415, statusText: 'Unsupported' });
+
+    expect(await done).toEqual({ certificateFailed: true });
+  });
+
+  it('uploads nothing when there is no file or the AU is an eAU', async () => {
+    const none = api.reportSickNote({ kind: 'First', from: '2026-12-01', to: '2026-12-03', electronic: false, file: null });
+    http.expectOne('/svc/workforce/api/me/absences/sick').flush({ id: 'a1' });
+    expect(await none).toEqual({ certificateFailed: false });
+
+    const file = new File(['x'], 'au.pdf', { type: 'application/pdf' });
+    const electronic = api.reportSickNote({ kind: 'First', from: '2026-12-01', to: '2026-12-03', electronic: true, file });
+    http.expectOne('/svc/workforce/api/me/absences/sick').flush({ id: 'a2' });
+    expect(await electronic).toEqual({ certificateFailed: false });
+    http.expectNone('/svc/workforce/api/me/absences/a2/certificates');
+  });
+
+  it('marks the AU as an eAU and takes the mark back', async () => {
+    const on = api.setElectronic('a1', true);
+    const request = http.expectOne('/svc/workforce/api/me/absences/a1/electronic-certificate');
+    expect(request.request.method).toBe('PUT');
+    expect(request.request.body).toEqual({ electronicCertificate: true });
+    request.flush({ id: 'a1' });
+    await on;
   });
 
   it('requests vacation', async () => {

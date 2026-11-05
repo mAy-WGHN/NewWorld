@@ -28,7 +28,7 @@ const grant = (...keys: string[]) => new PrivilegeSet(keys.map((key) => ({ key, 
 const problem = (title: string) => new HttpErrorResponse({ status: 422, error: { title } });
 
 describe('SickNotesPage', () => {
-  let api: Record<'list' | 'reportSick' | 'endSick' | 'uploadCertificate', ReturnType<typeof vi.fn>>;
+  let api: Record<'list' | 'reportSickNote' | 'endSick' | 'uploadCertificate' | 'setElectronic', ReturnType<typeof vi.fn>>;
   let fixture: ComponentFixture<SickNotesPage>;
   let root: HTMLElement;
 
@@ -69,7 +69,8 @@ describe('SickNotesPage', () => {
   beforeEach(() => {
     api = {
       list: vi.fn().mockResolvedValue([vacation, verified, missing]),
-      reportSick: vi.fn().mockResolvedValue(sick({})),
+      reportSickNote: vi.fn().mockResolvedValue({ certificateFailed: false }),
+      setElectronic: vi.fn().mockResolvedValue(sick({})),
       endSick: vi.fn().mockResolvedValue(sick({})),
       uploadCertificate: vi.fn().mockResolvedValue({}),
     };
@@ -150,58 +151,173 @@ describe('SickNotesPage', () => {
     expect(root.textContent).toContain('Noch keine Krankmeldungen');
   });
 
-  it('opens the form with the button and reports a sick note without an end', async () => {
+  // ---------------------------------------------------------------- reporting
+
+  const submitForm = async () => {
+    q<HTMLFormElement>('[data-testid="sick-form"]')!.dispatchEvent(new Event('submit', { cancelable: true }));
+    await settle();
+  };
+
+  const chooseKind = async (kind: 'first' | 'follow-up') => {
+    q<HTMLInputElement>(`[data-testid="kind-${kind}"] input`)!.click();
+    await settle();
+  };
+
+  const pickFile = async (selector: string, file: File) => {
+    const input = q<HTMLInputElement>(selector)!;
+    Object.defineProperty(input, 'files', { value: [file], configurable: true });
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+    await settle();
+  };
+
+  const pdf = () => new File([new Uint8Array([1])], 'au.pdf', { type: 'application/pdf' });
+
+  it('opens the form with the button, nothing is preselected, and there is no optional end', async () => {
     await create();
-    expect(q('[data-testid="report-form"]')).toBeNull();
-    api['list'].mockClear();
+    expect(q('[data-testid="sick-form"]')).toBeNull();
 
     await click('[data-testid="report-button"]');
-    await type('#sick-from', '2026-11-04');
-    q<HTMLFormElement>('[data-testid="report-form"]')!.dispatchEvent(new Event('submit', { cancelable: true }));
-    await settle();
 
-    expect(api['reportSick']).toHaveBeenCalledWith('2026-11-04', null);
-    expect(api['list']).toHaveBeenCalledTimes(1);
-    expect(q('[data-testid="status"]')!.textContent).toContain('Krankmeldung');
-    expect(q('[data-testid="report-form"]')).toBeNull();
+    expect(q('[data-testid="sick-form"]')).not.toBeNull();
+    expect(q<HTMLInputElement>('[data-testid="kind-first"] input')!.checked).toBe(false);
+    expect(q<HTMLInputElement>('[data-testid="kind-follow-up"] input')!.checked).toBe(false);
+    expect(q('[data-testid="sick-form"]')!.textContent).toContain('Letzter Tag');
+    expect(q('[data-testid="sick-form"]')!.textContent).not.toContain('optional');
+    expect(q('#sick-file')).not.toBeNull();
+    expect(q('[data-testid="electronic"]')).not.toBeNull();
   });
 
-  it('reports a sick note with an end', async () => {
+  it('asks for first or follow-up before it sends', async () => {
     await create();
 
     await click('[data-testid="report-button"]');
-    await type('#sick-from', '2026-11-04');
     await type('#sick-to', '2026-11-06');
-    q<HTMLFormElement>('[data-testid="report-form"]')!.dispatchEvent(new Event('submit', { cancelable: true }));
-    await settle();
+    await submitForm();
 
-    expect(api['reportSick']).toHaveBeenCalledWith('2026-11-04', '2026-11-06');
+    expect(api['reportSickNote']).not.toHaveBeenCalled();
+    expect(q('[data-testid="form-error"]')!.textContent).toContain('Erst- oder Folgekrankmeldung');
+  });
+
+  it('needs the last day', async () => {
+    await create();
+
+    await click('[data-testid="report-button"]');
+    await chooseKind('first');
+    await type('#sick-from', '2026-11-04');
+    await submitForm();
+
+    expect(api['reportSickNote']).not.toHaveBeenCalled();
+    expect(q('[data-testid="form-error"]')!.textContent).toContain('Ende');
   });
 
   it('does not send a sick note that ends before it starts', async () => {
     await create();
 
     await click('[data-testid="report-button"]');
+    await chooseKind('first');
     await type('#sick-from', '2026-11-06');
     await type('#sick-to', '2026-11-04');
-    q<HTMLFormElement>('[data-testid="report-form"]')!.dispatchEvent(new Event('submit', { cancelable: true }));
-    await settle();
+    await submitForm();
 
-    expect(api['reportSick']).not.toHaveBeenCalled();
-    expect(q('[role="alert"]')!.textContent).toContain('Ende liegt vor dem Beginn');
+    expect(api['reportSickNote']).not.toHaveBeenCalled();
+    expect(q('[data-testid="form-error"]')!.textContent).toContain('Ende liegt vor dem Beginn');
   });
 
-  it('shows the answer of the service in plain words and keeps the form open', async () => {
-    api['reportSick'].mockRejectedValue(problem('Overlap'));
+  it('reports a first sick note, reloads the list and closes the form', async () => {
+    await create();
+    api['list'].mockClear();
+
+    await click('[data-testid="report-button"]');
+    await chooseKind('first');
+    await type('#sick-from', '2026-11-04');
+    await type('#sick-to', '2026-11-06');
+    await submitForm();
+
+    expect(api['reportSickNote']).toHaveBeenCalledWith({ kind: 'First', from: '2026-11-04', to: '2026-11-06', electronic: false, file: null });
+    expect(api['list']).toHaveBeenCalledTimes(1);
+    expect(q('[data-testid="status"]')!.textContent).toContain('Krankmeldung gemeldet');
+    expect(q('[data-testid="sick-form"]')).toBeNull();
+  });
+
+  it('reports a follow-up and says that it needs its own AU', async () => {
     await create();
 
     await click('[data-testid="report-button"]');
-    await type('#sick-from', '2026-11-04');
-    q<HTMLFormElement>('[data-testid="report-form"]')!.dispatchEvent(new Event('submit', { cancelable: true }));
-    await settle();
+    await chooseKind('follow-up');
+    expect(q('[data-testid="follow-up-hint"]')!.textContent).toContain('eigene AU');
+    await type('#sick-from', '2026-11-05');
+    await type('#sick-to', '2026-11-08');
+    await submitForm();
 
-    expect(q('[role="alert"]')!.textContent).toContain('überschneidet');
-    expect(q('[data-testid="report-form"]')).not.toBeNull();
+    expect(api['reportSickNote']).toHaveBeenCalledWith({ kind: 'FollowUp', from: '2026-11-05', to: '2026-11-08', electronic: false, file: null });
+  });
+
+  it('hands in the AU together with the sick note', async () => {
+    await create();
+    const file = pdf();
+
+    await click('[data-testid="report-button"]');
+    await chooseKind('first');
+    await type('#sick-from', '2026-11-04');
+    await type('#sick-to', '2026-11-06');
+    await pickFile('#sick-file', file);
+    await submitForm();
+
+    expect(api['reportSickNote']).toHaveBeenCalledWith({ kind: 'First', from: '2026-11-04', to: '2026-11-06', electronic: false, file });
+    expect(q('[data-testid="status"]')!.textContent).toContain('AU ist hochgeladen');
+  });
+
+  it('marks the AU as an eAU instead of a file; the later choice wins', async () => {
+    await create();
+    const file = pdf();
+
+    await click('[data-testid="report-button"]');
+    await chooseKind('first');
+    await type('#sick-to', '2026-11-06');
+    await pickFile('#sick-file', file);
+    q<HTMLInputElement>('[data-testid="electronic"] input')!.click();
+    await settle();
+    await submitForm();
+
+    expect(api['reportSickNote']).toHaveBeenCalledWith(expect.objectContaining({ electronic: true, file: null }));
+
+    // the other way round: a file after "eAU" removes the mark
+    await click('[data-testid="report-button"]');
+    await chooseKind('first');
+    await type('#sick-to', '2026-11-06');
+    q<HTMLInputElement>('[data-testid="electronic"] input')!.click();
+    await settle();
+    await pickFile('#sick-file', file);
+    await submitForm();
+
+    expect(api['reportSickNote']).toHaveBeenLastCalledWith(expect.objectContaining({ electronic: false, file }));
+  });
+
+  it('keeps the sick note and says what to do if the AU could not be uploaded', async () => {
+    api['reportSickNote'].mockResolvedValue({ certificateFailed: true });
+    await create();
+
+    await click('[data-testid="report-button"]');
+    await chooseKind('first');
+    await type('#sick-to', '2026-11-06');
+    await pickFile('#sick-file', pdf());
+    await submitForm();
+
+    expect(q('[role="alert"]')!.textContent).toContain('AU bearbeiten');
+    expect(q('[data-testid="status"]')!.textContent).not.toContain('hochgeladen');
+  });
+
+  it('shows the answer of the service in plain words and keeps the form open', async () => {
+    api['reportSickNote'].mockRejectedValue(problem('NoPredecessor'));
+    await create();
+
+    await click('[data-testid="report-button"]');
+    await chooseKind('follow-up');
+    await type('#sick-to', '2026-11-06');
+    await submitForm();
+
+    expect(q('[role="alert"]')!.textContent).toContain('direkt an eine vorherige Krankmeldung anschließen');
+    expect(q('[data-testid="sick-form"]')).not.toBeNull();
   });
 
   it('closes the form again with Abbrechen', async () => {
@@ -210,20 +326,20 @@ describe('SickNotesPage', () => {
     await click('[data-testid="report-button"]');
     await click('[data-action="cancel-report"]');
 
-    expect(q('[data-testid="report-form"]')).toBeNull();
+    expect(q('[data-testid="sick-form"]')).toBeNull();
   });
 
-  it('hands in the AU from the highlighted note', async () => {
-    await create();
-    const file = new File([new Uint8Array([1])], 'au.pdf', { type: 'application/pdf' });
+  // ---------------------------------------------------------------- AU bearbeiten
 
-    await click('[data-id="missing"] [data-action="upload"]');
-    const input = q<HTMLInputElement>('#cert-file')!;
-    Object.defineProperty(input, 'files', { value: [file], configurable: true });
-    input.dispatchEvent(new Event('change', { bubbles: true }));
+  it('hands in an AU afterwards from the highlighted note', async () => {
+    await create();
+    const file = pdf();
+
+    await click('[data-id="missing"] [data-action="certificate"]');
+    await pickFile('#cert-file', file);
     await type('#cert-from', '2026-10-01');
     await type('#cert-to', '2026-10-05');
-    await click('[data-action="confirm"]');
+    await click('[data-id="missing"] [data-testid="certificate-editor"] [data-action="confirm"]');
 
     expect(api['uploadCertificate']).toHaveBeenCalledWith('missing', file, '2026-10-01', '2026-10-05');
   });
@@ -231,13 +347,80 @@ describe('SickNotesPage', () => {
   it('asks for the file before handing in an AU', async () => {
     await create();
 
-    await click('[data-id="missing"] [data-action="upload"]');
+    await click('[data-id="missing"] [data-action="certificate"]');
     await type('#cert-from', '2026-10-01');
     await type('#cert-to', '2026-10-05');
-    await click('[data-action="confirm"]');
+    await click('[data-id="missing"] [data-testid="certificate-editor"] [data-action="confirm"]');
 
     expect(api['uploadCertificate']).not.toHaveBeenCalled();
-    expect(q('[role="alert"]')!.textContent).toContain('Datei');
+    expect(q('[data-testid="editor-error"]')!.textContent).toContain('Datei');
+  });
+
+  it('says afterwards that the AU is an eAU', async () => {
+    await create();
+
+    await click('[data-id="missing"] [data-action="certificate"]');
+    q<HTMLInputElement>('[data-id="missing"] [data-testid="electronic"] input')!.click();
+    await settle();
+
+    expect(api['setElectronic']).toHaveBeenCalledWith('missing', true);
+    expect(q('[data-testid="status"]')!.textContent).toContain('eAU');
+  });
+
+  it('takes the eAU mark back', async () => {
+    api['list'].mockResolvedValue([sick({ id: 'missing', from: '2026-10-01', to: null, certificateStatus: 'Missing', electronicCertificate: true })]);
+    await create();
+
+    await click('[data-id="missing"] [data-action="certificate"]');
+    expect(q<HTMLInputElement>('[data-id="missing"] [data-testid="electronic"] input')!.checked).toBe(true);
+    q<HTMLInputElement>('[data-id="missing"] [data-testid="electronic"] input')!.click();
+    await settle();
+
+    expect(api['setElectronic']).toHaveBeenCalledWith('missing', false);
+    expect(q('[data-testid="status"]')!.textContent).toContain('entfernt');
+  });
+
+  it('shows an eAU as such and does not ask for an AU for it', async () => {
+    api['list'].mockResolvedValue([sick({ id: 'e', certificateStatus: 'Missing', electronicCertificate: true, certifiedThrough: null })]);
+    await create();
+
+    expect(q('[data-id="e"] [data-testid="electronic-chip"]')!.textContent).toContain('eAU');
+    expect(q('[data-id="e"]')!.textContent).not.toContain('AU fehlt');
+    expect(q('[data-testid="attention"]')).toBeNull();
+  });
+
+  it('never takes the option to hand in an AU away, not even for confirmed or eAU notes', async () => {
+    api['list'].mockResolvedValue([
+      sick({ id: 'ok', certificateStatus: 'Verified' }),
+      sick({ id: 'e', from: '2026-09-01', certificateStatus: 'Missing', electronicCertificate: true }),
+    ]);
+    await create();
+
+    expect(q('[data-id="ok"] [data-action="certificate"]')).not.toBeNull();
+    expect(q('[data-id="e"] [data-action="certificate"]')).not.toBeNull();
+  });
+
+  it('cannot mark an eAU while an AU waits for the check', async () => {
+    api['list'].mockResolvedValue([sick({ id: 'w', certificateStatus: 'Submitted' })]);
+    await create();
+
+    await click('[data-id="w"] [data-action="certificate"]');
+
+    expect(q('[data-testid="electronic-locked"]')).not.toBeNull();
+    expect(q('[data-id="w"] [data-testid="electronic"]')).toBeNull();
+  });
+
+  it('shows whether it is a first or a follow-up sick note', async () => {
+    api['list'].mockResolvedValue([
+      sick({ id: 'f', sickNoteKind: 'FollowUp' }),
+      sick({ id: 'o', from: '2026-09-01', sickNoteKind: 'First' }),
+      sick({ id: 'old', from: '2026-08-01', sickNoteKind: 'Unknown' }),
+    ]);
+    await create();
+
+    expect(q('[data-id="f"] [data-testid="kind-chip"]')!.textContent).toContain('Folgekrankmeldung');
+    expect(q('[data-id="o"] [data-testid="kind-chip"]')!.textContent).toContain('Erstkrankmeldung');
+    expect(q('[data-id="old"] [data-testid="kind-chip"]')).toBeNull();
   });
 
   it('ends an open sick note with its last day', async () => {
@@ -262,14 +445,14 @@ describe('SickNotesPage', () => {
 
     expect(ids('[data-testid="sick-row"]')).toHaveLength(2);
     expect(q('[data-testid="report-button"]')).toBeNull();
-    expect(q('[data-action="upload"]')).toBeNull();
+    expect(q('[data-action="certificate"]')).toBeNull();
     expect(q('[data-action="end"]')).toBeNull();
   });
 
   it('hides the AU upload without its privilege', async () => {
     await create(grant('absence:read-own', 'absence:create-own', 'absence:update-own'));
 
-    expect(q('[data-action="upload"]')).toBeNull();
+    expect(q('[data-action="certificate"]')).toBeNull();
     expect(q('[data-action="end"]')).not.toBeNull();
   });
 
