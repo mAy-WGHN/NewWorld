@@ -72,12 +72,13 @@ describe('PersonPicker', () => {
 
   it('waits after typing and only asks once for what was typed last', async () => {
     await create();
-    fixture.componentRef.setInput('debounceMs', 50);
+    fixture.componentRef.setInput('debounceMs', 400); // long enough that a slow test run does not let the first keys through
 
     await type('mu');
     await type('mus');
     await type('must');
-    await new Promise((r) => setTimeout(r, 120));
+    expect(api['searchPeople']).not.toHaveBeenCalled(); // still waiting
+    await new Promise((r) => setTimeout(r, 600));
     await settle();
 
     expect(api['searchPeople']).toHaveBeenCalledTimes(1);
