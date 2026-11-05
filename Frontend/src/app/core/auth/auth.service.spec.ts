@@ -37,6 +37,31 @@ describe('AuthService', () => {
     expect(auth.privileges().has('faq:read')).toBe(true);
   });
 
+  it('shows the privileges of a previewed role and returns to the real ones afterwards', async () => {
+    await signIn();
+
+    auth.startPreview('Revisor', [{ key: 'report:read', unrestricted: true, storeIds: [], employeeIds: [] }]);
+
+    expect(auth.previewRole()).toBe('Revisor');
+    expect(auth.privileges().has('report:read')).toBe(true);
+    expect(auth.privileges().has('faq:read')).toBe(false);
+    expect(auth.realPrivileges().has('faq:read')).toBe(true);
+
+    auth.endPreview();
+
+    expect(auth.previewRole()).toBeNull();
+    expect(auth.privileges().has('faq:read')).toBe(true);
+  });
+
+  it('ends a preview when the session ends', async () => {
+    await signIn();
+    auth.startPreview('Revisor', []);
+
+    auth.clear();
+
+    expect(auth.previewRole()).toBeNull();
+  });
+
   it('sends personnel number and PIN only to the login call and never stores the PIN', async () => {
     const done = auth.login('4711', '1234');
     const request = http.expectOne('/svc/access/api/auth/login');

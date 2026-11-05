@@ -41,3 +41,15 @@ export class PrivilegeSet {
     return this.byKey.get(key);
   }
 }
+
+/**
+ * The privileges a role grants, as the frontend sees them: the role's patterns (`*`, `area:*` or a plain key) matched against the registered
+ * privileges, like Access does. The reach is not part of a role (it comes with an assignment), so every grant counts as unrestricted.
+ */
+export function grantsOfRole(patterns: readonly string[], catalogKeys: readonly string[]): PrivilegeGrant[] {
+  const matches = (pattern: string, key: string): boolean =>
+    pattern === '*' || pattern === key || (pattern.endsWith(':*') && key.startsWith(pattern.slice(0, -1)));
+  return [...new Set(catalogKeys)]
+    .filter((key) => patterns.some((p) => matches(p, key)))
+    .map((key) => ({ key, unrestricted: true, storeIds: [], employeeIds: [] }));
+}

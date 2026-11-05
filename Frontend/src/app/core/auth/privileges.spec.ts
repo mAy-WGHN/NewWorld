@@ -1,4 +1,4 @@
-import { PrivilegeSet } from './privileges';
+import { PrivilegeSet, grantsOfRole } from './privileges';
 
 const grant = (key: string) => ({ key, unrestricted: true, storeIds: [], employeeIds: [] });
 
@@ -29,5 +29,33 @@ describe('PrivilegeSet', () => {
   it('keeps the reach of a grant', () => {
     const restricted = new PrivilegeSet([{ key: 'absence:approve', unrestricted: false, storeIds: ['s1'], employeeIds: [] }]);
     expect(restricted.get('absence:approve')?.storeIds).toEqual(['s1']);
+  });
+});
+
+describe('grantsOfRole', () => {
+  const catalog = ['absence:read-own', 'absence:approve', 'faq:read', 'faq:update', 'report:read'];
+  const keys = (patterns: string[]) => grantsOfRole(patterns, catalog).map((g) => g.key);
+
+  it('expands * to everything registered', () => {
+    expect(keys(['*'])).toEqual(catalog);
+  });
+
+  it('expands an area pattern to the registered keys of that area only', () => {
+    expect(keys(['faq:*'])).toEqual(['faq:read', 'faq:update']);
+    expect(keys(['fa:*'])).toEqual([]);
+  });
+
+  it('takes a plain key only if it is registered (not registered means no effect)', () => {
+    expect(keys(['report:read', 'report:delete'])).toEqual(['report:read']);
+  });
+
+  it('lists each privilege once and without reach restriction', () => {
+    const grants = grantsOfRole(['faq:*', 'faq:read'], catalog);
+    expect(grants.map((g) => g.key)).toEqual(['faq:read', 'faq:update']);
+    expect(grants.every((g) => g.unrestricted && g.storeIds.length === 0)).toBe(true);
+  });
+
+  it('grants nothing for no patterns', () => {
+    expect(keys([])).toEqual([]);
   });
 });

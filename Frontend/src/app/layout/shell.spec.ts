@@ -9,6 +9,7 @@ import { PrivilegeSet } from '../core/auth/privileges';
 import { NavigationState, PageReloader } from '../core/navigation-state.service';
 import { Arrival, NotificationsService } from '../core/notifications.service';
 import { ProfileService } from '../core/profile.service';
+import { AdminAccessApi } from '../features/admin-access/admin-access.api';
 import { Shell } from './shell';
 
 const grant = (...keys: string[]) => new PrivilegeSet(keys.map((key) => ({ key, unrestricted: true, storeIds: [], employeeIds: [] })));
@@ -21,7 +22,9 @@ describe('Shell', () => {
   const initials = signal('MD');
   const personnelNumber = signal<string | null>('15302');
   const unread = signal<number | null>(3);
-  let auth: { privileges: typeof privileges; logout: ReturnType<typeof vi.fn> };
+  const previewRole = signal<string | null>(null);
+  let auth: { privileges: typeof privileges; realPrivileges: typeof privileges; previewRole: typeof previewRole; startPreview: ReturnType<typeof vi.fn>; endPreview: ReturnType<typeof vi.fn>; logout: ReturnType<typeof vi.fn> };
+  let accessApi: { roles: ReturnType<typeof vi.fn>; catalog: ReturnType<typeof vi.fn> };
   let profile: { load: ReturnType<typeof vi.fn>; clear: ReturnType<typeof vi.fn>; displayName: typeof displayName; initials: typeof initials; personnelNumber: typeof personnelNumber; firstName: ReturnType<typeof signal<string | null>> };
   const arrived = signal<Arrival | null>(null);
   let notifications: { refresh: ReturnType<typeof vi.fn>; clear: ReturnType<typeof vi.fn>; unread: typeof unread; arrived: typeof arrived };
@@ -29,7 +32,7 @@ describe('Shell', () => {
 
   async function create(): Promise<void> {
     TestBed.configureTestingModule({
-      providers: [provideRouter([]), { provide: AuthService, useValue: auth }, { provide: ProfileService, useValue: profile }, { provide: NotificationsService, useValue: notifications }],
+      providers: [provideRouter([]), { provide: AuthService, useValue: auth }, { provide: AdminAccessApi, useValue: accessApi }, { provide: ProfileService, useValue: profile }, { provide: NotificationsService, useValue: notifications }],
     });
     navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
     fixture = TestBed.createComponent(Shell);
@@ -44,7 +47,12 @@ describe('Shell', () => {
     personnelNumber.set('15302');
     unread.set(3);
     arrived.set(null);
-    auth = { privileges, logout: vi.fn().mockResolvedValue(undefined) };
+    previewRole.set(null);
+    auth = { privileges, realPrivileges: privileges, previewRole, startPreview: vi.fn(), endPreview: vi.fn(), logout: vi.fn().mockResolvedValue(undefined) };
+    accessApi = {
+      roles: vi.fn().mockResolvedValue([{ id: 'r2', name: 'Revisor', privileges: ['report:*'], builtIn: false }, { id: 'r1', name: 'HR', privileges: ['*'], builtIn: false }]),
+      catalog: vi.fn().mockResolvedValue([{ key: 'report:read', owner: 'portal', scopable: true, description: '' }, { key: 'faq:read', owner: 'portal', scopable: false, description: '' }]),
+    };
     profile = { load: vi.fn().mockResolvedValue(undefined), clear: vi.fn(), displayName, initials, personnelNumber, firstName: signal(null) };
     notifications = { refresh: vi.fn().mockResolvedValue(undefined), clear: vi.fn(), unread, arrived };
   });
@@ -61,7 +69,7 @@ describe('Shell', () => {
     TestBed.configureTestingModule({
       providers: [
         provideRouter([]),
-        { provide: AuthService, useValue: auth },
+        { provide: AuthService, useValue: auth }, { provide: AdminAccessApi, useValue: accessApi },
         { provide: ProfileService, useValue: profile },
         { provide: NotificationsService, useValue: notifications },
         { provide: BreakpointObserver, useValue: { observe: () => of({ matches: true, breakpoints: {} }) } },
@@ -231,7 +239,7 @@ describe('Shell', () => {
       TestBed.configureTestingModule({
         providers: [
           provideRouter([]),
-          { provide: AuthService, useValue: auth },
+          { provide: AuthService, useValue: auth }, { provide: AdminAccessApi, useValue: accessApi },
           { provide: ProfileService, useValue: profile },
           { provide: NotificationsService, useValue: notifications },
           { provide: NavigationState, useValue: { loading, error, errorDetail } },
@@ -285,7 +293,7 @@ describe('Shell', () => {
     TestBed.configureTestingModule({
       providers: [
         provideRouter([]),
-        { provide: AuthService, useValue: auth },
+        { provide: AuthService, useValue: auth }, { provide: AdminAccessApi, useValue: accessApi },
         { provide: ProfileService, useValue: profile },
         { provide: NotificationsService, useValue: notifications },
         { provide: BreakpointObserver, useValue: { observe: () => of({ matches: true, breakpoints: {} }) } },
@@ -313,5 +321,52 @@ describe('Shell', () => {
     await create();
 
     expect(root.querySelector('.menu-toggle')).toBeNull();
+  });
+
+  describe('role preview', () => {
+    const overlayText = () => TestBed.inject(OverlayContainer).getContainerElement();
+    const settle = async () => { for (let i = 0; i < 4; i++) { await fixture.whenStable(); await new Promise((r) => setTimeout(r)); } };
+
+    it('offers "Ansicht als Rolle" only with the right to read roles and the catalogue', async () => {
+      await create();
+      root.querySelector<HTMLElement>('[aria-label="Benutzermenü"]')!.click();
+      await settle();
+
+      expect(overlayText().querySelector('[data-action="preview"]')).toBeNull();
+    });
+
+    it('lists the roles sorted and starts the preview with the privileges of the chosen role', async () => {
+      privileges.set(grant('notification:read-own', 'access:role:read', 'access:catalog:read'));
+      await create();
+      root.querySelector<HTMLElement>('[aria-label="Benutzermenü"]')!.click();
+      await settle();
+      overlayText().querySelector<HTMLElement>('[data-action="preview"]')!.click();
+      await settle();
+
+      const names = [...overlayText().querySelectorAll('[data-testid="preview-role"]')].map((e) => e.textContent!.trim());
+      expect(names).toEqual(['HR', 'Revisor']);
+
+      [...overlayText().querySelectorAll<HTMLElement>('[data-testid="preview-role"]')].find((e) => e.textContent!.includes('Revisor'))!.click();
+      await settle();
+
+      expect(auth.startPreview).toHaveBeenCalledWith('Revisor', [{ key: 'report:read', unrestricted: true, storeIds: [], employeeIds: [] }]);
+      expect(navigate).toBeDefined();
+    });
+
+    it('shows a banner with the role while previewing and ends it with the button', async () => {
+      previewRole.set('Revisor');
+      await create();
+
+      expect(root.querySelector('[data-testid="preview-banner"]')!.textContent).toContain('Revisor');
+      root.querySelector<HTMLElement>('[data-testid="preview-end"]')!.click();
+
+      expect(auth.endPreview).toHaveBeenCalled();
+    });
+
+    it('shows no banner without a preview', async () => {
+      await create();
+
+      expect(root.querySelector('[data-testid="preview-banner"]')).toBeNull();
+    });
   });
 });

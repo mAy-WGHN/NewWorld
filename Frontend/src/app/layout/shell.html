@@ -51,10 +51,24 @@
       </span>
     </button>
     <mat-menu #userMenu="matMenu">
+      @if (canPreview()) {
+        <button mat-menu-item type="button" data-action="preview" [matMenuTriggerFor]="roleMenu" (menuOpened)="loadRoles()">
+          <mat-icon>visibility</mat-icon>
+          <span>Ansicht als Rolle</span>
+        </button>
+      }
       <button mat-menu-item type="button" data-action="logout" (click)="logout()">
         <mat-icon>logout</mat-icon>
         <span>Abmelden</span>
       </button>
+    </mat-menu>
+    <mat-menu #roleMenu="matMenu">
+      @if (previewError(); as message) {
+        <span class="block px-4 py-2 text-error" role="alert">{{ message }}</span>
+      }
+      @for (role of roles(); track role.id) {
+        <button mat-menu-item type="button" data-testid="preview-role" (click)="previewAs(role)">{{ role.name }}</button>
+      }
     </mat-menu>
 
     @if (small()) {
@@ -62,6 +76,13 @@
     }
     </div>
   </mat-toolbar>
+
+  @if (previewRole(); as role) {
+    <div class="flex shrink-0 flex-wrap items-center justify-between gap-2 bg-tertiary-container px-4 py-2 text-on-tertiary-container" role="status" data-testid="preview-banner">
+      <span><mat-icon class="align-middle" aria-hidden="true">visibility</mat-icon> Vorschau: So sieht eine Person mit der Rolle <strong>{{ role }}</strong> das Portal (alle Filialen, nur Anzeige). Gespeichert wird weiterhin mit deinen eigenen Rechten.</span>
+      <button mat-flat-button type="button" data-testid="preview-end" (click)="endPreview()">Vorschau beenden</button>
+    </div>
+  }
 
   <mat-sidenav-container class="min-h-0 flex-1 bg-surface-container-low!" autosize>
     <mat-sidenav

@@ -13,6 +13,9 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { map } from 'rxjs';
 import { AuthService } from '../core/auth/auth.service';
+import { grantsOfRole } from '../core/auth/privileges';
+import { AdminAccessApi } from '../features/admin-access/admin-access.api';
+import { Role } from '../features/admin-access/admin-access-models';
 import { visibleNav } from '../core/nav/nav-items';
 import { NavigationState, PageReloader } from '../core/navigation-state.service';
 import { NotificationsService } from '../core/notifications.service';
@@ -57,6 +60,41 @@ export class Shell {
   private readonly reloader = inject(PageReloader);
   private readonly snackBar = inject(MatSnackBar);
   protected readonly navigation = inject(NavigationState);
+  private readonly accessApi = inject(AdminAccessApi);
+
+  /** The role whose view is previewed, or null. */
+  protected readonly previewRole = this.auth.previewRole;
+  /** The preview needs the real right to read roles and the catalogue (the preview itself changes nothing). */
+  protected readonly canPreview = computed(() => this.auth.realPrivileges().has('access:role:read') && this.auth.realPrivileges().has('access:catalog:read'));
+  protected readonly roles = signal<Role[]>([]);
+  protected readonly previewError = signal<string | null>(null);
+  private catalogKeys: string[] | null = null;
+
+  /** Loads the roles when the menu opens, so the list is current. */
+  protected async loadRoles(): Promise<void> {
+    this.previewError.set(null);
+    try {
+      const [roles, catalog] = await Promise.all([this.accessApi.roles(), this.catalogKeys ? null : this.accessApi.catalog()]);
+      this.roles.set([...roles].sort((a, b) => a.name.localeCompare(b.name, 'de')));
+      this.catalogKeys ??= catalog?.map((c) => c.key) ?? [];
+    } catch {
+      this.previewError.set('Die Rollen konnten nicht geladen werden.');
+    }
+  }
+
+  protected async previewAs(role: Role): Promise<void> {
+    if (!this.catalogKeys) {
+      await this.loadRoles();
+    }
+    if (this.catalogKeys) {
+      this.auth.startPreview(role.name, grantsOfRole(role.privileges, this.catalogKeys));
+      await this.router.navigateByUrl('/');
+    }
+  }
+
+  protected endPreview(): void {
+    this.auth.endPreview();
+  }
 
   protected readonly small = toSignal(inject(BreakpointObserver).observe(SMALL_SCREEN).pipe(map((state) => state.matches)), { initialValue: false });
   protected readonly menuOpen = signal(false);

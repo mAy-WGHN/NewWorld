@@ -2,7 +2,7 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { ConfigService } from '../config';
-import { MyPrivileges, PrivilegeSet } from './privileges';
+import { MyPrivileges, PrivilegeGrant, PrivilegeSet } from './privileges';
 
 interface TokenResponse {
   accessToken: string;
@@ -39,7 +39,22 @@ export class AuthService {
   /** The name and personnel number as Access knows them: there for everybody who is signed in, with or without an employee card. */
   readonly name = computed(() => this.me()?.name?.trim() || null);
   readonly personnelNumber = computed(() => this.me()?.personnelNumber?.trim() || null);
-  readonly privileges = computed(() => (this.me() ? new PrivilegeSet(this.me()!.privileges) : PrivilegeSet.empty));
+  /** The privileges the person really has (the services check against these, whatever the screen shows). */
+  readonly realPrivileges = computed(() => (this.me() ? new PrivilegeSet(this.me()!.privileges) : PrivilegeSet.empty));
+  private readonly preview = signal<{ role: string; set: PrivilegeSet } | null>(null);
+  /** The name of the role whose view is shown as a preview, or null. */
+  readonly previewRole = computed(() => this.preview()?.role ?? null);
+  /** What the screen shows: the privileges of the previewed role if there is one, otherwise the real ones. Only guides the person; the services decide. */
+  readonly privileges = computed(() => this.preview()?.set ?? this.realPrivileges());
+
+  /** Shows the portal as a person with only this role would see it (menus, buttons, pages); the requests still go out with the real rights. */
+  startPreview(role: string, grants: readonly PrivilegeGrant[]): void {
+    this.preview.set({ role, set: new PrivilegeSet(grants) });
+  }
+
+  endPreview(): void {
+    this.preview.set(null);
+  }
 
   get token(): string | null {
     return this.accessToken();
@@ -84,6 +99,7 @@ export class AuthService {
 
   /** Drops the local session without telling the server (e.g. after a refresh token was rejected). */
   clear(): void {
+    this.preview.set(null);
     this.accessToken.set(null);
     this.me.set(null);
     this.writeRefreshToken(null);
