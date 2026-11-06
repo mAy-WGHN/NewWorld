@@ -1,10 +1,3 @@
-using Access.Core.Acl;
-using Notifications.Core;
-using Portal.Core;
-using Workforce.Core.Absences;
-using Workforce.Core.Certificates;
-using Workforce.Core.Employees;
-
 namespace Architecture.Tests;
 
 /// <summary>Every privilege explains in plain words what it allows, so that roles can be put together without guessing.</summary>
@@ -13,10 +6,7 @@ public class PrivilegeRulesTests
     [Fact]
     public void Every_privilege_of_every_service_has_a_description()
     {
-        var missing = AccessPrivileges.Catalog.Select(c => (c.Key, c.Description))
-            .Concat(AbsencePrivileges.Catalog.Concat(CertificatePrivileges.Catalog).Concat(EmployeePrivileges.Catalog).Select(c => (c.Key, c.Description)))
-            .Concat(NotificationPrivileges.Catalog.Select(c => (c.Key, c.Description)))
-            .Concat(PortalPrivileges.Catalog.Select(c => (c.Key, c.Description)))
+        var missing = PrivilegeCatalogs.All
             .Where(c => string.IsNullOrWhiteSpace(c.Description))
             .Select(c => c.Key)
             .ToList();
@@ -27,11 +17,7 @@ public class PrivilegeRulesTests
     [Fact]
     public void Descriptions_fit_the_column_and_keys_are_unique()
     {
-        var all = AccessPrivileges.Catalog.Select(c => (c.Key, c.Description))
-            .Concat(AbsencePrivileges.Catalog.Concat(CertificatePrivileges.Catalog).Concat(EmployeePrivileges.Catalog).Select(c => (c.Key, c.Description)))
-            .Concat(NotificationPrivileges.Catalog.Select(c => (c.Key, c.Description)))
-            .Concat(PortalPrivileges.Catalog.Select(c => (c.Key, c.Description)))
-            .ToList();
+        var all = PrivilegeCatalogs.All;
 
         all.Where(c => c.Description.Length > 500).ShouldBeEmpty();
         all.GroupBy(c => c.Key).Where(g => g.Count() > 1).Select(g => g.Key).ShouldBeEmpty();
