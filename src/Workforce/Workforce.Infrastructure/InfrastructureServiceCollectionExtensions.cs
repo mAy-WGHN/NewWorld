@@ -1,3 +1,4 @@
+using Shared.Infrastructure.Audit;
 using Access.Contracts;
 using BcIntegration.Contracts;
 using Microsoft.EntityFrameworkCore;
@@ -31,7 +32,8 @@ public static class InfrastructureServiceCollectionExtensions
         var connectionString = configuration.GetConnectionString(ConnectionName)
             ?? throw new InvalidOperationException($"ConnectionStrings:{ConnectionName} is not configured.");
 
-        services.AddDbContext<WorkforceDbContext>(options => WorkforceDbContext.Configure(options, connectionString));
+        services.AddAudit<WorkforceAuditPersonLookup>(AuditExclusions.Configure);
+        services.AddDbContext<WorkforceDbContext>((sp, options) => WorkforceDbContext.Configure(options, connectionString).UseAudit(sp));
         services.AddHealthChecks().AddDbContextCheck<WorkforceDbContext>("database");
 
         services.AddMessaging<WorkforceDbContext>(configuration, environment);

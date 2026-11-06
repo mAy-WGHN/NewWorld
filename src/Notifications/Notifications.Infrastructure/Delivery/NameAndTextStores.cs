@@ -8,6 +8,9 @@ public sealed class EmployeeNameRecord
 {
     public Guid EmployeeId { get; set; }
     public required string FirstName { get; set; }
+
+    /// <summary>Personnel number (class 1), kept for the audit log.</summary>
+    public string PersonnelNumber { get; set; } = string.Empty;
     public required string LastName { get; set; }
     public DateOnly? ExitDate { get; set; }
 

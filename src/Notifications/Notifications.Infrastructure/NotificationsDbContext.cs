@@ -1,3 +1,4 @@
+using Shared.Infrastructure.Audit;
 using Microsoft.EntityFrameworkCore;
 using Notifications.Infrastructure.Delivery;
 using Shared.Infrastructure.Authorization;
@@ -25,6 +26,7 @@ public sealed class NotificationsDbContext(DbContextOptions<NotificationsDbConte
     {
         modelBuilder.HasDefaultSchema(Schema);
         modelBuilder.ConfigureMessaging();
+        modelBuilder.ConfigureAudit();
         modelBuilder.ConfigurePermissionCache();
 
         modelBuilder.Entity<InAppNotificationRecord>(b =>

@@ -1,3 +1,4 @@
+using Shared.Infrastructure.Audit;
 using Microsoft.EntityFrameworkCore;
 using Portal.Core.Reports;
 using Portal.Infrastructure.Faqs;
@@ -32,6 +33,7 @@ public sealed class PortalDbContext(DbContextOptions<PortalDbContext> options) :
     {
         modelBuilder.HasDefaultSchema(Schema);
         modelBuilder.ConfigureMessaging();
+        modelBuilder.ConfigureAudit();
         modelBuilder.ConfigurePermissionCache();
         modelBuilder.Entity<PersonRecord>(b =>
         {

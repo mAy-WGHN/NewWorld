@@ -16,6 +16,9 @@ public static class NotificationPrivileges
     /// <summary>Changes the texts of all notifications (HR); not scopable, not an own-data privilege.</summary>
     public const string TemplateManage = "template:manage";
 
+    public const string AuditRead = "notification-audit:read";
+    public const string AuditReadValues = "notification-audit:read-values";
+
     /// <summary>The privileges with what they allow in plain words (German, shown in Access when roles are put together).</summary>
     public static readonly IReadOnlyList<(string Key, string Description)> Catalog =
     [
@@ -24,6 +27,8 @@ public static class NotificationPrivileges
         (PreferenceReadOwn, "Die eigenen Benachrichtigungseinstellungen ansehen."),
         (PreferenceUpdateOwn, "Die eigenen Benachrichtigungseinstellungen ändern (Pflichtbenachrichtigungen bleiben aktiv)."),
         (TemplateManage, "Die Texte aller Benachrichtigungen ansehen und ändern (Titel und Text für In-App, Push und Mail, mit Variablen wie $USER.firstName), Vorschau ansehen und auf den Standardtext zurücksetzen (HR). Gilt für alle Vorlagen, nicht nur für die eigenen."),
+        (AuditRead, "Das Änderungsprotokoll der Benachrichtigungen ansehen: wann wer (Name, Personalnummer) was angelegt, geändert oder gelöscht hat."),
+        (AuditReadValues, "Im Änderungsprotokoll der Benachrichtigungen zusätzlich die geänderten Werte ansehen (nur zusammen mit dem Recht, das Protokoll zu lesen)."),
     ];
 
     public static readonly IReadOnlyList<string> All = [.. Catalog.Select(c => c.Key)];

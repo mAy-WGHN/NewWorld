@@ -1,3 +1,4 @@
+using Shared.Infrastructure.Audit;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Workforce.Api;
 using Workforce.Infrastructure;
@@ -53,5 +54,6 @@ app.MapUnavailabilityEndpoints();
 app.MapWorkingTimeEndpoints();
 app.MapCertificateEndpoints();
 app.MapEmployeeEndpoints();
+app.MapAuditEndpoints<WorkforceDbContext>("workforce", Workforce.Core.Absences.AbsencePrivileges.AuditRead, Workforce.Core.Absences.AbsencePrivileges.AuditReadValues);
 
 app.Run();

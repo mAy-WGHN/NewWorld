@@ -1,3 +1,5 @@
+using Portal.Core;
+using Shared.Infrastructure.Audit;
 using System.Net;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Features;
@@ -82,5 +84,6 @@ app.MapReportEndpoints();
 app.MapLocationEndpoints();
 app.MapReportRecipientEndpoints();
 app.MapStatisticsEndpoints();
+app.MapAuditEndpoints<PortalDbContext>("portal", PortalPrivileges.AuditRead, PortalPrivileges.AuditReadValues);
 
 app.Run();

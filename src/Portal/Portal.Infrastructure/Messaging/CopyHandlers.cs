@@ -13,6 +13,9 @@ public sealed class PersonRecord
     public Guid EmployeeId { get; set; }
     public required string Name { get; set; }
 
+    /// <summary>Personnel number (class 1), kept for the audit log.</summary>
+    public string PersonnelNumber { get; set; } = string.Empty;
+
     /// <summary>The main store that counts: the one maintained in Access, otherwise <see cref="BcHomeStoreId"/>.</summary>
     public Guid? HomeStoreId { get; set; }
 
@@ -50,11 +53,12 @@ public sealed class EmployeeChangedHandler(PortalDbContext db) : IMessageHandler
         var person = await db.People.FindAsync([message.EmployeeId], cancellationToken);
         if (person is null)
         {
-            person = new PersonRecord { EmployeeId = message.EmployeeId, Name = message.Name };
+            person = new PersonRecord { EmployeeId = message.EmployeeId, Name = message.Name, PersonnelNumber = message.PersonnelNumber };
             db.People.Add(person);
         }
 
         person.Name = message.Name;
+        person.PersonnelNumber = message.PersonnelNumber;
         // BC only suggests the main store; if Access has told us one, that one counts.
         person.BcHomeStoreId = message.HomeStoreId;
         person.HomeStoreId = (await db.MainStoreCopies.FindAsync([message.EmployeeId], cancellationToken))?.StoreId ?? message.HomeStoreId;

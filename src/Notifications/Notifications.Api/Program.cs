@@ -1,3 +1,5 @@
+using Notifications.Core;
+using Shared.Infrastructure.Audit;
 using Notifications.Api;
 using Notifications.Infrastructure;
 using Shared.Authorization;
@@ -28,5 +30,6 @@ app.UseAuthorization();
 app.MapDefaultEndpoints();
 app.MapNotificationEndpoints();
 app.MapTemplateEndpoints();
+app.MapAuditEndpoints<NotificationsDbContext>("notifications", NotificationPrivileges.AuditRead, NotificationPrivileges.AuditReadValues);
 
 app.Run();

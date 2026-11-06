@@ -23,6 +23,9 @@ public static class PortalPrivileges
 
     public const string StatisticRead = "statistic:read";
 
+    public const string AuditRead = "portal-audit:read";
+    public const string AuditReadValues = "portal-audit:read-values";
+
     /// <summary>The privileges with what they allow in plain words (German, shown in Access when roles are put together).</summary>
     public static readonly IReadOnlyList<(string Key, bool Scopable, string Description)> Catalog =
     [
@@ -35,6 +38,8 @@ public static class PortalPrivileges
         (ReportDelete, true, "Meldungen archivieren (ausblenden) und die Verknüpfung zur übergeordneten Meldung lösen. Nur für Meldungen aus dem eigenen Bereich."),
         (ReportManageRecipients, false, "Festlegen, wer bei neuen Meldungen welcher Kategorie benachrichtigt wird (z. B. Revisor bei Diebstahl, IT bei Fehlern und Viren)."),
         (StatisticRead, true, "Statistiken zu Meldungen ansehen (je Monat, Kategorie, Filiale, Personalnummer), begrenzt auf die Filialen, für die das Recht gilt."),
+        (AuditRead, false, "Das Änderungsprotokoll des Portals ansehen: wann wer (Name, Personalnummer) was angelegt, geändert oder gelöscht hat."),
+        (AuditReadValues, false, "Im Änderungsprotokoll des Portals zusätzlich die geänderten Werte ansehen (nur zusammen mit dem Recht, das Protokoll zu lesen)."),
     ];
 
     public static readonly IReadOnlyList<string> All = [.. Catalog.Select(c => c.Key)];

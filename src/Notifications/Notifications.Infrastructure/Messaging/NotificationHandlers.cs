@@ -45,10 +45,11 @@ public sealed class EmployeeChangedHandler(NotificationsDbContext db) : IMessage
         var row = await db.EmployeeNames.FindAsync([message.EmployeeId], cancellationToken);
         if (row is null)
         {
-            db.EmployeeNames.Add(new EmployeeNameRecord { EmployeeId = message.EmployeeId, FirstName = name.FirstName, LastName = name.LastName, ExitDate = message.ExitDate, ChangedAt = message.OccurredAt });
+            db.EmployeeNames.Add(new EmployeeNameRecord { EmployeeId = message.EmployeeId, PersonnelNumber = message.PersonnelNumber, FirstName = name.FirstName, LastName = name.LastName, ExitDate = message.ExitDate, ChangedAt = message.OccurredAt });
         }
         else if (message.OccurredAt > row.ChangedAt)
         {
+            row.PersonnelNumber = message.PersonnelNumber;
             row.FirstName = name.FirstName;
             row.LastName = name.LastName;
             row.ExitDate = message.ExitDate;

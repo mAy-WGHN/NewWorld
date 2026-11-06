@@ -39,6 +39,9 @@ public static class AbsencePrivileges
     /// <summary>Sets when additional vacation days (leftover, special leave) expire, for everybody (HR); not scopable.</summary>
     public const string ManageVacationRules = "absence:manage-vacation-rules";
 
+    public const string AuditRead = "workforce-audit:read";
+    public const string AuditReadValues = "workforce-audit:read-values";
+
     /// <summary>The privileges with what they allow in plain words (German, shown in Access when roles are put together).</summary>
     public static readonly IReadOnlyList<(string Key, bool Scopable, string Description)> Catalog =
     [
@@ -53,5 +56,7 @@ public static class AbsencePrivileges
         (ManageEntitlement, true, "Den Urlaubsanspruch pflegen: vertraglicher Jahresanspruch, Änderungen des Anspruchs im Jahr (z. B. andere Wochentage) und Zusatztage (Resturlaub, Sonderurlaub) von Personen in der Reichweite (HR)."),
         (ManageHolidayOpening, true, "Festlegen, ob Filialen in der Reichweite an gesetzlichen Feiertagen geöffnet sind (z. B. Bahnhofsfilialen); Feiertage zählen dort als Arbeitstage."),
         (ManageVacationRules, false, "Die Urlaubsregeln für alle festlegen (HR): ob und bis wann Zusatztage verfallen (Standard: nie), Wartezeit für neue Mitarbeitende (Standard: keine) und Rundung anteiliger Tage (Standard: auf halbe Tage auf)."),
+        (AuditRead, false, "Das Änderungsprotokoll von Workforce (Abwesenheiten, Mitarbeiterkarte, Arbeitszeitkonto …) ansehen: wann wer (Name, Personalnummer) was angelegt, geändert oder gelöscht hat."),
+        (AuditReadValues, false, "Im Änderungsprotokoll von Workforce zusätzlich die geänderten Werte ansehen (nur zusammen mit dem Recht, das Protokoll zu lesen)."),
     ];
 }

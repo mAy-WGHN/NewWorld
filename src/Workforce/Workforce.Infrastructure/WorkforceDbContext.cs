@@ -1,3 +1,4 @@
+using Shared.Infrastructure.Audit;
 using Microsoft.EntityFrameworkCore;
 using Shared.Infrastructure.Approvals;
 using Workforce.Core.Absences;
@@ -53,6 +54,7 @@ public sealed class WorkforceDbContext(DbContextOptions<WorkforceDbContext> opti
     {
         modelBuilder.HasDefaultSchema(Schema);
         modelBuilder.ConfigureMessaging();
+        modelBuilder.ConfigureAudit();
         modelBuilder.ConfigurePermissionCache();
         modelBuilder.ConfigureApprovals();
 

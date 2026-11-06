@@ -1,3 +1,4 @@
+using Shared.Infrastructure.Audit;
 using Access.Infrastructure.Acl;
 using Access.Infrastructure.Login;
 using Access.Infrastructure.People;
@@ -38,6 +39,7 @@ public sealed class AccessDbContext(DbContextOptions<AccessDbContext> options) :
     {
         modelBuilder.HasDefaultSchema(Schema);
         modelBuilder.ConfigureMessaging();
+        modelBuilder.ConfigureAudit();
         modelBuilder.ConfigurePermissionCache();
 
         modelBuilder.Entity<PersonRecord>(b =>

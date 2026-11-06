@@ -53,6 +53,7 @@ export const NAV: NavGroup[] = [
       { label: 'Rollen und Rechte', path: 'admin/access', requires: ['access:role:read', 'access:assignment:read'], about: 'Rollen, Rechte, Zuständigkeiten und Hauptfilialen.', keywords: ['rollen', 'rechte', 'berechtigung', 'zuständigkeit'] },
       { label: 'Personal-Einstellungen', path: 'admin/hr', requires: ['absence:manage-vacation-rules', 'workingtime:manage-rules', 'employee:manage-lists'], about: 'Urlaubs- und Arbeitszeitregeln, Auswahllisten, Nummernkreis.', keywords: ['urlaubsregeln', 'nummernkreis', 'auswahllisten', 'regeln'] },
       { label: 'Benachrichtigungstexte', path: 'admin/templates', requires: ['template:manage'], about: 'Texte der Benachrichtigungen pflegen.', keywords: ['texte', 'vorlagen', 'mitteilungstexte'] },
+      { label: 'Änderungsprotokoll', path: 'admin/audit', requires: ['access-audit:read', 'workforce-audit:read', 'portal-audit:read', 'notification-audit:read'], about: 'Wer wann was angelegt, geändert oder gelöscht hat.', keywords: ['protokoll', 'audit', 'änderungen', 'log'] },
     ],
   },
 ];

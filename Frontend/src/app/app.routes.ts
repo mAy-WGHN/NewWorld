@@ -21,6 +21,7 @@ const builtAreas: Record<string, () => Promise<Type<unknown>>> = {
   'admin/hr': () => import('./features/admin-hr/admin-hr.page').then((m) => m.AdminHrPage),
   'admin/access': () => import('./features/admin-access/admin-access.page').then((m) => m.AdminAccessPage),
   'admin/templates': () => import('./features/notification-templates/template.page').then((m) => m.TemplatePage),
+  'admin/audit': () => import('./features/audit/audit.page').then((m) => m.AuditPage),
   'sick-notes': () => import('./features/sick-note-review/sick-note-review.page').then((m) => m.SickNoteReviewPage),
   'my-sick-notes': () => import('./features/sick-notes/sick-notes.page').then((m) => m.SickNotesPage),
   'my-vacation': () => import('./features/vacation/vacation.page').then((m) => m.VacationPage),

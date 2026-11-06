@@ -1,3 +1,5 @@
+using Access.Core.Acl;
+using Shared.Infrastructure.Audit;
 using Access.Api;
 using Access.Infrastructure;
 using Access.Infrastructure.Login;
@@ -27,5 +29,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapDefaultEndpoints();
 app.MapAccessEndpoints();
+app.MapAuditEndpoints<AccessDbContext>("access", AccessPrivileges.AuditRead, AccessPrivileges.AuditReadValues);
 
 app.Run();

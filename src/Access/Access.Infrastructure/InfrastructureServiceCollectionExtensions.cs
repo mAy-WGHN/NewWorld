@@ -1,3 +1,4 @@
+using Shared.Infrastructure.Audit;
 using Access.Core;
 using Access.Core.Login;
 using Access.Core.Messaging;
@@ -37,7 +38,8 @@ public static class InfrastructureServiceCollectionExtensions
         var connectionString = configuration.GetConnectionString(ConnectionName)
             ?? throw new InvalidOperationException($"ConnectionStrings:{ConnectionName} is not configured.");
 
-        services.AddDbContext<AccessDbContext>(options => AccessDbContext.Configure(options, connectionString));
+        services.AddAudit<AccessAuditPersonLookup>(AuditExclusions.Configure);
+        services.AddDbContext<AccessDbContext>((sp, options) => AccessDbContext.Configure(options, connectionString).UseAudit(sp));
         services.AddHealthChecks().AddDbContextCheck<AccessDbContext>("database");
 
         services.AddMessaging<AccessDbContext>(configuration, environment);

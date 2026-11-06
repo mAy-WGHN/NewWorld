@@ -12,6 +12,10 @@ public static class AccessPrivileges
 {
     public const string Owner = "access";
 
+    /// <summary>Audit log of this service (admin only by default: the wildcard of the Administrator covers both).</summary>
+    public const string AuditRead = "access-audit:read";
+    public const string AuditReadValues = "access-audit:read-values";
+
     public const string RoleRead = "access:role:read";
     public const string RoleCreate = "access:role:create";
     public const string RoleUpdate = "access:role:update";
@@ -55,5 +59,7 @@ public static class AccessPrivileges
         new(PersonRead, Owner, true, "Die Personenkopie in Access (Name, Hauptfiliale, BC-Vorschlag) für Personen in der Reichweite ansehen."),
         new(MainStoreUpdate, Owner, true, "Die Hauptfiliale einer Person festlegen oder auf den BC-Vorschlag zurücksetzen; nur für Personen und Filialen in der Reichweite."),
         new(EntraLinkManage, Owner, true, "Das Microsoft-Konto (Benutzername) einer Person für die zweite Bestätigung (Authenticator) eintragen, ändern oder entfernen; nur für Personen in der Reichweite."),
+        new(AuditRead, Owner, false, "Das Änderungsprotokoll von Access ansehen: wann wer (Name, Personalnummer) was angelegt, geändert oder gelöscht hat."),
+        new(AuditReadValues, Owner, false, "Im Änderungsprotokoll von Access zusätzlich die geänderten Werte ansehen (nur zusammen mit dem Recht, das Protokoll zu lesen)."),
     ];
 }
