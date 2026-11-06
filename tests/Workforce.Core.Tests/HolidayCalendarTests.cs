@@ -95,4 +95,42 @@ public class HolidayCalendarTests
         Calendar.IsHoliday(new DateOnly(2026, 11, 1), "BY").ShouldBeTrue();  // Allerheiligen
         Calendar.IsHoliday(new DateOnly(2026, 6, 4), "BY").ShouldBeTrue();   // Fronleichnam
     }
+
+    [Theory]
+    [InlineData("2026-01-01", "BY", null, "Neujahr")]
+    [InlineData("2026-01-06", "BY", null, "Heilige Drei Könige")]
+    [InlineData("2026-04-03", "BY", null, "Karfreitag")]
+    [InlineData("2026-04-05", "BY", null, null)] // Easter Sunday is no extra holiday day
+    [InlineData("2026-04-06", "BY", null, "Ostermontag")]
+    [InlineData("2026-05-01", "BY", null, "Tag der Arbeit")]
+    [InlineData("2026-05-14", "BY", null, "Christi Himmelfahrt")]
+    [InlineData("2026-05-25", "BY", null, "Pfingstmontag")]
+    [InlineData("2026-06-04", "BY", null, "Fronleichnam")]
+    [InlineData("2026-06-04", "BE", null, null)]
+    [InlineData("2026-08-08", "BY", "Augsburg", "Augsburger Friedensfest")]
+    [InlineData("2026-08-08", "BY", "München", null)]
+    [InlineData("2026-10-03", "BY", null, "Tag der Deutschen Einheit")]
+    [InlineData("2026-11-01", "BY", null, "Allerheiligen")]
+    [InlineData("2026-11-18", "SN", null, "Buß- und Bettag")]
+    [InlineData("2026-12-25", "BY", null, "1. Weihnachtstag")]
+    [InlineData("2026-12-26", "BY", null, "2. Weihnachtstag")]
+    [InlineData("2028-04-14", "BY", null, "Karfreitag")] // leap year
+    public void Holidays_have_their_name_and_a_normal_day_has_none(string date, string state, string? city, string? name) =>
+        Calendar.HolidayName(DateOnly.Parse(date, System.Globalization.CultureInfo.InvariantCulture), state, city).ShouldBe(name);
+
+    [Fact]
+    public void Without_a_state_only_the_nationwide_holidays_have_a_name()
+    {
+        Calendar.HolidayName(new DateOnly(2026, 1, 6), null).ShouldBeNull();
+        Calendar.HolidayName(new DateOnly(2026, 12, 25), null).ShouldBe("1. Weihnachtstag");
+    }
+
+    [Fact]
+    public void Is_holiday_and_the_name_always_agree_over_a_whole_leap_year()
+    {
+        for (var day = new DateOnly(2028, 1, 1); day.Year == 2028; day = day.AddDays(1))
+        {
+            Calendar.IsHoliday(day, "BY", "Augsburg").ShouldBe(Calendar.HolidayName(day, "BY", "Augsburg") is not null, day.ToString("O", System.Globalization.CultureInfo.InvariantCulture));
+        }
+    }
 }

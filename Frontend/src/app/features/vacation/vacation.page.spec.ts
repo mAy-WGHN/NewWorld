@@ -29,7 +29,7 @@ const grant = (...keys: string[]) => new PrivilegeSet(keys.map((key) => ({ key, 
 const problem = (title: string) => new HttpErrorResponse({ status: 422, error: { title } });
 
 describe('VacationPage', () => {
-  let api: Record<'list' | 'balance' | 'requestVacation' | 'withdraw', ReturnType<typeof vi.fn>>;
+  let api: Record<'list' | 'balance' | 'requestVacation' | 'withdraw' | 'holidays', ReturnType<typeof vi.fn>>;
   let fixture: ComponentFixture<VacationPage>;
   let root: HTMLElement;
 
@@ -78,6 +78,7 @@ describe('VacationPage', () => {
       balance: vi.fn().mockResolvedValue(balance),
       requestVacation: vi.fn().mockResolvedValue(approved),
       withdraw: vi.fn().mockResolvedValue(approved),
+      holidays: vi.fn().mockResolvedValue([]),
     };
   });
 

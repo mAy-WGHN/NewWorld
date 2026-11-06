@@ -39,6 +39,24 @@ describe('VacationCalendar', () => {
     expect(root().querySelector('[data-testid="calendar-empty"]')).toBeNull();
   });
 
+  it('marks a holiday with its name, says whether the store is open and tells which days are on show', async () => {
+    const today = iso(0);
+    fixture = TestBed.createComponent(VacationCalendar);
+    fixture.componentRef.setInput('absences', []);
+    fixture.componentRef.setInput('holidays', [{ date: today, name: 'Testfeiertag', storeOpens: true }]);
+    const ranges: { from: string; to: string }[] = [];
+    fixture.componentInstance.shown.subscribe((r) => ranges.push(r));
+    await fixture.whenStable();
+
+    const cell = root().querySelector(`[data-iso="${today}"]`)!;
+    expect(cell.getAttribute('data-holiday')).toBe('Testfeiertag');
+    expect(cell.getAttribute('title')).toContain('Testfeiertag');
+    expect(cell.getAttribute('title')).toContain('geöffnet');
+    expect(cell.getAttribute('aria-label')).toContain('Feiertag Testfeiertag');
+    expect(ranges.length).toBeGreaterThan(0);
+    expect(ranges[0].from <= today && today <= ranges[0].to).toBe(true);
+  });
+
   it('says so when the month has no vacation', async () => {
     await create([]);
     expect(root().querySelector('[data-testid="calendar-empty"]')).not.toBeNull();

@@ -405,6 +405,35 @@ public sealed class AbsenceService(
         }
     }
 
+    // ------------------------------------------------------------------ calendar
+
+    /// <summary>The longest range of holidays that can be asked for at once.</summary>
+    public const int MaxHolidayRangeDays = 400;
+
+    /// <summary>
+    /// The statutory holidays in a range for the person (state and city of their store), with whether the store opens on them (then they count as
+    /// working days). <c>null</c> if the range is wrong (end before start, or longer than <see cref="MaxHolidayRangeDays"/>).
+    /// </summary>
+    public async Task<IReadOnlyList<HolidayInfo>?> HolidaysAsync(Guid employeeId, DateOnly from, DateOnly to, CancellationToken cancellationToken)
+    {
+        if (to < from || to.DayNumber - from.DayNumber >= MaxHolidayRangeDays)
+        {
+            return null;
+        }
+
+        var person = await people.GetAsync(employeeId, cancellationToken);
+        var result = new List<HolidayInfo>();
+        for (var day = from; day <= to; day = day.AddDays(1))
+        {
+            if (holidays.HolidayName(day, options.HolidayState, person?.StoreCity) is { } name)
+            {
+                result.Add(new HolidayInfo(day, name, person?.StoreOpensOnHolidays ?? false));
+            }
+        }
+
+        return result;
+    }
+
     // ------------------------------------------------------------------ account
 
     /// <returns>The balance of the year (entitlement = effective days), or <c>null</c> if no entitlement is maintained for it.</returns>

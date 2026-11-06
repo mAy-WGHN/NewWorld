@@ -3,6 +3,9 @@ using Shared.Messaging;
 
 namespace Workforce.Core.Absences;
 
+/// <summary>A statutory holiday for a person: its name and whether their store opens on it (then it counts as a working day).</summary>
+public sealed record HolidayInfo(DateOnly Date, string Name, bool StoreOpens);
+
 /// <summary>Read-only copy of a person (from BC Integration events).</summary>
 /// <param name="EmployeeId">Internal id.</param>
 /// <param name="Name">Display name.</param>

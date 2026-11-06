@@ -1,9 +1,9 @@
-import { Component, computed, input, output, signal } from '@angular/core';
+import { Component, computed, effect, input, output, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { Absence, formatPeriod, statusLabel } from '../absences/absence-models';
 import { MONTH_NAMES, YearMonth, monthLabel, monthOf, shiftMonth, todayIso } from '../team-absences/team-absences-models';
-import { CalendarDay, VacationShown, calendarWeeks, inRange, selectionRange } from './vacation-calendar-models';
+import { CalendarDay, Holiday, VacationShown, calendarWeeks, inRange, selectionRange } from './vacation-calendar-models';
 
 const WEEKDAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 
@@ -54,6 +54,8 @@ const LOOK: Record<VacationShown, string> = {
               class="flex min-h-11 flex-col items-center justify-center rounded-lg border border-transparent px-1 py-1.5"
               [class.opacity-40]="!d.inMonth"
               [class.bg-surface-container-high]="d.weekend && !d.vacation"
+              [class.text-tertiary]="!!d.holiday && !d.vacation"
+              [class.border-tertiary]="!!d.holiday && !d.vacation"
               [class.ring-2]="d.today"
               [class.ring-primary]="d.today"
               [class.cursor-pointer]="selectable()"
@@ -64,10 +66,14 @@ const LOOK: Record<VacationShown, string> = {
               [attr.data-shown]="d.vacation?.shown ?? null"
               [attr.aria-current]="d.today ? 'date' : null"
               [attr.title]="titleOf(d)"
+              [attr.data-holiday]="d.holiday?.name ?? null"
               [attr.aria-label]="labelOf(d)"
               [class]="d.vacation ? look(d) : ''"
             >
               <span [class.font-semibold]="d.today">{{ d.day }}</span>
+              @if (d.holiday; as h) {
+                <span class="hidden max-w-full truncate text-[10px] leading-tight sm:block" [class.underline]="h.storeOpens">{{ h.name }}</span>
+              }
             </div>
           }
         }
@@ -77,6 +83,7 @@ const LOOK: Record<VacationShown, string> = {
         <li class="flex items-center gap-1.5"><span class="inline-block size-3.5 rounded bg-primary-container"></span>Genehmigt</li>
         <li class="flex items-center gap-1.5"><span class="inline-block size-3.5 rounded border border-attention-border bg-attention"></span>Wartet auf Genehmigung</li>
         <li class="flex items-center gap-1.5"><span class="inline-block size-3.5 rounded border border-error"></span>Abgelehnt</li>
+        <li class="flex items-center gap-1.5"><span class="inline-block size-3.5 rounded border border-tertiary"></span>Feiertag</li>
       </ul>
       @if (selection(); as s) {
         <div class="mt-3 flex flex-wrap items-center gap-3 rounded-xl bg-secondary-container px-4 py-2.5 text-on-secondary-container" role="status" data-testid="selection">
@@ -98,6 +105,10 @@ export class VacationCalendar {
   readonly absences = input.required<readonly Absence[]>();
   /** Whether days can be picked to request vacation (needs the privilege); the service checks again. */
   readonly selectable = input(false);
+  /** Statutory holidays of the person's store for the days shown; the page loads them for the range this calendar announces. */
+  readonly holidays = input<readonly Holiday[]>([]);
+  /** The days on show (first and last day of the grid): the page loads the holidays for them. */
+  readonly shown = output<{ from: string; to: string }>();
   readonly busy = input(false);
   readonly error = input<string | null>(null);
   /** The person confirmed a period. */
@@ -119,7 +130,14 @@ export class VacationCalendar {
   protected readonly weekdays = WEEKDAYS;
   protected readonly month = signal<YearMonth>(monthOf(todayIso()));
   protected readonly title = computed(() => monthLabel(this.month()));
-  protected readonly weeks = computed(() => calendarWeeks(this.month(), this.absences(), todayIso()));
+  protected readonly weeks = computed(() => calendarWeeks(this.month(), this.absences(), todayIso(), this.holidays()));
+
+  constructor() {
+    effect(() => {
+      const weeks = this.weeks();
+      this.shown.emit({ from: weeks[0][0].iso, to: weeks.at(-1)![6].iso });
+    });
+  }
   protected readonly any = computed(() => this.weeks().some((w) => w.some((d) => d.inMonth && d.vacation)));
 
   protected picked(d: CalendarDay): boolean {
@@ -193,12 +211,17 @@ export class VacationCalendar {
   }
 
   protected titleOf(day: CalendarDay): string | null {
-    return day.vacation ? `${statusLabel(day.vacation.status)}: ${formatPeriod(day.vacation.from, day.vacation.to)}` : null;
+    const parts = [
+      day.holiday ? `${day.holiday.name}${day.holiday.storeOpens ? ' (deine Filiale ist geöffnet)' : ''}` : null,
+      day.vacation ? `${statusLabel(day.vacation.status)}: ${formatPeriod(day.vacation.from, day.vacation.to)}` : null,
+    ].filter((p): p is string => p !== null);
+    return parts.length ? parts.join(' · ') : null;
   }
 
   protected labelOf(day: CalendarDay): string {
     const [y, m, d] = day.iso.split('-').map(Number);
     const base = `${d}. ${MONTH_NAMES[m - 1]} ${y}`;
-    return day.vacation ? `${base}, Urlaub ${statusLabel(day.vacation.status).toLowerCase()}` : base;
+    const holiday = day.holiday ? `, Feiertag ${day.holiday.name}` : '';
+    return day.vacation ? `${base}${holiday}, Urlaub ${statusLabel(day.vacation.status).toLowerCase()}` : `${base}${holiday}`;
   }
 }

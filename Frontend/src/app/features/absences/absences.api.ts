@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { ConfigService } from '../../core/config';
+import type { Holiday } from '../vacation/vacation-calendar-models';
 import { Absence, SickNoteInput, VacationBalance, errorMessage, problemTitle } from './absence-models';
 
 /** The own absences in Workforce (`/api/me/...`). Errors are left to the caller; see `problemTitle`. */
@@ -49,6 +50,11 @@ export class AbsencesApi {
   /** The AU is an electronic one (eAU, found in DATEV by HR) - or not (any more). */
   setElectronic(id: string, electronic: boolean): Promise<Absence> {
     return firstValueFrom(this.http.put<Absence>(this.url(`/absences/${id}/electronic-certificate`), { electronicCertificate: electronic }));
+  }
+
+  /** The statutory holidays of the own store in a range (up to 400 days). */
+  holidays(from: string, to: string): Promise<Holiday[]> {
+    return firstValueFrom(this.http.get<Holiday[]>(this.url('/holidays'), { params: { from, to } }));
   }
 
   requestVacation(from: string, to: string): Promise<Absence> {

@@ -71,6 +71,14 @@ public static class Endpoints
                 MutateOwn(user, db, absenceId, _ => uow.RunAsync(() => service.EndSickNoteAsync(absenceId, request.To, ct), ct), ct))
             .RequireAuthorization(AppPolicies.Privilege(AbsencePrivileges.UpdateOwn));
 
+        // Holidays for the calendar: the statutory ones of the person's store, so the calendar can mark them (range up to 400 days).
+        me.MapGet("/holidays", async (DateOnly? from, DateOnly? to, ClaimsPrincipal user, AbsenceService service, CancellationToken ct) =>
+                Me(user) is not { } id ? Results.Forbid()
+                : from is null || to is null || await service.HolidaysAsync(id, from.Value, to.Value, ct) is not { } found
+                    ? Results.Problem(statusCode: StatusCodes.Status422UnprocessableEntity, title: "InvalidPeriod")
+                    : Results.Ok(found.Select(h => new HolidayDto(h.Date, h.Name, h.StoreOpens))))
+            .RequireAuthorization(AppPolicies.Privilege(AbsencePrivileges.ReadOwn));
+
         me.MapGet("/vacation-balance", async (int? year, ClaimsPrincipal user, AbsenceService service, CancellationToken ct) =>
                 Me(user) is not { } id ? Results.Forbid() : await Balance(service, id, year, ct))
             .RequireAuthorization(AppPolicies.Privilege(AbsencePrivileges.ReadOwn));

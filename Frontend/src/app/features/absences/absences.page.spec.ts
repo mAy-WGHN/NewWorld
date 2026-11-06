@@ -64,6 +64,7 @@ describe('AbsencesPage', () => {
       balance: vi.fn().mockResolvedValue(balance),
       reportSick: vi.fn().mockResolvedValue(sick),
       reportSickNote: vi.fn().mockResolvedValue({ certificateFailed: false }),
+      holidays: vi.fn().mockResolvedValue([]),
       setElectronic: vi.fn().mockResolvedValue(sick),
       requestVacation: vi.fn().mockResolvedValue(vacation),
       withdraw: vi.fn().mockResolvedValue(vacation),

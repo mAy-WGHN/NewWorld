@@ -22,6 +22,13 @@ const RANK: Record<VacationShown, number> = { approved: 3, requested: 2, rejecte
 
 export type ShownVacation = Absence & { shown: VacationShown };
 
+/** A statutory holiday of the person's store (`GET /api/me/holidays`); `storeOpens`: the store is open, so it counts as a working day. */
+export interface Holiday {
+  date: string;
+  name: string;
+  storeOpens: boolean;
+}
+
 export interface CalendarDay {
   iso: string;
   day: number;
@@ -30,6 +37,7 @@ export interface CalendarDay {
   today: boolean;
   /** The vacation request that covers the day (the strongest if several do), with the status shown. */
   vacation: ShownVacation | null;
+  holiday: Holiday | null;
 }
 
 const addDays = (iso: string, delta: number): string => {
@@ -39,7 +47,8 @@ const addDays = (iso: string, delta: number): string => {
 };
 
 /** Monday-based weeks (full weeks of 7 days) covering the month; ISO texts and UTC only, so no time zone can shift a day. */
-export function calendarWeeks(month: YearMonth, absences: readonly Absence[], today: string): CalendarDay[][] {
+export function calendarWeeks(month: YearMonth, absences: readonly Absence[], today: string, holidays: readonly Holiday[] = []): CalendarDay[][] {
+  const holidayByDate = new Map(holidays.map((h) => [h.date, h]));
   const length = daysInMonth(month);
   const first = isoDate(month.year, month.month, 1);
   const last = isoDate(month.year, month.month, length);
@@ -70,6 +79,7 @@ export function calendarWeeks(month: YearMonth, absences: readonly Absence[], to
       weekend: weekday === 0 || weekday === 6,
       today: iso === today,
       vacation: best,
+      holiday: holidayByDate.get(iso) ?? null,
     });
   }
 

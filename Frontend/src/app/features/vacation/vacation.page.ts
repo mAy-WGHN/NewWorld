@@ -17,6 +17,7 @@ import {
 } from '../absences/absence-models';
 import { AbsencesApi } from '../absences/absences.api';
 import { VacationCalendar } from './vacation-calendar';
+import { Holiday } from './vacation-calendar-models';
 
 /**
  * "Mein Urlaub": the vacation account and the own vacation requests; "Urlaub beantragen" at the top right opens the request form.
@@ -36,6 +37,9 @@ export class VacationPage {
   protected readonly canUpdate = computed(() => this.auth.privileges().has('absence:update-own'));
 
   protected readonly absences = signal<Absence[]>([]);
+
+  protected readonly holidays = signal<Holiday[]>([]);
+  private readonly holidayYears = new Set<number>();
 
   /** List (default) or calendar of the requests. */
   protected readonly view = signal<'list' | 'calendar'>('list');
@@ -65,6 +69,22 @@ export class VacationPage {
 
   constructor() {
     void this.reload();
+  }
+
+  /** The calendar shows these days: load the holidays of the years they lie in (each year once; a failure only means no marks). */
+  protected async showDays(range: { from: string; to: string }): Promise<void> {
+    for (let year = Number(range.from.slice(0, 4)); year <= Number(range.to.slice(0, 4)); year++) {
+      if (this.holidayYears.has(year)) {
+        continue;
+      }
+      this.holidayYears.add(year);
+      try {
+        const found = await this.api.holidays(`${year}-01-01`, `${year}-12-31`);
+        this.holidays.update((known) => [...known, ...found]);
+      } catch {
+        this.holidayYears.delete(year);
+      }
+    }
   }
 
   protected set(target: { set(value: string): void }, event: Event): void {

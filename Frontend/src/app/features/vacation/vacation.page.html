@@ -67,7 +67,7 @@
 }
 
 @if (view() === 'calendar') {
-  <app-vacation-calendar [absences]="absences()" [selectable]="canCreate()" [busy]="busy()" [error]="error()" (requested)="requestRange($event)" />
+  <app-vacation-calendar [absences]="absences()" [selectable]="canCreate()" [holidays]="holidays()" (shown)="showDays($event)" [busy]="busy()" [error]="error()" (requested)="requestRange($event)" />
 } @else {
 @if (split().pending.length) {
   <app-attention-block data-testid="attention" title="Wartet auf Genehmigung" hint="Diese Urlaubsanträge sind noch nicht entschieden.">

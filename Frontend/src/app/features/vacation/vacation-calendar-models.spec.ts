@@ -77,6 +77,29 @@ describe('calendarWeeks', () => {
   });
 });
 
+describe('holidays in the calendar', () => {
+  const holidays = [
+    { date: '2026-12-25', name: '1. Weihnachtstag', storeOpens: false },
+    { date: '2026-12-26', name: '2. Weihnachtstag', storeOpens: true },
+    { date: '2027-01-01', name: 'Neujahr', storeOpens: false },
+  ];
+
+  it('puts the holiday on its day, also in the days of the neighbouring month', () => {
+    const weeks = calendarWeeks({ year: 2026, month: 12 }, [], '2026-12-01', holidays);
+    expect(day(weeks, '2026-12-25').holiday?.name).toBe('1. Weihnachtstag');
+    expect(day(weeks, '2026-12-26').holiday?.storeOpens).toBe(true);
+    expect(day(weeks, '2027-01-01').holiday?.name).toBe('Neujahr');
+    expect(flat(weeks).filter((d) => d.holiday).length).toBe(3);
+  });
+
+  it('shows no holiday without any, and keeps a vacation on a holiday', () => {
+    expect(flat(calendarWeeks({ year: 2026, month: 12 }, [], '2026-12-01')).some((d) => d.holiday)).toBe(false);
+    const weeks = calendarWeeks({ year: 2026, month: 12 }, [vacation('v', '2026-12-24', '2026-12-28')], '2026-12-01', holidays);
+    expect(day(weeks, '2026-12-25').vacation?.id).toBe('v');
+    expect(day(weeks, '2026-12-25').holiday).not.toBeNull();
+  });
+});
+
 describe('vacationStatusOf', () => {
   it('maps the status to what the calendar shows', () => {
     expect(vacationStatusOf('Approved')).toBe('approved');

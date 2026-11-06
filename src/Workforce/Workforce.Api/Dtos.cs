@@ -82,6 +82,8 @@ public sealed record CertificateRetentionDto(int RetentionAfterEndDays, bool IsD
 
 public sealed record SetCertificateRetentionRequest(int RetentionAfterEndDays);
 
+public sealed record HolidayDto(DateOnly Date, string Name, bool StoreOpens);
+
 public sealed record StoreHolidayOpeningDto(Guid StoreId, bool OpensOnHolidays, DateTimeOffset? ChangedAt, Guid? ChangedBy);
 
 public sealed record SetStoreHolidayOpeningRequest(bool OpensOnHolidays);

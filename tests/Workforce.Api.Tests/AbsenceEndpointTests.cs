@@ -464,4 +464,45 @@ public sealed class AbsenceEndpointTests(PostgresFixture postgres) : IClassFixtu
         sick.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
         pending.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
     }
+
+    [Fact]
+    public async Task The_calendar_shows_the_holidays_of_the_persons_store_with_their_names()
+    {
+        await using var api = await StartAsync(postgres);
+
+        var december = await api.GetAsync<List<HolidayDto>>("/api/me/holidays?from=2026-12-20&to=2027-01-06", Erika);
+
+        december.Select(h => (h.Date, h.Name, h.StoreOpens)).ShouldBe(
+        [
+            (new DateOnly(2026, 12, 25), "1. Weihnachtstag", false),
+            (new DateOnly(2026, 12, 26), "2. Weihnachtstag", false),
+            (new DateOnly(2027, 1, 1), "Neujahr", false),
+            (new DateOnly(2027, 1, 6), "Heilige Drei Könige", false), // Bavaria is the state of every store
+        ]);
+    }
+
+    [Fact]
+    public async Task A_store_that_opens_on_holidays_says_so_in_the_calendar()
+    {
+        await using var api = await StartAsync(postgres);
+        (await api.SendAsync(HttpMethod.Put, $"/api/stores/{StoreA}/holiday-opening", Hanna, new { opensOnHolidays = true })).StatusCode.ShouldBe(HttpStatusCode.NoContent);
+
+        var days = await api.GetAsync<List<HolidayDto>>("/api/me/holidays?from=2026-12-25&to=2026-12-26", Erika);
+
+        days.ShouldAllBe(h => h.StoreOpens);
+        days.Count.ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task The_holiday_range_is_checked_and_only_signed_in_people_with_own_access_get_it()
+    {
+        await using var api = await StartAsync(postgres);
+
+        (await api.SendAsync(HttpMethod.Get, "/api/me/holidays?from=2026-12-31&to=2026-12-01", Erika)).StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+        (await api.SendAsync(HttpMethod.Get, "/api/me/holidays?from=2026-01-01&to=2028-12-31", Erika)).StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+        (await api.SendAsync(HttpMethod.Get, "/api/me/holidays", Erika)).StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+        (await api.SendAsync(HttpMethod.Get, "/api/me/holidays?from=2026-12-01&to=2026-12-31", null)).StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        api.Services.GetRequiredService<Shared.Authorization.IPermissionCache>().Grant(Ben, new TestGrant(AbsencePrivileges.ReadAvailability, [StoreA], [Erika, Ben])); // no own-data privileges
+        (await api.SendAsync(HttpMethod.Get, "/api/me/holidays?from=2026-12-01&to=2026-12-31", Ben)).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+    }
 }

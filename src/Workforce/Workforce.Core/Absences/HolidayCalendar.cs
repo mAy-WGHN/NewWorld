@@ -7,6 +7,9 @@ namespace Workforce.Core.Absences;
 public interface IHolidayCalendar
 {
     bool IsHoliday(DateOnly date, string? state, string? city = null);
+
+    /// <summary>The name of the holiday (German, for display), or <c>null</c> if the day is none.</summary>
+    string? HolidayName(DateOnly date, string? state, string? city = null);
 }
 
 /// <summary>
@@ -31,45 +34,71 @@ public sealed class GermanHolidayCalendar : IHolidayCalendar
     private static readonly string[] AllSaints = ["BW", "BY", "NW", "RP", "SL"];
     private static readonly string[] RepentanceDay = ["SN"];
 
-    public bool IsHoliday(DateOnly date, string? state, string? city = null)
+    public bool IsHoliday(DateOnly date, string? state, string? city = null) => HolidayName(date, state, city) is not null;
+
+    public string? HolidayName(DateOnly date, string? state, string? city = null)
     {
         var code = Normalize(state);
         var easter = EasterSunday(date.Year);
 
         // nationwide
-        if ((date.Month, date.Day) is (1, 1) or (5, 1) or (10, 3) or (12, 25) or (12, 26))
+        var fixedName = (date.Month, date.Day) switch
         {
-            return true;
+            (1, 1) => "Neujahr",
+            (5, 1) => "Tag der Arbeit",
+            (10, 3) => "Tag der Deutschen Einheit",
+            (12, 25) => "1. Weihnachtstag",
+            (12, 26) => "2. Weihnachtstag",
+            _ => null,
+        };
+        if (fixedName is not null)
+        {
+            return fixedName;
         }
 
-        if (date == easter.AddDays(-2) || date == easter.AddDays(1) || date == easter.AddDays(39) || date == easter.AddDays(50))
+        if (date == easter.AddDays(-2))
         {
-            return true;
+            return "Karfreitag";
+        }
+
+        if (date == easter.AddDays(1))
+        {
+            return "Ostermontag";
+        }
+
+        if (date == easter.AddDays(39))
+        {
+            return "Christi Himmelfahrt";
+        }
+
+        if (date == easter.AddDays(50))
+        {
+            return "Pfingstmontag";
         }
 
         if (code is null)
         {
-            return false;
+            return null;
         }
 
         // Augsburger Friedensfest: only in the city of Augsburg (Bavaria).
         if (code == "BY" && (date.Month, date.Day) is (8, 8) && string.Equals(city?.Trim(), "Augsburg", StringComparison.OrdinalIgnoreCase))
         {
-            return true;
+            return "Augsburger Friedensfest";
         }
 
-        return ((date.Month, date.Day) switch
+        return (date.Month, date.Day) switch
         {
-            (1, 6) => Epiphany.Contains(code),
-            (3, 8) => WomensDay.Contains(code),
-            (8, 15) => Assumption.Contains(code),
-            (9, 20) => WorldChildrensDay.Contains(code),
-            (10, 31) => ReformationDay.Contains(code),
-            (11, 1) => AllSaints.Contains(code),
-            _ => false,
-        })
-        || (date == easter.AddDays(60) && CorpusChristi.Contains(code))
-        || (RepentanceDay.Contains(code) && date == RepentanceAndPrayerDay(date.Year));
+            (1, 6) when Epiphany.Contains(code) => "Heilige Drei Könige",
+            (3, 8) when WomensDay.Contains(code) => "Internationaler Frauentag",
+            (8, 15) when Assumption.Contains(code) => "Mariä Himmelfahrt",
+            (9, 20) when WorldChildrensDay.Contains(code) => "Weltkindertag",
+            (10, 31) when ReformationDay.Contains(code) => "Reformationstag",
+            (11, 1) when AllSaints.Contains(code) => "Allerheiligen",
+            _ when date == easter.AddDays(60) && CorpusChristi.Contains(code) => "Fronleichnam",
+            _ when RepentanceDay.Contains(code) && date == RepentanceAndPrayerDay(date.Year) => "Buß- und Bettag",
+            _ => null,
+        };
     }
 
     /// <summary>Easter Sunday (Gregorian calendar, "Anonymous Gregorian algorithm").</summary>
