@@ -1,5 +1,5 @@
 import { Absence } from '../absences/absence-models';
-import { calendarWeeks, inRange, selectionRange, vacationStatusOf } from './vacation-calendar-models';
+import { addDays, calendarWeeks, inRange, keyTarget, selectionRange, vacationStatusOf } from './vacation-calendar-models';
 
 const vacation = (id: string, from: string, to: string | null, status = 'Approved', type: string | null = 'Vacation'): Absence => ({
   id,
@@ -127,5 +127,32 @@ describe('selectionRange', () => {
     expect(inRange('2026-11-27', range)).toBe(true);
     expect(inRange('2026-11-28', range)).toBe(false);
     expect(inRange('2026-11-23', null)).toBe(false);
+  });
+});
+
+describe('keyboard movement', () => {
+  it('moves by days and weeks across month and year ends', () => {
+    expect(addDays('2026-12-31', 1)).toBe('2027-01-01');
+    expect(addDays('2028-03-01', -1)).toBe('2028-02-29'); // leap year
+    expect(keyTarget('2026-11-30', 'ArrowRight')).toBe('2026-12-01');
+    expect(keyTarget('2026-11-02', 'ArrowUp')).toBe('2026-10-26');
+    expect(keyTarget('2026-11-02', 'ArrowDown')).toBe('2026-11-09');
+  });
+
+  it('goes to Monday and Sunday of the week with Home and End', () => {
+    expect(keyTarget('2026-11-04', 'Home')).toBe('2026-11-02'); // Wednesday -> Monday
+    expect(keyTarget('2026-11-04', 'End')).toBe('2026-11-08');
+    expect(keyTarget('2026-11-08', 'Home')).toBe('2026-11-02'); // Sunday belongs to the week before
+    expect(keyTarget('2026-11-02', 'End')).toBe('2026-11-08');
+  });
+
+  it('moves by months and shortens to the last day of a shorter month', () => {
+    expect(keyTarget('2026-01-31', 'PageDown')).toBe('2026-02-28');
+    expect(keyTarget('2028-01-31', 'PageDown')).toBe('2028-02-29');
+    expect(keyTarget('2027-01-15', 'PageUp')).toBe('2026-12-15');
+  });
+
+  it('ignores other keys', () => {
+    expect(keyTarget('2026-11-04', 'a')).toBeNull();
   });
 });

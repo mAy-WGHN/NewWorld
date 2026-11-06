@@ -158,4 +158,81 @@ describe('VacationCalendar', () => {
       expect(root().querySelector('[data-testid="selection"]')).toBeNull();
     });
   });
+
+  describe('keyboard', () => {
+    const cellOf = (iso: string) => root().querySelector(`[data-iso="${iso}"]`) as HTMLElement;
+    const press = (iso: string, key: string) => cellOf(iso).dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+
+    async function createSelectable(): Promise<{ from: string; to: string }[]> {
+      const sent: { from: string; to: string }[] = [];
+      fixture = TestBed.createComponent(VacationCalendar);
+      fixture.componentRef.setInput('absences', []);
+      fixture.componentRef.setInput('selectable', true);
+      fixture.componentInstance.requested.subscribe((r) => sent.push(r));
+      await fixture.whenStable();
+      return sent;
+    }
+
+    it('has exactly one day in the tab order and moves the focus with the arrow keys', async () => {
+      await createSelectable();
+      expect(root().querySelectorAll('[role="gridcell"][tabindex="0"]').length).toBe(1);
+      const start = (root().querySelector('[role="gridcell"][tabindex="0"]') as HTMLElement).dataset['iso']!;
+      press(start, 'ArrowRight');
+      await fixture.whenStable();
+      const next = (root().querySelector('[role="gridcell"][tabindex="0"]') as HTMLElement).dataset['iso']!;
+      expect(next > start).toBe(true);
+      expect(document.activeElement).toBe(cellOf(next));
+    });
+
+    it('turns to the next month when the focus leaves the days on show', async () => {
+      await createSelectable();
+      const title = () => root().querySelector('#cal-title')!.textContent;
+      const first = title();
+      const start = (root().querySelector('[role="gridcell"][tabindex="0"]') as HTMLElement).dataset['iso']!;
+      press(start, 'PageDown'); // a month on can still lie in the grid (the last days of the week)
+      await fixture.whenStable();
+      const once = (root().querySelector('[role="gridcell"][tabindex="0"]') as HTMLElement).dataset['iso']!;
+      press(once, 'PageDown');
+      await fixture.whenStable();
+      expect(title()).not.toBe(first);
+    });
+
+    it('picks a period with Enter, arrow keys and Enter and sends it only after the confirmation', async () => {
+      const sent = await createSelectable();
+      const days = Array.from(root().querySelectorAll<HTMLElement>('[data-iso]'));
+      const start = days[10].dataset['iso']!;
+      press(start, 'Enter');
+      press(start, 'ArrowRight');
+      await fixture.whenStable();
+      const end = (root().querySelector('[role="gridcell"][tabindex="0"]') as HTMLElement).dataset['iso']!;
+      press(end, 'ArrowRight');
+      await fixture.whenStable();
+      const last = (root().querySelector('[role="gridcell"][tabindex="0"]') as HTMLElement).dataset['iso']!;
+      press(last, 'Enter');
+      await fixture.whenStable();
+      expect(root().querySelector('[data-testid="selection"]')).not.toBeNull();
+      expect(root().querySelectorAll('[data-picked="true"]').length).toBe(3);
+      expect(sent).toEqual([]);
+      (root().querySelector('[data-action="confirm"]') as HTMLButtonElement).click();
+      expect(sent).toEqual([{ from: start, to: last }]);
+    });
+
+    it('drops a pick with Esc and does nothing with Enter when the calendar cannot request', async () => {
+      await createSelectable();
+      const start = (root().querySelector('[role="gridcell"][tabindex="0"]') as HTMLElement).dataset['iso']!;
+      press(start, 'Enter');
+      await fixture.whenStable();
+      expect(root().querySelectorAll('[data-picked="true"]').length).toBe(1);
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      await fixture.whenStable();
+      expect(root().querySelectorAll('[data-picked="true"]').length).toBe(0);
+
+      await create([]);
+      const other = (root().querySelector('[role="gridcell"][tabindex="0"]') as HTMLElement).dataset['iso']!;
+      press(other, 'Enter');
+      await fixture.whenStable();
+      expect(root().querySelectorAll('[data-picked="true"]').length).toBe(0);
+      expect(root().querySelector('[data-testid="selection"]')).toBeNull();
+    });
+  });
 });

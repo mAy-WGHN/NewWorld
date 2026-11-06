@@ -1,9 +1,9 @@
-import { Component, computed, effect, input, output, signal } from '@angular/core';
+import { Component, ElementRef, Injector, afterNextRender, computed, effect, inject, input, output, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { Absence, formatPeriod, statusLabel } from '../absences/absence-models';
 import { MONTH_NAMES, YearMonth, monthLabel, monthOf, shiftMonth, todayIso } from '../team-absences/team-absences-models';
-import { CalendarDay, Holiday, VacationShown, calendarWeeks, inRange, selectionRange } from './vacation-calendar-models';
+import { CalendarDay, Holiday, VacationShown, calendarWeeks, inRange, keyTarget, selectionRange } from './vacation-calendar-models';
 
 const WEEKDAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 
@@ -34,7 +34,7 @@ const LOOK: Record<VacationShown, string> = {
       </div>
 
       @if (selectable()) {
-        <p class="m-0 mb-2 text-sm text-on-surface-variant">Tag anklicken oder über mehrere Tage ziehen, um Urlaub zu beantragen.</p>
+        <p class="m-0 mb-2 text-sm text-on-surface-variant">Tag anklicken oder über mehrere Tage ziehen, um Urlaub zu beantragen. Mit der Tastatur: Pfeiltasten wechseln den Tag, Enter beginnt die Auswahl, die Pfeiltasten dehnen sie aus, Enter beendet sie, Esc bricht ab.</p>
       }
       <div
         class="grid grid-cols-7 gap-1 text-center text-sm select-none"
@@ -43,6 +43,7 @@ const LOOK: Record<VacationShown, string> = {
         [attr.aria-label]="'Urlaub im ' + title()"
         (pointerdown)="down($event)"
         (pointermove)="move($event)"
+        (keydown)="key($event)"
       >
         @for (w of weekdays; track w) {
           <div class="py-1 text-[13px] text-on-surface-variant" role="columnheader">{{ w }}</div>
@@ -65,6 +66,8 @@ const LOOK: Record<VacationShown, string> = {
               [attr.data-iso]="d.iso"
               [attr.data-shown]="d.vacation?.shown ?? null"
               [attr.aria-current]="d.today ? 'date' : null"
+              [attr.tabindex]="d.iso === tabbable() ? 0 : -1"
+              [attr.aria-selected]="selectable() ? picked(d) : null"
               [attr.title]="titleOf(d)"
               [attr.data-holiday]="d.holiday?.name ?? null"
               [attr.aria-label]="labelOf(d)"
@@ -114,6 +117,12 @@ export class VacationCalendar {
   /** The person confirmed a period. */
   readonly requested = output<{ from: string; to: string }>();
 
+  private readonly injector = inject(Injector);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  /** The day the keyboard focus is on (kept when the month changes as long as it is still on show). */
+  private readonly focusIso = signal<string>(todayIso());
+  /** A pick started with Enter that the arrow keys extend. */
+  private readonly keying = signal(false);
   private readonly anchor = signal<string | null>(null);
   private readonly current = signal<string | null>(null);
   private readonly dragging = signal(false);
@@ -138,6 +147,12 @@ export class VacationCalendar {
       this.shown.emit({ from: weeks[0][0].iso, to: weeks.at(-1)![6].iso });
     });
   }
+  /** The one day in the tab order: the focused one if it is on show, else the first of the month. */
+  protected readonly tabbable = computed(() => {
+    const days = this.weeks().flat();
+    const focus = this.focusIso();
+    return days.some((d) => d.iso === focus) ? focus : days.find((d) => d.inMonth)!.iso;
+  });
   protected readonly any = computed(() => this.weeks().some((w) => w.some((d) => d.inMonth && d.vacation)));
 
   protected picked(d: CalendarDay): boolean {
@@ -155,6 +170,7 @@ export class VacationCalendar {
     }
     event.preventDefault();
     (event.target as Element).releasePointerCapture?.(event.pointerId); // touch: keep getting moves over other days
+    this.keying.set(false);
     this.selection.set(null);
     this.anchor.set(iso);
     this.current.set(iso);
@@ -183,7 +199,45 @@ export class VacationCalendar {
     this.clear();
   }
 
+  /** Keyboard: arrows move the focus (and extend a pick), Enter or Space starts and ends a pick. Esc is handled on the document. */
+  protected key(event: KeyboardEvent): void {
+    const from = (event.target as HTMLElement).closest<HTMLElement>('[data-iso]')?.dataset['iso'];
+    if (!from || event.altKey || event.ctrlKey || event.metaKey) {
+      return;
+    }
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      if (!this.selectable()) {
+        return;
+      }
+      if (this.keying()) {
+        this.keying.set(false);
+        this.selection.set(this.range());
+      } else {
+        this.selection.set(null);
+        this.anchor.set(from);
+        this.current.set(from);
+        this.keying.set(true);
+      }
+      return;
+    }
+    const target = keyTarget(from, event.key);
+    if (!target) {
+      return;
+    }
+    event.preventDefault();
+    if (!this.weeks().some((w) => w.some((d) => d.iso === target))) {
+      this.month.set(monthOf(target));
+    }
+    this.focusIso.set(target);
+    if (this.keying()) {
+      this.current.set(target);
+    }
+    afterNextRender(() => this.host.nativeElement.querySelector<HTMLElement>(`[data-iso="${target}"]`)?.focus(), { injector: this.injector });
+  }
+
   protected clear(): void {
+    this.keying.set(false);
     this.dragging.set(false);
     this.anchor.set(null);
     this.current.set(null);

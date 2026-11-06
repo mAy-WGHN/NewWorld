@@ -40,7 +40,8 @@ export interface CalendarDay {
   holiday: Holiday | null;
 }
 
-const addDays = (iso: string, delta: number): string => {
+/** An ISO date shifted by whole days (UTC only, so daylight saving cannot move it). */
+export const addDays = (iso: string, delta: number): string => {
   const [y, m, d] = iso.split('-').map(Number);
   const date = new Date(Date.UTC(y, m - 1, d + delta));
   return isoDate(date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate());
@@ -92,3 +93,28 @@ export function selectionRange(a: string, b: string): { from: string; to: string
 }
 
 export const inRange = (iso: string, range: { from: string; to: string } | null): boolean => !!range && range.from <= iso && iso <= range.to;
+
+/**
+ * Where the keyboard focus goes from a day: arrows move by a day or a week, Home and End to the Monday and Sunday of the week,
+ * PageUp and PageDown by a month (same day, shortened to the last day of a shorter month). Other keys return `null`.
+ */
+export function keyTarget(iso: string, key: string): string | null {
+  const [y, m, d] = iso.split('-').map(Number);
+  const weekday = (new Date(Date.UTC(y, m - 1, d)).getUTCDay() + 6) % 7; // Monday = 0
+  const byMonth = (delta: number): string => {
+    const target = new Date(Date.UTC(y, m - 1 + delta, 1));
+    const last = new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0)).getUTCDate();
+    return new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth(), Math.min(d, last))).toISOString().slice(0, 10);
+  };
+  switch (key) {
+    case 'ArrowLeft': return addDays(iso, -1);
+    case 'ArrowRight': return addDays(iso, 1);
+    case 'ArrowUp': return addDays(iso, -7);
+    case 'ArrowDown': return addDays(iso, 7);
+    case 'Home': return addDays(iso, -weekday);
+    case 'End': return addDays(iso, 6 - weekday);
+    case 'PageUp': return byMonth(-1);
+    case 'PageDown': return byMonth(1);
+    default: return null;
+  }
+}
