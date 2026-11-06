@@ -50,12 +50,12 @@
     } @else {
       <div class="mb-2"><app-quick-filter [table]="bookingTable" name="kind" label="Art" [options]="kindOptions()" /></div>
       <mat-card appearance="outlined" class="overflow-x-auto">
-        <table class="w-full border-collapse">
+        <table [appSortTable]="bookingTable" class="w-full border-collapse">
           <thead>
             <tr class="text-sm text-on-surface-variant">
-              <th scope="col" class="px-3.5 py-2.5 text-left font-medium" [attr.aria-sort]="bookingTable.ariaSort('date')"><button appSort="date" [table]="bookingTable">Datum</button></th>
-              <th scope="col" class="px-3.5 py-2.5 text-left font-medium" [attr.aria-sort]="bookingTable.ariaSort('kind')"><button appSort="kind" [table]="bookingTable">Art</button></th>
-              <th scope="col" class="px-3.5 py-2.5 text-right font-medium" [attr.aria-sort]="bookingTable.ariaSort('hours')"><button appSort="hours" [table]="bookingTable">Stunden</button></th>
+              <th scope="col" class="px-3.5 py-2.5 text-left font-medium" mat-sort-header="date">Datum</th>
+              <th scope="col" class="px-3.5 py-2.5 text-left font-medium" mat-sort-header="kind">Art</th>
+              <th scope="col" class="px-3.5 py-2.5 text-right font-medium" mat-sort-header="hours">Stunden</th>
             </tr>
           </thead>
           <tbody>
@@ -78,13 +78,13 @@
       <h2 id="closes-title" class="m-0 mb-2 text-lg font-medium">Monatsabschlüsse</h2>
       <div class="mb-2"><app-quick-filter [table]="closeTable" name="year" label="Jahr" [options]="closeYears()" /></div>
       <mat-card appearance="outlined" class="overflow-x-auto">
-        <table class="w-full border-collapse">
+        <table [appSortTable]="closeTable" class="w-full border-collapse">
           <thead>
             <tr class="text-sm text-on-surface-variant">
-              <th scope="col" class="px-3.5 py-2.5 text-left font-medium" [attr.aria-sort]="closeTable.ariaSort('month')"><button appSort="month" [table]="closeTable">Monat</button></th>
-              <th scope="col" class="px-3.5 py-2.5 text-right font-medium" [attr.aria-sort]="closeTable.ariaSort('worked')"><button appSort="worked" [table]="closeTable">Gearbeitet</button></th>
-              <th scope="col" class="px-3.5 py-2.5 text-right font-medium" [attr.aria-sort]="closeTable.ariaSort('threshold')"><button appSort="threshold" [table]="closeTable">Schwelle</button></th>
-              <th scope="col" class="px-3.5 py-2.5 text-right font-medium" [attr.aria-sort]="closeTable.ariaSort('overtime')"><button appSort="overtime" [table]="closeTable">Überstunden</button></th>
+              <th scope="col" class="px-3.5 py-2.5 text-left font-medium" mat-sort-header="month">Monat</th>
+              <th scope="col" class="px-3.5 py-2.5 text-right font-medium" mat-sort-header="worked">Gearbeitet</th>
+              <th scope="col" class="px-3.5 py-2.5 text-right font-medium" mat-sort-header="threshold">Schwelle</th>
+              <th scope="col" class="px-3.5 py-2.5 text-right font-medium" mat-sort-header="overtime">Überstunden</th>
             </tr>
           </thead>
           <tbody>

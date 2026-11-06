@@ -54,9 +54,10 @@ export function actorLabel(entry: AuditEntry): string {
 
     <div class="mb-3 flex flex-col gap-2.5">
       <div class="flex flex-wrap items-end gap-3">
-        <label class="flex flex-col text-sm">Personalnummer (vom Dienst laden)
-          <input class="rounded border px-2 py-1" #nr (keyup.enter)="load(nr.value)" />
-        </label>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Personalnummer (vom Dienst laden)</mat-label>
+          <input matInput #nr (keyup.enter)="load(nr.value)" />
+        </mat-form-field>
         <button mat-flat-button type="button" (click)="load(nr.value)" [disabled]="busy()">Laden</button>
         <app-table-search [table]="table" label="Suche in den geladenen Einträgen" />
       </div>
@@ -70,14 +71,14 @@ export function actorLabel(entry: AuditEntry): string {
     }
 
     <div class="overflow-x-auto">
-      <table class="w-full text-left text-sm">
+      <table [appSortTable]="table" class="w-full text-left text-sm">
         <thead>
           <tr>
-            <th scope="col" class="p-2" [attr.aria-sort]="table.ariaSort('time')"><button appSort="time" [table]="table">Zeitpunkt</button></th>
-            <th scope="col" class="p-2" [attr.aria-sort]="table.ariaSort('actor')"><button appSort="actor" [table]="table">Person</button></th>
-            <th scope="col" class="p-2" [attr.aria-sort]="table.ariaSort('action')"><button appSort="action" [table]="table">Aktion</button></th>
-            <th scope="col" class="p-2" [attr.aria-sort]="table.ariaSort('service')"><button appSort="service" [table]="table">Bereich</button></th>
-            <th scope="col" class="p-2" [attr.aria-sort]="table.ariaSort('entity')"><button appSort="entity" [table]="table">Objekt</button></th>
+            <th scope="col" class="p-2" mat-sort-header="time">Zeitpunkt</th>
+            <th scope="col" class="p-2" mat-sort-header="actor">Person</th>
+            <th scope="col" class="p-2" mat-sort-header="action">Aktion</th>
+            <th scope="col" class="p-2" mat-sort-header="service">Bereich</th>
+            <th scope="col" class="p-2" mat-sort-header="entity">Objekt</th>
             @if (hasValues()) {
               <th scope="col" class="p-2">Werte</th>
             }

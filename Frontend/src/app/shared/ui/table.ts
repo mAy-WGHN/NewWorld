@@ -1,4 +1,12 @@
-import { Component, computed, input, signal } from '@angular/core';
+import { Component, Directive, Injectable, computed, effect, inject, input, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { MatButtonModule } from '@angular/material/button';
+import { MatChipsModule } from '@angular/material/chips';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
+import { MatPaginatorIntl, MatPaginatorModule, PageEvent } from '@angular/material/paginator';
+import { MatSort, MatSortModule, Sort } from '@angular/material/sort';
 
 export type SortDir = 'asc' | 'desc';
 export type SortValue = string | number | null | undefined;
@@ -93,6 +101,12 @@ export class TableState<T> {
     this.pageSize.set(options.pageSize ?? 25);
   }
 
+  setSort(key: string, dir: SortDir): void {
+    this.sortKey.set(key);
+    this.sortDir.set(dir);
+    this.pageIndex.set(0);
+  }
+
   /** First click ascending, then descending, then ascending again; another column starts ascending. */
   sortBy(key: string): void {
     if (this.sortKey() === key) {
@@ -138,52 +152,77 @@ export class TableState<T> {
   }
 }
 
-/** The button inside a column heading: `<th [attr.aria-sort]="t.ariaSort('x')"><button appSort="x" [table]="t">Name</button></th>`. */
-@Component({
-  selector: 'button[appSort]',
-  host: {
-    type: 'button',
-    class: 'inline-flex cursor-pointer items-center gap-1 border-0 bg-transparent p-0 font-[inherit] text-inherit hover:underline',
-    '(click)': 'table().sortBy(appSort())',
-  },
-  template: `<ng-content /><span aria-hidden="true" class="inline-block w-3 text-[11px] opacity-70">{{ arrow() }}</span>`,
+/**
+ * Makes a table sortable with Angular Material: `<table [appSortTable]="state">` and `<th mat-sort-header="key">Name</th>` per column.
+ * Material draws the arrows and sets `aria-sort`; the state decides what is sorted. Two states only (up, down), no "unsorted".
+ */
+@Directive({
+  selector: 'table[appSortTable]',
+  hostDirectives: [MatSort],
 })
-export class SortButton {
-  readonly appSort = input.required<string>();
-  readonly table = input.required<AnyTable>();
-  protected readonly arrow = computed(() => {
-    const s = this.table().ariaSort(this.appSort());
-    return s === 'ascending' ? '▲' : s === 'descending' ? '▼' : '';
-  });
+export class SortTable {
+  readonly table = input.required<AnyTable>({ alias: 'appSortTable' });
+  private readonly sort = inject(MatSort);
+
+  constructor() {
+    this.sort.disableClear = true;
+    effect(() => {
+      this.sort.active = this.table().sortKey() ?? '';
+      this.sort.direction = this.table().sortDir();
+    });
+    this.sort.sortChange.pipe(takeUntilDestroyed()).subscribe((e: Sort) => {
+      if (e.active && e.direction) {
+        this.table().setSort(e.active, e.direction);
+      }
+    });
+  }
 }
 
-/** "1–25 von 130", previous/next page and the page size. Hidden while everything fits on one small page. */
+/** German texts of the paginator. */
+@Injectable()
+export class GermanPaginatorIntl extends MatPaginatorIntl {
+  override itemsPerPageLabel = 'Zeilen pro Seite';
+  override nextPageLabel = 'Nächste Seite';
+  override previousPageLabel = 'Vorherige Seite';
+  override firstPageLabel = 'Erste Seite';
+  override lastPageLabel = 'Letzte Seite';
+  override getRangeLabel = (page: number, size: number, length: number): string => {
+    if (length === 0) {
+      return '0 von 0';
+    }
+    const start = page * size;
+    return `${start + 1}–${Math.min(start + size, length)} von ${length}`;
+  };
+}
+
+/** Material paginator for a table state (page, page size, "1–25 von 130"). */
 @Component({
   selector: 'app-pager',
+  imports: [MatPaginatorModule],
   template: `
     @if (table().total() > 0) {
-      <nav class="mt-2 flex flex-wrap items-center justify-end gap-3 text-sm" aria-label="Seiten">
-        <label class="flex items-center gap-1.5">
-          Zeilen
-          <select class="rounded border border-outline-variant bg-surface px-1.5 py-1" (change)="size($event)">
-            @for (s of sizes; track s) {
-              <option [value]="s" [selected]="s === table().pageSize()">{{ s }}</option>
-            }
-          </select>
-        </label>
-        <span data-testid="range">{{ table().firstRow() }}–{{ table().lastRow() }} von {{ table().total() }}</span>
-        <button type="button" class="cursor-pointer rounded border border-outline-variant px-2.5 py-1 disabled:opacity-40" [disabled]="table().page() === 0" (click)="table().goTo(table().page() - 1)" aria-label="Vorherige Seite">‹</button>
-        <button type="button" class="cursor-pointer rounded border border-outline-variant px-2.5 py-1 disabled:opacity-40" [disabled]="table().page() >= table().pageCount() - 1" (click)="table().goTo(table().page() + 1)" aria-label="Nächste Seite">›</button>
-      </nav>
+      <mat-paginator
+        [length]="table().total()"
+        [pageSize]="table().pageSize()"
+        [pageIndex]="table().page()"
+        [pageSizeOptions]="sizes"
+        showFirstLastButtons
+        (page)="changed($event)"
+        aria-label="Seiten"
+      />
     }
   `,
 })
 export class Pager {
   readonly table = input.required<AnyTable>();
-  protected readonly sizes = PAGE_SIZES;
+  protected readonly sizes = PAGE_SIZES as unknown as number[];
 
-  protected size(event: Event): void {
-    this.table().setPageSize(Number((event.target as HTMLSelectElement).value));
+  protected changed(event: PageEvent): void {
+    if (event.pageSize !== this.table().pageSize()) {
+      this.table().setPageSize(event.pageSize);
+    } else {
+      this.table().goTo(event.pageIndex);
+    }
   }
 }
 
@@ -192,25 +231,18 @@ export interface FilterOption {
   label: string;
 }
 
-/** A row of quick filters (one choice, the first option usually "Alle") for the filter `name` of a table. */
+/** A row of quick filters (one choice, the first option usually "Alle") for the filter `name` of a table: Material chips. */
 @Component({
   selector: 'app-quick-filter',
+  imports: [MatChipsModule],
   template: `
-    <div class="flex flex-wrap items-center gap-1.5" role="group" [attr.aria-label]="label()">
-      <span class="me-1 text-sm text-on-surface-variant">{{ label() }}</span>
-      @for (o of options(); track o.value) {
-        <button
-          type="button"
-          class="cursor-pointer rounded-full border px-3 py-1 text-sm"
-          [class.bg-secondary-container]="table().filter(name()) === o.value"
-          [class.border-transparent]="table().filter(name()) === o.value"
-          [class.border-outline-variant]="table().filter(name()) !== o.value"
-          [attr.aria-pressed]="table().filter(name()) === o.value"
-          (click)="table().setFilter(name(), o.value)"
-        >
-          {{ o.label }}
-        </button>
-      }
+    <div class="flex flex-wrap items-center gap-2">
+      <span class="text-sm text-on-surface-variant">{{ label() }}</span>
+      <mat-chip-listbox [attr.aria-label]="label()" [value]="table().filter(name())" (change)="chosen($event.value)">
+        @for (o of options(); track o.value) {
+          <mat-chip-option [value]="o.value" [selected]="table().filter(name()) === o.value">{{ o.label }}</mat-chip-option>
+        }
+      </mat-chip-listbox>
     </div>
   `,
 })
@@ -219,24 +251,26 @@ export class QuickFilter {
   readonly name = input.required<string>();
   readonly label = input.required<string>();
   readonly options = input.required<readonly FilterOption[]>();
+
+  // Clicking the chosen chip again would clear the choice; "all" stays chosen instead.
+  protected chosen(value: string | undefined): void {
+    this.table().setFilter(this.name(), value ?? '');
+  }
 }
 
 /** Search box above a table (looks in what the table's `search` option returns) with a reset for everything narrowing the table. */
 @Component({
   selector: 'app-table-search',
+  imports: [MatButtonModule, MatFormFieldModule, MatIconModule, MatInputModule],
   template: `
     <div class="flex flex-wrap items-center gap-2">
-      <label class="flex items-center gap-1.5 text-sm">
-        {{ label() }}
-        <input
-          type="search"
-          class="rounded border border-outline-variant bg-surface px-2 py-1"
-          [value]="table().query()"
-          (input)="table().setQuery($any($event.target).value)"
-        />
-      </label>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="min-w-56">
+        <mat-label>{{ label() }}</mat-label>
+        <mat-icon matIconPrefix>search</mat-icon>
+        <input matInput type="search" [value]="table().query()" (input)="table().setQuery($any($event.target).value)" />
+      </mat-form-field>
       @if (table().narrowed()) {
-        <button type="button" class="cursor-pointer rounded border border-outline-variant px-2.5 py-1 text-sm" (click)="table().reset()">Zurücksetzen</button>
+        <button mat-stroked-button type="button" (click)="table().reset()">Zurücksetzen</button>
       }
     </div>
   `,
@@ -246,4 +280,4 @@ export class TableSearch {
   readonly label = input('Suche');
 }
 
-export const TABLE_UI = [SortButton, Pager, QuickFilter, TableSearch] as const;
+export const TABLE_UI = [SortTable, MatSortModule, Pager, QuickFilter, TableSearch] as const;
