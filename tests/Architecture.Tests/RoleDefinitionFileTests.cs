@@ -3,12 +3,12 @@ using System.Text.Json;
 namespace Architecture.Tests;
 
 /// <summary>
-/// The role file in the repository (<c>docs/rollen-personalabteilung.json</c>, decision 44) is kept up to date with the privileges of the services:
+/// The role file in the repository (<c>docs/rollen.json</c>, decision 44) is kept up to date with the privileges of the services:
 /// every privilege in it exists, so a typo or a removed privilege is found here and not when the file is imported.
 /// </summary>
 public class RoleDefinitionFileTests
 {
-    private static readonly string FilePath = Path.Combine(Solution.Root, "docs", "rollen-personalabteilung.json");
+    private static readonly string FilePath = Path.Combine(Solution.Root, "docs", "rollen.json");
 
     private static JsonElement Load() => JsonDocument.Parse(File.ReadAllText(FilePath)).RootElement;
 
@@ -44,7 +44,7 @@ public class RoleDefinitionFileTests
             .SelectMany(r => r.Privileges.Where(p => !Matches(p, known)).Select(p => $"{r.Name}: {p}"))
             .ToList();
 
-        unknown.ShouldBeEmpty("fix the typo or remove the privilege from docs/rollen-personalabteilung.json");
+        unknown.ShouldBeEmpty("fix the typo or remove the privilege from docs/rollen.json");
     }
 
     [Fact]
