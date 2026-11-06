@@ -9,6 +9,10 @@ var notificationsKey = ServiceKey.Create();
 var workforceKey = ServiceKey.Create();
 var portalKey = ServiceKey.Create();
 
+// Fixed local ports for the four services the frontend talks to (Frontend/proxy.conf.json points at them), so nothing has to be copied from
+// the dashboard after a restart. The AppHost test switches this off (--Ports:Fixed=false) and uses free ports.
+var fixedPorts = !string.Equals(builder.Configuration["Ports:Fixed"], "false", StringComparison.OrdinalIgnoreCase);
+
 // One PostgreSQL instance, one database per service (own schema inside, no cross-schema joins).
 var postgres = builder.AddPostgres("postgres");
 
@@ -61,6 +65,7 @@ var access = builder.AddProject<Projects.Access_Api>("access-api")
     // Login: PIN check through BC Integration.
     .WithEnvironment("BcIntegration__BaseUrl", bcIntegration.GetEndpoint("http"))
     .WithReference(serviceBus).WaitFor(serviceBus)
+    .WithFixedPort(5101, fixedPorts)
     .WithHttpHealthCheck("/health/ready");
 
 builder.AddProject<Projects.Notifications_Api>("notifications-api")
@@ -68,6 +73,7 @@ builder.AddProject<Projects.Notifications_Api>("notifications-api")
     .WithServiceIdentity("notifications", notificationsKey)
     .WithReference(serviceBus).WaitFor(serviceBus)
     .WithAccess(access)
+    .WithFixedPort(5104, fixedPorts)
     .WithHttpHealthCheck("/health/ready");
 
 var workforce = builder.AddProject<Projects.Workforce_Api>("workforce-api")
@@ -75,6 +81,7 @@ var workforce = builder.AddProject<Projects.Workforce_Api>("workforce-api")
     .WithServiceIdentity("workforce", workforceKey)
     .WithReference(serviceBus).WaitFor(serviceBus)
     .WithAccess(access)
+    .WithFixedPort(5102, fixedPorts)
     .WithHttpHealthCheck("/health/ready");
 
 // ClamAV scans the uploaded medical certificates (clamd, INSTREAM). The E2E tests switch it off (ClamAv:Enabled=false): the first start
@@ -96,12 +103,17 @@ builder.AddProject<Projects.Portal_Api>("portal-api")
     .WithServiceIdentity("portal", portalKey)
     .WithReference(serviceBus).WaitFor(serviceBus)
     .WithAccess(access)
+    .WithFixedPort(5103, fixedPorts)
     .WithHttpHealthCheck("/health/ready");
 
 builder.Build().Run();
 
 internal static class AppHostExtensions
 {
+    /// <summary>The http endpoint of a project listens on a fixed port (the dev proxy of the frontend knows it); ignored when <paramref name="enabled"/> is false.</summary>
+    public static IResourceBuilder<ProjectResource> WithFixedPort(this IResourceBuilder<ProjectResource> project, int port, bool enabled) =>
+        enabled ? project.WithEndpoint("http", endpoint => endpoint.Port = port) : project;
+
     /// <summary>
     /// A service validates people's tokens against Access (discovery/JWKS, plain http locally) and registers its privilege catalogue
     /// there with its signed service token (see <see cref="WithServiceIdentity{T}"/>).

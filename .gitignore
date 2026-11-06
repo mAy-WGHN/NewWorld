@@ -44,3 +44,4 @@ pgdata/
 
 # Verify: snapshots that did not match (never commit)
 *.received.*
+src/AppHost/aspire.config.json

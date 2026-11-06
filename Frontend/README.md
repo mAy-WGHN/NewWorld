@@ -21,7 +21,7 @@ Voraussetzung sind die Backend-Dienste (zum Beispiel über den Aspire-AppHost). 
 | `/svc/portal/*` | Portal | `http://localhost:5103` |
 | `/svc/notifications/*` | Notifications | `http://localhost:5104` |
 
-Aspire vergibt die Ports dynamisch: die Ziele in `proxy.conf.json` auf die Adressen aus dem Aspire-Dashboard anpassen. Der Proxy entfernt das Präfix, die Dienste sehen ihre normalen Pfade (`/api/...`). Die Dienste brauchen so kein CORS.
+Der AppHost legt diese vier Ports fest (`WithFixedPort`), die Ziele in `proxy.conf.json` müssen also nicht angepasst werden. Sind die Ports auf dem Rechner belegt, ändert man sie im AppHost und hier gemeinsam; die Tests des AppHost (`--Ports:Fixed=false`) nehmen freie Ports. Der Proxy entfernt das Präfix, die Dienste sehen ihre normalen Pfade (`/api/...`). Die Dienste brauchen so kein CORS.
 
 ## Konfiguration im Betrieb
 
