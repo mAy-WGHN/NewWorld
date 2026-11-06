@@ -23,20 +23,21 @@
     @if (monthly().length === 0) {
       <p class="m-0 text-sm text-on-surface-variant" data-testid="empty">In diesem Zeitraum gibt es keine Meldungen.</p>
     } @else {
+      <div class="mb-2"><app-quick-filter [table]="monthlyTable" name="year" label="Jahr" [options]="monthlyYears()" /></div>
       <div class="overflow-x-auto">
         <table class="w-full border-collapse text-left text-sm">
           <caption class="sr-only">Meldungen pro Monat, von Mitarbeitenden und vom System</caption>
           <thead>
             <tr class="border-b border-outline-variant">
-              <th scope="col" class="py-1.5 pe-3">Monat</th>
-              <th scope="col" class="py-1.5 pe-3 text-right">Mitarbeitende</th>
-              <th scope="col" class="py-1.5 pe-3 text-right">System</th>
-              <th scope="col" class="py-1.5 pe-3 text-right">Gesamt</th>
+              <th scope="col" class="py-1.5 pe-3" [attr.aria-sort]="monthlyTable.ariaSort('month')"><button appSort="month" [table]="monthlyTable">Monat</button></th>
+              <th scope="col" class="py-1.5 pe-3 text-right" [attr.aria-sort]="monthlyTable.ariaSort('employee')"><button appSort="employee" [table]="monthlyTable">Mitarbeitende</button></th>
+              <th scope="col" class="py-1.5 pe-3 text-right" [attr.aria-sort]="monthlyTable.ariaSort('system')"><button appSort="system" [table]="monthlyTable">System</button></th>
+              <th scope="col" class="py-1.5 pe-3 text-right" [attr.aria-sort]="monthlyTable.ariaSort('total')"><button appSort="total" [table]="monthlyTable">Gesamt</button></th>
               <th scope="col" class="w-1/3 py-1.5"><span class="sr-only">Balken</span></th>
             </tr>
           </thead>
           <tbody>
-            @for (r of monthly(); track r.month) {
+            @for (r of monthlyTable.rows(); track r.month) {
               <tr class="border-b border-outline-variant" data-testid="monthly-row">
                 <th scope="row" class="py-1.5 pe-3 font-normal">{{ monthLabel(r.month) }}</th>
                 <td class="py-1.5 pe-3 text-right">{{ r.employee }}</td>
@@ -48,6 +49,7 @@
           </tbody>
         </table>
       </div>
+      <app-pager [table]="monthlyTable" />
     }
   </section>
 
@@ -56,23 +58,24 @@
     @if (byCategory().length === 0) {
       <p class="m-0 text-sm text-on-surface-variant">In diesem Zeitraum gibt es keine Meldungen.</p>
     } @else {
+      <div class="mb-2"><app-quick-filter [table]="categoryTable" name="year" label="Jahr" [options]="categoryYears()" /></div>
       <div class="overflow-x-auto">
         <table class="w-full border-collapse text-left text-sm">
           <caption class="sr-only">Meldungen pro Monat nach Kategorie</caption>
           <thead>
             <tr class="border-b border-outline-variant">
-              <th scope="col" class="py-1.5 pe-3">Monat</th>
-              <th scope="col" class="py-1.5 pe-3 text-right">Fehler</th>
-              <th scope="col" class="py-1.5 pe-3 text-right">Virus</th>
-              <th scope="col" class="py-1.5 pe-3 text-right">Diebstahl</th>
-              <th scope="col" class="py-1.5 pe-3 text-right">Sonstiges</th>
-              <th scope="col" class="py-1.5 pe-3 text-right">Vorschlag</th>
-              <th scope="col" class="py-1.5 pe-3 text-right">Gesamt</th>
+              <th scope="col" class="py-1.5 pe-3" [attr.aria-sort]="categoryTable.ariaSort('month')"><button appSort="month" [table]="categoryTable">Monat</button></th>
+              <th scope="col" class="py-1.5 pe-3 text-right" [attr.aria-sort]="categoryTable.ariaSort('bug')"><button appSort="bug" [table]="categoryTable">Fehler</button></th>
+              <th scope="col" class="py-1.5 pe-3 text-right" [attr.aria-sort]="categoryTable.ariaSort('virus')"><button appSort="virus" [table]="categoryTable">Virus</button></th>
+              <th scope="col" class="py-1.5 pe-3 text-right" [attr.aria-sort]="categoryTable.ariaSort('theft')"><button appSort="theft" [table]="categoryTable">Diebstahl</button></th>
+              <th scope="col" class="py-1.5 pe-3 text-right" [attr.aria-sort]="categoryTable.ariaSort('other')"><button appSort="other" [table]="categoryTable">Sonstiges</button></th>
+              <th scope="col" class="py-1.5 pe-3 text-right" [attr.aria-sort]="categoryTable.ariaSort('suggestion')"><button appSort="suggestion" [table]="categoryTable">Vorschlag</button></th>
+              <th scope="col" class="py-1.5 pe-3 text-right" [attr.aria-sort]="categoryTable.ariaSort('total')"><button appSort="total" [table]="categoryTable">Gesamt</button></th>
               <th scope="col" class="w-1/4 py-1.5"><span class="sr-only">Balken</span></th>
             </tr>
           </thead>
           <tbody>
-            @for (r of byCategory(); track r.month) {
+            @for (r of categoryTable.rows(); track r.month) {
               <tr class="border-b border-outline-variant" data-testid="category-row">
                 <th scope="row" class="py-1.5 pe-3 font-normal">{{ monthLabel(r.month) }}</th>
                 <td class="py-1.5 pe-3 text-right">{{ r.bug }}</td>
@@ -87,6 +90,7 @@
           </tbody>
         </table>
       </div>
+      <app-pager [table]="categoryTable" />
     }
   </section>
 
@@ -96,22 +100,23 @@
     @if (byLocation().length === 0) {
       <p class="m-0 text-sm text-on-surface-variant">In diesem Zeitraum gibt es keine Meldungen.</p>
     } @else {
+      <div class="mb-2 flex flex-wrap items-center gap-3"><app-table-search [table]="locationTable" label="Filiale suchen" /><app-quick-filter [table]="locationTable" name="critical" label="Schwere" [options]="criticalOptions" /></div>
       <div class="overflow-x-auto">
         <table class="w-full border-collapse text-left text-sm">
           <caption class="sr-only">Meldungen pro Filiale nach Schwere</caption>
           <thead>
             <tr class="border-b border-outline-variant">
-              <th scope="col" class="py-1.5 pe-3">Filiale</th>
-              <th scope="col" class="py-1.5 pe-3 text-right">Niedrig</th>
-              <th scope="col" class="py-1.5 pe-3 text-right">Mittel</th>
-              <th scope="col" class="py-1.5 pe-3 text-right">Hoch</th>
-              <th scope="col" class="py-1.5 pe-3 text-right">Kritisch</th>
-              <th scope="col" class="py-1.5 pe-3 text-right">Gesamt</th>
+              <th scope="col" class="py-1.5 pe-3" [attr.aria-sort]="locationTable.ariaSort('name')"><button appSort="name" [table]="locationTable">Filiale</button></th>
+              <th scope="col" class="py-1.5 pe-3 text-right" [attr.aria-sort]="locationTable.ariaSort('low')"><button appSort="low" [table]="locationTable">Niedrig</button></th>
+              <th scope="col" class="py-1.5 pe-3 text-right" [attr.aria-sort]="locationTable.ariaSort('medium')"><button appSort="medium" [table]="locationTable">Mittel</button></th>
+              <th scope="col" class="py-1.5 pe-3 text-right" [attr.aria-sort]="locationTable.ariaSort('high')"><button appSort="high" [table]="locationTable">Hoch</button></th>
+              <th scope="col" class="py-1.5 pe-3 text-right" [attr.aria-sort]="locationTable.ariaSort('critical')"><button appSort="critical" [table]="locationTable">Kritisch</button></th>
+              <th scope="col" class="py-1.5 pe-3 text-right" [attr.aria-sort]="locationTable.ariaSort('total')"><button appSort="total" [table]="locationTable">Gesamt</button></th>
               <th scope="col" class="w-1/4 py-1.5"><span class="sr-only">Balken</span></th>
             </tr>
           </thead>
           <tbody>
-            @for (r of byLocation(); track r.locationId) {
+            @for (r of locationTable.rows(); track r.locationId) {
               <tr class="border-b border-outline-variant" data-testid="location-row">
                 <th scope="row" class="py-1.5 pe-3 font-normal">{{ r.locationName || 'Unbekannte Filiale' }}</th>
                 <td class="py-1.5 pe-3 text-right">{{ r.low }}</td>
@@ -125,6 +130,7 @@
           </tbody>
         </table>
       </div>
+      <app-pager [table]="locationTable" />
     }
   </section>
 
@@ -133,22 +139,23 @@
     @if (byPerson().length === 0) {
       <p class="m-0 text-sm text-on-surface-variant">In diesem Zeitraum gibt es keine Meldungen.</p>
     } @else {
+      <div class="mb-2 flex flex-wrap items-center gap-3"><app-table-search [table]="personTable" label="Personalnummer suchen" /><app-quick-filter [table]="personTable" name="critical" label="Schwere" [options]="criticalOptions" /></div>
       <div class="overflow-x-auto">
         <table class="w-full border-collapse text-left text-sm">
           <caption class="sr-only">Meldungen pro Personalnummer nach Schwere</caption>
           <thead>
             <tr class="border-b border-outline-variant">
-              <th scope="col" class="py-1.5 pe-3">Personalnummer</th>
-              <th scope="col" class="py-1.5 pe-3 text-right">Niedrig</th>
-              <th scope="col" class="py-1.5 pe-3 text-right">Mittel</th>
-              <th scope="col" class="py-1.5 pe-3 text-right">Hoch</th>
-              <th scope="col" class="py-1.5 pe-3 text-right">Kritisch</th>
-              <th scope="col" class="py-1.5 pe-3 text-right">Gesamt</th>
+              <th scope="col" class="py-1.5 pe-3" [attr.aria-sort]="personTable.ariaSort('personnel')"><button appSort="personnel" [table]="personTable">Personalnummer</button></th>
+              <th scope="col" class="py-1.5 pe-3 text-right" [attr.aria-sort]="personTable.ariaSort('low')"><button appSort="low" [table]="personTable">Niedrig</button></th>
+              <th scope="col" class="py-1.5 pe-3 text-right" [attr.aria-sort]="personTable.ariaSort('medium')"><button appSort="medium" [table]="personTable">Mittel</button></th>
+              <th scope="col" class="py-1.5 pe-3 text-right" [attr.aria-sort]="personTable.ariaSort('high')"><button appSort="high" [table]="personTable">Hoch</button></th>
+              <th scope="col" class="py-1.5 pe-3 text-right" [attr.aria-sort]="personTable.ariaSort('critical')"><button appSort="critical" [table]="personTable">Kritisch</button></th>
+              <th scope="col" class="py-1.5 pe-3 text-right" [attr.aria-sort]="personTable.ariaSort('total')"><button appSort="total" [table]="personTable">Gesamt</button></th>
               <th scope="col" class="w-1/4 py-1.5"><span class="sr-only">Balken</span></th>
             </tr>
           </thead>
           <tbody>
-            @for (r of byPerson(); track r.personnelNumber) {
+            @for (r of personTable.rows(); track r.personnelNumber) {
               <tr class="border-b border-outline-variant" data-testid="person-row">
                 <th scope="row" class="py-1.5 pe-3 font-normal">{{ r.personnelNumber }}</th>
                 <td class="py-1.5 pe-3 text-right">{{ r.low }}</td>
@@ -162,6 +169,7 @@
           </tbody>
         </table>
       </div>
+      <app-pager [table]="personTable" />
     }
   </section>
 }

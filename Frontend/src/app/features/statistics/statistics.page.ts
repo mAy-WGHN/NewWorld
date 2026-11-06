@@ -1,5 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { PAGE_UI } from '../../shared/ui/material';
+import { FilterOption, TABLE_UI, TableState } from '../../shared/ui/table';
 import { envelopeMessage } from '../reports/report-models';
 import {
   LocationSeverityStatistic,
@@ -20,7 +21,7 @@ import { StatisticsApi } from './statistics.api';
  */
 @Component({
   selector: 'app-statistics',
-  imports: [...PAGE_UI],
+  imports: [...PAGE_UI, ...TABLE_UI],
   templateUrl: './statistics.page.html',
 })
 export class StatisticsPage {
@@ -41,6 +42,43 @@ export class StatisticsPage {
   protected readonly personMax = computed(() => maxOf(this.byPerson().map((r) => r.total)));
 
   protected readonly monthLabel = monthLabel;
+
+  protected readonly criticalOptions: FilterOption[] = [
+    { value: '', label: 'Alle' },
+    { value: 'critical', label: 'Mit kritischen' },
+  ];
+
+  // Months are "YYYY-MM": text sorting is time sorting. The year filter offers the years that occur.
+  private static years(months: string[]): FilterOption[] {
+    return [{ value: '', label: 'Alle' }, ...[...new Set(months.map((m) => m.slice(0, 4)))].sort().reverse().map((y) => ({ value: y, label: y }))];
+  }
+
+  protected readonly monthlyYears = computed(() => StatisticsPage.years(this.monthly().map((r) => r.month)));
+  protected readonly categoryYears = computed(() => StatisticsPage.years(this.byCategory().map((r) => r.month)));
+
+  protected readonly monthlyTable = new TableState<MonthlyStatistic>(() => this.monthly(), {
+    columns: { month: (r) => r.month, employee: (r) => r.employee, system: (r) => r.system, total: (r) => r.total },
+    pageSize: 12,
+    filters: { year: (r, v) => r.month.startsWith(v) },
+  });
+
+  protected readonly categoryTable = new TableState<MonthlyCategoryStatistic>(() => this.byCategory(), {
+    columns: { month: (r) => r.month, bug: (r) => r.bug, virus: (r) => r.virus, theft: (r) => r.theft, other: (r) => r.other, suggestion: (r) => r.suggestion, total: (r) => r.total },
+    pageSize: 12,
+    filters: { year: (r, v) => r.month.startsWith(v) },
+  });
+
+  protected readonly locationTable = new TableState<LocationSeverityStatistic>(() => this.byLocation(), {
+    columns: { name: (r) => r.locationName || 'Unbekannte Filiale', low: (r) => r.low, medium: (r) => r.medium, high: (r) => r.high, critical: (r) => r.critical, total: (r) => r.total },
+    search: (r) => r.locationName || 'Unbekannte Filiale',
+    filters: { critical: (r) => r.critical > 0 },
+  });
+
+  protected readonly personTable = new TableState<PersonnelNumberStatistic>(() => this.byPerson(), {
+    columns: { personnel: (r) => r.personnelNumber, low: (r) => r.low, medium: (r) => r.medium, high: (r) => r.high, critical: (r) => r.critical, total: (r) => r.total },
+    search: (r) => String(r.personnelNumber),
+    filters: { critical: (r) => r.critical > 0 },
+  });
   protected readonly barPercent = barPercent;
 
   constructor() {
