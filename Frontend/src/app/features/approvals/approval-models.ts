@@ -5,4 +5,6 @@ export interface PendingApproval {
   employeeName: string;
   from: string;
   to: string;
+  /** The main store of the person (where colleagues' absences are looked up); `null` or missing if not known. */
+  storeId?: string | null;
 }

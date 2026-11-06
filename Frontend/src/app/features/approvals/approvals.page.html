@@ -22,6 +22,11 @@
             <span class="text-[13px]">Urlaub {{ formatPeriod(r.from, r.to) }}</span>
           </div>
           <div class="flex flex-wrap items-center gap-2">
+            @if (r.storeId) {
+              <button mat-button type="button" data-action="context" [attr.aria-expanded]="contextOpen().has(r.absenceId)" (click)="toggleContext(r)">
+                {{ contextOpen().has(r.absenceId) ? 'Verbergen' : 'Wer fehlt noch?' }}
+              </button>
+            }
             @if (confirming() === r.absenceId) {
               <span class="text-sm font-medium">Wirklich ablehnen?</span>
               <button mat-flat-button type="button" class="!bg-error !text-on-error" data-action="confirm-reject" [disabled]="busy()" (click)="reject(r)">Ja, ablehnen</button>
@@ -32,6 +37,11 @@
             }
           </div>
         </div>
+        @if (contextOpen().has(r.absenceId)) {
+          <div class="mt-3" data-testid="context">
+            <app-request-context [request]="r" />
+          </div>
+        }
       </app-row-card>
     }
   </app-attention-block>

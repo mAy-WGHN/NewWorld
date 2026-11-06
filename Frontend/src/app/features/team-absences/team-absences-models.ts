@@ -144,13 +144,35 @@ export interface DayColumn {
 
 const WEEKDAYS = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
 
+const columnOf = (year: number, month: number, day: number): DayColumn => {
+  const weekday = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+  return { iso: isoDate(year, month, day), day, weekday: WEEKDAYS[weekday], weekend: weekday === 0 || weekday === 6 };
+};
+
 export function monthDays(value: YearMonth): DayColumn[] {
-  return Array.from({ length: daysInMonth(value) }, (_, i) => {
-    const day = i + 1;
-    const weekday = new Date(Date.UTC(value.year, value.month - 1, day)).getUTCDay();
-    return { iso: isoDate(value.year, value.month, day), day, weekday: WEEKDAYS[weekday], weekend: weekday === 0 || weekday === 6 };
-  });
+  return Array.from({ length: daysInMonth(value) }, (_, i) => columnOf(value.year, value.month, i + 1));
 }
+
+/** The days from `from` to `to` (both included, ISO dates, UTC only) as columns of a grid. */
+export function dayColumns(from: string, to: string): DayColumn[] {
+  const columns: DayColumn[] = [];
+  const [y, m, d] = from.split('-').map(Number);
+  for (let date = new Date(Date.UTC(y, m - 1, d)); date.toISOString().slice(0, 10) <= to; date = new Date(date.getTime() + 86_400_000)) {
+    columns.push(columnOf(date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate()));
+  }
+  return columns;
+}
+
+/** Colour from the theme, plus a letter in the cell so the colour is never the only signal. */
+export const CELL_CLASS: Record<CellKind, string> = {
+  sick: 'bg-error text-on-error',
+  vacation: 'bg-primary text-on-primary',
+  ku: 'bg-error-container text-on-error-container',
+  other: 'bg-tile-orange text-on-surface',
+  unavailable: 'bg-outline-variant text-on-surface',
+};
+
+export const CELL_TEXT: Record<CellKind, string> = { sick: 'K', vacation: 'U', ku: 'KU', other: 'S', unavailable: 'n' };
 
 /** The people of a store that appear in the answer (the service only lists people with a period), each once, sorted by name. */
 export function membersOf(rows: readonly StoreUnavailability[]): TeamMember[] {

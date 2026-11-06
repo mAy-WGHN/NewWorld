@@ -3,8 +3,10 @@ import { AuthService } from '../../core/auth/auth.service';
 import { PAGE_UI } from '../../shared/ui/material';
 import { problemTitle } from '../absences/absence-models';
 import {
+  CELL_CLASS,
   CELL_KINDS,
   CELL_LABELS,
+  CELL_TEXT,
   CellKind,
   StoreOption,
   StoreUnavailability,
@@ -201,11 +203,11 @@ export class TeamAbsencesPage {
 
   /** Colour from the theme, plus a letter in the cell so the colour is never the only signal. */
   protected cellClass(kind: CellKind): string {
-    return { sick: 'bg-error text-on-error', vacation: 'bg-primary text-on-primary', ku: 'bg-error-container text-on-error-container', other: 'bg-tile-orange text-on-surface', unavailable: 'bg-outline-variant text-on-surface' }[kind];
+    return CELL_CLASS[kind];
   }
 
   protected cellText(kind: CellKind): string {
-    return { sick: 'K', vacation: 'U', ku: 'KU', other: 'S', unavailable: 'n' }[kind];
+    return CELL_TEXT[kind];
   }
 
   // ---- HR ----

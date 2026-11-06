@@ -13,6 +13,10 @@ var portalKey = ServiceKey.Create();
 // the dashboard after a restart. The AppHost test switches this off (--Ports:Fixed=false) and uses free ports.
 var fixedPorts = !string.Equals(builder.Configuration["Ports:Fixed"], "false", StringComparison.OrdinalIgnoreCase);
 
+// Local seed (roles and an HR team in Access) so a fresh start is usable; the end-to-end tests switch it off (--Seed:Development=false) because they
+// need the colleagues without HR rights.
+var developmentSeed = !string.Equals(builder.Configuration["Seed:Development"], "false", StringComparison.OrdinalIgnoreCase);
+
 // One PostgreSQL instance, one database per service (own schema inside, no cross-schema joins).
 var postgres = builder.AddPostgres("postgres");
 
@@ -63,8 +67,7 @@ var access = builder.AddProject<Projects.Access_Api>("access-api")
     // First administrator (receives the built-in administrator role once the employee copy arrives).
     .WithEnvironment("Access__BootstrapAdministrators__0", "10099")
     // Local seed: the roles of docs/rollen.json and the HR team (Ben Kollege, 10044: approves vacation for everybody), so a fresh start is usable.
-    .WithEnvironment("Access__DevelopmentSeed__RoleFile", Path.GetFullPath(Path.Combine(builder.AppHostDirectory, "..", "..", "docs", "rollen.json")))
-    .WithEnvironment("Access__DevelopmentSeed__HrPersonnelNumbers__0", "10044")
+    .WithDevelopmentSeed(developmentSeed, Path.GetFullPath(Path.Combine(builder.AppHostDirectory, "..", "..", "docs", "rollen.json")), "10044")
     // Login: PIN check through BC Integration.
     .WithEnvironment("BcIntegration__BaseUrl", bcIntegration.GetEndpoint("http"))
     .WithReference(serviceBus).WaitFor(serviceBus)
@@ -113,6 +116,12 @@ builder.Build().Run();
 
 internal static class AppHostExtensions
 {
+    /// <summary>Gives Access the local seed (role file and the personnel number of the HR person); nothing if <paramref name="enabled"/> is false.</summary>
+    public static IResourceBuilder<ProjectResource> WithDevelopmentSeed(this IResourceBuilder<ProjectResource> access, bool enabled, string roleFile, string hrPersonnelNumber) =>
+        enabled
+            ? access.WithEnvironment("Access__DevelopmentSeed__RoleFile", roleFile).WithEnvironment("Access__DevelopmentSeed__HrPersonnelNumbers__0", hrPersonnelNumber)
+            : access;
+
     /// <summary>The http endpoint of a project listens on a fixed port (the dev proxy of the frontend knows it); ignored when <paramref name="enabled"/> is false.</summary>
     public static IResourceBuilder<ProjectResource> WithFixedPort(this IResourceBuilder<ProjectResource> project, int port, bool enabled) =>
         enabled ? project.WithEndpoint("http", endpoint => endpoint.Port = port) : project;

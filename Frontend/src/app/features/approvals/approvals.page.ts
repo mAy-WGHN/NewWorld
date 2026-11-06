@@ -3,6 +3,7 @@ import { PAGE_UI } from '../../shared/ui/material';
 import { errorMessage, formatPeriod, problemTitle } from '../absences/absence-models';
 import { PendingApproval } from './approval-models';
 import { ApprovalsApi } from './approvals.api';
+import { RequestContext } from './request-context';
 
 /**
  * "Genehmigungen": the vacation requests that wait for the decision of the signed-in person, all marked yellow. Approving is one click;
@@ -10,7 +11,7 @@ import { ApprovalsApi } from './approvals.api';
  */
 @Component({
   selector: 'app-approvals',
-  imports: [...PAGE_UI],
+  imports: [...PAGE_UI, RequestContext],
   templateUrl: './approvals.page.html',
 })
 export class ApprovalsPage {
@@ -28,6 +29,19 @@ export class ApprovalsPage {
   protected readonly confirming = signal<string | null>(null);
 
   protected readonly count = computed(() => this.requests().length);
+
+  /** The requests for which "Wer fehlt noch?" is open. */
+  protected readonly contextOpen = signal<ReadonlySet<string>>(new Set());
+
+  protected toggleContext(request: PendingApproval): void {
+    this.contextOpen.update((open) => {
+      const next = new Set(open);
+      if (!next.delete(request.absenceId)) {
+        next.add(request.absenceId);
+      }
+      return next;
+    });
+  }
 
   protected readonly formatPeriod = formatPeriod;
 

@@ -341,6 +341,7 @@ public sealed class AbsenceEndpointTests(PostgresFixture postgres) : IClassFixtu
 
         var pending = await api.GetAsync<List<PendingApprovalDto>>("/api/approvals/pending", Max);
         pending.Single().AbsenceId.ShouldBe(request.Id);
+        pending.Single().StoreId.ShouldBe(StoreA); // the main store of the applicant: the approver looks up who else is away there
         (await api.GetAsync<List<PendingApprovalDto>>("/api/approvals/pending", Lena)).ShouldBeEmpty();
 
         using var byStranger = await api.SendAsync(HttpMethod.Post, $"/api/absences/{request.Id}/approve", Lena);

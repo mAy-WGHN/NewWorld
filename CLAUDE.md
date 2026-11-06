@@ -111,6 +111,7 @@ Diese Entscheidungen des Projektverantwortlichen gelten **vor** dem Plan, wo sie
 - Phase 0 ändert keinen Code; Ergebnis ist `docs/phase-0-bestandsaufnahme.md` (pro Dienst Tabelle Ist / Soll / Umbauaufwand klein-mittel-groß, Änderungen begründet, offene BC-Fragen gesammelt).
 - Kleine, nachvollziehbare Commits pro Aufgabe.
 - Bei Unsicherheit nachfragen, keine stillschweigenden Annahmen.
+- **Lokal starten:** `src/AppHost` (`dotnet run`) legt Access, Workforce, Portal und Notifications auf die festen Ports 5101 bis 5104 (passend zu `Frontend/proxy.conf.json`) und richtet in Access einen Seed ein: die Rollen aus `docs/rollen.json` (fehlende werden angelegt, vorhandene nur gefüllt, wenn sie leer sind) und Ben Kollege (10044) als HR-Person, die für alle zuständig ist (`absence.approval`, `employee.change-request`, `schedule.adjustment`, `workingtime.payout`). Beides gilt nur lokal (Konfiguration `Access:DevelopmentSeed`, nur vom AppHost gesetzt); die AppHost-Tests schalten es mit `--Ports:Fixed=false --Seed:Development=false` ab.
 
 ### Nie ohne Rückfrage
 

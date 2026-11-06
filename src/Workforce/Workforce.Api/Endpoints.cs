@@ -165,7 +165,7 @@ public static class Endpoints
                     where r.Steps.Any(s => s.Decision == null && s.ApproverIds.Contains(me))
                     join p in db.People.AsNoTracking() on a.EmployeeId equals p.EmployeeId
                     orderby a.From
-                    select new PendingApprovalDto(a.Id, a.EmployeeId, p.Name, a.From, a.To!.Value)).ToListAsync(ct);
+                    select new PendingApprovalDto(a.Id, a.EmployeeId, p.Name, a.From, a.To!.Value, p.HomeStoreId)).ToListAsync(ct);
                 return Results.Ok(rows);
             })
             .RequireAuthorization(AppPolicies.Privilege(AbsencePrivileges.Approve));

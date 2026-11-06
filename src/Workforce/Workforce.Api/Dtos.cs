@@ -27,7 +27,7 @@ public sealed record AbsenceDto(
 /// <summary>What colleagues in a store see: that somebody is absent. Name and period; type and status only with the reason privilege.</summary>
 public sealed record StoreAbsenceDto(Guid EmployeeId, string EmployeeName, DateOnly From, DateOnly? To, string Status, string? Type);
 
-public sealed record PendingApprovalDto(Guid AbsenceId, Guid EmployeeId, string EmployeeName, DateOnly From, DateOnly To);
+public sealed record PendingApprovalDto(Guid AbsenceId, Guid EmployeeId, string EmployeeName, DateOnly From, DateOnly To, Guid? StoreId);
 
 /// <summary>
 /// The vacation account of a year. <see cref="Entitlement"/> are the effective vacation days (contractual days, pro rata in the year of
