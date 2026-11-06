@@ -39,6 +39,7 @@ public sealed class RecalculationRunner(
             }
 
             await EnsureBootstrapAdministratorsAsync(cancellationToken);
+            await DevelopmentSeeder.EnsureAsync(db, options.DevelopmentSeed, time, cancellationToken);
             await db.SaveChangesAsync(cancellationToken);
 
             var result = await recalculator.RecalculateAllAsync(cancellationToken);

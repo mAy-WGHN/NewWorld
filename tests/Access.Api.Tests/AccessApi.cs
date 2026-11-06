@@ -27,9 +27,11 @@ public sealed class AccessApi : WebApplicationFactory<ApiMarker>
     private readonly string _connectionString;
     private readonly bool _realAuthentication;
     private readonly Action<IServiceCollection>? _configure;
+    private readonly IReadOnlyDictionary<string, string>? _settings;
 
-    private AccessApi(string connectionString, bool realAuthentication, Action<IServiceCollection>? configure)
+    private AccessApi(string connectionString, bool realAuthentication, Action<IServiceCollection>? configure, IReadOnlyDictionary<string, string>? settings)
     {
+        _settings = settings;
         _connectionString = connectionString;
         _realAuthentication = realAuthentication;
         _configure = configure;
@@ -40,9 +42,11 @@ public sealed class AccessApi : WebApplicationFactory<ApiMarker>
     /// <param name="postgres">Database container.</param>
     /// <param name="realAuthentication">Real tokens issued by Access instead of the test handler (login tests).</param>
     /// <param name="configure">Replacements, e.g. a fake BC login gateway.</param>
-    public static async Task<AccessApi> StartAsync(PostgresFixture postgres, bool realAuthentication = false, Action<IServiceCollection>? configure = null)
+    /// <param name="settings">Additional configuration values (e.g. the development seed).</param>
+    public static async Task<AccessApi> StartAsync(
+        PostgresFixture postgres, bool realAuthentication = false, Action<IServiceCollection>? configure = null, IReadOnlyDictionary<string, string>? settings = null)
     {
-        var api = new AccessApi(await postgres.CreateDatabaseAsync(), realAuthentication, configure);
+        var api = new AccessApi(await postgres.CreateDatabaseAsync(), realAuthentication, configure, settings);
         api.Http = api.CreateClient();
         await api.ReceiveAsync(Admin, AdminPersonnelNumber, "Admin", null);
         await api.ReceiveAsync(Erika, "10042", "Erika Mustermann", F017);
@@ -56,6 +60,11 @@ public sealed class AccessApi : WebApplicationFactory<ApiMarker>
         builder.UseEnvironment("Testing");
         builder.UseSetting($"ConnectionStrings:{InfrastructureServiceCollectionExtensions.ConnectionName}", _connectionString);
         builder.UseSetting("Access:BootstrapAdministrators:0", AdminPersonnelNumber);
+        foreach (var (key, value) in _settings ?? new Dictionary<string, string>())
+        {
+            builder.UseSetting(key, value);
+        }
+
         builder.UseSetting("Access:Login:PinHashIterations", "1000");
         builder.UseSetting("Access:Login:PinEncryptionKey", "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8="); // test key only
         builder.ConfigureTestServices(services =>

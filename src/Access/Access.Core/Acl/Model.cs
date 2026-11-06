@@ -50,6 +50,9 @@ public enum AssignmentSource
 
     /// <summary>Configured first administrators.</summary>
     Bootstrap = 2,
+
+    /// <summary>The HR team of the local development seed (never set in another environment).</summary>
+    Seed = 3,
 }
 
 /// <summary>A role given to a person, with reach and optional validity (e.g. a substitution). ValidTo is exclusive.</summary>

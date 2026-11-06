@@ -62,6 +62,9 @@ var access = builder.AddProject<Projects.Access_Api>("access-api")
     .WithServicePeer("portal", portalKey, "Access.Catalog.Register", "Access.Permissions.Read")
     // First administrator (receives the built-in administrator role once the employee copy arrives).
     .WithEnvironment("Access__BootstrapAdministrators__0", "10099")
+    // Local seed: the roles of docs/rollen.json and the HR team (Ben Kollege, 10044: approves vacation for everybody), so a fresh start is usable.
+    .WithEnvironment("Access__DevelopmentSeed__RoleFile", Path.GetFullPath(Path.Combine(builder.AppHostDirectory, "..", "..", "docs", "rollen.json")))
+    .WithEnvironment("Access__DevelopmentSeed__HrPersonnelNumbers__0", "10044")
     // Login: PIN check through BC Integration.
     .WithEnvironment("BcIntegration__BaseUrl", bcIntegration.GetEndpoint("http"))
     .WithReference(serviceBus).WaitFor(serviceBus)
