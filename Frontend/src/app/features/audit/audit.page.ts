@@ -25,6 +25,9 @@ type AuditService = (typeof AUDIT_SERVICES)[number];
 
 const ACTION_LABEL: Record<AuditEntry['action'], string> = { Create: 'Angelegt', Update: 'Geändert', Delete: 'Gelöscht' };
 
+/** The newest entries shown (and asked of each service, so the merged newest are right). */
+export const AUDIT_LIMIT = 50;
+
 /** Newest first; the lines of all services are merged by time. */
 export function mergeByTime(lists: AuditEntry[][], limit: number): AuditEntry[] {
   return lists
@@ -154,7 +157,7 @@ export class AuditPage {
     this.busy.set(true);
     this.error.set(null);
     const results = await Promise.all(AUDIT_SERVICES.map((s) => this.fetch(s, personnelNumber.trim())));
-    this.entries.set(mergeByTime(results.filter((r): r is AuditEntry[] => r !== null), 500 * AUDIT_SERVICES.length));
+    this.entries.set(mergeByTime(results.filter((r): r is AuditEntry[] => r !== null), AUDIT_LIMIT));
     if (results.every((r) => r === null)) {
       this.error.set('Das Protokoll konnte nicht geladen werden.');
     }
@@ -164,7 +167,7 @@ export class AuditPage {
 
   /** `null` = this service gave no answer (no right, or not reachable). */
   private async fetch(service: AuditService, personnelNumber: string): Promise<AuditEntry[] | null> {
-    let params = new HttpParams().set('limit', '500');
+    let params = new HttpParams().set('limit', String(AUDIT_LIMIT));
     if (personnelNumber) {
       params = params.set('personnelNumber', personnelNumber);
     }
