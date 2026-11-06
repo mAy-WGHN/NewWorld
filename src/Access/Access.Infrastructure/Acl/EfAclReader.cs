@@ -38,6 +38,7 @@ public sealed class EfAclReader(AccessDbContext db) : IAclReader
         r.Id, r.Topic, r.ResponsibleEmployeeId,
         r.TargetKind switch
         {
+            nameof(ResponsibilityTarget.EveryoneTarget) => ResponsibilityTarget.Everyone,
             nameof(ResponsibilityTarget.Employee) => ResponsibilityTarget.ForEmployee(r.TargetId),
             nameof(ResponsibilityTarget.Store) => ResponsibilityTarget.ForStore(r.TargetId),
             _ => ResponsibilityTarget.ForScope(r.TargetId),
@@ -46,6 +47,7 @@ public sealed class EfAclReader(AccessDbContext db) : IAclReader
 
     internal static (string Kind, Guid Id) FromTarget(ResponsibilityTarget target) => target switch
     {
+        ResponsibilityTarget.EveryoneTarget => (nameof(ResponsibilityTarget.EveryoneTarget), Guid.Empty),
         ResponsibilityTarget.Employee e => (nameof(ResponsibilityTarget.Employee), e.EmployeeId),
         ResponsibilityTarget.Store s => (nameof(ResponsibilityTarget.Store), s.StoreId),
         ResponsibilityTarget.Scope sc => (nameof(ResponsibilityTarget.Scope), sc.ScopeId),

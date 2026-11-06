@@ -142,6 +142,16 @@ describe('ResponsibilitiesPanel', () => {
     expect(api['addResponsibility']).toHaveBeenLastCalledWith(expect.objectContaining({ target: { kind: 'scope', id: 'g1' } }));
   });
 
+  it('sets a responsibility for everybody without a target id', async () => {
+    await create();
+    await set('[data-testid="topic"]', 'absence.approval');
+    await pickPerson('responsible-id', 'max', MAX);
+    await set('[data-testid="kind"]', 'everyone', 'change');
+    expect(q('[data-testid="target-everyone"]')).not.toBeNull();
+    await click('[data-action="add"]');
+    expect(api['addResponsibility']).toHaveBeenLastCalledWith(expect.objectContaining({ target: { kind: 'everyone' } }));
+  });
+
   it('checks topic, person ids, target and period before it calls the service', async () => {
     await create();
 

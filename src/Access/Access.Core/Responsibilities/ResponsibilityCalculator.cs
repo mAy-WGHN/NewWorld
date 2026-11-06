@@ -17,6 +17,7 @@ public static class ResponsibilityCalculator
         var scopes = data.Scopes.ToDictionary(s => s.Id);
         bool Targets(ResponsibilityTarget target) => target switch
         {
+            ResponsibilityTarget.EveryoneTarget => true,
             ResponsibilityTarget.Employee e => e.EmployeeId == employeeId,
             ResponsibilityTarget.Store s => s.StoreId == person.HomeStoreId,
             ResponsibilityTarget.Scope sc => person.HomeStoreId is { } home && scopes.TryGetValue(sc.ScopeId, out var scope) && scope.StoreIds.Contains(home),

@@ -2,7 +2,7 @@ using System.Text.RegularExpressions;
 
 namespace Access.Core.Responsibilities;
 
-/// <summary>Whom a responsibility applies to: one person, everyone with this home store, or everyone in a scope.</summary>
+/// <summary>Whom a responsibility applies to: one person, everyone with this home store, everyone in a scope, or everybody (every active person).</summary>
 public abstract record ResponsibilityTarget
 {
     public sealed record Employee(Guid EmployeeId) : ResponsibilityTarget;
@@ -10,6 +10,11 @@ public abstract record ResponsibilityTarget
     public sealed record Store(Guid StoreId) : ResponsibilityTarget;
 
     public sealed record Scope(Guid ScopeId) : ResponsibilityTarget;
+
+    /// <summary>Everybody: one entry instead of one per store (e.g. HR approves all vacation). Only for people with unrestricted reach.</summary>
+    public sealed record EveryoneTarget : ResponsibilityTarget;
+
+    public static readonly ResponsibilityTarget Everyone = new EveryoneTarget();
 
     public static ResponsibilityTarget ForEmployee(Guid employeeId) => new Employee(employeeId);
 

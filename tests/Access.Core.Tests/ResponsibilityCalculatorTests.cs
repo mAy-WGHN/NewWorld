@@ -72,6 +72,28 @@ public class ResponsibilityCalculatorTests
         erika["audit.instruction"].ShouldBe([Sabine]);
     }
 
+    [Fact]
+    public void A_responsibility_for_everybody_reaches_every_active_person_but_not_the_responsible_one()
+    {
+        _world.Responsibilities.Add(Responsibility.Create("absence.approval", Petra, ResponsibilityTarget.Everyone));
+
+        For(Erika, July)["absence.approval"].ShouldBe([Max, Petra], ignoreOrder: true);
+        For(Tom, July)["absence.approval"].ShouldBe([Petra]); // Tom is in another store
+        For(Petra, July).ContainsKey("absence.approval").ShouldBeFalse();
+    }
+
+    [Fact]
+    public void A_responsibility_for_everybody_reaches_people_without_a_home_store_and_follows_its_period()
+    {
+        _world.Responsibilities.Add(Responsibility.Create("absence.approval", Petra, ResponsibilityTarget.Everyone,
+            new DateTimeOffset(2026, 9, 1, 0, 0, 0, TimeSpan.FromHours(2)), new DateTimeOffset(2026, 10, 1, 0, 0, 0, TimeSpan.FromHours(2))));
+        var withoutStore = Sabine; // no home store
+
+        For(withoutStore, July).ContainsKey("absence.approval").ShouldBeFalse();
+        For(withoutStore, new DateTimeOffset(2026, 9, 15, 12, 0, 0, TimeSpan.FromHours(2)))["absence.approval"].ShouldBe([Petra]);
+        For(withoutStore, new DateTimeOffset(2026, 10, 1, 0, 0, 0, TimeSpan.FromHours(2))).ContainsKey("absence.approval").ShouldBeFalse();
+    }
+
     [Theory]
     [InlineData("absence.approval", true)]
     [InlineData("audit.instruction", true)]

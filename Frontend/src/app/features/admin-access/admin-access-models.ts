@@ -45,12 +45,13 @@ export interface CreateAssignmentRequest {
   validTo: string | null;
 }
 
-export type TargetKind = 'employee' | 'store' | 'scope';
+export type TargetKind = 'employee' | 'store' | 'scope' | 'everyone';
 
 export interface CreateResponsibilityRequest {
   topic: string;
   responsibleEmployeeId: string;
-  target: { kind: TargetKind; id: string };
+  /** `everyone` has no id. */
+  target: { kind: TargetKind; id?: string };
   validFrom: string | null;
   validTo: string | null;
 }
@@ -106,6 +107,7 @@ export const TARGET_KINDS: readonly { kind: TargetKind; label: string; hint: str
   { kind: 'employee', label: 'Person', hint: 'Personen-ID der Person, für die jemand zuständig ist.' },
   { kind: 'store', label: 'Filiale', hint: 'Filial-ID der Filiale (Auswahl unten).' },
   { kind: 'scope', label: 'Filial-Gruppe', hint: 'Eine Filial-Gruppe (Region, Bezirk).' },
+  { kind: 'everyone', label: 'Alle Mitarbeitenden', hint: 'Gilt für jede aktive Person, auch für neue Filialen und Personen (nur mit uneingeschränktem Recht).' },
 ];
 
 // ---------- privileges: grouping, search, patterns ----------

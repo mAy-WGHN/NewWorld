@@ -163,7 +163,7 @@ export class ResponsibilitiesPanel {
     if (!isGuid(this.responsibleId())) {
       return 'Bitte die zuständige Person auswählen.';
     }
-    if (!this.targetId() || (this.kind() === 'employee' && !isGuid(this.targetId()))) {
+    if (this.kind() !== 'everyone' && (!this.targetId() || (this.kind() === 'employee' && !isGuid(this.targetId())))) {
       return this.kind() === 'employee' ? 'Bitte die Person auswählen, für die die Zuständigkeit gilt.' : 'Bitte das Ziel wählen.';
     }
     return validatePeriod(this.from(), this.to());
@@ -171,7 +171,9 @@ export class ResponsibilitiesPanel {
 
   protected targetText(): string {
     const id = this.targetId().trim();
-    return this.kind() === 'store'
+    return this.kind() === 'everyone'
+      ? 'alle Mitarbeitenden'
+      : this.kind() === 'store'
       ? (this.stores().find((s) => s.id === id) ? storeLabel(this.stores().find((s) => s.id === id)!) : id)
       : this.kind() === 'scope'
         ? (this.scopes().find((s) => s.id === id)?.name ?? id)
@@ -193,7 +195,7 @@ export class ResponsibilitiesPanel {
         await this.api.addResponsibility({
           topic,
           responsibleEmployeeId: this.responsibleId().trim(),
-          target: { kind: this.kind(), id: this.targetId().trim() },
+          target: this.kind() === 'everyone' ? { kind: 'everyone' } : { kind: this.kind(), id: this.targetId().trim() },
           validFrom: dayStart(this.from()),
           validTo: dayAfter(this.to()),
         })

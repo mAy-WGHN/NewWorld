@@ -316,6 +316,7 @@ public static class Endpoints
 
     private static ResponsibilityTarget? ToTarget(ResponsibilityTargetDto dto) => dto.Kind switch
     {
+        "everyone" => ResponsibilityTarget.Everyone,
         "employee" => ResponsibilityTarget.ForEmployee(dto.Id),
         "store" => ResponsibilityTarget.ForStore(dto.Id),
         "scope" => ResponsibilityTarget.ForScope(dto.Id),

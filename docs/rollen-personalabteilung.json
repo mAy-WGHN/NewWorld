@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "customPrivileges": [],
+  "roles": [
+    {
+      "name": "Public User",
+      "privileges": [
+        "absence:read-own",
+        "absence:create-own",
+        "absence:update-own",
+        "certificate:upload-own",
+        "employee:read-own",
+        "employee:request-change-own",
+        "workingtime:read-own",
+        "notification:read-own",
+        "notification:update-own",
+        "preference:read-own",
+        "preference:update-own"
+      ]
+    },
+    {
+      "name": "Personalabteilung",
+      "privileges": [
+        "absence:approve",
+        "absence:create",
+        "absence:manage-entitlement",
+        "absence:manage-holiday-opening",
+        "absence:manage-vacation-rules",
+        "absence:read-availability",
+        "absence:read-reason",
+        "absence:read-sync",
+        "certificate:delete",
+        "certificate:manage-retention",
+        "certificate:read-access-log",
+        "certificate:read-status",
+        "certificate:review",
+        "certificate:upload-for",
+        "employee:create",
+        "employee:decide-change",
+        "employee:manage-lists",
+        "employee:manage-number-series",
+        "employee:read",
+        "employee:read-private",
+        "employee:read-wage-type",
+        "employee:update",
+        "template:manage",
+        "unavailability:create",
+        "unavailability:delete",
+        "unavailability:manage-kinds",
+        "workingtime:book",
+        "workingtime:manage-rules",
+        "workingtime:read"
+      ]
+    }
+  ]
+}

@@ -130,6 +130,14 @@ public class AclGuardTests
     }
 
     [Fact]
+    public void A_responsibility_for_everybody_needs_unrestricted_reach()
+    {
+        Guard().CanSetResponsibility(Admin, Responsibilities.ResponsibilityTarget.Everyone).ShouldBe(GuardResult.Allowed);
+        Guard().CanSetResponsibility(Max, Responsibilities.ResponsibilityTarget.Everyone).ShouldBe(GuardResult.Denied(GuardReason.NotInReach)); // only his store
+        Guard().CanSetResponsibility(Erika, Responsibilities.ResponsibilityTarget.Everyone).ShouldBe(GuardResult.Denied(GuardReason.NotInReach)); // no privilege
+    }
+
+    [Fact]
     public void Responsibility_can_be_set_only_within_ones_reach()
     {
         Guard().CanSetResponsibility(Max, Responsibilities.ResponsibilityTarget.ForStore(F017)).ShouldBe(GuardResult.Allowed);

@@ -258,6 +258,32 @@ public sealed class AdministrationFlowTests(PostgresFixture postgres) : IClassFi
     }
 
     [Fact]
+    public async Task A_responsibility_for_everybody_reaches_everyone_and_only_unrestricted_reach_may_set_it()
+    {
+        await using var api = await StartAsync(postgres);
+
+        var id = await api.CreateAsync("/api/responsibilities",
+            new CreateResponsibilityRequest("absence.approval", Max, new ResponsibilityTargetDto("everyone"), null, null), As(Admin));
+
+        foreach (var person in new[] { Erika, Tom })
+        {
+            (await api.GetAsync<List<TopicResponsibilityDto>>($"/api/people/{person}/responsibilities", As(Admin)))
+                .ShouldHaveSingleItem().ResponsibleEmployeeIds.ShouldBe([Max]);
+        }
+
+        (await api.GetAsync<List<TopicResponsibilityDto>>($"/api/people/{Max}/responsibilities", As(Admin))).ShouldBeEmpty();
+        var states = await api.GetAsync<List<ResponsibilityStateDto>>("/internal/responsibilities", r => r.AsService(AccessRoles.PermissionsRead));
+        states.Single(s => s.EmployeeId == Tom).Responsibilities.ShouldHaveSingleItem().Topic.ShouldBe("absence.approval");
+
+        (await api.SendAsync(HttpMethod.Post, "/api/responsibilities", As(Max),
+            new CreateResponsibilityRequest("absence.approval", Tom, new ResponsibilityTargetDto("everyone"), null, null))).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        (await api.SendAsync(HttpMethod.Delete, $"/api/responsibilities/{id}", As(Max))).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+
+        (await api.SendAsync(HttpMethod.Delete, $"/api/responsibilities/{id}", As(Admin))).StatusCode.ShouldBe(HttpStatusCode.NoContent);
+        (await api.GetAsync<List<TopicResponsibilityDto>>($"/api/people/{Erika}/responsibilities", As(Admin))).ShouldBeEmpty();
+    }
+
+    [Fact]
     public async Task Services_can_rebuild_their_copy_from_the_complete_current_state()
     {
         await using var api = await StartAsync(postgres);

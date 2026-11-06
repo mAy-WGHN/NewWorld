@@ -174,6 +174,8 @@ public sealed class AclGuard(AclData data, DateTimeOffset now, TimeZoneInfo zone
         var permissions = Permissions(actor);
         var allowed = target switch
         {
+            // Everybody: only with unrestricted reach, nobody scoped decides for people and stores outside the reach.
+            ResponsibilityTarget.EveryoneTarget => permissions.Privileges.TryGetValue(privilege, out var all) && all.Unrestricted,
             ResponsibilityTarget.Employee e => permissions.AppliesToEmployee(privilege, e.EmployeeId),
             ResponsibilityTarget.Store s => permissions.AppliesToStore(privilege, s.StoreId),
             ResponsibilityTarget.Scope sc => _context.ScopesById.TryGetValue(sc.ScopeId, out var scope)

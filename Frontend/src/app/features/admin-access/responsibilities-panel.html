@@ -96,6 +96,9 @@
               </select>
             </mat-form-field>
           }
+          @case ('everyone') {
+            <p class="m-0 text-sm text-on-surface-variant" data-testid="target-everyone">Gilt für alle aktiven Mitarbeitenden, auch für neue Filialen und Personen. Du brauchst dafür das Recht uneingeschränkt.</p>
+          }
           @default {
             <app-person-picker data-testid="target-employee" label="Person, für die die Zuständigkeit gilt" inputId="target-person" [selectedId]="targetId() || null" (picked)="onTargetPerson($event)" />
           }

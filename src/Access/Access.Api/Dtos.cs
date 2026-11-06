@@ -38,7 +38,8 @@ public sealed record AssignmentDto(
 public sealed record CreateAssignmentRequest(
     Guid RoleId, bool Unrestricted, IReadOnlyList<Guid>? ScopeIds, bool IncludeHomeStore, DateTimeOffset? ValidFrom, DateTimeOffset? ValidTo);
 
-public sealed record ResponsibilityTargetDto(string Kind, Guid Id);
+/// <summary><c>Kind</c>: <c>employee</c>, <c>store</c>, <c>scope</c> (with <c>Id</c>) or <c>everyone</c> (no <c>Id</c>).</summary>
+public sealed record ResponsibilityTargetDto(string Kind, Guid Id = default);
 
 public sealed record CreateResponsibilityRequest(
     string Topic, Guid ResponsibleEmployeeId, ResponsibilityTargetDto Target, DateTimeOffset? ValidFrom, DateTimeOffset? ValidTo);
