@@ -20,6 +20,15 @@ export interface AuditEntry {
   changes: string | null;
 }
 
+/** The lines one service gave so far, newest first, and whether it may have older ones. */
+export interface ServiceLog {
+  entries: AuditEntry[];
+  hasMore: boolean;
+}
+
+export const allLoaded = (logs: Partial<Record<string, ServiceLog | null>>): AuditEntry[][] =>
+  Object.values(logs).filter((l): l is ServiceLog => !!l).map((l) => l.entries);
+
 export const AUDIT_SERVICES = ['access', 'workforce', 'portal', 'notifications'] as const;
 type AuditService = (typeof AUDIT_SERVICES)[number];
 
@@ -106,13 +115,27 @@ export function actorLabel(entry: AuditEntry): string {
       </table>
     </div>
     <app-pager [table]="table" />
+    @if (canLoadMore()) {
+      <div class="mt-3">
+        <button mat-stroked-button type="button" data-action="load-more" (click)="loadMore()" [disabled]="busy()">Ältere Einträge laden</button>
+      </div>
+    }
   `,
 })
 export class AuditPage {
   private readonly http = inject(HttpClient);
   private readonly config = inject(ConfigService);
 
-  protected readonly entries = signal<AuditEntry[]>([]);
+  /** What each service gave so far (newest first); `null` = no answer (no right, or not reachable). */
+  private readonly logs = signal<Partial<Record<AuditService, ServiceLog | null>>>({});
+  /** How many of the newest lines are shown; grows by one page with "Ältere Einträge laden". */
+  private readonly shown = signal(AUDIT_LIMIT);
+  private personnelNumber = '';
+  protected readonly entries = computed(() => mergeByTime(allLoaded(this.logs()), this.shown()));
+  protected readonly canLoadMore = computed(() => {
+    const logs = Object.values(this.logs()).filter((l): l is ServiceLog => !!l);
+    return logs.some((l) => l.hasMore) || logs.reduce((n, l) => n + l.entries.length, 0) > this.shown();
+  });
   protected readonly busy = signal(false);
   protected readonly loaded = signal(false);
   protected readonly error = signal<string | null>(null);
@@ -156,8 +179,10 @@ export class AuditPage {
   protected async load(personnelNumber: string): Promise<void> {
     this.busy.set(true);
     this.error.set(null);
-    const results = await Promise.all(AUDIT_SERVICES.map((s) => this.fetch(s, personnelNumber.trim())));
-    this.entries.set(mergeByTime(results.filter((r): r is AuditEntry[] => r !== null), AUDIT_LIMIT));
+    this.personnelNumber = personnelNumber.trim();
+    this.shown.set(AUDIT_LIMIT);
+    const results = await Promise.all(AUDIT_SERVICES.map((s) => this.fetch(s, null)));
+    this.logs.set(Object.fromEntries(AUDIT_SERVICES.map((s, i) => [s, results[i]])));
     if (results.every((r) => r === null)) {
       this.error.set('Das Protokoll konnte nicht geladen werden.');
     }
@@ -165,14 +190,40 @@ export class AuditPage {
     this.busy.set(false);
   }
 
-  /** `null` = this service gave no answer (no right, or not reachable). */
-  private async fetch(service: AuditService, personnelNumber: string): Promise<AuditEntry[] | null> {
+  /**
+   * One more page of the newest lines: every service that may have more gives its next page (after its last line seen), so that each holds at
+   * least as many lines as are shown and the merged list is still the newest in all services.
+   */
+  protected async loadMore(): Promise<void> {
+    this.busy.set(true);
+    this.shown.update((n) => n + AUDIT_LIMIT);
+    const current = this.logs();
+    const next = await Promise.all(
+      AUDIT_SERVICES.map(async (s) => {
+        const log = current[s];
+        if (!log || !log.hasMore || log.entries.length >= this.shown()) {
+          return log ?? null;
+        }
+        const page = await this.fetch(s, log.entries[log.entries.length - 1]);
+        return page ? { entries: [...log.entries, ...page.entries], hasMore: page.hasMore } : { ...log, hasMore: false };
+      }),
+    );
+    this.logs.set(Object.fromEntries(AUDIT_SERVICES.map((s, i) => [s, next[i]])));
+    this.busy.set(false);
+  }
+
+  /** The first page of a service, or the page after `after` (the last line seen). `null` = this service gave no answer. */
+  private async fetch(service: AuditService, after: AuditEntry | null): Promise<ServiceLog | null> {
     let params = new HttpParams().set('limit', String(AUDIT_LIMIT));
-    if (personnelNumber) {
-      params = params.set('personnelNumber', personnelNumber);
+    if (this.personnelNumber) {
+      params = params.set('personnelNumber', this.personnelNumber);
+    }
+    if (after) {
+      params = params.set('before', after.occurredAt).set('beforeId', after.id);
     }
     try {
-      return await firstValueFrom(this.http.get<AuditEntry[]>(this.config.url(service, '/api/audit'), { params }));
+      const entries = await firstValueFrom(this.http.get<AuditEntry[]>(this.config.url(service, '/api/audit'), { params }));
+      return { entries, hasMore: entries.length >= AUDIT_LIMIT };
     } catch {
       return null;
     }

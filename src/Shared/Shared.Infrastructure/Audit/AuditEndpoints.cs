@@ -28,7 +28,7 @@ public static class AuditEndpoints
     public const int MaxLimit = 1000;
 
     /// <summary>
-    /// <c>GET /api/audit</c>: newest first, paged by <c>before</c> (the <c>occurredAt</c> of the last line seen). The existence of the log is not revealed:
+    /// <c>GET /api/audit</c>: newest first, paged by <c>before</c> and <c>beforeId</c> (<c>occurredAt</c> and <c>id</c> of the last line seen). The existence of the log is not revealed:
     /// everybody without <paramref name="readPrivilege"/> (also anonymous callers) gets the same <c>404</c> as for any unknown path.
     /// The changed values are only included for holders of <paramref name="readValuesPrivilege"/>.
     /// </summary>
@@ -70,7 +70,10 @@ public static class AuditEndpoints
 
             if (DateTimeOffset.TryParse(request.Query["before"], CultureInfo.InvariantCulture, out var before))
             {
-                query = query.Where(e => e.OccurredAt < before);
+                // Lines of one request share the time: with the id of the last line seen, the next page continues exactly after it.
+                query = Guid.TryParse(request.Query["beforeId"], out var beforeId)
+                    ? query.Where(e => e.OccurredAt < before || (e.OccurredAt == before && e.Id.CompareTo(beforeId) < 0))
+                    : query.Where(e => e.OccurredAt < before);
             }
 
             if (request.Query["personnelNumber"].ToString() is { Length: > 0 } number)

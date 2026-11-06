@@ -65,6 +65,38 @@ public sealed class AuditEndpointTests(PostgresFixture postgres) : IClassFixture
     }
 
     [Fact]
+    public async Task Pages_continue_exactly_after_the_last_line_seen_even_when_lines_share_a_time()
+    {
+        await using var api = await StartAsync(postgres);
+        for (var i = 0; i < 5; i++)
+        {
+            await api.ReportAsync(Form()); // the clock stands still: every line has the same time
+        }
+
+        api.Grant(Ben, new TestGrant(PortalPrivileges.AuditRead, Unrestricted: true));
+
+        var seen = new List<string>();
+        string? cursor = null;
+        for (var page = 0; page < 10; page++)
+        {
+            using var response = await api.SendAsync(HttpMethod.Get, "/api/audit?limit=2" + cursor, Ben);
+            var lines = JsonDocument.Parse(await response.Content.ReadAsStringAsync()).RootElement.EnumerateArray().ToList();
+            if (lines.Count == 0)
+            {
+                break;
+            }
+
+            seen.AddRange(lines.Select(l => l.GetProperty("id").GetString()!));
+            var last = lines[^1];
+            cursor = $"&before={Uri.EscapeDataString(last.GetProperty("occurredAt").GetString()!)}&beforeId={last.GetProperty("id").GetString()}";
+        }
+
+        var all = (await ListAsync(api, Ben)).EnumerateArray().Select(l => l.GetProperty("id").GetString()!).ToList();
+        seen.Count.ShouldBeGreaterThanOrEqualTo(5);
+        seen.ShouldBe(all); // same order, nothing twice, nothing missing
+    }
+
+    [Fact]
     public async Task Without_the_privilege_the_log_does_not_exist_for_the_caller()
     {
         await using var api = await StartAsync(postgres);
