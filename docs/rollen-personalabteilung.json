@@ -21,6 +21,11 @@
     {
       "name": "Personalabteilung",
       "privileges": [
+        "access:assignment:read",
+        "access:entra-link:manage",
+        "access:main-store:update",
+        "access:person:read",
+        "access:responsibility:read",
         "absence:approve",
         "absence:create",
         "absence:manage-entitlement",
