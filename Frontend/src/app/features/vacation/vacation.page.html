@@ -57,10 +57,18 @@
   </mat-card-content>
 </mat-card>
 
+<mat-button-toggle-group class="mb-4" aria-label="Ansicht" hideSingleSelectionIndicator [value]="view()" (change)="view.set($event.value)" data-testid="view-toggle">
+  <mat-button-toggle value="list"><mat-icon>list</mat-icon> Liste</mat-button-toggle>
+  <mat-button-toggle value="calendar"><mat-icon>calendar_month</mat-icon> Kalender</mat-button-toggle>
+</mat-button-toggle-group>
+
 @if (listError(); as message) {
   <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert">{{ message }}</p>
 }
 
+@if (view() === 'calendar') {
+  <app-vacation-calendar [absences]="absences()" />
+} @else {
 @if (split().pending.length) {
   <app-attention-block data-testid="attention" title="Wartet auf Genehmigung" hint="Diese Urlaubsanträge sind noch nicht entschieden.">
     @for (a of split().pending; track a.id) {
@@ -80,6 +88,7 @@
     }
   </div>
 </section>
+}
 
 <ng-template #row let-a let-attention="attention">
   <app-row-card [attention]="attention" data-testid="vacation-row" [attr.data-id]="a.id">

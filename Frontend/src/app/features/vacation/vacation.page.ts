@@ -1,5 +1,6 @@
 import { NgTemplateOutlet } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { AuthService } from '../../core/auth/auth.service';
 import { PAGE_UI } from '../../shared/ui/material';
 import {
@@ -15,6 +16,7 @@ import {
   validatePeriod,
 } from '../absences/absence-models';
 import { AbsencesApi } from '../absences/absences.api';
+import { VacationCalendar } from './vacation-calendar';
 
 /**
  * "Mein Urlaub": the vacation account and the own vacation requests; "Urlaub beantragen" at the top right opens the request form.
@@ -22,7 +24,7 @@ import { AbsencesApi } from '../absences/absences.api';
  */
 @Component({
   selector: 'app-vacation',
-  imports: [NgTemplateOutlet, ...PAGE_UI],
+  imports: [NgTemplateOutlet, MatButtonToggleModule, VacationCalendar, ...PAGE_UI],
   templateUrl: './vacation.page.html',
 })
 export class VacationPage {
@@ -33,7 +35,10 @@ export class VacationPage {
   protected readonly canCreate = computed(() => this.auth.privileges().has('absence:create-own'));
   protected readonly canUpdate = computed(() => this.auth.privileges().has('absence:update-own'));
 
-  private readonly absences = signal<Absence[]>([]);
+  protected readonly absences = signal<Absence[]>([]);
+
+  /** List (default) or calendar of the requests. */
+  protected readonly view = signal<'list' | 'calendar'>('list');
   protected readonly loaded = signal(false);
   protected readonly listError = signal<string | null>(null);
 
