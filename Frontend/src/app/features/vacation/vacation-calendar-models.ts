@@ -75,3 +75,10 @@ export function calendarWeeks(month: YearMonth, absences: readonly Absence[], to
 
   return Array.from({ length: days.length / 7 }, (_, i) => days.slice(i * 7, i * 7 + 7));
 }
+
+/** The period between two days picked in any order (dragging backwards works). ISO dates compare correctly as text. */
+export function selectionRange(a: string, b: string): { from: string; to: string } {
+  return a <= b ? { from: a, to: b } : { from: b, to: a };
+}
+
+export const inRange = (iso: string, range: { from: string; to: string } | null): boolean => !!range && range.from <= iso && iso <= range.to;

@@ -1,9 +1,9 @@
-import { Component, computed, input, signal } from '@angular/core';
+import { Component, computed, input, output, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { Absence, formatPeriod, statusLabel } from '../absences/absence-models';
 import { MONTH_NAMES, YearMonth, monthLabel, monthOf, shiftMonth, todayIso } from '../team-absences/team-absences-models';
-import { CalendarDay, VacationShown, calendarWeeks } from './vacation-calendar-models';
+import { CalendarDay, VacationShown, calendarWeeks, inRange, selectionRange } from './vacation-calendar-models';
 
 const WEEKDAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 
@@ -20,6 +20,7 @@ const LOOK: Record<VacationShown, string> = {
  */
 @Component({
   selector: 'app-vacation-calendar',
+  host: { '(document:pointerup)': 'finish()', '(document:pointercancel)': 'cancelDrag()', '(document:keydown.escape)': 'clear()' },
   imports: [MatButtonModule, MatIconModule],
   template: `
     <section class="rounded-xl border border-outline-variant p-3" data-testid="calendar" aria-labelledby="cal-title">
@@ -32,7 +33,17 @@ const LOOK: Record<VacationShown, string> = {
         </div>
       </div>
 
-      <div class="grid grid-cols-7 gap-1 text-center text-sm" role="grid" [attr.aria-label]="'Urlaub im ' + title()">
+      @if (selectable()) {
+        <p class="m-0 mb-2 text-sm text-on-surface-variant">Tag anklicken oder über mehrere Tage ziehen, um Urlaub zu beantragen.</p>
+      }
+      <div
+        class="grid grid-cols-7 gap-1 text-center text-sm select-none"
+        [class.touch-none]="selectable()"
+        role="grid"
+        [attr.aria-label]="'Urlaub im ' + title()"
+        (pointerdown)="down($event)"
+        (pointermove)="move($event)"
+      >
         @for (w of weekdays; track w) {
           <div class="py-1 text-[13px] text-on-surface-variant" role="columnheader">{{ w }}</div>
         }
@@ -45,6 +56,10 @@ const LOOK: Record<VacationShown, string> = {
               [class.bg-surface-container-high]="d.weekend && !d.vacation"
               [class.ring-2]="d.today"
               [class.ring-primary]="d.today"
+              [class.cursor-pointer]="selectable()"
+              [class.!bg-secondary-container]="picked(d)"
+              [class.!text-on-secondary-container]="picked(d)"
+              [attr.data-picked]="picked(d)"
               [attr.data-iso]="d.iso"
               [attr.data-shown]="d.vacation?.shown ?? null"
               [attr.aria-current]="d.today ? 'date' : null"
@@ -63,6 +78,16 @@ const LOOK: Record<VacationShown, string> = {
         <li class="flex items-center gap-1.5"><span class="inline-block size-3.5 rounded border border-attention-border bg-attention"></span>Wartet auf Genehmigung</li>
         <li class="flex items-center gap-1.5"><span class="inline-block size-3.5 rounded border border-error"></span>Abgelehnt</li>
       </ul>
+      @if (selection(); as s) {
+        <div class="mt-3 flex flex-wrap items-center gap-3 rounded-xl bg-secondary-container px-4 py-2.5 text-on-secondary-container" role="status" data-testid="selection">
+          <span>Urlaub {{ period(s) }} beantragen?</span>
+          <button mat-flat-button type="button" data-action="confirm" [disabled]="busy()" (click)="confirm()">Beantragen</button>
+          <button mat-stroked-button type="button" data-action="discard" (click)="clear()">Abbrechen</button>
+        </div>
+      }
+      @if (error(); as message) {
+        <p class="m-0 mt-2 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="calendar-error">{{ message }}</p>
+      }
       @if (!any()) {
         <p class="m-0 mt-2 text-sm text-on-surface-variant" data-testid="calendar-empty">In diesem Monat ist kein Urlaub eingetragen.</p>
       }
@@ -71,12 +96,89 @@ const LOOK: Record<VacationShown, string> = {
 })
 export class VacationCalendar {
   readonly absences = input.required<readonly Absence[]>();
+  /** Whether days can be picked to request vacation (needs the privilege); the service checks again. */
+  readonly selectable = input(false);
+  readonly busy = input(false);
+  readonly error = input<string | null>(null);
+  /** The person confirmed a period. */
+  readonly requested = output<{ from: string; to: string }>();
+
+  private readonly anchor = signal<string | null>(null);
+  private readonly current = signal<string | null>(null);
+  private readonly dragging = signal(false);
+  /** The period picked (while dragging and until it is confirmed or dropped). */
+  protected readonly range = computed(() => {
+    const a = this.anchor();
+    const c = this.current();
+    return a && c ? selectionRange(a, c) : null;
+  });
+  /** Set when the pointer was released: waits for "Beantragen". */
+  protected readonly selection = signal<{ from: string; to: string } | null>(null);
+  protected readonly period = (r: { from: string; to: string }): string => (r.from === r.to ? `am ${formatPeriod(r.from, null)}` : `${formatPeriod(r.from, r.to)}`);
 
   protected readonly weekdays = WEEKDAYS;
   protected readonly month = signal<YearMonth>(monthOf(todayIso()));
   protected readonly title = computed(() => monthLabel(this.month()));
   protected readonly weeks = computed(() => calendarWeeks(this.month(), this.absences(), todayIso()));
   protected readonly any = computed(() => this.weeks().some((w) => w.some((d) => d.inMonth && d.vacation)));
+
+  protected picked(d: CalendarDay): boolean {
+    return inRange(d.iso, this.selection() ?? this.range());
+  }
+
+  private isoAt(x: number, y: number): string | null {
+    return (document.elementFromPoint(x, y)?.closest('[data-iso]') as HTMLElement | null)?.dataset['iso'] ?? null;
+  }
+
+  protected down(event: PointerEvent): void {
+    const iso = this.selectable() && event.button === 0 ? this.isoAt(event.clientX, event.clientY) : null;
+    if (!iso) {
+      return;
+    }
+    event.preventDefault();
+    (event.target as Element).releasePointerCapture?.(event.pointerId); // touch: keep getting moves over other days
+    this.selection.set(null);
+    this.anchor.set(iso);
+    this.current.set(iso);
+    this.dragging.set(true);
+  }
+
+  protected move(event: PointerEvent): void {
+    if (this.dragging()) {
+      const iso = this.isoAt(event.clientX, event.clientY);
+      if (iso) {
+        this.current.set(iso);
+      }
+    }
+  }
+
+  /** Pointer released: the period waits for a confirmation (a slip of the finger must not send a request). */
+  protected finish(): void {
+    if (this.dragging()) {
+      this.dragging.set(false);
+      this.selection.set(this.range());
+    }
+  }
+
+  protected cancelDrag(): void {
+    this.dragging.set(false);
+    this.clear();
+  }
+
+  protected clear(): void {
+    this.dragging.set(false);
+    this.anchor.set(null);
+    this.current.set(null);
+    this.selection.set(null);
+  }
+
+  protected confirm(): void {
+    const s = this.selection();
+    if (s) {
+      this.requested.emit(s);
+      this.clear();
+    }
+  }
 
   protected shift(delta: number): void {
     this.month.update((m) => shiftMonth(m, delta));

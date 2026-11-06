@@ -96,6 +96,11 @@ export class VacationPage {
     });
   }
 
+  /** A period picked in the calendar: the same request as the form. */
+  protected async requestRange(range: { from: string; to: string }): Promise<void> {
+    await this.act('Urlaub beantragt.', () => this.api.requestVacation(range.from, range.to), () => undefined);
+  }
+
   protected async withdraw(absence: Absence): Promise<void> {
     await this.act('Urlaub zurückgezogen.', () => this.api.withdraw(absence.id), () => undefined);
   }

@@ -1,5 +1,5 @@
 import { Absence } from '../absences/absence-models';
-import { calendarWeeks, vacationStatusOf } from './vacation-calendar-models';
+import { calendarWeeks, inRange, selectionRange, vacationStatusOf } from './vacation-calendar-models';
 
 const vacation = (id: string, from: string, to: string | null, status = 'Approved', type: string | null = 'Vacation'): Absence => ({
   id,
@@ -84,5 +84,25 @@ describe('vacationStatusOf', () => {
     expect(vacationStatusOf('Rejected')).toBe('rejected');
     expect(vacationStatusOf('Withdrawn')).toBeNull();
     expect(vacationStatusOf('Cancelled')).toBeNull();
+  });
+});
+
+describe('selectionRange', () => {
+  it('orders the two days, so dragging backwards gives the same period', () => {
+    expect(selectionRange('2026-11-27', '2026-11-23')).toEqual({ from: '2026-11-23', to: '2026-11-27' });
+    expect(selectionRange('2026-11-23', '2026-11-27')).toEqual({ from: '2026-11-23', to: '2026-11-27' });
+  });
+
+  it('is one day for a single click, also at the change of the year', () => {
+    expect(selectionRange('2026-12-31', '2026-12-31')).toEqual({ from: '2026-12-31', to: '2026-12-31' });
+    expect(selectionRange('2027-01-02', '2026-12-30')).toEqual({ from: '2026-12-30', to: '2027-01-02' });
+  });
+
+  it('tells whether a day is inside', () => {
+    const range = { from: '2026-11-23', to: '2026-11-27' };
+    expect(inRange('2026-11-23', range)).toBe(true);
+    expect(inRange('2026-11-27', range)).toBe(true);
+    expect(inRange('2026-11-28', range)).toBe(false);
+    expect(inRange('2026-11-23', null)).toBe(false);
   });
 });

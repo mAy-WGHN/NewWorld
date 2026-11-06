@@ -55,4 +55,89 @@ describe('VacationCalendar', () => {
     await fixture.whenStable();
     expect(title()).toBe(first);
   });
+
+  describe('picking days', () => {
+    let over: Element | null = null;
+    const original = document.elementFromPoint;
+
+    beforeEach(() => {
+      document.elementFromPoint = () => over;
+    });
+    afterEach(() => {
+      document.elementFromPoint = original;
+    });
+
+    const cell = (offset: number) => root().querySelector(`[data-iso="${iso(offset)}"]`) as HTMLElement;
+    const grid = () => root().querySelector('[role="grid"]') as HTMLElement;
+    const press = (target: HTMLElement, type: string, button = 0) => {
+      over = target;
+      target.dispatchEvent(new MouseEvent(type, { bubbles: true, button }));
+    };
+    const release = () => document.dispatchEvent(new MouseEvent('pointerup', { bubbles: true }));
+
+    async function createSelectable(): Promise<{ from: string; to: string }[]> {
+      const sent: { from: string; to: string }[] = [];
+      fixture = TestBed.createComponent(VacationCalendar);
+      fixture.componentRef.setInput('absences', []);
+      fixture.componentRef.setInput('selectable', true);
+      fixture.componentInstance.requested.subscribe((r) => sent.push(r));
+      await fixture.whenStable();
+      return sent;
+    }
+
+    it('asks for a confirmation after a click on one day and sends the request only then', async () => {
+      const sent = await createSelectable();
+      press(cell(0), 'pointerdown');
+      release();
+      await fixture.whenStable();
+      expect(root().querySelector('[data-testid="selection"]')?.textContent).toContain('beantragen?');
+      expect(sent).toEqual([]);
+      (root().querySelector('[data-action="confirm"]') as HTMLButtonElement).click();
+      await fixture.whenStable();
+      expect(sent).toEqual([{ from: iso(0), to: iso(0) }]);
+      expect(root().querySelector('[data-testid="selection"]')).toBeNull();
+    });
+
+    it('picks the period between press and release, also when dragged backwards', async () => {
+      const sent = await createSelectable();
+      const days = Array.from(root().querySelectorAll<HTMLElement>('[data-iso]'));
+      const early = days[10];
+      const late = days[13];
+      press(late, 'pointerdown');
+      over = days[11];
+      grid().dispatchEvent(new MouseEvent('pointermove', { bubbles: true }));
+      over = early;
+      grid().dispatchEvent(new MouseEvent('pointermove', { bubbles: true }));
+      release();
+      await fixture.whenStable();
+      expect(root().querySelectorAll('[data-picked="true"]').length).toBe(4);
+      (root().querySelector('[data-action="confirm"]') as HTMLButtonElement).click();
+      expect(sent).toEqual([{ from: early.dataset['iso'], to: late.dataset['iso'] }]);
+    });
+
+    it('drops the pick with Abbrechen and does not send anything', async () => {
+      const sent = await createSelectable();
+      press(cell(0), 'pointerdown');
+      release();
+      await fixture.whenStable();
+      (root().querySelector('[data-action="discard"]') as HTMLButtonElement).click();
+      await fixture.whenStable();
+      expect(root().querySelector('[data-testid="selection"]')).toBeNull();
+      expect(sent).toEqual([]);
+    });
+
+    it('ignores the right mouse button and calendars that cannot request', async () => {
+      await createSelectable();
+      press(cell(0), 'pointerdown', 2);
+      release();
+      await fixture.whenStable();
+      expect(root().querySelector('[data-testid="selection"]')).toBeNull();
+
+      await create([]);
+      press(cell(0), 'pointerdown');
+      release();
+      await fixture.whenStable();
+      expect(root().querySelector('[data-testid="selection"]')).toBeNull();
+    });
+  });
 });
