@@ -22,7 +22,7 @@ public sealed class AppHostFixture : IAsyncLifetime
     public async Task InitializeAsync()
     {
         using var cts = new CancellationTokenSource(StartupTimeout);
-        var builder = await DistributedApplicationTestingBuilder.CreateAsync<Projects.AppHost>(["--ClamAv:Enabled=false", "--Ports:Fixed=false", "--Seed:Development=false"], cts.Token);
+        var builder = await DistributedApplicationTestingBuilder.CreateAsync<Projects.AppHost>(["--ClamAv:Enabled=false", "--Ports:Fixed=false", "--Seed:Development=false", "--Volumes:Persistent=false"], cts.Token);
         _app = await builder.BuildAsync(cts.Token);
         await _app.StartAsync(cts.Token);
     }

@@ -1,6 +1,11 @@
+using Microsoft.Extensions.Configuration;
 using System.Security.Cryptography;
 
 var builder = DistributedApplication.CreateBuilder(args);
+
+// The Aspire CLI starts AppHost.exe directly (no launchSettings, so the environment is not "Development" and the user secrets would not be read):
+// read them explicitly. Local values only (e.g. the Postgres password below); nothing secret is in the code or in a file of the repository.
+builder.Configuration.AddUserSecrets(typeof(AppHostExtensions).Assembly, optional: true);
 
 // Service-to-service authentication: every service has its own key pair (new at every start of the landscape). It signs short-lived
 // tokens with its private key; the services it calls only get its public key and the roles it may use there (ServiceAuth section).
@@ -18,7 +23,15 @@ var fixedPorts = !string.Equals(builder.Configuration["Ports:Fixed"], "false", S
 var developmentSeed = !string.Equals(builder.Configuration["Seed:Development"], "false", StringComparison.OrdinalIgnoreCase);
 
 // One PostgreSQL instance, one database per service (own schema inside, no cross-schema joins).
-var postgres = builder.AddPostgres("postgres");
+// Locally the data survives a restart: it lives in a named Docker volume. A volume keeps the password it was created with, so the password must not
+// change between starts: it comes from the user secrets of the AppHost (key Parameters:postgres-password, set once, never in code):
+//   dotnet user-secrets set "Parameters:postgres-password" "<any password>" --id newworld-apphost
+// To start the local data from scratch: stop the AppHost, "docker volume rm newworld-postgres-data-local" (and remove the stopped postgres container).
+// Switch off with --Volumes:Persistent=false (the AppHost tests do: they start with an empty database and a generated password).
+var persistentData = !string.Equals(builder.Configuration["Volumes:Persistent"], "false", StringComparison.OrdinalIgnoreCase);
+var postgres = persistentData
+    ? builder.AddPostgres("postgres", password: builder.AddParameter("postgres-password", secret: true)).WithDataVolume("newworld-postgres-data-local")
+    : builder.AddPostgres("postgres");
 
 // Service Bus emulator (accepts the emulator EULA; decided by the project owner on 2026-10-21).
 // The topology (topics, queues, subscriptions with filters) is the same as in infra/servicebus.bicep; a test compares both and the

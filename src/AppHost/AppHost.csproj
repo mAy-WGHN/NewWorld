@@ -3,6 +3,7 @@
     <OutputType>Exe</OutputType>
     <IsAspireHost>true</IsAspireHost>
     <AspireUseCliBundle>true</AspireUseCliBundle>
+    <UserSecretsId>newworld-apphost</UserSecretsId>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Aspire.Hosting.PostgreSQL" />
