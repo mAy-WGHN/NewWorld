@@ -23,6 +23,18 @@ docs/                 Phasenberichte, Architektur, Dienst-zu-Dienst-Authentifizi
 infra/                Service-Bus-Topologie (Bicep + Emulator)
 ```
 
+## Lokal Starten
+
+Backend
+```bash
+cd src/AppHost && dotnet run
+```
+
+Frontend
+```bash
+cd Frontend && npm start
+```
+
 ## Neue Dienste (`src/`)
 
 Voraussetzungen: .NET SDK 10, Docker.
