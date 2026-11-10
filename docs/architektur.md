@@ -33,7 +33,7 @@ flowchart LR
 
 ## Lokal starten und testen
 
-`cd src/AppHost && dotnet run` startet Postgres, Service-Bus-Emulator, WireMock als BC-Ersatz und die fünf Dienste, danach `cd Frontend && npm start`. Anleitung, Testnutzer, Ports und Fehlersuche: `know-how.md`, `mock-login.md`.
+`cd src/AppHost && dotnet run` startet Postgres, Service-Bus-Emulator, WireMock als BC-Ersatz und die fünf Dienste, danach `cd Frontend && npm start`. Anleitung, Testnutzer, Ports und Fehlersuche: `know-how.md`, Testnutzer in der `README.md`.
 
 Tests: `dotnet test NewWorld.slnx` (Unit, Integration, Vertrag, Architektur, End-to-End); BC-Sandbox-Tests (`Category=BcSandbox`) nur manuell. Frontend: `npx ng test --watch=false` in `Frontend/`.
 
