@@ -1,61 +1,40 @@
-# Zweiter Faktor mit Microsoft Entra (2026-11-05)
+# Zweiter Faktor mit Microsoft Entra
 
-Ziel: Wer die eigene Lohnabrechnung (und später weitere Klasse-3-Daten) öffnen will, muss einen zweiten Faktor mit der Microsoft Authenticator App bestätigen. Freigegeben am 2026-11-05 (Entscheidung 45 in CLAUDE.md); der Datenschutzbeauftragte hat zugestimmt. Der Ablauf weicht von Entscheidung 18 ab (Entra nur dort, wo ein externer Dienst es verlangt); die Abweichung ist vom Projektverantwortlichen gewünscht (2026-11-05).
+Entscheidung 45 (`CLAUDE.md`), freigegeben 2026-11-05, überarbeitet 2026-11-10. Der Datenschutzbeauftragte hat der gespeicherten Zuordnung zugestimmt. Der Ablauf weicht von Entscheidung 18 ab (Entra nur dort, wo ein externer Dienst es verlangt); die Abweichung ist gewollt.
 
-## Ausgangslage
+**Ziel:** Wer die eigene Lohnabrechnung (und nur diese, weitere Bereiche erst nach neuer Entscheidung) öffnet, bestätigt zusätzlich in der Microsoft Authenticator App. Die Lohnabrechnung selbst entsteht in der HR API (noch nicht gebaut); gebaut ist der Baustein in Access, in `Shared.Authorization` und im Frontend.
 
-- Alle Mitarbeitenden haben ein Microsoft-365-Konto im bestehenden Firmen-Tenant (Angabe des Projektverantwortlichen). Es ist also der **bestehende Tenant** und keine neue External-ID-Umgebung nötig.
-- Die Anmeldung im Portal bleibt Personalnummer + BC-PIN (Entscheidung 13). Entra ist **nur der zweite Faktor** für bestimmte Rechte, kein Ersatz der Anmeldung.
-- Die Lohnabrechnung selbst entsteht in der HR API (noch nicht gebaut, Entscheidung 36). Gebaut wird zunächst nur der Baustein in Access.
+**Ausgangslage:** Alle Mitarbeitenden haben ein Microsoft-365-Konto im bestehenden Firmen-Tenant. Die Anmeldung bleibt Personalnummer + BC-PIN; Entra ist nur der zweite Faktor.
 
-## Ablauf (Step-up)
+## Ablauf
 
-1. Die Person ist mit PIN angemeldet und öffnet etwas, das den zweiten Faktor verlangt.
-2. Der Dienst antwortet `403` mit dem Hinweis „zweiter Faktor nötig“. Das Frontend schickt die Person zu Access (`/api/auth/step-up/start`).
-3. Access leitet zu Entra weiter (OpenID Connect, Authorization-Code-Flow mit PKCE, `prompt=login`, Anforderung von `amr`/`acr`). Entra verlangt dort die Bestätigung in der Authenticator App (Push mit Nummernabgleich).
-4. Access prüft den ID-Token (Aussteller, Zielgruppe, Signatur, Nonce) und dass **MFA wirklich stattfand** (`amr` enthält `mfa`). Fehlt das, wird abgelehnt (fail closed), egal was der Tenant sonst einstellt.
-5. Access prüft, dass der Entra-Konto-Bezeichner (`oid`) zu **dieser** Person gehört (siehe Zuordnung) und stellt für kurze Zeit eine Bestätigung aus (Claim im Access-Token oder eigener Marker, Gültigkeit konfigurierbar, Standard 15 Minuten).
-6. Die Dienste prüfen die Bestätigung lokal über `Shared.Authorization`, wie bei allen Rechten.
-
-Es werden keine Entra-Tokens an andere Dienste weitergereicht und keine Entra-Daten über die Person gespeichert außer der Zuordnung.
+1. Die Person ist mit PIN angemeldet und öffnet etwas, das den zweiten Faktor verlangt; der Dienst antwortet `403` mit Titel `SecondFactorRequired`, das Frontend startet den Ablauf bei Access (`/api/auth/step-up/start`).
+2. Access leitet zu Entra weiter (OpenID Connect, Authorization-Code mit PKCE, `prompt=login`); Entra verlangt die Bestätigung in der Authenticator App.
+3. Access prüft den ID-Token (Signatur, Aussteller, Zielgruppe, Tenant, Nonce) und dass **MFA wirklich stattfand** (`amr` enthält `mfa`); fehlt das, wird abgelehnt (fail closed), egal wie der Tenant eingestellt ist.
+4. Access prüft, dass der Entra-`oid` zu **dieser** Person gehört, und stellt die Bestätigung als Claim `mfa_until` im neu ausgestellten Access-Token aus (Gültigkeit 15 Minuten, `Access:StepUp:Validity`). Login und Refresh tragen ihn nie.
+5. Die Dienste prüfen die Bestätigung lokal über `Shared.Authorization`. Entra-Tokens werden an niemanden weitergereicht, gespeichert wird nur die Zuordnung.
 
 ## Zuordnung Person ↔ Entra-Konto
 
-Auf dem Bus gibt es keine E-Mail-Adresse der Person (`EmployeeChanged`, Klasse 1). Deshalb pflegt **HR in Access** je Person das Entra-Konto (UPN/E-Mail), Access speichert beim ersten erfolgreichen Step-up die unveränderliche Kennung `oid` und prüft künftig nur noch diese. Ändert sich der UPN, bleibt die Zuordnung gültig; ein anderer `oid` wird abgelehnt. Die Zuordnung zu ändern ist ein eigenes Recht und wird protokolliert. Automatisch über eine BC-E-Mail zuordnen geht erst, wenn BC eine Firmen-Adresse liefert (offen, `TODO(BC-Modell)`).
+Auf dem Bus gibt es keine E-Mail-Adresse. HR pflegt deshalb in Access je Person das Microsoft-Konto (UPN; Recht `access:entra-link:manage`, protokolliert); Access bindet beim ersten Erfolg die unveränderliche Kennung `oid`, danach zählt nur diese (ein anderer `oid` wird abgelehnt, ein geänderter UPN stört nicht). Eine automatische Zuordnung über eine Firmen-E-Mail aus BC ist offen (`TODO(BC-Modell)`).
 
-## Was Entra tenantseitig leisten muss (Aufgabe der IT, nicht des Portals)
+## Entschieden
 
-- Eine **App-Registrierung** für Access (Weiterleitungsadresse, Client-Geheimnis oder besser Zertifikat im Key Vault).
-- Der Tenant muss MFA tatsächlich verlangen, sonst bestätigt Entra ohne zweiten Faktor und Access lehnt mangels `amr=mfa` ab. Dafür gibt es drei Wege: **Sicherheitsstandards** (kostenlos, gilt tenantweit), **MFA pro Person** (in den Microsoft-365-Plänen enthalten) oder **Conditional Access** (braucht Entra ID P1, enthalten in Microsoft 365 E3/Business Premium). Welcher Weg offen ist, hängt vom Paket ab.
-- Die Person richtet die Authenticator App einmalig im Microsoft-Konto ein.
+- Gilt **nur für die Lohnabrechnung**; die Bestätigung gilt 15 Minuten.
+- **Ausgeschiedene** dürfen den Ablauf nutzen (Rolle „Former Employee“), solange ihr Microsoft-Konto besteht; die IT muss das beim Austritt beachten.
+- **Verlorenes Handy oder Passwort** löst Entra, nicht das Portal. **Entra nicht erreichbar:** die Lohnabrechnung ist dann nicht erreichbar (fail closed).
+- **Keine Mehrkosten:** Microsoft 365 F1 enthält Entra ID P1 und MFA (bestätigt 2026-11-05, rund 247 Personen). **Nicht abgedeckt:** Konten ohne F1 (z. B. Business Basic, etwa 9 Personen); sie wären nur betroffen, wenn sie die Lohnabrechnung im Portal öffnen müssen.
 
-## Kosten und Lizenz
+## Aufgaben der IT (nicht des Portals)
 
-Keine Mehrkosten. Die Serviceplaene von Microsoft 365 F1 enthalten Microsoft Entra ID P1 (geerbt) und Microsoft Azure Multi-Factor Authentication (bestaetigt am 2026-11-05, rund 247 zugewiesene Mitarbeitende). Conditional Access und die Authenticator App sind damit lizenziert. **Nicht abgedeckt:** Personen mit einem Konto ohne F1 (zum Beispiel Business Basic, etwa 9 Personen); sie haben kein P1 und waeren nur betroffen, wenn sie die Lohnabrechnung ueber das Portal oeffnen muessen (bei der IT klaeren). Die Richtlinie, die den zweiten Faktor fuer die App von Access verlangt, legt die IT an, sobald die App-Registrierung steht.
+- **App-Registrierung** für Access (Weiterleitungsadresse, Client-Geheimnis oder besser Zertifikat im Key Vault); Konfiguration unter `Access:StepUp`, Secrets nie in `appsettings*.json`.
+- Der Tenant muss MFA **tatsächlich verlangen**, sonst lehnt Access mangels `amr=mfa` ab: Sicherheitsstandards, MFA pro Person oder Conditional Access (braucht P1). Die Richtlinie legt die IT an, sobald die App-Registrierung steht.
+- Die Person richtet die Authenticator App einmalig ein.
 
 ## Test und Entwicklung
 
-Es gibt keinen Entra-Test-Tenant. Der Ablauf wird gegen einen **Entra-Ersatz** (WireMock-Container im AppHost, wie bei BC) entwickelt: Discovery, Schlüssel und Token-Ausgabe werden nachgestellt, die Prüfung von `amr`, Nonce und Zuordnung ist so ohne echten Tenant testbar. Der echte Tenant wird nur manuell geprüft.
-
-## Entscheidungen (2026-11-05)
-
-1. Der zweite Faktor gilt **nur fuer die Lohnabrechnung** (Recht dort, wo sie entsteht: HR API). Weitere Bereiche nur auf neue Entscheidung.
-2. Die Bestaetigung gilt **15 Minuten** (`Access:StepUp:Validity`).
-3. **Ausgeschiedene Personen** duerfen den Ablauf nutzen (Rolle „Former Employee“). Voraussetzung ausserhalb des Portals: Ihr Microsoft-Konto besteht weiter; die IT muss das beim Austritt beruecksichtigen (offen).
-4. **Verlorenes Handy / Passwort:** wird in Entra (Microsoft-Konto) geloest, nicht im Portal.
-5. **Entra nicht erreichbar:** die Lohnabrechnung ist dann nicht erreichbar (fail closed).
-6. Die gespeicherte Zuordnung (Entra-Kennung je Person) hat der Datenschutzbeauftragte freigegeben.
+Es gibt keinen Entra-Test-Tenant. Der Ablauf wird gegen einen **Entra-Ersatz** im Test entwickelt (Discovery, Schlüssel und Token-Ausgabe nachgestellt); die Prüfung von `amr`, Nonce und Zuordnung ist so ohne echten Tenant testbar. Der echte Tenant wird nur manuell geprüft.
 
 ## Offen
 
-- Personen ohne F1-Lizenz (siehe Kosten) und Konten Ausgeschiedener: bei der IT klaeren.
-- App-Registrierung in Entra und Conditional-Access-Richtlinie: macht die IT.
-- Automatische Zuordnung ueber eine Firmen-E-Mail aus BC (bis dahin pflegt HR die Zuordnung).
-
-## Bausteine (nach Freigabe)
-
-1. Access: Tabelle der Zuordnung, Endpunkte für HR (Recht je Pflege), Step-up-Start/-Rückkehr, Prüfung des ID-Tokens, Bestätigung im Token; Tests mit Entra-Ersatz.
-2. `Shared.Authorization`: Anforderung „zweiter Faktor“ je Recht und Prüfung der Bestätigung; Architekturtest, dass ein Recht mit Anforderung nie ohne sie genutzt wird.
-3. Frontend: Hinweis „Bitte bestätige in der Authenticator App“, Weiterleitung und Rückkehr.
-4. AppHost: Entra-Ersatz.
-5. CLAUDE.md: Entscheidung zur Abweichung von 18.
+Konten Ausgeschiedener und Personen ohne F1 klären (IT); App-Registrierung und Richtlinie in Entra anlegen (IT); automatische Zuordnung über eine Firmen-E-Mail aus BC.

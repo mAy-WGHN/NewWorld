@@ -1,34 +1,28 @@
-# Benachrichtigungstexte pflegbar, mit Variablen
+# Benachrichtigungstexte: pflegbar, mit Variablen
 
-**Gebaut am 2026-10-28 (Entscheidung 33 in `CLAUDE.md`).** Der Text unten ist der Entwurf; abweichend vom Entwurf gilt: Klasse 2 darf im Mail-Text bei Vorlagen mit `mailMayContainSensitive` stehen (zunächst HR), die Namenskopie ist gebaut, ausgeschiedene Personen werden noch nicht übersprungen, eine Oberfläche gibt es nicht (nur die Endpunkte).
+Gebaut (Entscheidung 33 in `CLAUDE.md`), Entwurf von 2026-10-28, gekürzt 2026-11-10. Code in `src/Notifications`, Oberfläche in `Frontend/.../notification-templates`.
 
-Stand 2026-10-28. **Wunsch des Projektverantwortlichen:** Alle Benachrichtigungstexte sollen pflegbar sein, in der Oberfläche, von einer Person der Personalabteilung. Im Text sollen Bausteine („Variablen“) stehen dürfen, z. B. „Willkommen zurück, $USER.firstName“ (Hans Dampf sieht „Willkommen zurück, Hans“) und für die Meldung zur Dienstplan-Änderung bei Krankheit Filiale, DP, Monat und Jahr. **Noch nichts gebaut**, weil mehrere Punkte eine Freigabe brauchen (unten).
+## Wie es funktioniert
 
-## Ist
-
-Vorlagen sind JSON-Dateien im Notifications-Dienst (`Templates/<dienst>.<anlass>.<empfängerrolle>.json`), beim Start geprüft. Platzhalter `{name}` werden vom **Absender** in `SendNotification.Data` geliefert und je Platzhalter als `sensitive` (Klasse 2, nur InApp) oder `public` deklariert. Push und Mail sind generisch und dürfen keine Platzhalter haben (Entscheidung 14).
-
-## Vorschlag
-
-- **Speicherort:** Tabelle im Notifications-Schema. Die Dateien bleiben als **Standard** (Startwert und Rückfall), eine gepflegte Fassung überschreibt sie. Änderungen mit Zeitpunkt und Person (ohne Textinhalt im Log), Zurücksetzen auf den Standard möglich.
-- **Pflege:** Endpunkte und Oberfläche für Titel und Text je Vorlage und Kanal; neues Recht `template:manage` (nicht scopable, Vergabe in Access an HR). Pflichtvorlagen bleiben nicht abschaltbar.
-- **Variablen:** Schreibweise `$BEREICH.name` (z. B. `$USER.firstName`, `$USER.lastName`, `$STORE.name`, `$STORE.number`, `$DP.month`, `$DP.year`). Je Vorlage gibt es einen **Katalog erlaubter Variablen**; unbekannte Variablen lehnt das Speichern ab (keine freie Ausführung, keine Formeln, kein HTML), eine Vorschau zeigt den Text mit Beispielwerten. Die Variablen des Absenders (Filiale, Monat, Jahr …) liefert weiter `SendNotification.Data`; Variablen zur Empfängerperson löst Notifications selbst auf.
-- **Datenschutz (Stand 2026-10-28, ändert Entscheidung 14):** Jede Variable trägt eine Klasse; die höchste erlaubte Klasse hängt am Kanal und an der Vorlage:
+- Vorlagen sind JSON-Dateien (`Templates/<dienst>.<anlass>.<empfängerrolle>.json`) und bilden den **Standard**. Die Personalabteilung überschreibt Titel und Text je Kanal (InApp, Push, E-Mail) in der Tabelle `template_overrides` (Recht `template:manage`, nicht scopable). Gespeichert wird nur, was abweicht; „Auf Standard zurücksetzen“ und eine **Vorschau** mit Beispielwerten gibt es.
+- **Variablen:** `$USER.firstName`, `$USER.lastName` (löst Notifications aus einer eigenen Namenskopie auf; `EmployeeChanged` ist dafür der einzige zusätzliche Konsument) und die je Vorlage deklarierten Daten des Absenders (`$DP.store`, `$DP.month`, `$DP.year`). Die alte Form `{name}` gilt weiter. Unbekannte Variablen lehnt das Speichern ab; keine Formeln, kein HTML.
+- **Klasse je Teil:**
 
   | Teil | Höchste Klasse |
   | --- | --- |
   | Push-Text, Mail-Betreff | 1, immer |
   | InApp-Text | 2 |
-  | Mail-Text | 1; bei Vorlagen mit dem Vermerk „Empfängerkreis darf Klasse 2 per Mail erhalten“ (z. B. HR) 2 |
-  | überall | Klasse 3 nie (kann ohnehin nicht über den Service Bus) |
+  | Mail-Text | 1; Klasse 2 nur bei Vorlagen mit `mailMayContainSensitive` (zunächst nur die HR-Vorlagen zur Dienstplanänderung) |
+  | überall | Klasse 3 nie |
 
-  Der Vermerk hängt an der Vorlage und liegt im Code, nicht in der Textpflege. Geprüft wird beim Speichern und beim Versand. Das passt zum Wortlaut der Datenschutz-Regel („nie Klasse-2-Inhalte in Push-Texten oder Mail-Betreffs“). Klasse 1 (Vorname, Nachname, Filiale, Monat, Jahr) ist in allen Kanälen erlaubt. Vorlagen, deren Text selbst Klasse 2 ist (z. B. Krankheit) und die keinen Vermerk haben, bleiben in Push und Mail generisch. Restrisiko Klasse 2 per Mail (Anbieter, Postfach-Weiterleitung): Abstimmung mit dem Datenschutzbeauftragten.
-- **Absender „System“:** Anzeige in der InApp-Liste; `SendNotification` hat dafür kein Feld und braucht keines, wenn der Absender eine Eigenschaft der Vorlage ist.
+  Vorlagen mit sensiblem Text (`sensitiveText`, z. B. Krankheit, Urlaub, AU) behalten feste Push-Texte und Mail-Betreffe. Geprüft wird beim Speichern (422, bei festen Texten 409), beim Versand und beim Ausliefern (fehlerhafte gespeicherte Texte fallen auf den Standard zurück).
+- Der Vermerk `mailMayContainSensitive` liegt im Code an der Vorlage, nicht in der Textpflege.
 
-## Offene Fragen (Freigabe nötig)
+## Offen
 
-1. **Empfängername:** `$USER.firstName` setzt voraus, dass Notifications den Vornamen kennt. Das geht nur mit einer **Kopie der Mitarbeitenden** (Vorname, Nachname) in Notifications: neuer Konsument von `EmployeeChanged` (Katalog sieht Notifications dort nicht vor) und Löschen bei `EmployeeDataErasureRequested`. Alternative ohne Kopie: der Absender liefert den Namen mit; das geht aber nur dort, wo der Absender ihn kennt. **Empfehlung: Kopie in Notifications (nur Name, Klasse 1).** Zustimmung?
-2. **Variablen in Push und Mail:** Entschieden, siehe Tabelle oben. Offen: **für welche Vorlagen** der Vermerk „Klasse 2 per Mail“ gilt (nur HR, oder auch Filialleitung/Vorgesetzte), und die Abstimmung mit dem Datenschutzbeauftragten zum Mail-Anbieter (z. B. Brevo, Auftragsverarbeitung).
-3. **Wer pflegt?** Nur die Personalabteilung (ein Recht `template:manage`) oder auch andere Rollen, etwa je Dienst nur dessen Vorlagen?
-4. **Sprache/Formatierung:** Reiner Text (Zeilenumbrüche) genügt? Mehrere Sprachen sind nicht vorgesehen.
-5. **Variablenkatalog zum Start:** `$USER.firstName`, `$USER.lastName`, `$STORE.name`, `$STORE.number`, `$DP.month`, `$DP.year`; weitere Wünsche?
+- **Mail-Anbieter** (z. B. Brevo, Auftragsverarbeitung) und das Restrisiko von Klasse 2 per Mail: mit dem Datenschutzbeauftragten klären. Echten Mailversand gibt es noch nicht.
+- **Bezirksleiter-Vermerk:** Welche weiteren Empfängerkreise Klasse 2 per Mail erhalten dürfen.
+- **Namen:** BC liefert nur einen Gesamtnamen; `EmployeeNames.Split` nimmt „Vorname Nachname“ oder „Nachname, Vorname“ an (`TODO(BC-Modell)`).
+- **Absender „System“** in der InApp-Liste: `SendNotification` hat dafür kein Feld; offen, ob es eine Eigenschaft der Vorlage wird.
+- Ausgeschiedene Personen werden **nicht** übersprungen (Entscheidung 36).
+- Keine mehrsprachigen Texte, nur Text ohne Formatierung.

@@ -1,31 +1,31 @@
-# Phase 7 – Vertikaler Durchstich
+# Vertikaler Durchstich (Rückblick Phase 7)
 
-Stand: 2026-10-23. Build ohne Warnungen; gesamte Solution grün (inkl. drei E2E-Tests, BC-Sandbox übersprungen). Vollständiger Testlauf lokal ca. 1,5 Minuten, die E2E-Tests (ganze Landschaft über Aspire) rund 20 Sekunden nach dem Start.
+Ursprünglich 2026-10-23, gekürzt 2026-11-10. Die End-to-End-Tests starten die ganze Landschaft über Aspire (mit WireMock als BC) und sind grün; der gesamte Testlauf dauert lokal wenige Minuten.
 
-> **Nachtrag 2026-10-26 (Entscheidung 18):** Die Dienst-Authentifizierung läuft nicht mehr über Entra, sondern mit einem Schlüsselpaar je Dienst und signierten Kurzzeit-Tokens (`docs/service-auth.md`). Entra-Paket und -Skripte (`docs/entra-setup.md`, `infra/entra/`) sind entfallen; die Aussagen zu Fake-Token, Entra und nicht ausgeführten Skripten unten gelten nicht mehr. Der Bicep-Text für den Service Bus wurde inzwischen mit `az bicep build` ohne Fehler und Warnungen kompiliert.
+## Was gebaut ist
 
-## Gebaut
-- **Portal-Gerüst:** Kopien von Mitarbeitenden und Filialen (`EmployeeChanged`, `StoreChanged`), Löschung bei `EmployeeDataErasureRequested`, `EmployeeAvailabilityChanged` wird nur bestätigt. Beweist die Verteilung an einen dritten Konsumenten.
-- **Service-Bus-Topologie:** `infra/servicebus.bicep` (Topics, Queues, Subscriptions mit Zweck-Kommentar und SQL-Filter, Rollen je Managed Identity) und `infra/servicebus-emulator.json`; Vergleichstest in `tests/Architecture.Tests`. Der Bicep-Text konnte ohne Azure-CLI nicht kompiliert werden (nur durch den Test strukturell geprüft).
+- **Portal-Gerüst** als dritter Konsument: Kopien von Mitarbeitenden und Filialen, Löschung bei `EmployeeDataErasureRequested`, Hauptfiliale aus `PermissionsChanged`, `EmployeeHired`/`EmployeeLeft`.
+- **Service-Bus-Topologie** in `infra/servicebus.bicep` (Topics, Queues, Subscriptions mit Zweck-Kommentar und Filter, Rollen je Identität; mit `az bicep build` ohne Fehler kompiliert) und `infra/servicebus-emulator.json`. Ein Test in `tests/Architecture.Tests` hält beide, den Nachrichtenkatalog und die in den Diensten registrierten Subscriptions zusammen.
 - **Routing-Eigenschaft `SourceService`** für die gefilterten `BcSync*`-Subscriptions.
-- **Lokale Dienst-Authentifizierung** (Fake-Token) und Personen-Tokens gegen Access im AppHost, Katalog-Anmeldung der Dienste bei Access, PIN-Prüfung über BC-Fake.
-- **E2E (`tests/AppHost.Tests/AbsenceE2ETests.cs`):** (1) Krankmeldung → BC-Upsert mit der Absence-Id als externe ID → `Synced` → InApp-Nachricht der Filialleitung → Kollegin sieht nur „Absent“, Filialleitung die Art; Kopien im Portal. (2) 429 → Status `Pending` → Erfolg beim Retry. (3) Validierungsfehler → `Failed`, genau ein Versuch, Fehlercode ohne Namen/Personalnummer/BC-Text.
-- **Doku:** `docs/architektur.md`, `docs/entra-setup.md`, `infra/entra/*.ps1` (nicht ausgeführt, mangels PowerShell nicht probeweise gelaufen).
+- **Drei End-to-End-Tests** (`tests/AppHost.Tests/AbsenceE2ETests.cs`):
+  1. Krankmeldung → BC-Upsert mit der Absence-ID als externe ID → `Synced` → InApp-Nachricht an die Zuständigen → eine Kollegin sieht nur „abwesend“, die Filialleitung die Art.
+  2. BC antwortet mit 429 → Status `Pending` → Erfolg beim Retry.
+  3. Validierungsfehler → `Failed`, genau ein Versuch, Fehlercode ohne Namen oder BC-Text.
 
-## Abweichungen und Einschränkungen
-1. **Push-Fake (Plan, E2E Schritt 7):** Workforce fordert für Krankmeldungen ausschließlich InApp an (datenschutzkonservativ); es gibt daher keine Push-Zustellung, die der Test prüfen könnte. Geprüft wird die InApp-Nachricht; die Schutzregel („nur InApp mit Klasse-2-Daten“) ist in den Notifications-Tests abgedeckt.
-2. **Entra** (Entscheidung 13): keine Benutzer-App-Rollen/-Gruppen, keine Identitätszuordnung; Entra nur zwischen Diensten. Weicht vom Plan ab.
-3. **Emulator:** Lebensdauer maximal 1 h, mindestens eine Subscription je Topic (daher kein `shift-uncovered`-Topic bis zum ersten Herausgeber).
-4. **Portal** konsumiert `EmployeeHired`/`EmployeeLeft` noch nicht (Kopie nutzt das Austrittsdatum aus `EmployeeChanged`).
-4. **Portal** konsumiert seit 2026-11-03 `EmployeeHired`/`EmployeeLeft` (Datumsfelder der Kopie) und übernimmt die Hauptfiliale aus `PermissionsChanged` wie Workforce.
-6. Nicht verifiziert: Bicep gegen echte Azure-Umgebung, PowerShell-Skripte, Betrieb mehrerer Instanzen (`TODO(Betrieb)` bei Master-Data-Sync und Forwarded Headers).
+## Abweichungen vom Plan
 
-## Offene `TODO(BC-Modell)` (Auswahl nach Bereich, Vollständige Liste per `grep -rn "TODO(" src`)
-- **Mitarbeiter/Filialen:** Feldliste, Vornamen/Nachnamen getrennt, Positions- und Beschäftigungsarten-Wertelisten (Filialleitung/Bezirksleitung/HR), Filialadresse, Öffnungszeiten, Quelle der Hauptfiliale.
-- **Abwesenheiten:** API-Seite, Mapping Art → BC-Code (KRANK/URLAUB), Genehmigungsstatus, offenes Ende, Fehlerformat der Validierung (`BcSyncErrorCode`), Rate-Limits des Mandanten.
-- **PIN-Prüfung:** (erledigt 2026-10-26, Entscheidung 19) läuft wie im HR-Tool als SOAP `Zeiterfassung.GetStatus`; offen ist nur der Lauf gegen echtes BC.
-- **Urlaubsanspruch:** Herkunft (derzeit manuell).
-- **Entscheidungen:** Bundesland je Filiale (Feiertage), Webhook vs. Polling und Intervall, weitere Rollen-Automatik über Funktion (Entscheidung 13).
+- **Kein Push im Test:** Workforce fordert für Krankmeldungen nur InApp an (datenschutzkonservativ); geprüft wird die InApp-Nachricht, die Schutzregel selbst deckt ein Test in Notifications ab.
+- **Kein Entra für Personen und Dienste** (Entscheidungen 13, 18); Entra-Paket und -Skripte sind entfallen.
+- **Emulator:** Lebensdauer höchstens 1 Stunde, mindestens eine Subscription je Topic (deshalb gibt es das Topic für `ShiftUncovered` erst mit dem ersten Herausgeber).
+
+## Nicht verifiziert
+
+Bicep gegen eine echte Azure-Umgebung, Betrieb mehrerer Instanzen (`TODO(Betrieb)` bei Stammdatenabgleich und Forwarded Headers), Login und Sync gegen echtes BC.
+
+## Offene `TODO(BC-Modell)`
+
+Vollständig mit `grep -rn "TODO(" src`. Kern: Mitarbeiter- und Filialfelder (getrennt Vor- und Nachname, Filialadresse, Öffnungszeiten), Abwesenheiten (API-Seite, Art → BC-Code, Genehmigungsstatus, Fehlerformat), Spiegelung von Nicht-Verfügbarkeit und Arbeitszeitkonto. Die PIN-Prüfung ist umgesetzt (Entscheidung 19) und läuft bisher nur gegen WireMock.
 
 ## Vorschlag nächste Fachfunktion
-**Dienstplan-Einsicht** (nur lesen) vor der Zeiterfassung: nutzt dieselben Kopien, Berechtigungen und Sichtbarkeitsregeln, braucht kein neues Schreibmodell nach BC und liefert `ShiftUncovered`/`EmployeeAvailabilityChanged` echte Konsumenten; die Zeiterfassung hat höhere Datenschutz- und BC-Spiegelungsanforderungen.
+
+**Dienstplan-Einsicht** (nur lesen) vor der Zeiterfassung: Sie nutzt dieselben Kopien, Rechte und Sichtbarkeitsregeln, braucht kein neues Schreibmodell nach BC und gibt `ShiftUncovered` einen echten Konsumenten. Die Zeiterfassung hat höhere Datenschutz- und BC-Spiegelungsanforderungen.

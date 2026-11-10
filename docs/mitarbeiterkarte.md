@@ -1,130 +1,54 @@
-# Mitarbeiterkarte (Entwurf)
+# Mitarbeiterkarte, Nicht-Verfügbarkeit, Arbeitszeitkonto
 
-Stand 2026-10-27. **Entscheidungen vom Projektverantwortlichen sind eingearbeitet (siehe „Entschieden“); gebaut wird in Schritten (unten).** Ziel: neue Mitarbeitende werden künftig im neuen Tool angelegt, mit **einer** gesammelten Mitarbeiterkarte statt zwei getrennter Listen. Danach müssen die Daten nach BC fließen; das wird jetzt nur mitgedacht, nicht gebaut.
+Entwurf von 2026-10-27/28, gekürzt 2026-11-10. Gebaut sind die Schritte 1 bis 4; Entscheidungen 29 bis 32, 34, 35, 37 und 38 in `CLAUDE.md` sind die verbindlichen Fassungen. Code in `Workforce.Core` (`Employees/`, `Unavailability/`, `WorkingTime/`).
 
-## Quellen
+**Ziel:** Neue Mitarbeitende werden im neuen Tool mit **einer** gesammelten Karte angelegt statt in zwei BC-Listen (Mitarbeiterliste der Personalplanung, Kassiererübersicht). Die Karte führt jede Information einmal; „Vollständiger Name“ und „Suchbegriff“ werden abgeleitet, die Kassierer-ID ist die Personalnummer.
 
-| Liste in BC | Spalten (aus der Tabellendefinition der Exportdatei) |
-| --- | --- |
-| Mitarbeiterliste (Personalplanung) | Nr., Vollständiger Name, Vorname, Nachname, Funktion, Geschäfts Email, Suchbegriff, Bemerkung, Beschäftigungsverhältniscode, Arbeitsort, Rolle, Region |
-| Kassiererübersicht | ID, Nachname, Vorname, Name auf Bon, Arbeitsverhältnis, Filialnr., Kasse Schnittstellenprofil, Kasse Menüprofil, POS Stilprofil, Manager Benutzerrechte, Berechtigungsgruppe |
+## Besitz und Datenschutz
 
-Beide führen teilweise dasselbe (Nr. = ID, Vorname, Nachname); die Karte führt jede Information **einmal**. Die Spalten „Vollständiger Name“ und „Suchbegriff“ werden abgeleitet, nicht erfasst. Retail-Kassierer-ID = Personalnummer (kein zweites Feld).
+- **Workforce besitzt die Karte** für neu angelegte Personen. Bestehende Personen bleiben BC-Kopien; bis BC eine neue Person kennt, ist die Karte die Quelle (Zustand `PendingBc`).
+- **Klassen:** Name, Personalnummer, Filiale, Funktion, Arbeitsverhältnis, Ein- und Austritt: Klasse 1. Adresse, private Telefonnummer und E-Mail, Geburtsdatum, Geschlecht: Klasse 2 (nie auf den Bus). **Lohnart:** vorläufig Klasse 2, nur für HR, Admin und Geschäftsführung; die Einordnung steht beim Datenschutzbeauftragten aus.
+- **Lesen mit Stufen:** `employee:read` (ohne Privates), `employee:read-private`, `employee:read-wage-type`; die Person sieht ihr Privates über `/api/me/employee-card`, nie die Lohnart. Anlegen und Ändern mit `employee:create`/`update` (mit Filial-Scope).
+- Das **Kennwort** wird nie gespeichert, die Karte führt nur das Flag „Kennwort ändern“. **Kassenprofile** gehören nicht auf die Karte.
 
-## Felder der Karte
+## Felder
 
-Abschnitte so, wie HR sie ausfüllt. „Q“ = Quelle: **P** Personalplanung, **K** Kassiererübersicht, **D** deine Aufzählung (nicht in den beiden Listen belegt, Herkunft in BC offen), **N** neu im Tool.
+Identität: Personalnummer (vom Nummernkreis, danach unveränderlich), Vorname, Nachname, Name auf dem Bon (Standard Nachname), Geschlecht, Geburtsdatum, Status (abgeleitet aus Ein- und Austritt). Kontakt: Straße, PLZ, Ort, private Telefonnummer und E-Mail, geschäftliche E-Mail. Beschäftigung: Hauptfiliale, Region, Arbeitsort, Funktion, Rolle (nicht die Rolle in Access), Arbeitsverhältnis, Beschäftigungsverhältniscode, Berechtigungsgruppe, Lohnart, Anstellungs- und Austrittsdatum (das Anstellungsdatum steuert den anteiligen Urlaub), Vorgesetzter (per Personalnummer; Zuständigkeiten bleiben in Access), Bemerkung (Freitext, **keine** Gesundheitsangaben). Zeiterfassung und Anmeldung: Web-Zeiterfassung erlaubt (Standard ja), QTrado-Export, „Kennwort ändern“.
 
-| Abschnitt | Feld | Q | Anmerkung |
-| --- | --- | --- | --- |
-| Identität | Personalnummer | P, K | vergibt das Tool aus dem Nummernkreis (unten), danach unveränderlich |
-| | Vorname, Nachname | P, K | |
-| | Name auf dem Bon | K | Standard: Nachname |
-| | Geschlecht, Geburtsdatum | D | |
-| | Status | D | aktiv / ausgetreten, abgeleitet aus Eintritt und Austritt, nicht frei wählbar (Annahme) |
-| Kontakt | Straße, PLZ, Ort | D | |
-| | private Telefonnummer, private E-Mail | D | |
-| | geschäftliche E-Mail | P | |
-| Beschäftigung | Hauptfiliale | K (Filialnr.) | Vorschlag aus BC-Vorgabefiliale gilt nicht mehr: neue Personen bekommen sie hier (Entscheidung 21) |
-| | Region | P | aus der Filiale abgeleitet (Annahme, zu bestätigen) |
-| | Arbeitsort | P | |
-| | Funktion im Unternehmen | P | frei gepflegt (Entscheidung 22) |
-| | Rolle | P | Bedeutung zu klären (nicht die Rolle in Access) |
-| | Arbeitsverhältnis | K | |
-| | Beschäftigungsverhältniscode | P | |
-| | Lohnart | D | siehe Datenschutz |
-| | Anstellungsdatum, Austrittsdatum | D | Anstellungsdatum steuert den anteiligen Urlaub |
-| | Vorgesetzter | D | per Personalnummer; die Zuständigkeiten für Genehmigungen bleiben in Access (Entscheidung 13) |
-| | Bemerkung | P | Freitext, **keine** Gesundheitsangaben (Datenschutz-Regel) |
-| Beschäftigung | Berechtigungsgruppe | K, D | Auswahlliste |
-| Zeiterfassung / Export | Web-Zeiterfassung erlaubt | D | Standard **ja** (das HR-Tool braucht das Flag für die Stempelung) |
-| | QTrado-Export | D | Flag |
-| Anmeldung | „Kennwort ändern“ | D | nur das Flag (Standard ja); das Kennwort selbst wird nie gespeichert (Entschieden 2) |
+Funktion, Rolle, Region, Arbeitsort, Beschäftigungsverhältniscode, Arbeitsverhältnis, Berechtigungsgruppe und Lohnart sind **Auswahllisten**, die HR pflegt (`/api/employee-lists/{kind}`, Einträge nur deaktivieren).
 
-## Personalnummer und Nummernkreis
+## Personalnummer
 
-Ja, den bestehenden Nummernkreis weiterführen. Vorschlag:
-- Im Tool liegt ein **Nummernkreis** (Bereich 1001 bis 99999, pflegbar) mit der **zuletzt vergebenen Nummer**, den HR von Hand pflegen kann (kein Import aus BC). Am Ende des Bereichs wird niemand mehr angelegt, bis HR den Bereich erweitert.
-- Neue Nummer = letzte + 1, **atomar** (zwei gleichzeitige Anlagen bekommen nie dieselbe), nie wiederverwendet, Lücken sind erlaubt (angelegt, dann verworfen).
-- Meldet BC eine höhere Nummer (jemand wurde direkt in BC angelegt), hebt das Tool die „letzte Nummer“ automatisch an, damit nichts kollidiert; HR kann sie weiterhin von Hand setzen.
-- Die Nummer wird gegen alle bekannten Personen geprüft (Kopien aus BC); ein Duplikat wird abgelehnt.
-- Format (nur Ziffern, Länge) ist zu bestätigen; die Testdaten verwenden fünfstellige Nummern wie 10042.
+Nummernkreis von **1001 bis 99999** (pflegbar, `PUT /api/personnel-number-series`), HR trägt die **zuletzt vergebene** Nummer von Hand ein (Stand 2026-10-27: 15301); ohne sie wird niemand angelegt. Vergabe atomar und nie wiederverwendet (Lücken erlaubt); am Ende des Bereichs `409 NumberSeriesExhausted`. Meldet BC eine höhere Nummer im Bereich, hebt das Tool die letzte Nummer an. Duplikate gegen alle bekannten Personen werden abgelehnt. **Vor dem Go-live prüfen**, ob 15301 noch die aktuellste Nummer ist.
 
-## Konten
+## Änderungsanträge (Schritt 2)
 
-Jede Person bekommt beim Anlegen drei Konten:
+Die Person ändert nichts selbst, sie beantragt (Adresse, Telefon, E-Mail, Mitteilung; ein offener Antrag je Person). HR entscheidet mit Grund (`employee:decide-change`); niemand entscheidet den eigenen Antrag. Die Benachrichtigungen enthalten keine Daten. Zuständig ist, wer für das Thema `employee.change-request` eingetragen ist; ohne Zuständigen wird der Antrag mit `409` abgelehnt.
 
-| Konto | Stand heute | Vorschlag |
-| --- | --- | --- |
-| **Urlaubskonto** | gebaut (Jahresanspruch, Zusatztage, Änderungen, Regeln durch HR, `docs/urlaubsberechnung.md`) | mit der Karte automatisch vorhanden; beim Anlegen Jahresanspruch erfassen |
-| **Nicht-Verfügbarkeitskonto** | nicht gebaut | Was zählt es? Je Nichtverfügbarkeitsart Tage/Stunden? Die Arten stehen in der Liste „Nichtverfügbarkeitsarten“; Abgrenzung zu Krank und Urlaub offen |
-| **Überstundenkonto** | nicht gebaut | Saldo in Stunden mit **Anfangsbestand** (HR) und Buchungen; die Zeiterfassung selbst ist laut Plan nicht Teil dieses Vorhabens, also zunächst nur Konto und manuelle Buchung |
+## Nicht-Verfügbarkeit (Schritt 3)
 
-## Besitz, Datenschutz, Fluss
+Die Liste „Nichtverfügbarkeitsarten“ hat **24 Einträge** aus BC (Code, Beschreibung, bezahlte Zeit, Zeitplan-Zeichen), z. B. KRANK (K), URLAUB (U), KRANK I URLAUB (KU), ELTERNZEIT, MUTTERSCHUTZ, SONDERURLAUB, FORTBILDUNG; HR pflegt sie (nur deaktivieren). KRANK, URLAUB und KU sind Systemarten und kommen aus den Abwesenheiten. Einträge trägt nur HR ein (`unavailability:create`/`delete`): ganze Tage, nicht vor Eintritt und nicht nach Austritt, **ohne Überschneidung**; ein Urlaubsantrag über einen Eintrag wird abgelehnt, eine Krankmeldung gewinnt.
 
-- **Besitzer der Karte: Workforce** (eigener Bereich `Employees/`). Workforce hält schon Kopien der Personen und führt die Konten; die HR API des Plans ist nicht Teil dieses Vorhabens. Das ändert die bisherige Regel „BC ist alleiniger Master für Stammdaten“ für **neu angelegte** Personen: bis BC sie kennt, ist die Karte im Tool die Quelle. Bestehende Personen bleiben BC-Kopien. **Braucht deine Bestätigung.**
-- **Klassen:** Name, Personalnummer, Filiale, Funktion, Arbeitsverhältnis, Eintritt/Austritt: Klasse 1 (wie `EmployeeChanged`). Privatadresse, private Telefon/E-Mail, Geburtsdatum, Geschlecht: Klasse 2 (nie auf dem Bus, nur autorisierter Abruf). **Lohnart**: Klasse 2 oder 3? (Der Plan führt das Lohnarten-Mapping in der HR API.) Einordnung mit dem Datenschutzbeauftragten, bis dahin Klasse 2 und nur für HR sichtbar.
-- **Rechte:** Anlegen und Ändern nur mit eigenen Rechten (z. B. `employee:create`, `employee:update`, `employee:read-private`), je mit Beschreibung und Filial-Scope, Vergabe später in Access.
-- **Fluss nach BC (später):** Karte angelegt → Zustand `PendingBc` → Befehl an BC Integration (neue Nachricht, **braucht Freigabe**, Queue nur von BC Integration lesbar) → BC legt die Person mit der vergebenen Nummer an → `BcSyncSucceeded`/`BcSyncFailed` → danach fließt `EmployeeChanged` wie bisher. Voraussetzung in BC: Nummer von außen vorgebbar, Feldliste für die Anlage (`TODO(BC-Modell)`).
+Sichtbarkeit: die Person selbst und `absence:read-reason` sehen die Art; `absence:read-availability` sieht Krank, Urlaub und KU, jede andere Art nur als „nicht verfügbar“ mit zusammengeführten Zeiträumen. Hat jemand eine Schicht an einem solchen Tag, wird sie als nicht abgedeckt gemeldet (`ShiftUncovered`) und die HR-Gruppe (Zuständigkeit `schedule.adjustment`) benachrichtigt; die Person selbst nie. Einträge, die nach einem später gemeldeten Austritt reichen, werden nur markiert (`afterExit`).
 
-## Entschieden (2026-10-27)
+## Arbeitszeitkonto (Schritt 4)
 
-1. **Workforce besitzt die Karte** (eigener Bereich `Employees/`). Bestehende Personen bleiben BC-Kopien, neu angelegte sind bis zur Übernahme durch BC im Tool die Quelle.
-2. **Passwort:** Es wird nirgends gespeichert, auch nicht verschlüsselt. In BC ist das Kennwort ein reines Überschreiben-Feld; das Tool verhält sich gleich: die Karte führt nur das Flag „Kennwort ändern“ (Standard ja). Wie die Start-PIN beim Übertragen nach BC gesetzt wird, ohne dass sie je in der Datenbank oder im Outbox-Eintrag steht, wird beim Bau des BC-Flusses entschieden (zum Beispiel erzeugt BC Integration sie bei der Anlage und zeigt sie HR einmalig).
-3. **Kassenprofile** (Schnittstellen-, Menü-, Stilprofil, Manager-Benutzerrechte) kommen **nicht** auf die Karte: bei Benutzern sind sie nicht gepflegt. Später additiv möglich.
-4. **Auswahlfelder:** Funktion, Rolle, Region, Arbeitsort, Beschäftigungsverhältniscode, Arbeitsverhältnis, Berechtigungsgruppe und Lohnart sind **Auswahllisten**, die HR pflegt (Einträge nur deaktivieren, nicht löschen). In BC sind einige davon heute Freitext.
-5. **Sichtbarkeit:** Die **Lohnart** sehen nur HR, Admin und Geschäftsführung (eigenes Recht). **Private Daten** (Adresse, Telefon, private E-Mail, Geburtsdatum, Geschlecht) sehen dieselben **und die Person selbst**; die Person kann Änderungen **beantragen**, HR wird benachrichtigt und entscheidet (Schritt 2).
-6. **Nicht-Verfügbarkeit** ist die Liste, an der die Dienstpläne hängen (siehe unten), **Urlaubskonto** nur der Anspruch und sein Verbrauch.
-7. Das **Überstundenkonto** heißt **Arbeitszeitkonto** (siehe unten).
+Ein Buchungskonto je Person; der Saldo wird aus den Buchungen berechnet (Plus bildet Töpfe mit Erfassungsdatum, Minus verbraucht den ältesten Topf zuerst). Alle Regeln pflegt HR **einmal für alle** (`workingtime:manage-rules`):
 
-## Nicht-Verfügbarkeit
+- **Überstunden:** Das Arbeitsverhältnis legt eine **Monatsschwelle** fest; ab ihr werden die weiteren Stunden 1:1 als Überstunden gebucht (Schwelle 160 h, gearbeitet 172 h → 12 Überstunden).
+- **Minusstunden:** Unter der Schwelle bucht der Monatsabschluss nur, wenn HR `bookMinusHours` einschaltet (Standard aus); `maxMinusHours` begrenzt den Fehlbetrag, der Rest steht als `MinusHoursNotBooked`.
+- **Auszahlungsschwelle** (Standard 0, also immer) und **Verfall** (ab dem Tag nach Erfassung plus Monate; Standard: nichts verfällt).
+- **Buchungen** (`workingtime:book`): Anfangsbestand, Monatsabschluss, Freizeitausgleich, Auszahlung, Auszahlung bei Austritt (ganzes Guthaben, HR-Aktion, Erinnerung am Tag nach dem Austritt über das Thema `workingtime.payout`), Korrekturen. Lesen: die Person (`workingtime:read-own`) und `workingtime:read`.
+- Die Stunden kommen von Hand, bis es eine Zeiterfassung gibt.
 
-Die Liste „Nichtverfügbarkeitsarten“ hat 24 Einträge (Stand BC-Screenshot 2026-10-28; früher als 25 notiert) mit den Spalten **Code, Beschreibung, Bezahlte Zeit (0/1), Zeitplan Zeichen, Arbeitscode setzen** (leer): zum Beispiel KRANK (K), URLAUB (U), KRANK I URLAUB (KU), ELTERNZEIT (EZ), FREI (FT), MUTTERSCHUTZ (MS, bezahlt), UB (unwiderruflich bezahlte Freistellung, bezahlt), UNENTSCHULDIGT (UE), UNBEZ. U (UBE), SONDERURLAUB (SU), FORTBILDUNG (FB), PRÜFUNG (P, bezahlt) und weitere. Sie sind die **Ursachen, weshalb jemand nicht zur Arbeit erscheint**.
-
-Sie beeinflussen den Dienstplan (Dienstplanung selbst ist noch nicht gebaut, die Schnittstelle ist vorbereitet):
-- Hat eine Person für einen Tag eine Nicht-Verfügbarkeit **und** dort eine Schicht, wird die Schicht als **nicht abgedeckt** markiert (`ShiftUncovered`, im Katalog) und HR benachrichtigt.
-- Nach dem Tag steht im Dienstplan **nicht „leer“, sondern das Zeitplan-Zeichen** („war krank“: K), weil die Lohnabrechnung es braucht. Die Art trägt dafür „bezahlte Zeit“.
-- Die bestehenden Abwesenheiten (Krankmeldung, Urlaub) werden zu Nicht-Verfügbarkeiten dieser Arten; die Arten selbst werden als von HR pflegbare Liste geführt (Start: die 24 Einträge der BC-Liste).
-
-**Gebaut (Schritt 3, Entscheidung 32):** `Workforce.Core/Unavailability/` (Arten, Einträge, Zeitleiste, `ShiftCoverage`), Endpunkte `UnavailabilityEndpoints.cs`, Migration `Unavailability`. Krank im genehmigten Urlaub wird als KU geführt; Sichtbarkeit: Person und Inhaber von `absence:read-reason` sehen die Art; Inhaber von `absence:read-availability` (selber Dienstplan) sehen Krank, Urlaub und KU als solche, jede andere Art nur als „nicht verfügbar“; die Dienstplanung selbst fehlt, `IShiftLookup` liefert vorerst keine Schichten. Offen: Pflege des Hinweistextes durch HR, BC-Spiegelung der Einträge, Teiltage (Uhrzeiten), Einrichtung in Access.
-
-## Arbeitszeitkonto
-
-Statt „Überstundenkonto“. Ein Konto je Person mit diesen Bestandteilen:
-
-| Bestandteil | Bedeutung |
-| --- | --- |
-| Sollarbeitszeit | vertraglich vereinbarte Stunden, z. B. 40 h/Woche |
-| Ist-Arbeitszeit | tatsächlich geleistete Stunden |
-| Überstunden | Stunden oberhalb der Sollarbeitszeit |
-| Minusstunden | Stunden unterhalb der Sollarbeitszeit |
-| Zeitguthaben | aktueller Saldo aus Plus- und Minusstunden |
-| Freizeitausgleich | Abbau durch freie Stunden oder Tage |
-| Auszahlung | vergütete Überstunden, vom Guthaben abgezogen |
-| Korrekturbuchungen | nachträgliche Änderungen, z. B. bei fehlerhafter Zeiterfassung |
-| Übertrag | Saldo aus dem vorherigen Abrechnungszeitraum |
-
-Regeln, alle von HR pflegbar und **für alle gleich** (nicht je Arbeitsverhältnis, Entscheidung 31):
-- **Auszahlungsschwelle:** Ab diesem Guthaben können Überstunden ausbezahlt werden. **Standard: 0 Stunden, also immer.** Trägt HR einen anderen Wert ein, gilt er für alle, unabhängig vom Arbeitsverhältnis. Bei **Austritt** wird das Restguthaben **immer** ausbezahlt, auch unter der Schwelle.
-- **Verfall:** Überstunden tragen das **Datum ihrer Erfassung**, damit sie verfallen können. Die Frist ist ein pflegbarer Schwellwert, **Standard: nichts verfällt**, ebenfalls für alle gleich. Verbrauch wie bei Zusatzurlaub: ältere zuerst.
-- **Arbeitsverhältnis:** Es legt **implizit fest, was als Überstunden gilt**: je Arbeitsverhältnis gibt es eine **Monatsschwelle** (Stunden pro Monat, von HR gepflegt). Ab dem Punkt im Monat, an dem sie erreicht ist, werden die weiteren Stunden **1:1** gezählt und im Arbeitszeitkonto als Überstunden erfasst (kein Faktor). Beispiel: Schwelle 160 h, gearbeitet 172 h → 12 Überstunden für den Monat. Auszahlungsschwelle und Verfall hängen **nicht** am Arbeitsverhältnis.
-- **Gebaut (Schritt 4, Entscheidung 34):** `Workforce.Core/WorkingTime/`, Endpunkte `WorkingTimeEndpoints.cs`, Migration `WorkingTimeAccount`. Offen: Minusstunden unter der Monatsschwelle (keine gebucht), Spiegelung nach BC, automatische Auszahlung bei Austritt.
-- Ist- und Sollzeit kommen später aus der Zeiterfassung (nicht Teil dieses Vorhabens); bis dahin gibt es das Konto mit **Anfangsbestand** und manuellen Buchungen.
-
-## Schritte
+## Schritte und Offenes
 
 | Schritt | Inhalt | Stand |
 | --- | --- | --- |
-| 1 | Karte: Felder, Anlegen mit Personalnummer aus dem Nummernkreis, Auswahllisten, Lesen mit Datenschutz-Stufen, Urlaubsanspruch beim Anlegen | **gebaut** (Entscheidung 29) |
-| 2 | Änderungsanträge der Person für private Daten, HR-Benachrichtigung und Entscheidung | **gebaut** (Entscheidung 30) |
-| 3 | Nicht-Verfügbarkeit: pflegbare Arten (Start: 24 aus der BC-Liste), Einträge je Person, Anbindung der Abwesenheiten, KU, Hinweis „nicht abgedeckt“ | **gebaut** (Entscheidung 32) |
-| 4 | Arbeitszeitkonto mit Schwellen für Auszahlung und Verfall | **gebaut** (Entscheidung 34) |
-| 5 | Übertragung nach BC (neue Nachricht, Start-PIN, Feldliste) | braucht Freigabe und BC-Modell |
+| 1 | Karte, Nummernkreis, Auswahllisten, Datenschutzstufen | gebaut (Entscheidung 29) |
+| 2 | Änderungsanträge | gebaut (30) |
+| 3 | Nicht-Verfügbarkeit | gebaut (32) |
+| 4 | Arbeitszeitkonto | gebaut (34, 35) |
+| 5 | Übertragung neuer Personen nach BC (neue Nachricht nur nach Freigabe, Start-PIN ohne Speichern im Klartext, `PendingBc` → `Synced`) | braucht Freigabe und BC-Modell |
 
-## Offene Fragen
-
-1. ~~Format und Startwert des Nummernkreises~~ **geklärt:** Bereich 1001 bis 99999, nur Ziffern ohne Auffüllen, zuletzt vergeben 15301 (Stand 2026-10-27). **Vor dem Go-live prüfen**, ob 15301 noch die aktuellste Nummer ist; HR trägt sie im Tool ein, ohne sie lässt sich niemand anlegen.
-2. **Vorgesetzter:** Die Karte speichert ihn über die Personalnummer. Die Zuständigkeit für Genehmigungen bleibt in Access; soll der Vorgesetzte der Karte zusätzlich etwas steuern?
-3. **Rolle** (Mitarbeiterliste): Was bedeutet sie fachlich? (Nicht die Rolle in Access.)
-4. **Lohnart:** Klasse 2 oder 3 (mit dem Datenschutzbeauftragten).
-5. ~~Schwellen je Arbeitsverhältnis?~~ **geklärt:** für alle gleich. **Geklärt:** Das Arbeitsverhältnis bestimmt die Monatsschwelle, ab der Überstunden 1:1 gezählt werden. **Geklärt (Entscheidung 35):** Minusstunden unter der Monatsschwelle bucht der Monatsabschluss nur, wenn HR es einschaltet (Standard aus, für alle).
+Offen: BC-Feldliste der Karte und Spiegelung von Nicht-Verfügbarkeit und Arbeitszeitkonto (`TODO(BC-Modell)`), Dienstplan als Quelle für `IShiftLookup`, Teiltage (Uhrzeiten), Bedeutung des Felds „Rolle“, ob der Vorgesetzte der Karte etwas steuern soll, Klasse der Lohnart (Datenschutzbeauftragter), Einrichtung der Rechte und Zuständigkeiten in Access (`docs/rollen.json` deckt die Rechte ab).

@@ -1,6 +1,6 @@
 # Architektur und Entwicklung
 
-Stand: 2026-10-23. Regeln und Entscheidungen: `CLAUDE.md`; Plan: `Umsetzungsplan Mitarbeiterportal – Backend-Architektur.md`.
+Überarbeitet 2026-11-10. Regeln und Entscheidungen: `CLAUDE.md`; Zielbild und Leitplanken: `Umsetzungsplan Mitarbeiterportal – Backend-Architektur.md`. Lokal starten und Fehlersuche: `know-how.md`.
 
 ## Dienste und Nachrichten
 
@@ -16,53 +16,45 @@ flowchart LR
     end
     BCI <-->|HTTP, einziger BC-Zugang| BC
     BCI -- "EmployeeChanged, EmployeeHired, EmployeeLeft, StoreChanged, EmployeeDataErasureRequested" --> ACC & WF & POR
+    BCI -- "EmployeeChanged (nur Name)" --> NOT
     BCI -- "BcSyncSucceeded / BcSyncFailed (Filter SourceService)" --> WF
     ACC -- "PermissionsChanged" --> WF & POR & NOT
     ACC -- "ResponsibilitiesChanged" --> WF
     WF -- "SyncAbsenceToBc (Queue)" --> BCI
     WF -- "SendNotification (Queue)" --> NOT
+    POR -- "SendNotification (Queue)" --> NOT
     WF -- "EmployeeAvailabilityChanged (neutralisiert)" --> POR
     ACC -- "PIN-Prüfung (HTTP, Service Role)" --> BCI
 ```
 
-Der Weg einer Krankmeldung: Workforce-API → Zustand + Outbox in **einer** DB-Transaktion (`SyncAbsenceToBc`, `EmployeeAvailabilityChanged`, `SendNotification`) → Service Bus → BC Integration (Upsert über die interne GUID als externe ID) → `BcSyncSucceeded`/`BcSyncFailed` → Workforce setzt den Sync-Status; Notifications legt die InApp-Benachrichtigung der Filialleitung ab. Der Grund der Abwesenheit steht nur im Command an BC Integration, nie in Events oder Push-fähigen Daten.
+**Weg einer Krankmeldung:** Workforce-API → Zustand und Outbox in **einer** DB-Transaktion (`SyncAbsenceToBc`, `EmployeeAvailabilityChanged`, `SendNotification`) → Service Bus → BC Integration (Upsert über die interne GUID als externe ID) → `BcSyncSucceeded`/`BcSyncFailed` → Workforce setzt den Sync-Status, Notifications legt die InApp-Benachrichtigung ab. Der Grund der Abwesenheit steht nur im Command an BC Integration, nie in Events oder Push-fähigen Daten.
 
-Die Topologie (Topics, Queues, Subscriptions mit Zweck-Kommentar, Filter, Rollenzuweisungen) steht in `infra/servicebus.bicep`; der lokale Emulator nutzt dieselbe Topologie (`infra/servicebus-emulator.json`). `tests/Architecture.Tests/ServiceBusTopologyTests.cs` vergleicht beide, den Nachrichtenkatalog und die in den Diensten registrierten Subscriptions. Emulator-Besonderheit: maximale Lebensdauer 1 h (Azure: 1 Tag).
+**Topologie** (Topics, Queues, Subscriptions mit Zweck-Kommentar, Filter, Rollen): `infra/servicebus.bicep`; der lokale Emulator nutzt dieselbe (`infra/servicebus-emulator.json`). `tests/Architecture.Tests/ServiceBusTopologyTests.cs` vergleicht beide, den Nachrichtenkatalog und die in den Diensten registrierten Subscriptions. Emulator: Lebensdauer höchstens 1 Stunde (Azure: 1 Tag).
 
-## Lokal starten
+## Lokal starten und testen
 
-Voraussetzungen: .NET SDK 10, Docker.
+`cd src/AppHost && dotnet run` startet Postgres, Service-Bus-Emulator, WireMock als BC-Ersatz und die fünf Dienste, danach `cd Frontend && npm start`. Anleitung, Testnutzer, Ports und Fehlersuche: `know-how.md`, `mock-login.md`.
 
-```bash
-make test                         # build + alle Tests (inkl. E2E, unter 5 Minuten)
-dotnet run --project src/AppHost  # ganze Landschaft starten, Aspire-Dashboard im Browser
-```
+Tests: `dotnet test NewWorld.slnx` (Unit, Integration, Vertrag, Architektur, End-to-End); BC-Sandbox-Tests (`Category=BcSandbox`) nur manuell. Frontend: `npx ng test --watch=false` in `Frontend/`.
 
-Der AppHost startet PostgreSQL (eine Datenbank je Dienst), den Service-Bus-Emulator, WireMock als BC-Ersatz (`tests/Fixtures/Bc/e2e-landscape`: eine Filiale, sechs Mitarbeitende, PIN 4711 für alle) und die fünf Dienste.
+## Erweitern
 
-Dienste rufen sich mit signierten Kurzzeit-Tokens auf (Schlüsselpaar je Dienst, siehe `docs/service-auth.md`); der AppHost erzeugt dafür bei jedem Start neue Schlüssel und setzt die Konfiguration. Die anderen Dienste prüfen Personen-Tokens gegen Access. Erster Administrator ist Personalnummer `10099` (`Access:BootstrapAdministrators`). Anmelden: `POST /api/auth/login` mit `{"personnelNumber":"10099","pin":"4711"}`.
+**Neuer Konsument:** (1) Die Nachricht ist im Katalog und der Konsument dort erlaubt (sonst erst Rückfrage). (2) Handler in `<Dienst>.Infrastructure` (`IMessageHandler<T>`, idempotent) und `AddMessageHandler<TContext, T, THandler>(MessageSource.Subscription(MessagingNames.For(typeof(T)), "<dienst>"))`. (3) Subscription in `infra/servicebus.bicep` und im Emulator ergänzen; der Topologie-Test sagt, was fehlt. (4) Bei Kopien personenbezogener Daten: Löschung im `EmployeeDataErasureRequested`-Handler samt Integrationstest.
 
-Tests: Unit/Integration/Vertrag/Architektur laufen mit `dotnet test`; E2E (`tests/AppHost.Tests`, Kategorie `E2E`) startet die ganze Landschaft über Aspire. BC-Sandbox-Tests (`Category=BcSandbox`) nur manuell.
+**Neue Nachricht (nur nach Rückfrage):** `sealed record` in `<Dienst>.Contracts` mit `[Sensitivity(...)]` und XML-Doku, Eintrag in `tests/Architecture.Tests/ContractRulesTests.cs`, Verify-Snapshot, Topic/Queue samt Subscriptions in der Topologie, Eintrag im Katalog in `CLAUDE.md`. Events sind höchstens `SensitiveNeutralized`, Klasse 3 nie.
 
-## Neuen Konsumenten hinzufügen
+**Neuer Endpunkt:** Recht im Katalog des Dienstes (`<Dienst>Privileges`, mit Beschreibung; wird beim Start bei Access angemeldet), Policy `AppPolicies.Privilege(...)` oder `AppPolicies.ServiceRole(...)` (wer die Service Role hat, steht in `ServiceAuth:Peers` des Empfängers), mindestens ein positiver und ein negativer Berechtigungstest, Recht in `docs/rollen.json` aufnehmen, wenn eine Rolle es braucht.
 
-1. Nachricht ist im Katalog (`CLAUDE.md`) und der Konsument dort als erlaubt eingetragen (sonst erst Rückfrage).
-2. Handler in `<Dienst>.Infrastructure` (`IMessageHandler<T>`, idempotent) und `AddMessageHandler<TContext, T, THandler>(MessageSource.Subscription(MessagingNames.For(typeof(T)), "<dienst>"))` in `InfrastructureServiceCollectionExtensions`.
-3. Subscription in `infra/servicebus.bicep` ergänzen (Zweck-Kommentar, ggf. Filter, Rolle) und `infra/servicebus-emulator.json` gleich halten; der Topologie-Test sagt, was fehlt.
-4. Kopien personenbezogener Daten: Löschung in `EmployeeDataErasureRequested`-Handler und Integrationstest.
+## Weitere Dokumente
 
-## Neue Nachricht hinzufügen
-
-Nur nach Rückfrage. Dann: `sealed record` in `<Dienst>.Contracts` mit `[Sensitivity(...)]` und XML-Doku, Eintrag in `tests/Architecture.Tests/ContractRulesTests.cs` (Katalogliste), Verify-Snapshot-Test, Topic/Queue + Subscriptions in der Topologie (siehe oben), Eintrag im Katalog in `CLAUDE.md`. Events sind höchstens `SensitiveNeutralized`; Klasse 3 nie.
-
-## Krankmeldung mit AU
-
-Workforce nimmt die Arbeitsunfähigkeitsbescheinigung als verschlüsselte Datei in einem vom Code und der Datenbank getrennten Speicher entgegen (nur HR und die hochladende Person sehen sie), mit Prüfung durch HR, Erinnerungen, manuellem Löschen und einer von der Personalabteilung einstellbaren Löschfrist: `docs/krankmeldung-au.md`.
-
-## Neuen Endpunkt hinzufügen
-
-Recht im Katalog des Dienstes (`<Dienst>Privileges`, wird beim Start bei Access angemeldet), Policy `AppPolicies.Privilege(...)` bzw. `AppPolicies.ServiceRole(...)` (eigene Service Role; wer sie hat, steht in `ServiceAuth:Peers` des Empfängers, siehe `docs/service-auth.md`), mindestens ein positiver und ein negativer Berechtigungstest.
-
-## Dienst-zu-Dienst-Authentifizierung
-
-Schlüsselpaar je Dienst, signierte Kurzzeit-Tokens, öffentliche Schlüssel und Rechte in der Konfiguration der Empfänger: `docs/service-auth.md`, Schlüssel erzeugen mit `scripts/New-ServiceKey.ps1`. Entra wird nicht mehr für Dienstaufrufe gebraucht (Entscheidung 18).
+| Thema | Datei |
+| --- | --- |
+| Dienst-zu-Dienst-Authentifizierung | `service-auth.md` |
+| Krankmeldung und AU | `krankmeldung-au.md` |
+| Abwesenheiten, Urlaubsberechnung | `phase-6-workforce-abwesenheiten.md`, `urlaubsberechnung.md` |
+| Mitarbeiterkarte, Nicht-Verfügbarkeit, Arbeitszeitkonto | `mitarbeiterkarte.md` |
+| Benachrichtigungstexte | `benachrichtigungstexte.md` |
+| Portal (FAQ, Meldungen, Statistik) | `portal.md` |
+| Zweiter Faktor mit Entra | `zweiter-faktor-entra.md` |
+| BC-Zeiterfassung | `bc-zeiterfassung-schnittstelle.md` |
+| Rollen als Datei | `rollen.json` |
