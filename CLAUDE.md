@@ -1,6 +1,6 @@
 # CLAUDE.md – NewWorld (Monorepo)
 
-Quelle der Regeln: `Umsetzungsplan Mitarbeiterportal – Backend-Architektur.md` (im Root). Bei Widerspruch gilt der Plan, außer die „Entscheidungen nach Phase 0“ weiter unten legen etwas anderes fest. Lies ihn vollständig, bevor du neue Dateien anlegst.
+**Diese Datei ist verbindlich.** `Umsetzungsplan Mitarbeiterportal – Backend-Architektur.md` (im Root, seit 2026-11-10 gekürzt und auf den heutigen Stand gebracht) erklärt das Zielbild und die Leitplanken dahinter; bei Widerspruch gilt diese Datei. Lies den Plan, bevor du neue Dateien anlegst. Die ursprüngliche, ausführliche Fassung mit allen Phasenaufgaben steht in der Git-Historie (Commit `b5a8759`). Praktische Handgriffe (lokal starten, Fehlersuche, Stolpersteine): `know-how.md`.
 
 **Begriff:** „Portal API“ im Plan = der neue Dienst `src/Portal`. Der Bestandsdienst liegt unter `Archiv/Portal` (früher `IRS-API`).
 
@@ -33,7 +33,7 @@ Jeder Archiv-Ordner hat ggf. eine eigene `CLAUDE.md`; sie beschreibt den Bestand
 
 ## Entscheidungen nach Phase 0 (Stand 2026-10-21)
 
-Diese Entscheidungen des Projektverantwortlichen gelten **vor** dem Plan, wo sie ihm widersprechen. Der Plantext selbst bleibt unverändert (nur ein Hinweis am Anfang verweist hierher); Abweichungen stehen hier und im Phase-0-Bericht.
+Diese Entscheidungen des Projektverantwortlichen gelten **vor** dem Plan, wo sie ihm widersprechen. Der Plan wurde am 2026-11-10 an sie angepasst und gekürzt; Abweichungen und Begründungen stehen hier und im Phase-0-Bericht.
 
 1. **`hr-tool-API` ist die Basis der Workforce API**, nicht der HR API. Der Ordner bleibt ein Dienst, ist aber intern in `Workforce/` und `Hr/` getrennt (Namespaces `HrTool_API.Workforce` / `HrTool_API.Hr`, siehe `hr-tool-API/CLAUDE.md`). Die HR API im Sinne des Plans (Recruiting, DATEV) bleibt out of scope. Eine spätere Aufteilung in zwei Dienste ist möglich, aber nicht beschlossen.
 2. **`IRS-API` ist in `Portal` umbenannt** (Ordner, Projekt, Solution, Namespace `Portal`). Unverändert bleiben bewusst Deployment- und Datenbank-Namen (z. B. `APP_NAME` im Makefile, `IrsDbContext`, Datenbank), da sie produktiv sind. Die Fachlogik (Meldungen, FAQ, Statistik) bleibt unangetastet.
