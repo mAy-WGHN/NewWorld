@@ -131,26 +131,26 @@ public static class LogbookReportEndpoints
         }
     }
 
-    private static async Task<Dictionary<Guid, string>> PeopleAsync(PortalDbContext db, IEnumerable<LogbookReportRecord> reports, CancellationToken ct)
+    internal static async Task<Dictionary<Guid, string>> PeopleAsync(PortalDbContext db, IEnumerable<LogbookReportRecord> reports, CancellationToken ct)
     {
-        var ids = reports.SelectMany(r => new[] { r.SubmittedBy, r.RevisedBy }).Where(id => id is not null).Select(id => id!.Value).Distinct().ToList();
+        var ids = reports.SelectMany(r => new[] { r.SubmittedBy, r.RevisedBy, r.FollowedUpBy }).Where(id => id is not null).Select(id => id!.Value).Distinct().ToList();
         return await db.People.AsNoTracking().Where(p => ids.Contains(p.EmployeeId)).ToDictionaryAsync(p => p.EmployeeId, p => p.Name, ct);
     }
 
     private static LogbookAnswer ToAnswer(LogbookAnswerDto dto) => new([.. dto.OptionIds ?? []], dto.Text);
 
-    private static LogbookReportDto ToDto(LogbookReportRecord r, IReadOnlyDictionary<Guid, string> names) => new(
+    internal static LogbookReportDto ToDto(LogbookReportRecord r, IReadOnlyDictionary<Guid, string> names) => new(
         r.Id, r.StoreId, Format(r.Week), r.TemplateVersion, Phase(r.Phase), State(r.State),
         LogbookReportService.ReadAnswers(r).ToDictionary(a => a.Key, a => new LogbookAnswerDto([.. a.Value.OptionIds], a.Value.Text)),
         r.SubmittedAt, Name(names, r.SubmittedBy), r.RevisedAt, Name(names, r.RevisedBy));
 
-    private static string? Name(IReadOnlyDictionary<Guid, string> names, Guid? id) => id is { } value ? names.GetValueOrDefault(value, "(unbekannt)") : null;
+    internal static string? Name(IReadOnlyDictionary<Guid, string> names, Guid? id) => id is { } value ? names.GetValueOrDefault(value, "(unbekannt)") : null;
 
-    private static string Format(DateOnly date) => date.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+    internal static string Format(DateOnly date) => date.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
 
-    private static string Phase(LogbookReportPhase phase) => phase == LogbookReportPhase.Submitted ? "submitted" : "draft";
+    internal static string Phase(LogbookReportPhase phase) => phase == LogbookReportPhase.Submitted ? "submitted" : "draft";
 
-    private static string State(LogbookReportState state) => state switch
+    internal static string State(LogbookReportState state) => state switch
     {
         LogbookReportState.InProgress => "inProgress",
         LogbookReportState.FollowedUp => "followedUp",

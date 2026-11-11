@@ -30,6 +30,12 @@ public sealed class LogbookReportRecord
     public DateTimeOffset? RevisedAt { get; set; }
 
     public Guid? RevisedBy { get; set; }
+
+    /// <summary>The store manager marked the report as followed up (with a note for the regional leader).</summary>
+    public DateTimeOffset? FollowedUpAt { get; set; }
+
+    public Guid? FollowedUpBy { get; set; }
+    public string? FollowUpNote { get; set; }
 }
 
 public enum LogbookReportFailure

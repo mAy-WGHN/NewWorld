@@ -136,6 +136,57 @@ namespace Portal.Infrastructure.Migrations
                     b.ToTable("faqs", "portal");
                 });
 
+            modelBuilder.Entity("Portal.Infrastructure.Logbook.LogbookCommentRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("AuthorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("author_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("Level")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("level");
+
+                    b.Property<Guid>("ReportId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("report_id");
+
+                    b.Property<int>("Sequence")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("sequence");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Sequence"));
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("text");
+
+                    b.HasKey("Id")
+                        .HasName("pk_logbook_comments");
+
+                    b.HasIndex("ReportId")
+                        .HasDatabaseName("ix_logbook_comments_report_id");
+
+                    b.ToTable("logbook_comments", "portal");
+                });
+
             modelBuilder.Entity("Portal.Infrastructure.Logbook.LogbookDistrictLeaderRecord", b =>
                 {
                     b.Property<Guid>("DistrictId")
@@ -235,6 +286,18 @@ namespace Portal.Infrastructure.Migrations
                     b.Property<Guid>("CreatedBy")
                         .HasColumnType("uuid")
                         .HasColumnName("created_by");
+
+                    b.Property<string>("FollowUpNote")
+                        .HasColumnType("text")
+                        .HasColumnName("follow_up_note");
+
+                    b.Property<DateTimeOffset?>("FollowedUpAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("followed_up_at");
+
+                    b.Property<Guid?>("FollowedUpBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("followed_up_by");
 
                     b.Property<string>("Phase")
                         .IsRequired()
@@ -742,6 +805,16 @@ namespace Portal.Infrastructure.Migrations
                         .HasForeignKey("FaqId")
                         .OnDelete(DeleteBehavior.SetNull)
                         .HasConstraintName("fk_faq_images_faqs_faq_id");
+                });
+
+            modelBuilder.Entity("Portal.Infrastructure.Logbook.LogbookCommentRecord", b =>
+                {
+                    b.HasOne("Portal.Infrastructure.Logbook.LogbookReportRecord", null)
+                        .WithMany()
+                        .HasForeignKey("ReportId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_logbook_comments_logbook_reports_report_id");
                 });
 
             modelBuilder.Entity("Portal.Infrastructure.Logbook.LogbookDistrictLeaderRecord", b =>

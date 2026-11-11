@@ -31,6 +31,7 @@ public sealed class PortalDbContext(DbContextOptions<PortalDbContext> options) :
     public DbSet<LogbookStoreAssignmentRecord> LogbookStoreAssignments => Set<LogbookStoreAssignmentRecord>();
     public DbSet<LogbookTemplateRecord> LogbookTemplates => Set<LogbookTemplateRecord>();
     public DbSet<LogbookReportRecord> LogbookReports => Set<LogbookReportRecord>();
+    public DbSet<LogbookCommentRecord> LogbookComments => Set<LogbookCommentRecord>();
 
     /// <summary>Provider settings shared by runtime and design time (migrations).</summary>
     public static DbContextOptionsBuilder Configure(DbContextOptionsBuilder options, string connectionString) => options
@@ -143,6 +144,17 @@ public sealed class PortalDbContext(DbContextOptions<PortalDbContext> options) :
             b.Property(r => r.AnswersJson).HasColumnType("jsonb");
             b.HasIndex(r => new { r.StoreId, r.Week }).IsUnique();
             b.HasIndex(r => r.Week);
+        });
+        modelBuilder.Entity<LogbookCommentRecord>(b =>
+        {
+            b.ToTable("logbook_comments");
+            b.HasKey(c => c.Id);
+            b.Property(c => c.Id).ValueGeneratedNever();
+            b.Property(c => c.Sequence).UseIdentityByDefaultColumn();
+            b.Property(c => c.Kind).HasConversion<string>().HasMaxLength(20);
+            b.Property(c => c.Level).HasConversion<string>().HasMaxLength(20);
+            b.HasIndex(c => c.ReportId);
+            b.HasOne<LogbookReportRecord>().WithMany().HasForeignKey(c => c.ReportId).OnDelete(DeleteBehavior.Cascade);
         });
         modelBuilder.Entity<FaqRecord>(b =>
         {
