@@ -1,5 +1,5 @@
 <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-full max-w-2xl">
-  <mat-icon matPrefix class="mr-2 text-on-surface-variant">search</mat-icon>
+  <mat-icon matPrefix class="mr-2 text-[24px] text-on-surface-variant">search</mat-icon>
   <input matInput type="search" aria-label="Suche" placeholder="Was möchtest du erledigen?" autocomplete="off"
          [value]="query()" (input)="onInput($event)" [matAutocomplete]="auto" />
   <mat-autocomplete #auto="matAutocomplete" autoActiveFirstOption [displayWith]="display" (optionSelected)="choose($event)">

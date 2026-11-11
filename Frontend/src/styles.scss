@@ -44,6 +44,12 @@ body {
   font-family: 'Material Icons';
 }
 
+// The glyph sits in a box of its own size: with the line height of the body (1.5) it slid down inside list items and form fields. :where keeps
+// the specificity at zero, so every place that sets its own icon size or line height still wins.
+:where(.mat-icon) {
+  line-height: 1;
+}
+
 // Bell badge: bigger than Material's default so that new notifications are not overlooked.
 .bell .mat-badge.mat-badge-large .mat-badge-content {
   min-width: 22px !important;
