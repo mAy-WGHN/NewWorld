@@ -66,7 +66,10 @@ describe('SickNotesPage', () => {
     await settle();
   }
 
+  // The form starts with "today" as the first day and the tests type fixed end days in November 2026: fix the date (only Date, the timers stay real).
   beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 10, 5, 12, 0, 0));
     api = {
       list: vi.fn().mockResolvedValue([vacation, verified, missing]),
       reportSickNote: vi.fn().mockResolvedValue({ certificateFailed: false }),
@@ -75,6 +78,8 @@ describe('SickNotesPage', () => {
       uploadCertificate: vi.fn().mockResolvedValue({}),
     };
   });
+
+  afterEach(() => vi.useRealTimers());
 
   it('is titled "Meine Krankmeldungen" with the button "Krankmelden" at the top right', async () => {
     await create();
