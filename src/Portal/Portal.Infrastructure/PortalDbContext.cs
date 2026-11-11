@@ -29,6 +29,7 @@ public sealed class PortalDbContext(DbContextOptions<PortalDbContext> options) :
     public DbSet<LogbookRegionRecord> LogbookRegions => Set<LogbookRegionRecord>();
     public DbSet<LogbookRegionLeaderRecord> LogbookRegionLeaders => Set<LogbookRegionLeaderRecord>();
     public DbSet<LogbookStoreAssignmentRecord> LogbookStoreAssignments => Set<LogbookStoreAssignmentRecord>();
+    public DbSet<LogbookTemplateRecord> LogbookTemplates => Set<LogbookTemplateRecord>();
 
     /// <summary>Provider settings shared by runtime and design time (migrations).</summary>
     public static DbContextOptionsBuilder Configure(DbContextOptionsBuilder options, string connectionString) => options
@@ -123,6 +124,13 @@ public sealed class PortalDbContext(DbContextOptions<PortalDbContext> options) :
             b.Property(s => s.StoreId).ValueGeneratedNever();
             b.HasIndex(s => s.DistrictId);
             b.HasIndex(s => s.RegionId);
+        });
+        modelBuilder.Entity<LogbookTemplateRecord>(b =>
+        {
+            b.ToTable("logbook_templates");
+            b.HasKey(t => t.Version);
+            b.Property(t => t.Version).ValueGeneratedNever();
+            b.Property(t => t.SectionsJson).HasColumnType("jsonb");
         });
         modelBuilder.Entity<FaqRecord>(b =>
         {

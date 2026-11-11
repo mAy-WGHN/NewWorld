@@ -24,6 +24,8 @@ Entscheidungen 41 und 43 (`CLAUDE.md`), überarbeitet 2026-11-10. Die Fachlogik 
 | Empfänger neuer Meldungen | `GET /api/report-recipients`, `PUT /api/report-recipients/{kategorie}` | `report:manage-recipients` |
 | Berichtsheft: Hierarchie lesen / pflegen | `GET/PUT /api/logbook/structure` | `logbook:manage-structure` |
 | Berichtsheft: Ebene und erreichbare Filialen der angemeldeten Person | `GET /api/logbook/me` | `logbook:review` |
+| Berichtsheft: Vorlage lesen (aktuell, Version, `0` = Vorschlag) | `GET /api/logbook/template`, `GET /api/logbook/template/{version}` | `logbook:write`, `logbook:review` oder `logbook:manage-template` |
+| Berichtsheft: Vorlage pflegen (neue Version) | `PUT /api/logbook/template` | `logbook:manage-template` |
 | Änderungsprotokoll | `GET /api/audit` | `portal-audit:read` (sonst `404`) |
 
 ## Regeln

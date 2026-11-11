@@ -243,6 +243,31 @@ namespace Portal.Infrastructure.Migrations
                     b.ToTable("logbook_store_assignments", "portal");
                 });
 
+            modelBuilder.Entity("Portal.Infrastructure.Logbook.LogbookTemplateRecord", b =>
+                {
+                    b.Property<int>("Version")
+                        .HasColumnType("integer")
+                        .HasColumnName("version");
+
+                    b.Property<DateTimeOffset>("PublishedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("published_at");
+
+                    b.Property<Guid>("PublishedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("published_by");
+
+                    b.Property<string>("SectionsJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("sections_json");
+
+                    b.HasKey("Version")
+                        .HasName("pk_logbook_templates");
+
+                    b.ToTable("logbook_templates", "portal");
+                });
+
             modelBuilder.Entity("Portal.Infrastructure.Messaging.MainStoreCopyRecord", b =>
                 {
                     b.Property<Guid>("EmployeeId")

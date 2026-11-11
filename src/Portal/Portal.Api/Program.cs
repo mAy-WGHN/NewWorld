@@ -80,6 +80,7 @@ app.MapReportEndpoints();
 app.MapLocationEndpoints();
 app.MapReportRecipientEndpoints();
 app.MapLogbookStructureEndpoints();
+app.MapLogbookTemplateEndpoints();
 app.MapStatisticsEndpoints();
 app.MapAuditEndpoints<PortalDbContext>("portal", PortalPrivileges.AuditRead, PortalPrivileges.AuditReadValues);
 
