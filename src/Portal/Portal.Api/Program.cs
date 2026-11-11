@@ -28,18 +28,9 @@ builder.Services.AddSingleton<IAuthorizationMiddlewareResultHandler, EnvelopeAut
 builder.Services.Configure<RouteHandlerOptions>(options => options.ThrowOnBadRequest = true);
 builder.Services.Configure<FormOptions>(options => options.MultipartBodyLengthLimit = FaqAttachmentFormat.MaxBytes + 3 * 1024 * 1024);
 
-// Behind a reverse proxy: client address and scheme/host from X-Forwarded-*. Without ForwardedHeaders:KnownProxies every proxy is trusted
-// (ForwardLimit 1: only the last entry counts).
-builder.Services.Configure<ForwardedHeadersOptions>(options =>
-{
-    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost;
-    options.KnownIPNetworks.Clear();
-    options.KnownProxies.Clear();
-    foreach (var proxy in (builder.Configuration.GetSection("ForwardedHeaders:KnownProxies").Get<string[]>() ?? []).Where(p => !string.IsNullOrWhiteSpace(p)))
-    {
-        options.KnownProxies.Add(IPAddress.Parse(proxy));
-    }
-});
+// Behind a reverse proxy: client address and scheme/host from X-Forwarded-*. Without ForwardedHeaders:KnownProxies/KnownNetworks every proxy is
+// trusted here (the public forms are rate limited per client; ForwardLimit 1: only the last entry counts).
+builder.Services.AddConfiguredForwardedHeaders(builder.Configuration, trustAnyProxyWhenUnconfigured: true);
 
 // CORS: allowed origins as a list and/or a regular expression; the frontend runs on another origin.
 builder.Services.AddCors(options => options.AddDefaultPolicy(policy =>
@@ -70,9 +61,13 @@ else
 
 var app = builder.Build();
 
-await app.Services.MigratePortalDatabaseAsync(app.Environment);
+// `dotnet <dll> --migrate` applies the migrations and ends (deployment step); otherwise Development/Testing migrate at start.
+if (await app.Services.MigratePortalDatabaseAsync(app.Environment, args))
+{
+    return;
+}
 
-app.UseForwardedHeaders();
+app.UseConfiguredForwardedHeaders();
 app.UseExceptionHandler();
 app.UseCors();
 app.UseRateLimiter();

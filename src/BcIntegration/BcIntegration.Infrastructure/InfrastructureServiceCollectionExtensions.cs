@@ -60,6 +60,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<EmployeeErasure>();
         if (configuration[$"{BcClientOptions.ConfigurationSection}:BaseUrl"] is { Length: > 0 })
         {
+            services.AddPostgresAdvisoryLock<BcIntegrationDbContext>(); // several replicas must not compare with BC at the same time
             services.AddHostedService<MasterDataSyncService>();
         }
 
@@ -70,7 +71,7 @@ public static class InfrastructureServiceCollectionExtensions
         return services;
     }
 
-    /// <summary>Applies the migrations in Development/Testing (see <see cref="DatabaseInitializer"/>).</summary>
-    public static Task MigrateBcIntegrationDatabaseAsync(this IServiceProvider services, IHostEnvironment environment) =>
-        DatabaseInitializer.MigrateInDevelopmentAsync<BcIntegrationDbContext>(services, environment);
+    /// <summary>Applies the migrations in Development/Testing, or in any environment with <c>--migrate</c> (then <c>true</c>: the program ends, see <see cref="DatabaseInitializer"/>).</summary>
+    public static Task<bool> MigrateBcIntegrationDatabaseAsync(this IServiceProvider services, IHostEnvironment environment, string[] args) =>
+        DatabaseInitializer.MigrateOrExitAsync<BcIntegrationDbContext>(services, environment, args);
 }

@@ -44,7 +44,11 @@ builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(optio
 
 var app = builder.Build();
 
-await app.Services.MigrateWorkforceDatabaseAsync(app.Environment);
+// `dotnet <dll> --migrate` applies the migrations and ends (deployment step); otherwise Development/Testing migrate at start.
+if (await app.Services.MigrateWorkforceDatabaseAsync(app.Environment, args))
+{
+    return;
+}
 
 app.UseAuthentication();
 app.UseAuthorization();
@@ -54,6 +58,7 @@ app.MapUnavailabilityEndpoints();
 app.MapWorkingTimeEndpoints();
 app.MapCertificateEndpoints();
 app.MapEmployeeEndpoints();
+app.MapPeopleEndpoints();
 app.MapAuditEndpoints<WorkforceDbContext>("workforce", Workforce.Core.Absences.AbsencePrivileges.AuditRead, Workforce.Core.Absences.AbsencePrivileges.AuditReadValues);
 
 app.Run();

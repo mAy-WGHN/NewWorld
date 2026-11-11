@@ -78,7 +78,28 @@ public static class InfrastructureServiceCollectionExtensions
             encryptionKey = CertificateFileProtector.NewKey(); // temporary key: files do not survive a restart
         }
 
-        services.AddSingleton(CertificateFileProtector.FromConfiguration(encryptionKey, keySetting));
+        // Key ring for a rotation: EncryptionKey is the current key (id EncryptionKeyId, default 1); older keys stay under PreviousKeys:<id> until the
+        // maintenance has encrypted every file anew (it logs how many are left). Errors name the settings only, never a value.
+        var keyIdSetting = $"{WorkforceOptions.ConfigurationSection}:Certificates:EncryptionKeyId";
+        var keyId = CertificateFileProtector.DefaultKeyId;
+        if (!string.IsNullOrWhiteSpace(configuration[keyIdSetting]) && !byte.TryParse(configuration[keyIdSetting], out keyId))
+        {
+            throw new InvalidOperationException($"{keyIdSetting} must be a number from 0 to 255.");
+        }
+
+        var previousSetting = $"{WorkforceOptions.ConfigurationSection}:Certificates:PreviousKeys";
+        var previousKeys = new Dictionary<byte, string>();
+        foreach (var child in configuration.GetSection(previousSetting).GetChildren())
+        {
+            if (!byte.TryParse(child.Key, out var previousId) || string.IsNullOrWhiteSpace(child.Value))
+            {
+                throw new InvalidOperationException($"{previousSetting} must contain base64 keys named by their id (a number from 0 to 255).");
+            }
+
+            previousKeys[previousId] = child.Value;
+        }
+
+        services.AddSingleton(CertificateFileProtector.FromConfiguration(encryptionKey, keyId, previousKeys, keySetting));
         // The files live apart from the database and from the application files, under random names (a directory only this service can use).
         var storageSetting = $"{WorkforceOptions.ConfigurationSection}:Certificates:StoragePath";
         string storageRoot;
@@ -101,6 +122,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<ICertificateStore, EfCertificateStore>();
         AddMalwareScanner(services, configuration, environment);
         services.AddScoped<CertificateService>();
+        services.AddPostgresAdvisoryLock<WorkforceDbContext>(); // periodic background work runs on one instance at a time
         services.AddHostedService<CertificateMaintenanceService>();
         services.AddHostedService<WorkingTime.WorkingTimeMaintenanceService>();
         services.AddScoped<WorkforceUnitOfWork>();
@@ -157,7 +179,7 @@ public static class InfrastructureServiceCollectionExtensions
 
     private static MessageSource Subscription<TMessage>() => MessageSource.Subscription(MessagingNames.For(typeof(TMessage)), "workforce");
 
-    /// <summary>Applies the migrations in Development/Testing (see <see cref="DatabaseInitializer"/>).</summary>
-    public static Task MigrateWorkforceDatabaseAsync(this IServiceProvider services, IHostEnvironment environment) =>
-        DatabaseInitializer.MigrateInDevelopmentAsync<WorkforceDbContext>(services, environment);
+    /// <summary>Applies the migrations in Development/Testing, or in any environment with <c>--migrate</c> (then <c>true</c>: the program ends, see <see cref="DatabaseInitializer"/>).</summary>
+    public static Task<bool> MigrateWorkforceDatabaseAsync(this IServiceProvider services, IHostEnvironment environment, string[] args) =>
+        DatabaseInitializer.MigrateOrExitAsync<WorkforceDbContext>(services, environment, args);
 }

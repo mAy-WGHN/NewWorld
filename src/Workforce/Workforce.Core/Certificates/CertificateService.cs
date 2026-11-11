@@ -402,6 +402,12 @@ public sealed class CertificateService(
         return expired.Count;
     }
 
+    /// <summary>Files encrypted anew per round of the maintenance (during a key rotation).</summary>
+    public const int RotationBatchSize = 500;
+
+    /// <summary>Key rotation, one round: see <see cref="ICertificateStore.RotateKeysAsync"/>. Changes no metadata, so it needs no unit of work.</summary>
+    public Task<(int Rotated, int Remaining)> RotateKeysAsync(CancellationToken cancellationToken) => certificates.RotateKeysAsync(RotationBatchSize, cancellationToken);
+
     // ------------------------------------------------------------------ helpers
 
     /// <summary>The status of a sick note from its documents.</summary>

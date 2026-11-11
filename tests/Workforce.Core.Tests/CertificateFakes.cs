@@ -52,6 +52,14 @@ internal sealed class FakeCertificateStore(FakeStore absences) : ICertificateSto
         return Task.CompletedTask;
     }
 
+    public int RotationRounds { get; private set; }
+
+    public Task<(int Rotated, int Remaining)> RotateKeysAsync(int batchSize, CancellationToken cancellationToken)
+    {
+        RotationRounds++;
+        return Task.FromResult((0, 0));
+    }
+
     public Task<int> RemoveOrphanedFilesAsync(DateTimeOffset writtenBefore, CancellationToken cancellationToken)
     {
         OrphanSweeps.Add(writtenBefore);

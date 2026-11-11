@@ -54,19 +54,7 @@ public sealed class FileSystemCertificateStorage : ICertificateFileStorage
     {
         var target = PathOf(storageId);
         var temporary = target + TemporarySuffix;
-        var options = new FileStreamOptions
-        {
-            Mode = FileMode.Create,
-            Access = FileAccess.Write,
-            Share = FileShare.None,
-            Options = FileOptions.WriteThrough,
-        };
-        if (!OperatingSystem.IsWindows())
-        {
-            options.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
-        }
-
-        await using (var stream = new FileStream(temporary, options))
+        await using (var stream = new FileStream(temporary, WriteOptions()))
         {
             await stream.WriteAsync(data, cancellationToken);
         }
@@ -74,6 +62,26 @@ public sealed class FileSystemCertificateStorage : ICertificateFileStorage
         try
         {
             File.Move(temporary, target, overwrite: false); // a file appears whole or not at all, and a name is never reused
+        }
+        catch
+        {
+            File.Delete(temporary);
+            throw;
+        }
+    }
+
+    public async Task ReplaceAsync(Guid storageId, byte[] data, CancellationToken cancellationToken)
+    {
+        var target = PathOf(storageId);
+        var temporary = target + TemporarySuffix;
+        await using (var stream = new FileStream(temporary, WriteOptions()))
+        {
+            await stream.WriteAsync(data, cancellationToken);
+        }
+
+        try
+        {
+            File.Move(temporary, target, overwrite: true); // atomic replace on the same volume: a reader sees the old or the new file
         }
         catch
         {
@@ -124,6 +132,23 @@ public sealed class FileSystemCertificateStorage : ICertificateFileStorage
         }
 
         return Task.FromResult<IReadOnlyList<(Guid, DateTimeOffset)>>(files);
+    }
+
+    private static FileStreamOptions WriteOptions()
+    {
+        var options = new FileStreamOptions
+        {
+            Mode = FileMode.Create,
+            Access = FileAccess.Write,
+            Share = FileShare.None,
+            Options = FileOptions.WriteThrough,
+        };
+        if (!OperatingSystem.IsWindows())
+        {
+            options.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
+        }
+
+        return options;
     }
 
     private string PathOf(Guid storageId) => Path.Combine(_root, storageId.ToString("N", CultureInfo.InvariantCulture));

@@ -163,6 +163,42 @@ public sealed class EfCertificateStore(
         return removed;
     }
 
+    public async Task<(int Rotated, int Remaining)> RotateKeysAsync(int batchSize, CancellationToken cancellationToken)
+    {
+        if (!protector.HasPreviousKeys)
+        {
+            return (0, 0); // a single key: nothing to rotate
+        }
+
+        var rotated = 0;
+        var pending = 0;
+        foreach (var document in await db.CertificateDocuments.AsNoTracking().Where(d => d.ContentDeletedAt == null).Select(d => new { d.Id, d.StorageId }).ToListAsync(cancellationToken))
+        {
+            if (await storage.ReadAsync(document.StorageId, cancellationToken) is not { } data || !protector.NeedsRotation(data))
+            {
+                continue; // deleted in the meantime, or already under the current key
+            }
+
+            if (rotated >= batchSize)
+            {
+                pending++;
+                continue;
+            }
+
+            try
+            {
+                await storage.ReplaceAsync(document.StorageId, protector.Protect(protector.Unprotect(data, document.Id), document.Id), cancellationToken);
+                rotated++;
+            }
+            catch (System.Security.Cryptography.CryptographicException)
+            {
+                pending++; // no configured key opens it: it stays as it is and stays in the count, so nobody removes the key it needs
+            }
+        }
+
+        return (rotated, pending);
+    }
+
     public void Log(CertificateAccessEntry entry) => db.CertificateAccessLog.Add(entry);
 
     public async Task<IReadOnlyList<CertificateDocument>> ExpiredAsync(DateOnly endedOnOrBefore, CancellationToken cancellationToken) =>

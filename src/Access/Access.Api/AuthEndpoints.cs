@@ -151,8 +151,8 @@ public static class AuthEndpoints
     }
 
     /// <summary>
-    /// Caller for the per-client limit. TODO(Betrieb): behind a proxy (App Service) forwarded headers must be configured with
-    /// the known proxies, otherwise all callers share the proxy's address.
+    /// Caller for the per-client limit. Behind a proxy (App Service) the proxies must be configured (<c>ForwardedHeaders:KnownProxies</c> or
+    /// <c>KnownNetworks</c>, see <c>AddConfiguredForwardedHeaders</c>), otherwise all callers share the proxy's address.
     /// </summary>
     private static string ClientKey(HttpContext http) => http.Connection.RemoteIpAddress?.ToString() ?? "unknown";
 }

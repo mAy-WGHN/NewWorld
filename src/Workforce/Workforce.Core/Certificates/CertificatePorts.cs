@@ -13,6 +13,12 @@ public interface ICertificateFileStorage
     /// <summary>The bytes, or <c>null</c> if there is no such file.</summary>
     Task<byte[]?> ReadAsync(Guid storageId, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Replaces the bytes of an existing file in one step (a reader sees the old or the new bytes, never a mixture): used when the content is
+    /// encrypted anew with another key. The name stays the same.
+    /// </summary>
+    Task ReplaceAsync(Guid storageId, byte[] data, CancellationToken cancellationToken);
+
     /// <summary>Deletes the file; a missing file is not an error.</summary>
     Task DeleteAsync(Guid storageId, CancellationToken cancellationToken);
 
@@ -60,6 +66,13 @@ public interface ICertificateStore
     /// and that are older than <paramref name="writtenBefore"/> (so uploads in progress are left alone).
     /// </summary>
     Task<int> RemoveOrphanedFilesAsync(DateTimeOffset writtenBefore, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Key rotation: encrypts up to <paramref name="batchSize"/> files that are not under the current key (or in the old format) anew with the
+    /// current key. Does nothing (0, 0) while the key ring has no older keys. <c>Remaining</c> is the number of files still under an older key
+    /// after this round; when it is 0 the older keys can be removed from the configuration.
+    /// </summary>
+    Task<(int Rotated, int Remaining)> RotateKeysAsync(int batchSize, CancellationToken cancellationToken);
 
     void Log(CertificateAccessEntry entry);
 

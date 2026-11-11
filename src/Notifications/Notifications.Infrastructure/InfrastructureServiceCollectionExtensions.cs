@@ -78,7 +78,7 @@ public static class InfrastructureServiceCollectionExtensions
         return services;
     }
 
-    /// <summary>Applies the migrations in Development/Testing (see <see cref="DatabaseInitializer"/>).</summary>
-    public static Task MigrateNotificationsDatabaseAsync(this IServiceProvider services, IHostEnvironment environment) =>
-        DatabaseInitializer.MigrateInDevelopmentAsync<NotificationsDbContext>(services, environment);
+    /// <summary>Applies the migrations in Development/Testing, or in any environment with <c>--migrate</c> (then <c>true</c>: the program ends, see <see cref="DatabaseInitializer"/>).</summary>
+    public static Task<bool> MigrateNotificationsDatabaseAsync(this IServiceProvider services, IHostEnvironment environment, string[] args) =>
+        DatabaseInitializer.MigrateOrExitAsync<NotificationsDbContext>(services, environment, args);
 }

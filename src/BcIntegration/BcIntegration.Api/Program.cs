@@ -24,7 +24,11 @@ if (!ServiceAuthenticationExtensions.AcceptsServices(builder.Configuration))
 
 var app = builder.Build();
 
-await app.Services.MigrateBcIntegrationDatabaseAsync(app.Environment);
+// `dotnet <dll> --migrate` applies the migrations and ends (deployment step); otherwise Development/Testing migrate at start.
+if (await app.Services.MigrateBcIntegrationDatabaseAsync(app.Environment, args))
+{
+    return;
+}
 
 app.UseAuthentication();
 app.UseAuthorization();

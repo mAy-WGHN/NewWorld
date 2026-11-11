@@ -127,7 +127,7 @@ public static class InfrastructureServiceCollectionExtensions
 
     private static MessageSource Subscription<TMessage>() => MessageSource.Subscription(MessagingNames.For(typeof(TMessage)), SubscriptionName);
 
-    /// <summary>Applies the migrations in Development/Testing (see <see cref="DatabaseInitializer"/>).</summary>
-    public static Task MigrateAccessDatabaseAsync(this IServiceProvider services, IHostEnvironment environment) =>
-        DatabaseInitializer.MigrateInDevelopmentAsync<AccessDbContext>(services, environment);
+    /// <summary>Applies the migrations in Development/Testing, or in any environment with <c>--migrate</c> (then <c>true</c>: the program ends, see <see cref="DatabaseInitializer"/>).</summary>
+    public static Task<bool> MigrateAccessDatabaseAsync(this IServiceProvider services, IHostEnvironment environment, string[] args) =>
+        DatabaseInitializer.MigrateOrExitAsync<AccessDbContext>(services, environment, args);
 }

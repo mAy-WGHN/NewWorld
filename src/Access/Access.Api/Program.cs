@@ -21,10 +21,18 @@ builder.Services.AddScoped<IAuthorizationServiceAdapter, AuthorizationServiceAda
 // People sign in through Access (own tokens, own key); other services call with tokens signed by their own key (ServiceAuth section).
 builder.Services.AddAccessAuthentication(builder.Configuration);
 
+// Behind a proxy: the client address for the login limit comes from X-Forwarded-For, but only from the configured proxies (ForwardedHeaders section).
+builder.Services.AddConfiguredForwardedHeaders(builder.Configuration);
+
 var app = builder.Build();
 
-await app.Services.MigrateAccessDatabaseAsync(app.Environment);
+// `dotnet <dll> --migrate` applies the migrations and ends (deployment step); otherwise Development/Testing migrate at start.
+if (await app.Services.MigrateAccessDatabaseAsync(app.Environment, args))
+{
+    return;
+}
 
+app.UseConfiguredForwardedHeaders();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapDefaultEndpoints();

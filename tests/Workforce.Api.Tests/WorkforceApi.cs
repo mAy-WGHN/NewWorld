@@ -6,7 +6,9 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Shared.Authorization;
+using Shared.Infrastructure.Persistence;
 using Shared.Infrastructure.Messaging;
 using Shared.Messaging;
 using Shared.Testing;
@@ -37,13 +39,21 @@ public sealed class WorkforceApi : WebApplicationFactory<ApiMarker>
 
     private readonly string _connectionString;
 
-    private WorkforceApi(string connectionString) => _connectionString = connectionString;
+    private readonly Action<IServiceCollection>? _configure;
+
+    private WorkforceApi(string connectionString, Action<IServiceCollection>? configure)
+    {
+        _connectionString = connectionString;
+        _configure = configure;
+    }
 
     public HttpClient Http { get; private set; } = null!;
 
-    public static async Task<WorkforceApi> StartAsync(PostgresFixture postgres)
+    /// <param name="postgres">Database container.</param>
+    /// <param name="configure">Replacements for the test, e.g. a lock that another instance holds.</param>
+    public static async Task<WorkforceApi> StartAsync(PostgresFixture postgres, Action<IServiceCollection>? configure = null)
     {
-        var api = new WorkforceApi(await postgres.CreateDatabaseAsync());
+        var api = new WorkforceApi(await postgres.CreateDatabaseAsync(), configure);
         api.Http = api.CreateClient();
         await api.SeedAsync();
         return api;
@@ -57,6 +67,9 @@ public sealed class WorkforceApi : WebApplicationFactory<ApiMarker>
         {
             services.AddTestAuthentication();
             services.UseFakeTimeProvider(Start);
+            services.RemoveAll<IDistributedLock>();
+            services.AddSingleton<IDistributedLock, InProcessLock>();
+            _configure?.Invoke(services);
         });
     }
 
