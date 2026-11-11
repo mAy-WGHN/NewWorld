@@ -5,6 +5,7 @@ import { AdminAccessApi } from './admin-access.api';
 import {
   KNOWN_TOPICS,
   Person,
+  ResponsibilityEntry,
   StoreGroup,
   StoreOption,
   TARGET_KINDS,
@@ -14,6 +15,7 @@ import {
   dayStart,
   isGuid,
   isValidTopic,
+  periodText,
   personLabel,
   storeLabel,
   validatePeriod,
@@ -21,17 +23,11 @@ import {
 import { ADMIN_UI, ActionMessages, ActionState } from './admin-ui';
 import { PersonPicker } from './person-picker';
 
-interface CreatedResponsibility {
-  id: string;
-  topic: string;
-  target: string;
-}
-
 /**
  * "Zuständigkeiten": who is responsible for a topic (for example "Urlaub genehmigen") for a person, a store or a group of stores.
- * The list shows who is responsible for the loaded person, per topic. Removing needs the ID of the responsibility.
- * TODO(Backend): the list has no IDs and no list of all responsibilities exists; therefore only what was created in this session can be removed
- * with a click, everything else by ID.
+ * The first list shows who is responsible for the loaded person, per topic. Below it all responsibilities the caller may see
+ * (`GET /api/responsibilities`, only those whose target is in the caller's reach) are listed with their period; each one can be removed
+ * with a click.
  */
 @Component({
   selector: 'app-responsibilities-panel',
@@ -50,7 +46,9 @@ export class ResponsibilitiesPanel {
   protected readonly scopes = signal<StoreGroup[]>([]);
   protected readonly loaded = signal(false);
   protected readonly loadError = signal<string | null>(null);
-  protected readonly created = signal<CreatedResponsibility[]>([]);
+  /** All responsibilities in the caller's reach (with ids), so each one can be removed. */
+  protected readonly all = signal<ResponsibilityEntry[]>([]);
+  protected readonly allError = signal<string | null>(null);
   /** Names of the people that are shown by id (responsible persons) or were chosen here. */
   protected readonly names = signal<Record<string, string>>({});
 
@@ -65,8 +63,6 @@ export class ResponsibilitiesPanel {
   protected readonly to = signal('');
   protected readonly formError = signal<string | null>(null);
 
-  protected readonly removeId = signal('');
-  protected readonly removeError = signal<string | null>(null);
   protected readonly confirmingDeleteId = signal<string | null>(null);
 
   protected readonly topics = KNOWN_TOPICS;
@@ -108,7 +104,39 @@ export class ResponsibilitiesPanel {
     const [stores, scopes] = await Promise.allSettled([this.api.stores(), this.api.scopes()]);
     this.stores.set(stores.status === 'fulfilled' ? stores.value : []);
     this.scopes.set(scopes.status === 'fulfilled' ? scopes.value : []);
+    await this.loadAll();
   }
+
+  /** The list of all responsibilities in reach; the people shown by id are looked up by name. */
+  private async loadAll(): Promise<void> {
+    try {
+      this.all.set(await this.api.allResponsibilities());
+      this.allError.set(null);
+      void this.loadNames(this.all().flatMap((e) => [e.responsibleEmployeeId, ...(e.target.kind === 'employee' && e.target.id ? [e.target.id] : [])]));
+    } catch {
+      this.all.set([]);
+      this.allError.set('Die Liste aller Zuständigkeiten konnte nicht geladen werden.');
+    }
+  }
+
+  /** What an entry applies to, in words (store and group by name, person by name). */
+  protected targetOf(entry: ResponsibilityEntry): string {
+    const id = entry.target.id ?? '';
+    switch (entry.target.kind) {
+      case 'everyone':
+        return 'alle Mitarbeitenden';
+      case 'store': {
+        const store = this.stores().find((s) => s.id === id);
+        return store ? storeLabel(store) : id;
+      }
+      case 'scope':
+        return this.scopes().find((s) => s.id === id)?.name ?? id;
+      default:
+        return this.nameOf(id);
+    }
+  }
+
+  protected readonly periodText = periodText;
 
   /** Looks up the names of the responsible people so that the list shows names instead of ids. */
   private async loadNames(ids: readonly string[]): Promise<void> {
@@ -144,10 +172,9 @@ export class ResponsibilitiesPanel {
     this.formError.set(null);
   }
 
-  protected set(field: 'topic' | 'responsibleId' | 'targetId' | 'from' | 'to' | 'removeId', event: Event): void {
+  protected set(field: 'topic' | 'responsibleId' | 'targetId' | 'from' | 'to', event: Event): void {
     this[field].set((event.target as HTMLInputElement | HTMLSelectElement).value);
     this.formError.set(null);
-    this.removeError.set(null);
   }
 
   protected onKind(event: Event): void {
@@ -169,17 +196,6 @@ export class ResponsibilitiesPanel {
     return validatePeriod(this.from(), this.to());
   }
 
-  protected targetText(): string {
-    const id = this.targetId().trim();
-    return this.kind() === 'everyone'
-      ? 'alle Mitarbeitenden'
-      : this.kind() === 'store'
-      ? (this.stores().find((s) => s.id === id) ? storeLabel(this.stores().find((s) => s.id === id)!) : id)
-      : this.kind() === 'scope'
-        ? (this.scopes().find((s) => s.id === id)?.name ?? id)
-        : (this.names()[id] ?? id);
-  }
-
   protected async add(): Promise<void> {
     const error = this.validate();
     this.formError.set(error);
@@ -187,23 +203,18 @@ export class ResponsibilitiesPanel {
       return;
     }
     const personId = this.personId();
-    const topic = this.topic().trim();
-    const targetText = this.targetText();
-    let newId = '';
     const ok = await this.act.run(async () => {
-      newId = (
-        await this.api.addResponsibility({
-          topic,
-          responsibleEmployeeId: this.responsibleId().trim(),
-          target: this.kind() === 'everyone' ? { kind: 'everyone' } : { kind: this.kind(), id: this.targetId().trim() },
-          validFrom: dayStart(this.from()),
-          validTo: dayAfter(this.to()),
-        })
-      ).id;
+      await this.api.addResponsibility({
+        topic: this.topic().trim(),
+        responsibleEmployeeId: this.responsibleId().trim(),
+        target: this.kind() === 'everyone' ? { kind: 'everyone' } : { kind: this.kind(), id: this.targetId().trim() },
+        validFrom: dayStart(this.from()),
+        validTo: dayAfter(this.to()),
+      });
       this.items.set(await this.api.responsibilities(personId));
+      await this.loadAll();
     }, 'Die Zuständigkeit wurde eingerichtet. Sie gilt sofort.');
     if (ok) {
-      this.created.update((list) => [...list, { id: newId, topic, target: targetText }]);
       this.topic.set('');
       this.responsibleId.set('');
       this.from.set('');
@@ -213,16 +224,7 @@ export class ResponsibilitiesPanel {
 
   protected askDelete(id: string): void {
     this.act.clear();
-    this.removeError.set(null);
     this.confirmingDeleteId.set(id);
-  }
-
-  protected askDeleteById(): void {
-    if (!isGuid(this.removeId())) {
-      this.removeError.set('Bitte die ID der Zuständigkeit angeben (eine GUID).');
-      return;
-    }
-    this.askDelete(this.removeId().trim());
   }
 
   protected cancelDelete(): void {
@@ -234,11 +236,10 @@ export class ResponsibilitiesPanel {
     const ok = await this.act.run(async () => {
       await this.api.removeResponsibility(id);
       this.items.set(await this.api.responsibilities(personId));
+      await this.loadAll();
     }, 'Die Zuständigkeit wurde entfernt.');
     if (ok) {
       this.confirmingDeleteId.set(null);
-      this.created.update((list) => list.filter((c) => c.id !== id));
-      this.removeId.set('');
     }
   }
 }

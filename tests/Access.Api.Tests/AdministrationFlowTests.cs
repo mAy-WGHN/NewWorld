@@ -258,6 +258,31 @@ public sealed class AdministrationFlowTests(PostgresFixture postgres) : IClassFi
     }
 
     [Fact]
+    public async Task Responsibilities_are_listed_with_ids_filtered_and_only_within_the_reach_of_the_caller()
+    {
+        await using var api = await StartAsync(postgres);
+        var past = new DateTimeOffset(2000, 1, 2, 0, 0, 0, TimeSpan.Zero);
+        var inA = await api.CreateAsync("/api/responsibilities", new CreateResponsibilityRequest("absence.approval", Max, new ResponsibilityTargetDto("store", F017), null, null), As(Admin));
+        var inB = await api.CreateAsync("/api/responsibilities", new CreateResponsibilityRequest("absence.approval", Tom, new ResponsibilityTargetDto("store", F018), null, null), As(Admin));
+        var everyone = await api.CreateAsync("/api/responsibilities", new CreateResponsibilityRequest("schedule.adjustment", Tom, new ResponsibilityTargetDto("everyone"), null, null), As(Admin));
+        var ended = await api.CreateAsync("/api/responsibilities", new CreateResponsibilityRequest("absence.approval", Erika, new ResponsibilityTargetDto("employee", Tom), past.AddDays(-1), past), As(Admin));
+
+        var all = await api.GetAsync<List<ResponsibilityDto>>("/api/responsibilities", As(Admin));
+        all.Select(r => r.Id).ShouldBe([inA, inB, everyone], ignoreOrder: true);
+        all.Single(r => r.Id == inA).ShouldBe(new ResponsibilityDto(inA, "absence.approval", Max, new ResponsibilityTargetDto("store", F017), null, null));
+        all.Single(r => r.Id == everyone).Target.Kind.ShouldBe("everyone");
+
+        (await api.GetAsync<List<ResponsibilityDto>>("/api/responsibilities?topic=schedule.adjustment", As(Admin))).Select(r => r.Id).ShouldBe([everyone]);
+        (await api.GetAsync<List<ResponsibilityDto>>($"/api/responsibilities?responsibleEmployeeId={Tom}", As(Admin))).Select(r => r.Id).ShouldBe([inB, everyone], ignoreOrder: true);
+        (await api.GetAsync<List<ResponsibilityDto>>("/api/responsibilities?includeEnded=true", As(Admin))).Select(r => r.Id).ShouldContain(ended);
+
+        // A store manager sees what concerns his store, not another store and not "everybody" (that needs unrestricted reach).
+        var role = await api.CreateAsync("/api/roles", new CreateRoleRequest("Filialleitung", ["access:responsibility:read"]), As(Admin));
+        await api.CreateAsync($"/api/people/{Max}/assignments", new CreateAssignmentRequest(role, false, [], true, null, null), As(Admin));
+        (await api.GetAsync<List<ResponsibilityDto>>("/api/responsibilities", As(Max))).Select(r => r.Id).ShouldBe([inA]);
+    }
+
+    [Fact]
     public async Task A_responsibility_for_everybody_reaches_everyone_and_only_unrestricted_reach_may_set_it()
     {
         await using var api = await StartAsync(postgres);

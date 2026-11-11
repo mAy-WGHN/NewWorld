@@ -44,6 +44,10 @@ public sealed record ResponsibilityTargetDto(string Kind, Guid Id = default);
 public sealed record CreateResponsibilityRequest(
     string Topic, Guid ResponsibleEmployeeId, ResponsibilityTargetDto Target, DateTimeOffset? ValidFrom, DateTimeOffset? ValidTo);
 
+/// <summary>One responsibility with its id (to remove it): who is responsible for which topic, for whom, and for how long.</summary>
+public sealed record ResponsibilityDto(
+    Guid Id, string Topic, Guid ResponsibleEmployeeId, ResponsibilityTargetDto Target, DateTimeOffset? ValidFrom, DateTimeOffset? ValidTo);
+
 public sealed record TopicResponsibilityDto(string Topic, IReadOnlyList<Guid> ResponsibleEmployeeIds);
 
 public sealed record CreateCustomPrivilegeRequest(string Key, bool Scopable, string? Description = null);

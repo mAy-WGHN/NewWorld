@@ -15,6 +15,7 @@ import {
   RoleImportResult,
   StoreGroup,
   StoreOption,
+  ResponsibilityEntry,
   TopicResponsibility,
 } from './admin-access-models';
 
@@ -114,6 +115,11 @@ export class AdminAccessApi {
   // responsibilities
   responsibilities(employeeId: string): Promise<TopicResponsibility[]> {
     return firstValueFrom(this.http.get<TopicResponsibility[]>(this.url(`/people/${employeeId}/responsibilities`)));
+  }
+
+  /** All responsibilities the caller may see, with their ids (not yet ended ones). */
+  allResponsibilities(): Promise<ResponsibilityEntry[]> {
+    return firstValueFrom(this.http.get<ResponsibilityEntry[]>(this.url('/responsibilities')));
   }
 
   addResponsibility(request: CreateResponsibilityRequest): Promise<{ id: string }> {

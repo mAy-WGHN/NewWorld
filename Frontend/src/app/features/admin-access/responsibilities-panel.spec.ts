@@ -4,7 +4,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { AuthService } from '../../core/auth/auth.service';
 import { PrivilegeSet } from '../../core/auth/privileges';
 import { AdminAccessApi } from './admin-access.api';
-import { Person, StoreGroup, StoreOption, dayAfter } from './admin-access-models';
+import { Person, ResponsibilityEntry, StoreGroup, StoreOption, dayAfter } from './admin-access-models';
 import { ResponsibilitiesPanel } from './responsibilities-panel';
 
 const grant = (...keys: string[]) => new PrivilegeSet(keys.map((key) => ({ key, unrestricted: true, storeIds: [], employeeIds: [] })));
@@ -17,9 +17,11 @@ const ERIKA = person(PERSON, 'Erika Mustermann', '10042');
 const MAX = person(BOSS, 'Max Chef', '10001');
 const stores: StoreOption[] = [{ id: 's1', name: 'Augsburg Mitte', storeCode: '101', archived: false }];
 const scopes: StoreGroup[] = [{ id: 'g1', name: 'Bezirk Süd', storeIds: ['s1'] }];
+const ENTRY_ID = 'b2c1f64a-1111-4222-8333-444455556666';
+const ENTRY: ResponsibilityEntry = { id: ENTRY_ID, topic: 'absence.approval', responsibleEmployeeId: BOSS, target: { kind: 'store', id: 's1' }, validFrom: null, validTo: null };
 
 describe('ResponsibilitiesPanel', () => {
-  let api: Record<'responsibilities' | 'stores' | 'scopes' | 'addResponsibility' | 'removeResponsibility' | 'searchPeople' | 'peopleByIds', ReturnType<typeof vi.fn>>;
+  let api: Record<'responsibilities' | 'allResponsibilities' | 'stores' | 'scopes' | 'addResponsibility' | 'removeResponsibility' | 'searchPeople' | 'peopleByIds', ReturnType<typeof vi.fn>>;
   const privileges = signal(grant(...ALL));
   let fixture: ComponentFixture<ResponsibilitiesPanel>;
   let root: HTMLElement;
@@ -68,6 +70,7 @@ describe('ResponsibilitiesPanel', () => {
       searchPeople: vi.fn().mockResolvedValue([]),
       peopleByIds: vi.fn().mockImplementation(async (ids: string[]) => [ERIKA, MAX].filter((p) => ids.includes(p.employeeId))),
       responsibilities: vi.fn().mockResolvedValue([{ topic: 'absence.approval', responsibleEmployeeIds: [BOSS] }]),
+      allResponsibilities: vi.fn().mockResolvedValue([ENTRY]),
       stores: vi.fn().mockResolvedValue(stores),
       scopes: vi.fn().mockResolvedValue(scopes),
       addResponsibility: vi.fn().mockResolvedValue({ id: 'b2c1f64a-1111-4222-8333-444455556666' }),
@@ -121,7 +124,39 @@ describe('ResponsibilitiesPanel', () => {
       validTo: dayAfter('2026-12-31'),
     });
     expect(q('[data-testid="status"]')!.textContent).toContain('eingerichtet');
-    expect(q('[data-testid="created-row"]')!.textContent).toContain('Urlaub genehmigen');
+    expect(api['allResponsibilities']).toHaveBeenCalledTimes(2); // the full list is loaded again after the entry
+  });
+
+  it('lists all responsibilities in reach with names, target and period, and says so when there are none', async () => {
+    api['allResponsibilities'].mockResolvedValue([
+      ENTRY,
+      { ...ENTRY, id: 'c3c1f64a-1111-4222-8333-444455556666', topic: 'schedule.adjustment', target: { kind: 'everyone' }, validTo: dayAfter('2026-12-31') },
+    ]);
+    await create();
+
+    const rows = [...root.querySelectorAll('[data-testid="entry-row"]')];
+    expect(rows).toHaveLength(2);
+    expect(rows[0].textContent).toContain('Urlaub genehmigen');
+    expect(rows[0].textContent).toContain('Max Chef (10001)');
+    expect(rows[0].textContent).toContain('Augsburg Mitte (101)'); // the store by name
+    expect(rows[0].querySelector('[data-testid="entry-period"]')!.textContent).toContain('unbefristet');
+    expect(rows[1].textContent).toContain('alle Mitarbeitenden');
+    expect(rows[1].querySelector('[data-testid="entry-period"]')!.textContent).toContain('bis 31.12.2026');
+  });
+
+  it('says so when no responsibility is set up at all', async () => {
+    api['allResponsibilities'].mockResolvedValue([]);
+    await create();
+
+    expect(q('[data-testid="no-entries"]')).not.toBeNull();
+  });
+
+  it('says so when the full list cannot be loaded, the rest of the panel still works', async () => {
+    api['allResponsibilities'].mockRejectedValue(new HttpErrorResponse({ status: 500 }));
+    await create();
+
+    expect(q('[data-testid="all-error"]')).not.toBeNull();
+    expect(q('[data-testid="topic-row"]')).not.toBeNull();
   });
 
   it('creates a responsibility for a store and for a group', async () => {
@@ -191,38 +226,21 @@ describe('ResponsibilitiesPanel', () => {
     expect(q('[data-testid="error"]')!.textContent).toContain('Reichweite');
   });
 
-  it('removes a responsibility created in this session only after a confirmation', async () => {
+  it('removes a listed responsibility only after a confirmation and shows the list again afterwards', async () => {
     await create();
-    await set('[data-testid="topic"]', 'absence.approval');
-    await pickPerson('responsible-id', 'max', MAX);
-    await click('[data-action="add"]');
 
-    await click('[data-testid="created-row"] [data-action="ask-delete"]');
+    await click('[data-testid="entry-row"] [data-action="ask-delete"]');
     expect(api['removeResponsibility']).not.toHaveBeenCalled();
     await click('[data-action="cancel-delete"]');
     expect(api['removeResponsibility']).not.toHaveBeenCalled();
 
-    await click('[data-testid="created-row"] [data-action="ask-delete"]');
+    api['allResponsibilities'].mockResolvedValue([]); // the service no longer lists it
+    await click('[data-testid="entry-row"] [data-action="ask-delete"]');
     await click('[data-action="delete"]');
 
-    expect(api['removeResponsibility']).toHaveBeenCalledWith('b2c1f64a-1111-4222-8333-444455556666');
-    expect(q('[data-testid="created-row"]')).toBeNull();
-  });
-
-  it('removes a responsibility by its ID, only with a valid ID and after a confirmation', async () => {
-    await create();
-
-    await set('[data-testid="remove-id"]', 'abc');
-    await click('[data-action="ask-delete-by-id"]');
-    expect(q('[data-testid="remove-error"]')).not.toBeNull();
+    expect(api['removeResponsibility']).toHaveBeenCalledWith(ENTRY_ID);
+    expect(q('[data-testid="entry-row"]')).toBeNull();
     expect(q('[data-testid="delete-panel"]')).toBeNull();
-
-    await set('[data-testid="remove-id"]', BOSS);
-    await click('[data-action="ask-delete-by-id"]');
-    expect(api['removeResponsibility']).not.toHaveBeenCalled();
-    await click('[data-action="delete"]');
-
-    expect(api['removeResponsibility']).toHaveBeenCalledWith(BOSS);
   });
 
   it('hides creating and removing without the privileges', async () => {
@@ -230,6 +248,7 @@ describe('ResponsibilitiesPanel', () => {
     await create();
 
     expect(q('[data-testid="add-panel"]')).toBeNull();
-    expect(q('[data-testid="remove-by-id"]')).toBeNull();
+    expect(q('[data-testid="entry-row"]')).not.toBeNull(); // still listed
+    expect(q('[data-testid="entry-row"] [data-action="ask-delete"]')).toBeNull();
   });
 });

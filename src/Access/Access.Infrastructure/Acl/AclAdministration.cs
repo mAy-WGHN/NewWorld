@@ -179,6 +179,46 @@ public sealed class AclAdministration(AccessDbContext db, IAclReader reader, Rec
         }, cancellationToken);
     }
 
+    /// <summary>
+    /// The responsibilities the actor may see: those whose target is in the actor's reach for <see cref="AccessPrivileges.ResponsibilityRead"/>
+    /// (same rule as for setting and removing). Ended ones are left out unless asked for.
+    /// </summary>
+    public async Task<IReadOnlyList<Responsibility>> ListResponsibilitiesAsync(
+        Guid actor, string? topic, Guid? responsibleEmployeeId, bool includeEnded, CancellationToken cancellationToken)
+    {
+        var now = time.GetUtcNow();
+        var query = db.Responsibilities.AsNoTracking().AsQueryable();
+        if (!string.IsNullOrWhiteSpace(topic))
+        {
+            query = query.Where(r => r.Topic == topic);
+        }
+
+        if (responsibleEmployeeId is { } responsible)
+        {
+            query = query.Where(r => r.ResponsibleEmployeeId == responsible);
+        }
+
+        if (!includeEnded)
+        {
+            query = query.Where(r => r.ValidTo == null || r.ValidTo > now);
+        }
+
+        var guard = await Guard(cancellationToken);
+        var result = new List<Responsibility>();
+        foreach (var record in await query.OrderBy(r => r.Topic).ThenBy(r => r.Id).ToListAsync(cancellationToken))
+        {
+            var responsibility = EfAclReader.ToResponsibility(record);
+            if (!guard.CanSetResponsibility(actor, responsibility.Target, AccessPrivileges.ResponsibilityRead).IsAllowed)
+            {
+                continue;
+            }
+
+            result.Add(responsibility);
+        }
+
+        return result;
+    }
+
     public async Task<AdminResult> RemoveResponsibilityAsync(Guid actor, Guid responsibilityId, CancellationToken cancellationToken)
     {
         var record = await db.Responsibilities.AsNoTracking().FirstOrDefaultAsync(r => r.Id == responsibilityId, cancellationToken);

@@ -62,6 +62,17 @@ export interface TopicResponsibility {
   responsibleEmployeeIds: string[];
 }
 
+/** One responsibility with its id (`GET /api/responsibilities`): who is responsible for which topic, for whom, and for how long. */
+export interface ResponsibilityEntry {
+  id: string;
+  topic: string;
+  responsibleEmployeeId: string;
+  /** `everyone` has no id. */
+  target: { kind: TargetKind; id?: string };
+  validFrom: string | null;
+  validTo: string | null;
+}
+
 export interface MainStore {
   effectiveStoreId: string | null;
   overrideStoreId: string | null;

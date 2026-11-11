@@ -252,6 +252,14 @@ public static class Endpoints
                     : Results.Ok(ResponsibilityCalculator.Calculate(employeeId, await reader.LoadAsync(ct), time.GetUtcNow(), options.Zone)
                         .Select(r => new TopicResponsibilityDto(r.Key, r.Value))))
             .RequireAuthorization(AppPolicies.Privilege(AccessPrivileges.ResponsibilityRead));
+        // All responsibilities with their ids, only those whose target is in the caller's reach (like setting and removing); optional filter by topic
+        // and responsible person; ended ones only with includeEnded=true.
+        api.MapGet("/responsibilities", async (string? topic, Guid? responsibleEmployeeId, bool? includeEnded, ClaimsPrincipal user, AclAdministration admin, CancellationToken ct) =>
+                Actor(user) is not { } actor
+                    ? Results.Forbid()
+                    : Results.Ok((await admin.ListResponsibilitiesAsync(actor, topic, responsibleEmployeeId, includeEnded == true, ct))
+                        .Select(r => new ResponsibilityDto(r.Id, r.Topic, r.ResponsibleEmployeeId, ToTargetDto(r.Target), r.ValidFrom, r.ValidTo))))
+            .RequireAuthorization(AppPolicies.Privilege(AccessPrivileges.ResponsibilityRead));
         api.MapPost("/responsibilities", (CreateResponsibilityRequest request, ClaimsPrincipal user, AclAdministration admin, CancellationToken ct) =>
                 ToTarget(request.Target) is not { } target
                     ? Task.FromResult(Results.Problem(statusCode: StatusCodes.Status422UnprocessableEntity, title: nameof(GuardReason.Invalid)))
@@ -321,6 +329,14 @@ public static class Endpoints
         "store" => ResponsibilityTarget.ForStore(dto.Id),
         "scope" => ResponsibilityTarget.ForScope(dto.Id),
         _ => null,
+    };
+
+    private static ResponsibilityTargetDto ToTargetDto(ResponsibilityTarget target) => target switch
+    {
+        ResponsibilityTarget.Employee e => new ResponsibilityTargetDto("employee", e.EmployeeId),
+        ResponsibilityTarget.Store s => new ResponsibilityTargetDto("store", s.StoreId),
+        ResponsibilityTarget.Scope sc => new ResponsibilityTargetDto("scope", sc.ScopeId),
+        _ => new ResponsibilityTargetDto("everyone"),
     };
 
     private static MyPrivilegesDto ToDto(Guid employeeId, EffectivePermissions permissions, string? name = null, string? personnelNumber = null) => new(

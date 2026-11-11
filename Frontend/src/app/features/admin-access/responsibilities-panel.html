@@ -26,21 +26,28 @@
     }
   </div>
 
-  @if (created().length) {
-    <div class="flex flex-col gap-2" role="list" data-testid="created-list">
-      <h3 class="m-0 text-base font-medium">In dieser Sitzung eingerichtet</h3>
-      @for (c of created(); track c.id) {
-        <app-row-card data-testid="created-row" [attr.data-id]="c.id">
-          <div class="flex flex-wrap items-center justify-between gap-2">
-            <span><strong>{{ topicLabel(c.topic) }}</strong> für {{ c.target }}</span>
-            @if (canDelete()) {
-              <button mat-stroked-button type="button" data-action="ask-delete" [disabled]="act.busy()" (click)="askDelete(c.id)">Entfernen</button>
-            }
-          </div>
-        </app-row-card>
-      }
-    </div>
-  }
+  <div class="flex flex-col gap-2" role="list" data-testid="all-list">
+    <h3 class="m-0 text-base font-medium">Alle Zuständigkeiten</h3>
+    <p class="m-0 text-sm text-on-surface-variant">Alle Zuständigkeiten, deren Ziel du sehen darfst (ohne abgelaufene).</p>
+    @if (allError(); as message) {
+      <p class="m-0 text-[13px] text-error" role="alert" data-testid="all-error">{{ message }}</p>
+    } @else if (all().length === 0) {
+      <p class="m-0 text-sm text-on-surface-variant" data-testid="no-entries">Es sind keine Zuständigkeiten eingerichtet.</p>
+    }
+    @for (e of all(); track e.id) {
+      <app-row-card data-testid="entry-row" [attr.data-id]="e.id">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <span>
+            <strong>{{ topicLabel(e.topic) }}</strong>: {{ nameOf(e.responsibleEmployeeId) }} für {{ targetOf(e) }}
+            <span class="text-[13px] opacity-80" data-testid="entry-period">{{ periodText(e.validFrom, e.validTo) }}</span>
+          </span>
+          @if (canDelete()) {
+            <button mat-stroked-button type="button" data-action="ask-delete" [disabled]="act.busy()" (click)="askDelete(e.id)">Entfernen</button>
+          }
+        </div>
+      </app-row-card>
+    }
+  </div>
 
   @if (confirmingDeleteId(); as id) {
     <div class="flex flex-wrap items-center gap-2 rounded-lg border border-outline-variant px-3 py-2" data-testid="delete-panel">
@@ -123,23 +130,4 @@
     </app-row-card>
   }
 
-  @if (canDelete()) {
-    <app-row-card data-testid="remove-by-id">
-      <div class="flex flex-col gap-2">
-        <h3 class="m-0 text-base font-medium">Zuständigkeit per ID entfernen</h3>
-        <!-- TODO(Backend): Liste aller Zuständigkeiten mit IDs; bis dahin nur per ID. -->
-        <p class="m-0 text-sm text-on-surface-variant">Die Liste zeigt keine IDs. Hast du die ID einer Zuständigkeit, kannst du sie hier entfernen.</p>
-        <mat-form-field appearance="outline" subscriptSizing="dynamic">
-          <mat-label>ID der Zuständigkeit</mat-label>
-          <input matInput data-testid="remove-id" autocomplete="off" [value]="removeId()" (input)="set('removeId', $event)" />
-        </mat-form-field>
-        @if (removeError(); as message) {
-          <p class="m-0 text-[13px] text-error" role="alert" data-testid="remove-error">{{ message }}</p>
-        }
-        <div>
-          <button mat-stroked-button type="button" data-action="ask-delete-by-id" [disabled]="act.busy()" (click)="askDeleteById()">Entfernen</button>
-        </div>
-      </div>
-    </app-row-card>
-  }
 </section>
