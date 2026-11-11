@@ -12,6 +12,24 @@ public class PermissionCacheTests
         new(Anna, version, new Dictionary<string, PrivilegeReach> { ["absence:read"] = PrivilegeReach.Stores([store], []) });
 
     [Fact]
+    public void All_returns_the_current_snapshot_of_every_person_and_forgets_removed_ones()
+    {
+        var cache = new InMemoryPermissionCache();
+        var bert = Guid.Parse("00000000-0000-0000-0000-00000000000b");
+        cache.Apply(Snapshot(1, Store1));
+        cache.Apply(Snapshot(2, Store2)); // replaces the first one of Anna
+        cache.Apply(new PermissionSnapshot(bert, 1, new Dictionary<string, PrivilegeReach>()));
+
+        cache.All().Select(s => (s.EmployeeId, s.Version)).ShouldBe([(Anna, 2L), (bert, 1L)], ignoreOrder: true);
+        cache.Remove(bert);
+        cache.All().Select(s => s.EmployeeId).ShouldBe([Anna]);
+        var taken = cache.All();
+        cache.Remove(Anna);
+        taken.Count.ShouldBe(1); // a copy: changes of the cache afterwards do not change a list already taken
+        cache.All().ShouldBeEmpty();
+    }
+
+    [Fact]
     public void Newer_version_replaces_older_one()
     {
         var cache = new InMemoryPermissionCache();

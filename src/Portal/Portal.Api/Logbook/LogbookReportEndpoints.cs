@@ -133,7 +133,7 @@ public static class LogbookReportEndpoints
 
     internal static async Task<Dictionary<Guid, string>> PeopleAsync(PortalDbContext db, IEnumerable<LogbookReportRecord> reports, CancellationToken ct)
     {
-        var ids = reports.SelectMany(r => new[] { r.SubmittedBy, r.RevisedBy, r.FollowedUpBy }).Where(id => id is not null).Select(id => id!.Value).Distinct().ToList();
+        var ids = reports.SelectMany(r => new[] { r.SubmittedBy, r.RevisedBy, r.FollowedUpBy, r.EscalatedBy }).Where(id => id is not null).Select(id => id!.Value).Distinct().ToList();
         return await db.People.AsNoTracking().Where(p => ids.Contains(p.EmployeeId)).ToDictionaryAsync(p => p.EmployeeId, p => p.Name, ct);
     }
 

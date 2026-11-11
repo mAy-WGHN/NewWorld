@@ -42,6 +42,10 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton(configuration.GetSection(Portal.Core.Logbook.LogbookOptions.ConfigurationSection).Get<Portal.Core.Logbook.LogbookOptions>() ?? new Portal.Core.Logbook.LogbookOptions());
         services.AddScoped<Logbook.LogbookReportService>();
         services.AddScoped<Logbook.LogbookReviewService>();
+        services.AddScoped<Logbook.LogbookNotifier>();
+        services.AddScoped<Logbook.LogbookReminderService>();
+        services.AddPostgresAdvisoryLock<PortalDbContext>(); // the reminders run on one instance at a time
+        services.AddHostedService<Logbook.LogbookReminderBackgroundService>();
 
         // FAQ images: files outside the application folder (never in the web root); relative paths count from the content root.
         var imagePath = configuration["Portal:Faq:ImagePath"] is { Length: > 0 } configured ? configured : Path.Combine("var", "uploads", "faq");

@@ -1,0 +1,17 @@
+{
+  "key": "portal.logbook-reply.store",
+  "mandatory": false,
+  "placeholders": {},
+  "inApp": {
+    "title": "Antwort zum Wochenbericht",
+    "body": "Zu Ihrem Wochenbericht liegt eine Antwort vor."
+  },
+  "push": {
+    "title": "Neue Mitteilung im Portal",
+    "body": "Öffnen, um die Mitteilung zu lesen."
+  },
+  "email": {
+    "title": "Neue Mitteilung im Portal",
+    "body": "Es liegt eine neue Mitteilung für Sie im Portal bereit."
+  }
+}

@@ -27,6 +27,14 @@ public sealed class InMemoryPermissionCache : IPermissionCache
         }
     }
 
+    public IReadOnlyList<PermissionSnapshot> All()
+    {
+        lock (_gate)
+        {
+            return [.. _byEmployee.Values];
+        }
+    }
+
     public void Remove(Guid employeeId)
     {
         lock (_gate)

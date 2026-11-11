@@ -268,6 +268,99 @@ namespace Portal.Infrastructure.Migrations
                     b.ToTable("logbook_regions", "portal");
                 });
 
+            modelBuilder.Entity("Portal.Infrastructure.Logbook.LogbookReminderRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("kind");
+
+                    b.Property<int?>("PointIndex")
+                        .HasColumnType("integer")
+                        .HasColumnName("point_index");
+
+                    b.Property<DateTimeOffset>("SentAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("sent_at");
+
+                    b.Property<Guid?>("SentBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("sent_by");
+
+                    b.Property<Guid>("StoreId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("store_id");
+
+                    b.Property<DateOnly>("Week")
+                        .HasColumnType("date")
+                        .HasColumnName("week");
+
+                    b.HasKey("Id")
+                        .HasName("pk_logbook_reminders");
+
+                    b.HasIndex("StoreId", "Week")
+                        .HasDatabaseName("ix_logbook_reminders_store_id_week");
+
+                    b.HasIndex("StoreId", "Week", "PointIndex")
+                        .IsUnique()
+                        .HasDatabaseName("ix_logbook_reminders_store_id_week_point_index")
+                        .HasFilter("point_index IS NOT NULL");
+
+                    b.ToTable("logbook_reminders", "portal");
+                });
+
+            modelBuilder.Entity("Portal.Infrastructure.Logbook.LogbookReminderSettingsRecord", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("ChangedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("changed_at");
+
+                    b.Property<Guid?>("ChangedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("changed_by");
+
+                    b.Property<string>("DueDay")
+                        .IsRequired()
+                        .HasMaxLength(12)
+                        .HasColumnType("character varying(12)")
+                        .HasColumnName("due_day");
+
+                    b.Property<TimeOnly>("DueTime")
+                        .HasColumnType("time without time zone")
+                        .HasColumnName("due_time");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("enabled");
+
+                    b.Property<DateTimeOffset?>("EnabledAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("enabled_at");
+
+                    b.Property<int>("MaxReminders")
+                        .HasColumnType("integer")
+                        .HasColumnName("max_reminders");
+
+                    b.Property<string>("PointsJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("points_json");
+
+                    b.HasKey("Id")
+                        .HasName("pk_logbook_reminder_settings");
+
+                    b.ToTable("logbook_reminder_settings", "portal");
+                });
+
             modelBuilder.Entity("Portal.Infrastructure.Logbook.LogbookReportRecord", b =>
                 {
                     b.Property<Guid>("Id")
@@ -286,6 +379,18 @@ namespace Portal.Infrastructure.Migrations
                     b.Property<Guid>("CreatedBy")
                         .HasColumnType("uuid")
                         .HasColumnName("created_by");
+
+                    b.Property<DateTimeOffset?>("EscalatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("escalated_at");
+
+                    b.Property<Guid?>("EscalatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("escalated_by");
+
+                    b.Property<string>("EscalationNote")
+                        .HasColumnType("text")
+                        .HasColumnName("escalation_note");
 
                     b.Property<string>("FollowUpNote")
                         .HasColumnType("text")

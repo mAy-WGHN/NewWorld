@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Portal.Infrastructure.Messaging;
 using Shared.Infrastructure.Messaging;
 using Portal.Api;
@@ -80,6 +81,8 @@ public sealed class PortalApi : WebApplicationFactory<ApiMarker>
         {
             services.AddTestAuthentication();
             services.UseFakeTimeProvider(Start);
+            services.RemoveAll<Shared.Infrastructure.Persistence.IDistributedLock>();
+            services.AddSingleton<Shared.Infrastructure.Persistence.IDistributedLock, InProcessLock>();
         });
     }
 

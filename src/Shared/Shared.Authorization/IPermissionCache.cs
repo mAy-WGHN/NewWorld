@@ -8,6 +8,9 @@ public interface IPermissionCache
 
     bool TryGet(Guid employeeId, out PermissionSnapshot? snapshot);
 
+    /// <summary>A copy of all current snapshots (for services that need to know who holds a privilege, for example whom to notify).</summary>
+    IReadOnlyList<PermissionSnapshot> All();
+
     /// <summary>Forgets a person (data erasure).</summary>
     void Remove(Guid employeeId);
 }

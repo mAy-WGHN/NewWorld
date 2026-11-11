@@ -57,7 +57,7 @@ public sealed record LogbookReviewFilter(DateOnly? Week, Guid? StoreId, Guid? Re
 /// report in progress, the store manager marks it as followed up with a note, and "revised since my reply" compares the last revision with the last reply of
 /// the viewer.
 /// </summary>
-public sealed class LogbookReviewService(PortalDbContext db, LogbookStructureStore structures, TimeProvider time, LogbookReportService reports)
+public sealed class LogbookReviewService(PortalDbContext db, LogbookStructureStore structures, LogbookNotifier notifier, TimeProvider time, LogbookReportService reports)
 {
     public const int MaxNote = 1000;
 
@@ -151,6 +151,7 @@ public sealed class LogbookReviewService(PortalDbContext db, LogbookStructureSto
         var comment = new LogbookCommentRecord { ReportId = reportId, Kind = kind, Level = viewer.Level, AuthorId = viewer.Id, Text = text!.Trim(), CreatedAt = now };
         db.LogbookComments.Add(comment);
         report.State = LogbookStateRules.AfterComment(report.State, kind, viewer.Level);
+        notifier.Replied(report, comment, LogbookReach.RecipientsOf(await structures.LoadAsync(cancellationToken), report.StoreId));
         await db.SaveChangesAsync(cancellationToken);
         return new(LogbookReviewFailure.None, comment);
     }
@@ -204,6 +205,38 @@ public sealed class LogbookReviewService(PortalDbContext db, LogbookStructureSto
         report.FollowedUpAt = time.GetUtcNow();
         report.FollowedUpBy = by;
         report.FollowUpNote = note.Trim();
+        notifier.ReportFollowedUp(report, by, LogbookReach.RecipientsOf(await structures.LoadAsync(cancellationToken), report.StoreId));
+        await db.SaveChangesAsync(cancellationToken);
+        return new(LogbookReviewFailure.None, report);
+    }
+
+    /// <summary>
+    /// A regional leader asks the district leaders for help with a handed-in report; they are told. Only regional leaders escalate (the district leader is the
+    /// top), only once per report, and only if the store has district leaders to go to.
+    /// </summary>
+    public async Task<LogbookReviewResult<LogbookReportRecord>> EscalateAsync(Guid reportId, LogbookViewer viewer, string? note, CancellationToken cancellationToken)
+    {
+        var report = await db.LogbookReports.FirstOrDefaultAsync(r => r.Id == reportId, cancellationToken);
+        if (report is null || report.Phase != LogbookReportPhase.Submitted || !LogbookCommentRules.CanWrite(viewer.Level))
+        {
+            return new(LogbookReviewFailure.NotFound);
+        }
+
+        if (!string.IsNullOrWhiteSpace(note) && note.Trim().Length > MaxNote)
+        {
+            return new(LogbookReviewFailure.TextTooLong);
+        }
+
+        var recipients = LogbookReach.RecipientsOf(await structures.LoadAsync(cancellationToken), report.StoreId);
+        if (viewer.Level != LogbookLevel.Regional || report.EscalatedAt is not null || recipients.District.Count == 0)
+        {
+            return new(LogbookReviewFailure.Conflict);
+        }
+
+        report.EscalatedAt = time.GetUtcNow();
+        report.EscalatedBy = viewer.Id;
+        report.EscalationNote = string.IsNullOrWhiteSpace(note) ? null : note.Trim();
+        notifier.ReportEscalated(report, viewer.Id, recipients);
         await db.SaveChangesAsync(cancellationToken);
         return new(LogbookReviewFailure.None, report);
     }

@@ -19,16 +19,19 @@ public sealed record SetLogbookStateRequest(string? State);
 
 public sealed record FollowUpLogbookRequest(string? Note);
 
+public sealed record EscalateLogbookRequest(string? Note);
+
 /// <summary>One line of the list of the leaders; <c>RevisedSinceMyReply</c> is true if the store manager changed the report after the viewer's last reply.</summary>
 public sealed record LogbookReviewItemDto(
     Guid Id, Guid StoreId, string StoreNumber, string StoreName, string Week, string State, DateTimeOffset? SubmittedAt, DateTimeOffset? RevisedAt,
-    DateTimeOffset? FollowedUpAt, bool RevisedSinceMyReply, int CommentCount);
+    DateTimeOffset? FollowedUpAt, bool RevisedSinceMyReply, int CommentCount, bool Escalated);
 
 /// <summary><c>ViewerLevel</c> is <c>none</c> (store manager), <c>regional</c> or <c>district</c>. The comments are the ones the viewer may see.</summary>
 public sealed record LogbookReportDetailDto(
     Guid Id, Guid StoreId, string StoreNumber, string StoreName, string Week, int TemplateVersion, string Phase, string State, Dictionary<Guid, LogbookAnswerDto> Answers,
     DateTimeOffset? SubmittedAt, string? SubmittedByName, DateTimeOffset? RevisedAt, string? RevisedByName,
-    DateTimeOffset? FollowedUpAt, string? FollowedUpByName, string? FollowUpNote, bool RevisedSinceMyReply, string ViewerLevel, IReadOnlyList<LogbookCommentDto> Comments);
+    DateTimeOffset? FollowedUpAt, string? FollowedUpByName, string? FollowUpNote, DateTimeOffset? EscalatedAt, string? EscalatedByName, string? EscalationNote,
+    bool RevisedSinceMyReply, string ViewerLevel, IReadOnlyList<LogbookCommentDto> Comments);
 
 /// <summary>
 /// The regional and district leaders at the weekly reports (decision 49): read the handed-in reports of the stores of their reach, reply and comment
@@ -58,7 +61,7 @@ public static class LogbookReviewEndpoints
                 return Answer.Ok(items.Select(i => new LogbookReviewItemDto(
                     i.Report.Id, i.Report.StoreId, stores.GetValueOrDefault(i.Report.StoreId)?.StoreNumber ?? string.Empty, stores.GetValueOrDefault(i.Report.StoreId)?.Name ?? "(unbekannt)",
                     LogbookReportEndpoints.Format(i.Report.Week), LogbookReportEndpoints.State(i.Report.State), i.Report.SubmittedAt, i.Report.RevisedAt, i.Report.FollowedUpAt,
-                    i.RevisedSinceMyReply, i.CommentCount)));
+                    i.RevisedSinceMyReply, i.CommentCount, i.Report.EscalatedAt is not null)));
             })
             .RequireAuthorization(review);
 
@@ -129,6 +132,18 @@ public static class LogbookReviewEndpoints
             })
             .RequireAuthorization(AppPolicies.Privilege(PortalPrivileges.LogbookWrite));
 
+        // A regional leader asks the district leaders for help; they are told. Once per report.
+        app.MapPost("/api/logbook/reports/{id:guid}/escalate", async (
+                Guid id, EscalateLogbookRequest request, ClaimsPrincipal user, IPermissionCache cache, LogbookReviewService service, PortalDbContext db, CancellationToken ct) =>
+            {
+                var viewer = await ViewerAsync(id, user, cache, service, ct) ?? throw ApiException.NotFound();
+                var result = await service.EscalateAsync(id, viewer, request.Note, ct);
+                Check(result.Failure, "note", "Der Bericht kann nicht eskaliert werden: er ist schon eskaliert, für die Filiale ist keine Bezirksleitung eingetragen, oder Sie sind selbst die Bezirksleitung.");
+                var view = await service.GetAsync(id, viewer, ct) ?? throw ApiException.NotFound();
+                return Answer.Ok(await ToDetailAsync(view, viewer, db, ct));
+            })
+            .RequireAuthorization(review);
+
         return app;
     }
 
@@ -149,7 +164,7 @@ public static class LogbookReviewEndpoints
         return level == LogbookLevel.None && !manager ? null : new LogbookViewer(me, level, manager);
     }
 
-    private static void Check(LogbookReviewFailure failure, string textField)
+    private static void Check(LogbookReviewFailure failure, string textField, string? conflict = null)
     {
         switch (failure)
         {
@@ -164,7 +179,7 @@ public static class LogbookReviewEndpoints
             case LogbookReviewFailure.StateNotAllowed:
                 throw ApiException.Validation(textField, "Dieser Stand kann nicht gesetzt werden.");
             default:
-                throw ApiException.Conflict("Das ist bei diesem Bericht gerade nicht möglich (er ist abgeschlossen oder noch nicht abgegeben).");
+                throw ApiException.Conflict(conflict ?? "Das ist bei diesem Bericht gerade nicht möglich (er ist abgeschlossen oder noch nicht abgegeben).");
         }
     }
 
@@ -193,6 +208,9 @@ public static class LogbookReviewEndpoints
             basic.Id, basic.StoreId, store?.StoreNumber ?? string.Empty, store?.Name ?? "(unbekannt)", basic.Week, basic.TemplateVersion, basic.Phase, basic.State, basic.Answers,
             basic.SubmittedAt, basic.SubmittedByName, basic.RevisedAt, basic.RevisedByName,
             report.FollowedUpAt, report.FollowedUpBy is { } by ? people.GetValueOrDefault(by, "(unbekannt)") : null, report.FollowUpNote,
+            // the escalation is between the leaders: the store manager does not see it
+            viewer.Level == LogbookLevel.None ? null : report.EscalatedAt, viewer.Level == LogbookLevel.None ? null : (report.EscalatedBy is { } esc ? people.GetValueOrDefault(esc, "(unbekannt)") : null),
+            viewer.Level == LogbookLevel.None ? null : report.EscalationNote,
             view.RevisedSinceMyReply, viewer.Level.ToString().ToLowerInvariant(), [.. view.Comments.Select(c => ToDto(c, viewer.Id, people))]);
     }
 

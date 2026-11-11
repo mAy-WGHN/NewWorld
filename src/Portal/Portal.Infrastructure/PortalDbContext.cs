@@ -32,6 +32,8 @@ public sealed class PortalDbContext(DbContextOptions<PortalDbContext> options) :
     public DbSet<LogbookTemplateRecord> LogbookTemplates => Set<LogbookTemplateRecord>();
     public DbSet<LogbookReportRecord> LogbookReports => Set<LogbookReportRecord>();
     public DbSet<LogbookCommentRecord> LogbookComments => Set<LogbookCommentRecord>();
+    public DbSet<LogbookReminderRecord> LogbookReminders => Set<LogbookReminderRecord>();
+    public DbSet<LogbookReminderSettingsRecord> LogbookReminderSettings => Set<LogbookReminderSettingsRecord>();
 
     /// <summary>Provider settings shared by runtime and design time (migrations).</summary>
     public static DbContextOptionsBuilder Configure(DbContextOptionsBuilder options, string connectionString) => options
@@ -155,6 +157,24 @@ public sealed class PortalDbContext(DbContextOptions<PortalDbContext> options) :
             b.Property(c => c.Level).HasConversion<string>().HasMaxLength(20);
             b.HasIndex(c => c.ReportId);
             b.HasOne<LogbookReportRecord>().WithMany().HasForeignKey(c => c.ReportId).OnDelete(DeleteBehavior.Cascade);
+        });
+        modelBuilder.Entity<LogbookReminderRecord>(b =>
+        {
+            b.ToTable("logbook_reminders");
+            b.HasKey(r => r.Id);
+            b.Property(r => r.Id).ValueGeneratedNever();
+            b.Property(r => r.Kind).HasConversion<string>().HasMaxLength(20);
+            b.HasIndex(r => new { r.StoreId, r.Week });
+            // an automatic point is sent once per store and week (manual reminders have no point)
+            b.HasIndex(r => new { r.StoreId, r.Week, r.PointIndex }).IsUnique().HasFilter("point_index IS NOT NULL");
+        });
+        modelBuilder.Entity<LogbookReminderSettingsRecord>(b =>
+        {
+            b.ToTable("logbook_reminder_settings");
+            b.HasKey(s => s.Id);
+            b.Property(s => s.Id).ValueGeneratedNever();
+            b.Property(s => s.DueDay).HasConversion<string>().HasMaxLength(12);
+            b.Property(s => s.PointsJson).HasColumnType("jsonb");
         });
         modelBuilder.Entity<FaqRecord>(b =>
         {

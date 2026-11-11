@@ -1,0 +1,17 @@
+{
+  "key": "portal.logbook-followed-up.regional",
+  "mandatory": false,
+  "placeholders": {},
+  "inApp": {
+    "title": "Wochenbericht nachbereitet",
+    "body": "Eine Filiale hat einen Wochenbericht nachbereitet."
+  },
+  "push": {
+    "title": "Neue Mitteilung im Portal",
+    "body": "Öffnen, um die Mitteilung zu lesen."
+  },
+  "email": {
+    "title": "Neue Mitteilung im Portal",
+    "body": "Es liegt eine neue Mitteilung für Sie im Portal bereit."
+  }
+}

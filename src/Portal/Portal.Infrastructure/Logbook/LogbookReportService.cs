@@ -36,6 +36,12 @@ public sealed class LogbookReportRecord
 
     public Guid? FollowedUpBy { get; set; }
     public string? FollowUpNote { get; set; }
+
+    /// <summary>A regional leader asked the district leaders for help with this report (internal: the store manager does not see it).</summary>
+    public DateTimeOffset? EscalatedAt { get; set; }
+
+    public Guid? EscalatedBy { get; set; }
+    public string? EscalationNote { get; set; }
 }
 
 public enum LogbookReportFailure
@@ -65,7 +71,8 @@ public sealed record LogbookStoreWeek(Guid StoreId, LogbookReportRecord? Report,
 /// incomplete, the hand in needs the required sections, and a handed-in report stays changeable (a change is marked as a revision) but keeps its required
 /// sections answered.
 /// </summary>
-public sealed class LogbookReportService(PortalDbContext db, LogbookTemplateStore templates, LogbookStructureStore structures, TimeProvider time, LogbookOptions options)
+public sealed class LogbookReportService(
+    PortalDbContext db, LogbookTemplateStore templates, LogbookStructureStore structures, LogbookNotifier notifier, TimeProvider time, LogbookOptions options)
 {
     private static readonly JsonSerializerOptions Json = new();
 
@@ -133,7 +140,8 @@ public sealed class LogbookReportService(PortalDbContext db, LogbookTemplateStor
             return new(LogbookReportFailure.None, report); // a second click changes nothing
         }
 
-        if (!LogbookReach.CanReceiveReports(await structures.LoadAsync(cancellationToken), storeId))
+        var structure = await structures.LoadAsync(cancellationToken);
+        if (!LogbookReach.CanReceiveReports(structure, storeId))
         {
             return new(LogbookReportFailure.NoRecipients);
         }
@@ -158,6 +166,7 @@ public sealed class LogbookReportService(PortalDbContext db, LogbookTemplateStor
         report.SubmittedAt = now;
         report.SubmittedBy = by;
         report.UpdatedAt = now;
+        notifier.ReportSubmitted(report, by, LogbookReach.RecipientsOf(structure, storeId)); // in the same transaction as the hand in
         return await SaveChangesAsync(report, cancellationToken);
     }
 
