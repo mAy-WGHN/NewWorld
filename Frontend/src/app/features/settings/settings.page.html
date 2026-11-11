@@ -32,7 +32,7 @@
   <mat-tab label="Anmeldung">
     <section class="max-w-2xl py-5" data-testid="login-info">
       <h2 class="m-0 mb-3 text-lg font-medium">Angemeldet als</h2>
-      <p class="m-0">{{ profile.displayName() ?? 'Unbekannt' }}@if (profile.personnelNumber()) { · Personalnummer {{ profile.personnelNumber() }} }</p>
+      <p class="m-0">{{ profile.displayName() ?? 'Unbekannt' }}@if (profile.personnelNumber()) { · Personalnummer {{ profile.personnelNumber() }} }@if (profile.storeName()) { · {{ profile.storeName() }} }</p>
       <h2 class="m-0 mt-6 mb-1 text-lg font-medium">PIN</h2>
       <p class="m-0 text-on-surface-variant">
         Dein PIN wird in Business Central verwaltet. Das Portal speichert und ändert ihn nicht. Wenn du ihn ändern möchtest oder vergessen hast, wende dich an die Personalabteilung.

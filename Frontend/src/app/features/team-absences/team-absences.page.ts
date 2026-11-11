@@ -9,6 +9,7 @@ import {
   CELL_TEXT,
   CellKind,
   StoreOption,
+  StorePerson,
   StoreUnavailability,
   TeamMember,
   UnavailabilityKind,
@@ -19,7 +20,7 @@ import {
   entryErrorMessage,
   formatDate,
   isManualEntry,
-  membersOf,
+  membersWithPeople,
   monthDays,
   monthEnd,
   monthLabel,
@@ -70,7 +71,9 @@ export class TeamAbsencesPage {
   protected readonly today = todayIso();
   protected readonly days = computed(() => monthDays(this.month()));
   protected readonly title = computed(() => monthLabel(this.month()));
-  protected readonly members = computed<TeamMember[]>(() => membersOf(this.rows()));
+  /** The active people of the store; all of them get a row, also those without an entry. */
+  protected readonly people = signal<StorePerson[]>([]);
+  protected readonly members = computed<TeamMember[]>(() => membersWithPeople(this.people(), this.rows()));
   protected readonly grid = computed(() => {
     const days = this.days();
     return this.members().map((m) => ({
@@ -166,10 +169,15 @@ export class TeamAbsencesPage {
     }
     const month = this.month();
     try {
-      const rows = await this.api.store(storeId, monthStart(month), monthEnd(month));
+      // The people are asked at the same time; without them (the call fails) the grid shows only those who have an entry, as before.
+      const [rows, people] = await Promise.all([
+        this.api.store(storeId, monthStart(month), monthEnd(month)),
+        this.api.people(storeId).catch((): StorePerson[] => []),
+      ]);
       // Ignore an answer for a month or store that is no longer shown.
       if (storeId === this.storeId() && month === this.month()) {
         this.rows.set(rows);
+        this.people.set(people);
         this.loadError.set(null);
       }
     } catch (e) {

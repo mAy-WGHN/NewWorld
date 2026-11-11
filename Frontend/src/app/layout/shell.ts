@@ -101,6 +101,7 @@ export class Shell {
   protected readonly displayName = this.profile.displayName;
   protected readonly initials = this.profile.initials;
   protected readonly personnelNumber = this.profile.personnelNumber;
+  protected readonly storeName = this.profile.storeName;
   protected readonly unread = this.notifications.unread;
   /** The number at the bell; big numbers are cut off. */
   protected readonly badge = computed(() => ((this.unread() ?? 0) > 99 ? '99+' : String(this.unread() ?? 0)));

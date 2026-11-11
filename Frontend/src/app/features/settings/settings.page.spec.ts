@@ -30,7 +30,7 @@ describe('SettingsPage', () => {
     TestBed.configureTestingModule({
       providers: [
         { provide: AuthService, useValue: { privileges: signal(new PrivilegeSet(grants)), roles: signal(roles) } },
-        { provide: ProfileService, useValue: { displayName: signal('Mehmet Demir'), personnelNumber: signal('15302') } },
+        { provide: ProfileService, useValue: { displayName: signal('Mehmet Demir'), personnelNumber: signal('15302'), storeName: signal<string | null>('Augsburg Mitte (101)') } },
         { provide: NotificationsApi, useValue: { preferences: vi.fn().mockResolvedValue([]), setPreference: vi.fn() } },
       ],
     });
@@ -79,6 +79,7 @@ describe('SettingsPage', () => {
     const text = q('[data-testid="login-info"]')!.textContent!;
     expect(text).toContain('Mehmet Demir');
     expect(text).toContain('15302');
+    expect(text).toContain('Augsburg Mitte (101)');
     expect(text).toContain('Business Central');
   });
 

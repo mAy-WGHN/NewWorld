@@ -10,6 +10,7 @@ import {
   cellsFor,
   entryErrorMessage,
   membersOf,
+  membersWithPeople,
   monthDays,
   monthEnd,
   shiftMonth,
@@ -39,7 +40,7 @@ const kind = (over: Partial<UnavailabilityKind> = {}): UnavailabilityKind => ({
 const problem = (title: string, status = 409) => new HttpErrorResponse({ status, error: { title } });
 
 describe('TeamAbsencesPage', () => {
-  let api: Record<'stores' | 'store' | 'mine' | 'kinds' | 'add' | 'remove', ReturnType<typeof vi.fn>>;
+  let api: Record<'stores' | 'store' | 'people' | 'mine' | 'kinds' | 'add' | 'remove', ReturnType<typeof vi.fn>>;
   const privileges = signal(grant('absence:read-availability'));
   let fixture: ComponentFixture<TeamAbsencesPage>;
   let root: HTMLElement;
@@ -85,6 +86,7 @@ describe('TeamAbsencesPage', () => {
     privileges.set(grant('absence:read-availability', 'absence:read-own'));
     api = {
       stores: vi.fn().mockResolvedValue(stores),
+      people: vi.fn().mockResolvedValue([]),
       store: vi.fn().mockResolvedValue([row('Erika Mustermann'), row('Erika Mustermann', { from: '2026-11-10', to: '2026-11-10', kind: 'URLAUB' })]),
       mine: vi.fn().mockResolvedValue([period({ from: '2026-10-01', to: '2026-10-02', kind: 'URLAUB' }), period()]),
       kinds: vi.fn().mockResolvedValue([kind(), kind({ id: 'k2', code: 'KRANK', description: 'Krank', isSystem: true })]),
@@ -106,6 +108,22 @@ describe('TeamAbsencesPage', () => {
     expect(cells.filter((c) => c.dataset['kind'] === 'vacation').length).toBe(1);
     expect(cells[0].getAttribute('aria-label')).toBe('Krank');
     expect(qa('[data-testid="legend"] li').length).toBe(5);
+  });
+
+  it('shows a row for every active person of the store, also those without an entry', async () => {
+    api['people'].mockResolvedValue([{ employeeId: 'e1', name: 'Erika Mustermann' }, { employeeId: 'e9', name: 'Anna Ohne Eintrag' }]);
+    await create();
+
+    expect(api['people']).toHaveBeenCalledWith('s1');
+    expect(qa('[data-testid="person-row"]').map((r) => r.textContent)).toEqual([expect.stringContaining('Anna Ohne Eintrag'), expect.stringContaining('Erika Mustermann')]);
+  });
+
+  it('still shows the people with an entry when the list of the people cannot be loaded', async () => {
+    api['people'].mockRejectedValue(new HttpErrorResponse({ status: 500 }));
+    await create();
+
+    expect(qa('[data-testid="person-row"]').length).toBe(1);
+    expect(q('[data-testid="load-error"]')).toBeNull();
   });
 
   it('marks weekends and today', async () => {
@@ -376,6 +394,15 @@ describe('team absences models', () => {
     ];
     expect(cellsFor(all, days)[28]!.kind).toBe('ku');
     expect(cellsFor(all.slice(0, 2), days)[28]!.kind).toBe('vacation');
+  });
+
+  it('lists the people of the store and those with a period, each once, sorted by name', () => {
+    const members = membersWithPeople(
+      [{ employeeId: 'z', name: 'Zoe' }, { employeeId: 'a', name: 'Anna' }],
+      [row('Anna', { employeeId: 'a' }), row('Ben (ausgetreten)', { employeeId: 'b' })],
+    );
+    expect(members.map((m) => m.name)).toEqual(['Anna', 'Ben (ausgetreten)', 'Zoe']);
+    expect(membersWithPeople([], [row('Anna', { employeeId: 'a' })]).map((m) => m.name)).toEqual(['Anna']);
   });
 
   it('lists each person once, sorted by name', () => {

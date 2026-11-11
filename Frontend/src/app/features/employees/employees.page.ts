@@ -11,6 +11,7 @@ import {
   CreatedEmployee,
   EmployeeCard,
   EmployeeForm,
+  EmployeeSummary,
   GENDERS,
   LIST_FIELDS,
   ListKey,
@@ -57,9 +58,8 @@ export const TEXT_FIELDS: readonly TextField[] = [
 
 /**
  * "Mitarbeitende": what the service offers around the employee card. Tabs only show for the privileges the person has (the service
- * decides anyway): change requests to decide, a new person, and one card by its ID.
- * TODO(Backend): Personensuche/-liste. There is no endpoint that lists or searches people, so a card can only be opened by its ID
- * (the ID of a created person comes back from the creation and is linked here).
+ * decides anyway): change requests to decide, a new person, and one card, found by name or personnel number (`GET /api/employees?query=`, only
+ * people in the reach of the person; the ID of a created person comes back from the creation and is linked here).
  */
 @Component({
   selector: 'app-employees',
@@ -119,6 +119,9 @@ export class EmployeesPage {
   protected readonly listFields = computed(() => LIST_FIELDS.filter((f) => f.key !== 'wageTypeId' || this.canWageType()));
 
   // ---- card
+  protected readonly searchText = signal('');
+  /** The hits of the last search; `null` before the first search. */
+  protected readonly results = signal<EmployeeSummary[] | null>(null);
   protected readonly cardId = signal('');
   protected readonly card = signal<EmployeeCard | null>(null);
   protected readonly cardError = signal<string | null>(null);
@@ -255,14 +258,39 @@ export class EmployeesPage {
 
   // ---------------------------------------------------------------- card
 
-  protected setCardId(event: Event): void {
-    this.cardId.set((event.target as HTMLInputElement).value);
+  protected setSearchText(event: Event): void {
+    this.searchText.set((event.target as HTMLInputElement).value);
+  }
+
+  /** Searches people in reach by name or personnel number (the service needs two characters at least and only returns people the person may see). */
+  protected async search(): Promise<void> {
+    this.card.set(null);
+    this.results.set(null);
+    const text = this.searchText().trim();
+    if (text.replace(/\s+/g, '').length < 2) {
+      this.cardError.set('Bitte mindestens zwei Zeichen vom Namen oder von der Personalnummer eingeben.');
+      return;
+    }
+    this.busy.set(true);
+    try {
+      this.results.set(await this.api.search(text));
+      this.cardError.set(null);
+    } catch (e) {
+      this.cardError.set(e instanceof HttpErrorResponse && e.status === 403 ? 'Das darfst du nicht.' : 'Die Suche ist fehlgeschlagen.');
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
+  protected async openPerson(person: EmployeeSummary): Promise<void> {
+    this.cardId.set(person.employeeId);
+    await this.loadCard();
   }
 
   protected async loadCard(): Promise<void> {
     this.card.set(null);
     if (!isGuid(this.cardId())) {
-      this.cardError.set('Bitte eine gültige Mitarbeiter-ID eintragen.');
+      this.cardError.set('Bitte eine Person aus der Suche auswählen.');
       return;
     }
     this.busy.set(true);
@@ -270,7 +298,7 @@ export class EmployeesPage {
       this.card.set(await this.api.card(this.cardId().trim()));
       this.cardError.set(null);
     } catch (e) {
-      this.cardError.set(e instanceof HttpErrorResponse && e.status === 404 ? 'Zu dieser ID gibt es keine Karte.' : e instanceof HttpErrorResponse && e.status === 403 ? 'Das darfst du nicht.' : 'Die Karte konnte nicht geladen werden.');
+      this.cardError.set(e instanceof HttpErrorResponse && e.status === 404 ? 'Zu dieser Person gibt es keine Karte.' : e instanceof HttpErrorResponse && e.status === 403 ? 'Das darfst du nicht.' : 'Die Karte konnte nicht geladen werden.');
     } finally {
       this.busy.set(false);
     }

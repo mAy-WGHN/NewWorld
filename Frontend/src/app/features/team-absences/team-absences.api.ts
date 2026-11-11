@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom, map } from 'rxjs';
 import { ConfigService } from '../../core/config';
-import { AddUnavailabilityInput, StoreOption, StoreUnavailability, UnavailabilityKind, UnavailabilityPeriod } from './team-absences-models';
+import { AddUnavailabilityInput, StoreOption, StorePerson, StoreUnavailability, UnavailabilityKind, UnavailabilityPeriod } from './team-absences-models';
 
 /** Unavailability in Workforce and the store names of Portal. Errors are left to the caller; see `problemTitle`. */
 @Injectable({ providedIn: 'root' })
@@ -29,9 +29,21 @@ export class TeamAbsencesApi {
     return firstValueFrom(this.http.get<StoreUnavailability[]>(this.url(`/stores/${storeId}/unavailabilities`), { params }));
   }
 
-  /** The own timeline. TODO(Backend): the service takes no period here and always returns everything. */
-  mine(): Promise<UnavailabilityPeriod[]> {
-    return firstValueFrom(this.http.get<UnavailabilityPeriod[]>(this.url('/me/unavailabilities')));
+  /** The active people of the store (also those without an entry), for the rows of the grid. */
+  people(storeId: string): Promise<StorePerson[]> {
+    return firstValueFrom(this.http.get<StorePerson[]>(this.url(`/stores/${storeId}/people`)));
+  }
+
+  /** The own timeline; with a period (days, including both; either one may be left out) only periods that touch it, otherwise everything. */
+  mine(from?: string, to?: string): Promise<UnavailabilityPeriod[]> {
+    let params = new HttpParams();
+    if (from) {
+      params = params.set('from', from);
+    }
+    if (to) {
+      params = params.set('to', to);
+    }
+    return firstValueFrom(this.http.get<UnavailabilityPeriod[]>(this.url('/me/unavailabilities'), { params }));
   }
 
   kinds(): Promise<UnavailabilityKind[]> {

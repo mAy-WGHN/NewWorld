@@ -56,6 +56,12 @@ export interface TeamMember {
   name: string;
 }
 
+/** An active person of a store (`GET /api/stores/{id}/people`), also one without an entry. */
+export interface StorePerson {
+  employeeId: string;
+  name: string;
+}
+
 export type CellKind = 'sick' | 'vacation' | 'ku' | 'other' | 'unavailable';
 
 export interface DayCell {
@@ -180,6 +186,17 @@ export function membersOf(rows: readonly StoreUnavailability[]): TeamMember[] {
   for (const row of rows) {
     if (!byId.has(row.period.employeeId)) {
       byId.set(row.period.employeeId, { employeeId: row.period.employeeId, name: row.employeeName });
+    }
+  }
+  return [...byId.values()].sort((a, b) => a.name.localeCompare(b.name, 'de'));
+}
+
+/** All active people of the store plus those that appear in the rows (for example somebody who left but still has a period), each once, sorted by name. */
+export function membersWithPeople(people: readonly StorePerson[], rows: readonly StoreUnavailability[]): TeamMember[] {
+  const byId = new Map<string, TeamMember>(people.map((p) => [p.employeeId, { employeeId: p.employeeId, name: p.name }]));
+  for (const member of membersOf(rows)) {
+    if (!byId.has(member.employeeId)) {
+      byId.set(member.employeeId, member);
     }
   }
   return [...byId.values()].sort((a, b) => a.name.localeCompare(b.name, 'de'));

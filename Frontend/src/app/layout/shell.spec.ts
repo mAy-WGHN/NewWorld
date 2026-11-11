@@ -25,7 +25,7 @@ describe('Shell', () => {
   const previewRole = signal<string | null>(null);
   let auth: { privileges: typeof privileges; realPrivileges: typeof privileges; previewRole: typeof previewRole; startPreview: ReturnType<typeof vi.fn>; endPreview: ReturnType<typeof vi.fn>; logout: ReturnType<typeof vi.fn> };
   let accessApi: { roles: ReturnType<typeof vi.fn>; catalog: ReturnType<typeof vi.fn> };
-  let profile: { load: ReturnType<typeof vi.fn>; clear: ReturnType<typeof vi.fn>; displayName: typeof displayName; initials: typeof initials; personnelNumber: typeof personnelNumber; firstName: ReturnType<typeof signal<string | null>> };
+  let profile: { load: ReturnType<typeof vi.fn>; clear: ReturnType<typeof vi.fn>; displayName: typeof displayName; initials: typeof initials; personnelNumber: typeof personnelNumber; firstName: ReturnType<typeof signal<string | null>>; storeName: ReturnType<typeof signal<string | null>> };
   const arrived = signal<Arrival | null>(null);
   let notifications: { refresh: ReturnType<typeof vi.fn>; clear: ReturnType<typeof vi.fn>; unread: typeof unread; arrived: typeof arrived };
   let navigate: ReturnType<typeof vi.spyOn>;
@@ -53,7 +53,7 @@ describe('Shell', () => {
       roles: vi.fn().mockResolvedValue([{ id: 'r2', name: 'Revisor', privileges: ['report:*'], builtIn: false }, { id: 'r1', name: 'HR', privileges: ['*'], builtIn: false }]),
       catalog: vi.fn().mockResolvedValue([{ key: 'report:read', owner: 'portal', scopable: true, description: '' }, { key: 'faq:read', owner: 'portal', scopable: false, description: '' }]),
     };
-    profile = { load: vi.fn().mockResolvedValue(undefined), clear: vi.fn(), displayName, initials, personnelNumber, firstName: signal(null) };
+    profile = { load: vi.fn().mockResolvedValue(undefined), clear: vi.fn(), displayName, initials, personnelNumber, firstName: signal(null), storeName: signal<string | null>(null) };
     notifications = { refresh: vi.fn().mockResolvedValue(undefined), clear: vi.fn(), unread, arrived };
   });
 
@@ -63,6 +63,17 @@ describe('Shell', () => {
     expect(root.querySelector('.who')!.textContent).toContain('Mehmet Demir');
     expect(root.querySelector('.who')!.textContent).toContain('Personalnummer 15302');
     expect(root.querySelector('.avatar')!.textContent).toContain('MD');
+  });
+
+  it('shows the main store under the name when it is known, and nothing when it is not', async () => {
+    profile.storeName.set('Augsburg Mitte (101)');
+    await create();
+    expect(root.querySelector('[data-testid="user-store"]')!.textContent).toContain('Augsburg Mitte (101)');
+
+    profile.storeName.set(null);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(root.querySelector('[data-testid="user-store"]')).toBeNull();
   });
 
   it('shows the name always, on a phone too, but the personnel number only on wide screens', async () => {

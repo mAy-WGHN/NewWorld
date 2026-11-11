@@ -28,7 +28,39 @@ describe('ProfileService', () => {
     accessNumber.set(null);
   });
 
-  afterEach(() => http.verify());
+  const PROFILE_URL = '/svc/workforce/api/me/profile';
+
+  /** The main store is asked in the background at every load; tests that do not care leave it unanswered, so it is answered with "no store" here. */
+  afterEach(() => {
+    http.match(PROFILE_URL).forEach((r) => r.flush({ name: 'x', personnelNumber: null, mainStore: null }));
+    http.verify();
+  });
+
+  it('asks for the main store without a privilege and shows number and name', async () => {
+    privileges.set(grant('faq:read'));
+    const profile = create();
+
+    const done = profile.load();
+    http.expectOne(PROFILE_URL).flush({ name: 'Erika Mustermann', personnelNumber: '10042', mainStore: { storeId: 's1', number: '101', name: 'Augsburg Mitte' } });
+    await done;
+    await new Promise((r) => setTimeout(r));
+
+    expect(profile.storeName()).toBe('Augsburg Mitte (101)');
+  });
+
+  it('has no store when the person has none or the call fails, and forgets it on sign-out', async () => {
+    const profile = create();
+    const done = profile.load();
+    http.expectOne('/svc/workforce/api/me/employee-card').flush({}, { status: 404, statusText: 'Not Found' });
+    http.expectOne(PROFILE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+    await done;
+    await new Promise((r) => setTimeout(r));
+    expect(profile.storeName()).toBeNull();
+
+    profile.storeName.set('Augsburg Mitte (101)');
+    profile.clear();
+    expect(profile.storeName()).toBeNull();
+  });
 
   it('takes the name and personnel number from the own employee card', async () => {
     const profile = create();

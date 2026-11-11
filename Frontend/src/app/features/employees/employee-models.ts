@@ -120,6 +120,15 @@ export interface CreatedEmployee {
   personnelNumber: string;
 }
 
+/** A person in the search (`GET /api/employees?query=`): organisation data only, no private data. */
+export interface EmployeeSummary {
+  employeeId: string;
+  personnelNumber: string | null;
+  name: string;
+  mainStoreId: string | null;
+  exitDate: string | null;
+}
+
 export interface EmployeeCard {
   employeeId: string;
   personnelNumber: string;

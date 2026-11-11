@@ -146,16 +146,31 @@
 }
 
 @if (active() === 'card') {
-  <p class="m-0 mb-3 text-sm text-on-surface-variant">Eine Suche nach Personen gibt es noch nicht. Die Karte lässt sich mit der Mitarbeiter-ID öffnen.</p>
-  <div class="mb-3 flex flex-wrap items-end gap-2">
+  <p class="m-0 mb-3 text-sm text-on-surface-variant">Suche eine Person nach Name oder Personalnummer, um ihre Karte zu öffnen. Du siehst nur Personen, für die du das Recht hast.</p>
+  <form class="mb-3 flex flex-wrap items-end gap-2" (submit)="$event.preventDefault(); search()">
     <div class="flex flex-col gap-1">
-      <label class="text-sm font-medium" for="card-id">Mitarbeiter-ID</label>
-      <input id="card-id" class="w-80 max-w-full rounded-lg border border-outline bg-surface px-2 py-1.5" type="text" autocomplete="off" [value]="cardId()" (input)="setCardId($event)" />
+      <label class="text-sm font-medium" for="card-search">Name oder Personalnummer</label>
+      <input id="card-search" class="w-80 max-w-full rounded-lg border border-outline bg-surface px-2 py-1.5" type="search" autocomplete="off" [value]="searchText()" (input)="setSearchText($event)" />
     </div>
-    <button mat-flat-button type="button" data-action="load-card" [disabled]="busy()" (click)="loadCard()">Karte öffnen</button>
-  </div>
+    <button mat-flat-button type="submit" data-action="search" [disabled]="busy()">Suchen</button>
+  </form>
   @if (cardError(); as message) {
     <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="card-error">{{ message }}</p>
+  }
+  @if (results(); as hits) {
+    @if (hits.length === 0) {
+      <p class="mb-3 text-sm text-on-surface-variant" data-testid="no-results">Niemand gefunden.</p>
+    } @else {
+      <ul class="m-0 mb-3 flex list-none flex-col gap-1 p-0" data-testid="results">
+        @for (p of hits; track p.employeeId) {
+          <li>
+            <button mat-stroked-button type="button" data-testid="person-result" [attr.data-id]="p.employeeId" [disabled]="busy()" (click)="openPerson(p)">
+              {{ p.name }}@if (p.personnelNumber) { ({{ p.personnelNumber }}) }@if (p.exitDate) { – ausgetreten am {{ formatDate(p.exitDate) }} }
+            </button>
+          </li>
+        }
+      </ul>
+    }
   }
   @if (card(); as c) {
     <app-row-card data-testid="card">

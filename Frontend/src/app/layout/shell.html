@@ -46,6 +46,11 @@
               <small class="text-xs font-normal text-on-surface-variant">Personalnummer {{ number }}</small>
             }
           }
+          @if (storeName(); as store) {
+            @if (!small()) {
+              <small class="max-w-48 truncate text-xs font-normal text-on-surface-variant" data-testid="user-store" [attr.title]="store">{{ store }}</small>
+            }
+          }
         </span>
         <mat-icon>expand_more</mat-icon>
       </span>

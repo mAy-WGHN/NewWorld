@@ -10,6 +10,13 @@ interface EmployeeCardName {
   personnelNumber: string;
 }
 
+/** `GET /api/me/profile` of Workforce: name, personnel number and main store of the signed-in person (organisation data). */
+interface ProfileResponse {
+  name: string;
+  personnelNumber: string | null;
+  mainStore: { storeId: string; number: string; name: string } | null;
+}
+
 /**
  * First and last name from the one name of BC: "Vorname Nachname" or "Nachname, Vorname". Several words after the first belong to the last name.
  */
@@ -54,7 +61,11 @@ export class ProfileService {
     return letters || '?';
   });
 
+  /** The main store with number and name (`GET /api/me/profile`, no privilege needed); null where the person has none or the call fails. */
+  readonly storeName = signal<string | null>(null);
+
   async load(): Promise<void> {
+    void this.loadMainStore(); // not awaited: the name does not wait for the store
     if (!this.auth.privileges().has('employee:read-own')) {
       return;
     }
@@ -68,7 +79,17 @@ export class ProfileService {
     }
   }
 
+  private async loadMainStore(): Promise<void> {
+    try {
+      const profile = await firstValueFrom(this.http.get<ProfileResponse>(this.config.url('workforce', '/api/me/profile')));
+      this.storeName.set(profile.mainStore ? `${profile.mainStore.name} (${profile.mainStore.number})` : null);
+    } catch {
+      // no copy of the person in Workforce yet, or the service is not reachable: the page works without a store
+    }
+  }
+
   clear(): void {
+    this.storeName.set(null);
     this.cardFirstName.set(null);
     this.cardLastName.set(null);
     this.cardNumber.set(null);

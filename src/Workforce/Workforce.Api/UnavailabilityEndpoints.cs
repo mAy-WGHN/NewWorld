@@ -63,10 +63,22 @@ public static class UnavailabilityEndpoints
     private static void MapViews(WebApplication app)
     {
         // The own list: everything, also what HR entered (e.g. special leave), so the person sees it in the schedule.
-        app.MapGet("/api/me/unavailabilities", async (ClaimsPrincipal user, UnavailabilityService service, CancellationToken ct) =>
-                Endpoints.Me(user) is not { } me
-                    ? Results.Forbid()
-                    : Results.Ok((await service.TimelineAsync(me, ct)).Select(i => Full(i))))
+        // Optionally limited to a period (from and/or to; periods that touch it are returned whole); without both everything, as before.
+        app.MapGet("/api/me/unavailabilities", async (DateOnly? from, DateOnly? to, ClaimsPrincipal user, UnavailabilityService service, CancellationToken ct) =>
+            {
+                if (Endpoints.Me(user) is not { } me)
+                {
+                    return Results.Forbid();
+                }
+
+                if (from is { } start && to is { } end && end < start)
+                {
+                    return Results.Problem(statusCode: StatusCodes.Status422UnprocessableEntity, title: nameof(UnavailabilityError.InvalidPeriod));
+                }
+
+                var window = new DateRange(from ?? DateOnly.MinValue, to);
+                return Results.Ok((await service.TimelineAsync(me, ct)).Where(i => new DateRange(i.From, i.To).Overlaps(window)).Select(i => Full(i)));
+            })
             .RequireAuthorization(AppPolicies.Privilege(AbsencePrivileges.ReadOwn));
 
         app.MapGet("/api/employees/{employeeId:guid}/unavailabilities", async (Guid employeeId, ClaimsPrincipal user, IAuthorizationService auth, UnavailabilityService service, CancellationToken ct) =>

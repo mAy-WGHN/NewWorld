@@ -240,3 +240,15 @@ public sealed record WorkingTimeDto(
     decimal Balance, decimal Deficit, decimal Forfeited, IReadOnlyList<AccountBucketDto> Buckets, IReadOnlyList<TimeBookingDto> Bookings, IReadOnlyList<MonthCloseDto> Closes, WorkingTimeRulesDto Rules);
 
 public sealed record MonthCloseResultDto(MonthCloseDto Close, TimeBookingDto? Booking);
+
+/// <summary>A person in a search or a store list (organisation data, class 1): no private data, no absences.</summary>
+public sealed record EmployeeSummaryDto(Guid EmployeeId, string? PersonnelNumber, string Name, Guid? MainStoreId, DateOnly? ExitDate);
+
+/// <summary>An active person of a store (name only), for the team view where people without an entry also appear.</summary>
+public sealed record StorePersonDto(Guid EmployeeId, string Name);
+
+/// <summary>The store a person belongs to (the effective main store) with number and name.</summary>
+public sealed record ProfileStoreDto(Guid StoreId, string Number, string Name);
+
+/// <summary>Who is signed in: name, personnel number and main store (all organisation data, class 1) from the copies in Workforce.</summary>
+public sealed record ProfileDto(Guid EmployeeId, string Name, string? PersonnelNumber, ProfileStoreDto? MainStore);

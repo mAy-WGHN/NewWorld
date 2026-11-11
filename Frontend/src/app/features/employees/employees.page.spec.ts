@@ -4,7 +4,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { AuthService } from '../../core/auth/auth.service';
 import { PrivilegeSet } from '../../core/auth/privileges';
 import { LocationsApi } from '../report-issue/locations.api';
-import { ChangeRequest, emptyForm, employeeErrorMessage, toRequest, validateForm } from './employee-models';
+import { ChangeRequest, EmployeeSummary, emptyForm, employeeErrorMessage, toRequest, validateForm } from './employee-models';
 import { EmployeesApi } from './employees.api';
 import { EmployeesPage } from './employees.page';
 
@@ -18,7 +18,7 @@ const request = (over: Partial<ChangeRequest> = {}): ChangeRequest => ({
 });
 
 describe('EmployeesPage', () => {
-  let api: Record<'changeRequests' | 'approve' | 'reject' | 'list' | 'create' | 'card', ReturnType<typeof vi.fn>>;
+  let api: Record<'changeRequests' | 'approve' | 'reject' | 'list' | 'create' | 'card' | 'search', ReturnType<typeof vi.fn>>;
   let locations: { list: ReturnType<typeof vi.fn> };
   const privileges = signal(grant('employee:decide-change', 'employee:create', 'employee:read'));
   let fixture: ComponentFixture<EmployeesPage>;
@@ -73,6 +73,7 @@ describe('EmployeesPage', () => {
       ]),
       create: vi.fn().mockResolvedValue({ employeeId: '123e4567-e89b-12d3-a456-426614174001', personnelNumber: '15302' }),
       card: vi.fn(),
+      search: vi.fn().mockResolvedValue([]),
     };
     locations = { list: vi.fn().mockResolvedValue([{ id: 's1', name: 'Augsburg', storeCode: '101', archived: false }, { id: 's2', name: 'Alt', storeCode: '102', archived: true }]) };
   });
@@ -255,37 +256,69 @@ describe('EmployeesPage', () => {
   describe('card', () => {
     beforeEach(() => privileges.set(grant('employee:read')));
 
-    it('asks for a valid ID first', async () => {
+    const PERSON_ID = '123e4567-e89b-12d3-a456-426614174000';
+    const hit = (over: Partial<EmployeeSummary> = {}): EmployeeSummary => ({ employeeId: PERSON_ID, personnelNumber: '1234', name: 'Erika Mustermann', mainStoreId: null, exitDate: null, ...over });
+
+    async function search(text: string): Promise<void> {
+      await type('#card-search', text);
+      await click('[data-action="search"]');
+    }
+
+    it('asks for at least two characters before it searches', async () => {
       await create();
-      await type('#card-id', 'abc');
 
-      await click('[data-action="load-card"]');
+      await search(' e ');
 
-      expect(api['card']).not.toHaveBeenCalled();
-      expect(q('[data-testid="card-error"]')!.textContent).toContain('gültige Mitarbeiter-ID');
+      expect(api['search']).not.toHaveBeenCalled();
+      expect(q('[data-testid="card-error"]')!.textContent).toContain('mindestens zwei Zeichen');
     });
 
-    it('shows the private part and the wage only if the answer has them', async () => {
+    it('searches by name or personnel number and lists the hits with number and exit', async () => {
+      api['search'].mockResolvedValue([hit(), hit({ employeeId: 'e2', name: 'Erik Alt', personnelNumber: '999', exitDate: '2026-03-31' })]);
+      await create();
+
+      await search('  erik ');
+
+      expect(api['search']).toHaveBeenCalledWith('erik');
+      const rows = [...root.querySelectorAll('[data-testid="person-result"]')];
+      expect(rows.map((r) => r.textContent!.replace(/\s+/g, ' ').trim())).toEqual(['Erika Mustermann (1234)', 'Erik Alt (999) – ausgetreten am 31.03.2026']);
+    });
+
+    it('says so when nobody is found and when the search is not allowed', async () => {
+      api['search'].mockResolvedValue([]);
+      await create();
+      await search('niemand');
+      expect(q('[data-testid="no-results"]')).not.toBeNull();
+
+      api['search'].mockRejectedValue(new HttpErrorResponse({ status: 403 }));
+      await search('niemand');
+      expect(q('[data-testid="card-error"]')!.textContent).toContain('nicht');
+      expect(q('[data-testid="no-results"]')).toBeNull();
+    });
+
+    it('opens the card of the chosen person and shows the private part and the wage only if the answer has them', async () => {
+      api['search'].mockResolvedValue([hit()]);
       api['card'].mockResolvedValue({
         employeeId: 'e1', personnelNumber: '1234', firstName: 'Erika', lastName: 'Mustermann', receiptName: 'Erika M.', hireDate: '2026-01-01', state: 'Synced',
         private: { gender: 'Female', birthDate: null, street: 'Weg 1', postalCode: '86150', city: 'Augsburg', privatePhone: null, privateEmail: null }, wage: null,
       });
       await create();
-      await type('#card-id', '123e4567-e89b-12d3-a456-426614174000');
+      await search('muster');
 
-      await click('[data-action="load-card"]');
+      await click('[data-testid="person-result"]');
 
-      expect(api['card']).toHaveBeenCalledWith('123e4567-e89b-12d3-a456-426614174000');
+      expect(api['card']).toHaveBeenCalledWith(PERSON_ID);
       expect(q('[data-testid="private"]')!.textContent).toContain('Weg 1');
       expect(q('[data-testid="wage"]')).toBeNull();
     });
 
     it('says so when there is no card or no permission', async () => {
+      api['search'].mockResolvedValue([hit()]);
       api['card'].mockRejectedValue(new HttpErrorResponse({ status: 404 }));
       await create();
-      await type('#card-id', '123e4567-e89b-12d3-a456-426614174000');
+      await search('muster');
 
-      await click('[data-action="load-card"]');
+      await click('[data-testid="person-result"]');
 
       expect(q('[data-testid="card-error"]')!.textContent).toContain('keine Karte');
     });
