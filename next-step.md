@@ -32,6 +32,44 @@ Buchungskonto, Saldo aus Buchungen, Monatsabschluss gegen die Monatsschwelle des
 
 Übertragung neuer Mitarbeitender nach BC: neue Nachricht (nur nach Freigabe), Start-PIN ohne Speichern im Klartext, Abgleich der internen GUID mit BC, Zustand `PendingBc` zu `Synced`. Dazu BC-Feldnamen der Mitarbeiterkarte und die Entscheidung, welche Daten BC bekommt.
 
+## Segment C: Fachliche Platzhalter und Entscheidungen (Umsetzungsvorschlag, Stand 2026-11-11)
+
+Aufwand grob: S (klein), M (mittel), L (groß). Alles hier wartet auf Freigabe oder Klärung; die technischen Blocker (Frontend-Endpunkte, Mehrinstanzbetrieb, Migrationen, AU-Betrieb) stehen nicht hier, sondern wurden im Code umgesetzt.
+
+**C1. Echter Mailversand** (M, Rückfrage Datenschutzbeauftragter)
+- Das Adapter-Interface für Mail gibt es schon. Vorschlag: SMTP-Adapter mit `System.Net.Mail` (paketfrei); ein Anbieter wie Brevo läuft über SMTP-Relay ohne SDK.
+- Bis zur Klärung bleibt der Fake aktiv. Der Wechsel ist reine Konfiguration (Zugangsdaten aus User Secrets bzw. Key Vault, nie `appsettings*.json`).
+- Vorher klären: Anbieter und Auftragsverarbeitung, Absenderadresse, Mail-Text Klasse 2 nur bei `mailMayContainSensitive` (Entscheidung 33).
+
+**C2. Audit-Log: Löschung, Aufbewahrung, Hash-Kette** (M, Rückfrage Datenschutzbeauftragter)
+- Vorschlag für die Abstimmung: Bei `EmployeeDataErasureRequested` bleiben die Einträge erhalten; Name und Personalnummer werden durch einen Platzhalter ersetzt, die geänderten Werte bleiben. Das Datenmodell bleibt sonst unveränderlich.
+- Technisch: kontrollierte Ausnahme in Interceptor und Datenbank-Trigger (nur das Akteursfeld, nur über eine eigene Datenbankrolle oder Funktion) und ein eigener Eintrag, der die Anonymisierung selbst protokolliert.
+- Aufbewahrungsfrist je Dienst (Konfiguration, Löschjob hinter der Sperre aus B1).
+- Hash-Kette erst nach der Anonymisierung, weil die Löschung die Kette sonst bricht.
+
+**C3. Portal** (je M)
+- **Anonymisierung der Personalnummer in Meldungen** bei Löschung: Handler auf `EmployeeDataErasureRequested`, der das Feld leert (Integrationstest wie in den anderen Diensten).
+- **Zweitmeinung:** eine Meldung wird einer einzelnen Person außerhalb der eigenen Filialen freigegeben (Tabelle `report_shares`, eigenes Recht, Prüfung zusätzlich zum Filialfilter). Vorher fachlich klären, wer teilen darf und ob die Freigabe befristet ist.
+- **`EmployeeAvailabilityChanged` speichern:** erst sinnvoll, wenn das Portal Verfügbarkeit anzeigt (`TODO(Fachfunktion)` in `CopyHandlers.cs`).
+- **News, Schulungen, Filialordner:** eigene Fachfunktionen außerhalb des Scopes, kein Umsetzungsvorschlag.
+- **Hauptfiliale im Portal** wird übernommen (Entscheidung 21), Filialname und Rechte in Access einrichten bleibt Konfiguration.
+
+**C4. Benachrichtigungen** (S bis M)
+- **Absender „System“ in der InApp-Liste:** Variante ohne Katalogänderung: Der Absender ergibt sich aus dem Vorlagenschlüssel (`<dienst>.<anlass>.<empfängerrolle>`), die Liste zeigt ihn an. Variante mit optionalem Absenderfeld an `SendNotification` ist additiv, berührt aber den Katalog und braucht Rückfrage.
+- **Oberfläche für die Texte:** Liste, Bearbeiten und Vorschau im Frontend (die API `/api/notification-templates` steht seit Entscheidung 33). Dazu HR das Recht `template:manage` in Access geben.
+- **Ausgeschiedene Personen überspringen** (Austrittsdatum liegt in der Namenskopie), Bezirksleiter-Vermerk für Mail mit Klasse 2.
+
+**C5. Dienstplanung** (L)
+- Eigenes Vorhaben, im Plan out of scope. Vorbereitet sind der Port `IShiftLookup` (Workforce) und `ShiftUncovered`. Möglicher nächster Schritt: nur ein Datenmodell-Entwurf (Schichten, Besetzung, Tausch), noch kein Code.
+
+**Reihenfolge für Segment C**
+1. Nach Klärung mit dem Datenschutzbeauftragten: C1, C2.
+2. Nach fachlicher Klärung: C3 (Zweitmeinung).
+3. Nach Rückfrage zum Katalog: C4 (Absenderfeld); die Oberfläche für Texte kann sofort.
+4. C5 nur auf ausdrücklichen Wunsch.
+
+---
+
 ## Weitere offene Punkte (unabhängig von den Schritten)
 
 - Austritt im Jahr: anteiliger Urlaubsanspruch ist umgesetzt (Entscheidung 39); nicht gebaut sind Abgeltung von Resturlaub und Zusatztagen und der gesetzliche Mindesturlaub.

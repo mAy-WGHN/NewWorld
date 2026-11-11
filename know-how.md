@@ -66,6 +66,14 @@ cd Frontend && npm start         # Frontend (beim ersten Mal vorher: npm install
 | `dotnet build`/`dotnet test` meldet gesperrte DLLs | AppHost und Dienste laufen noch | AppHost beenden, ggf. übrig gebliebene `*.Api`-Prozesse beenden |
 | Container laufen nach hartem Beenden weiter | AppHost wurde nicht mit Strg+C beendet | Nur die Projekt-Container stoppen (`bc-mock`, `postgres`, `clamav`, `servicebus*`), nie pauschal alle |
 
+## Mehrere Instanzen, Proxy, Migrationen (Betrieb)
+
+- **Hintergrunddienste** (Stammdatenabgleich in BC Integration, Wartung der AU und des Arbeitszeitkontos in Workforce) laufen je Runde nur auf einer Instanz: `IDistributedLock` (`Shared.Infrastructure/Persistence`) auf einer PostgreSQL-Sitzungssperre der Dienst-Datenbank, ohne Tabelle und ohne Migration. Wer die Sperre nicht bekommt, überspringt die Runde (Log auf Debug); stirbt der Halter, gibt Postgres sie frei. Der Outbox-Dispatcher braucht keine Sperre: mehrfach gesendete Nachrichten erkennt der Empfänger (Inbox).
+- **Proxy:** `ForwardedHeaders:KnownProxies` (Adressen) und/oder `ForwardedHeaders:KnownNetworks` (CIDR) legen fest, von wem `X-Forwarded-*` geglaubt wird. Ohne Konfiguration geschieht in Access nichts (alle Aufrufer teilen sich sonst die Adresse des Proxys, das Login-Limit je Client wird dann zu grob: **in Produktion setzen**); das Portal vertraut ohne Konfiguration jedem Proxy (wie bisher, wegen des Limits der öffentlichen Formulare).
+- **Migrationen in Produktion:** nicht beim Start, sondern als Schritt der Auslieferung: `dotnet <Dienst>.Api.dll --migrate` wendet die Migrationen an und beendet das Programm (Fehler → Exit-Code ungleich 0, der Schritt schlägt fehl). Development und Testing migrieren weiter beim Start.
+- **Azure prüfen:** `infra/Test-ServiceBusDeployment.ps1` (what-if, Deployment in eine Wegwerf-Resource-Group, Abgleich mit der Emulator-Topologie, keine Shared Access Keys, danach löschen). Braucht `az login` und Rechte für Rollenzuweisungen; noch nicht gegen echtes Azure gelaufen.
+- **AU:** ClamAV-Vorlage und Prüfliste in `infra/clamav/`, Schlüsselrotation (Schlüsselring) in `docs/krankmeldung-au.md`.
+
 ## Rollen und Rechte
 
 - Referenzdatei `docs/rollen.json` (Rollen „Public User“ und „Personalabteilung“). Wer ein Recht anlegt oder ändert, passt sie im selben Commit an. Ein Architekturtest prüft, dass jedes Recht dort existiert.

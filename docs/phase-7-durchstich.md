@@ -20,7 +20,7 @@ Ursprünglich 2026-10-23, gekürzt 2026-11-10. Die End-to-End-Tests starten die 
 
 ## Nicht verifiziert
 
-Bicep gegen eine echte Azure-Umgebung, Betrieb mehrerer Instanzen (`TODO(Betrieb)` bei Stammdatenabgleich und Forwarded Headers), Login und Sync gegen echtes BC.
+Bicep gegen eine echte Azure-Umgebung, Betrieb mehrerer Instanzen (die Hintergrunddienste laufen je Runde nur auf einer Instanz über eine Datenbank-Sperre, die Forwarded Headers werden aus der Konfiguration gelesen: beides getestet, aber noch nie mit zwei echten Instanzen hinter einem Proxy), Login und Sync gegen echtes BC.
 
 ## Offene `TODO(BC-Modell)`
 
