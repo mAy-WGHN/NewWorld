@@ -30,6 +30,7 @@ public sealed class PortalDbContext(DbContextOptions<PortalDbContext> options) :
     public DbSet<LogbookRegionLeaderRecord> LogbookRegionLeaders => Set<LogbookRegionLeaderRecord>();
     public DbSet<LogbookStoreAssignmentRecord> LogbookStoreAssignments => Set<LogbookStoreAssignmentRecord>();
     public DbSet<LogbookTemplateRecord> LogbookTemplates => Set<LogbookTemplateRecord>();
+    public DbSet<LogbookReportRecord> LogbookReports => Set<LogbookReportRecord>();
 
     /// <summary>Provider settings shared by runtime and design time (migrations).</summary>
     public static DbContextOptionsBuilder Configure(DbContextOptionsBuilder options, string connectionString) => options
@@ -131,6 +132,17 @@ public sealed class PortalDbContext(DbContextOptions<PortalDbContext> options) :
             b.HasKey(t => t.Version);
             b.Property(t => t.Version).ValueGeneratedNever();
             b.Property(t => t.SectionsJson).HasColumnType("jsonb");
+        });
+        modelBuilder.Entity<LogbookReportRecord>(b =>
+        {
+            b.ToTable("logbook_reports");
+            b.HasKey(r => r.Id);
+            b.Property(r => r.Id).ValueGeneratedNever();
+            b.Property(r => r.Phase).HasConversion<string>().HasMaxLength(20);
+            b.Property(r => r.State).HasConversion<string>().HasMaxLength(20);
+            b.Property(r => r.AnswersJson).HasColumnType("jsonb");
+            b.HasIndex(r => new { r.StoreId, r.Week }).IsUnique();
+            b.HasIndex(r => r.Week);
         });
         modelBuilder.Entity<FaqRecord>(b =>
         {

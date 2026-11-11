@@ -26,6 +26,8 @@ Entscheidungen 41 und 43 (`CLAUDE.md`), überarbeitet 2026-11-10. Die Fachlogik 
 | Berichtsheft: Ebene und erreichbare Filialen der angemeldeten Person | `GET /api/logbook/me` | `logbook:review` |
 | Berichtsheft: Vorlage lesen (aktuell, Version, `0` = Vorschlag) | `GET /api/logbook/template`, `GET /api/logbook/template/{version}` | `logbook:write`, `logbook:review` oder `logbook:manage-template` |
 | Berichtsheft: Vorlage pflegen (neue Version) | `PUT /api/logbook/template` | `logbook:manage-template` |
+| Berichtsheft: meine Filialen mit dem Bericht der Woche | `GET /api/logbook/my-reports?week=` | `logbook:write` |
+| Berichtsheft: Bericht speichern, abgeben, Verlauf | `PUT /api/logbook/reports/{storeId}/{week}`, `POST …/submit`, `GET /api/logbook/stores/{storeId}/reports` | `logbook:write` (je Filiale) |
 | Änderungsprotokoll | `GET /api/audit` | `portal-audit:read` (sonst `404`) |
 
 ## Regeln

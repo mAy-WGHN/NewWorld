@@ -217,6 +217,82 @@ namespace Portal.Infrastructure.Migrations
                     b.ToTable("logbook_regions", "portal");
                 });
 
+            modelBuilder.Entity("Portal.Infrastructure.Logbook.LogbookReportRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AnswersJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("answers_json");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("Phase")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("phase");
+
+                    b.Property<DateTimeOffset?>("RevisedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("revised_at");
+
+                    b.Property<Guid?>("RevisedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("revised_by");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("state");
+
+                    b.Property<Guid>("StoreId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("store_id");
+
+                    b.Property<DateTimeOffset?>("SubmittedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("submitted_at");
+
+                    b.Property<Guid?>("SubmittedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("submitted_by");
+
+                    b.Property<int>("TemplateVersion")
+                        .HasColumnType("integer")
+                        .HasColumnName("template_version");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<DateOnly>("Week")
+                        .HasColumnType("date")
+                        .HasColumnName("week");
+
+                    b.HasKey("Id")
+                        .HasName("pk_logbook_reports");
+
+                    b.HasIndex("Week")
+                        .HasDatabaseName("ix_logbook_reports_week");
+
+                    b.HasIndex("StoreId", "Week")
+                        .IsUnique()
+                        .HasDatabaseName("ix_logbook_reports_store_id_week");
+
+                    b.ToTable("logbook_reports", "portal");
+                });
+
             modelBuilder.Entity("Portal.Infrastructure.Logbook.LogbookStoreAssignmentRecord", b =>
                 {
                     b.Property<Guid>("StoreId")

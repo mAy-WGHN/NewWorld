@@ -39,6 +39,8 @@ public static class InfrastructureServiceCollectionExtensions
 
         services.AddScoped<Logbook.LogbookStructureStore>();
         services.AddScoped<Logbook.LogbookTemplateStore>();
+        services.AddSingleton(configuration.GetSection(Portal.Core.Logbook.LogbookOptions.ConfigurationSection).Get<Portal.Core.Logbook.LogbookOptions>() ?? new Portal.Core.Logbook.LogbookOptions());
+        services.AddScoped<Logbook.LogbookReportService>();
 
         // FAQ images: files outside the application folder (never in the web root); relative paths count from the content root.
         var imagePath = configuration["Portal:Faq:ImagePath"] is { Length: > 0 } configured ? configured : Path.Combine("var", "uploads", "faq");
