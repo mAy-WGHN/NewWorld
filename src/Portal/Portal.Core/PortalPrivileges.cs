@@ -23,6 +23,14 @@ public static class PortalPrivileges
 
     public const string StatisticRead = "statistic:read";
 
+    /// <summary>Berichtsheft (decision 49): the weekly report of the store manager. Where regional and district leaders look comes from the hierarchy of the Berichtsheft.</summary>
+    public const string LogbookWrite = "logbook:write";
+
+    public const string LogbookReview = "logbook:review";
+    public const string LogbookManageTemplate = "logbook:manage-template";
+    public const string LogbookManageStructure = "logbook:manage-structure";
+    public const string LogbookManageReminders = "logbook:manage-reminders";
+
     public const string AuditRead = "portal-audit:read";
     public const string AuditReadValues = "portal-audit:read-values";
 
@@ -38,6 +46,11 @@ public static class PortalPrivileges
         (ReportDelete, true, "Meldungen archivieren (ausblenden) und die Verknüpfung zur übergeordneten Meldung lösen. Nur für Meldungen aus dem eigenen Bereich."),
         (ReportManageRecipients, false, "Festlegen, wer bei neuen Meldungen welcher Kategorie benachrichtigt wird (z. B. Revisor bei Diebstahl, IT bei Fehlern und Viren)."),
         (StatisticRead, true, "Statistiken zu Meldungen ansehen (je Monat, Kategorie, Filiale, Personalnummer), begrenzt auf die Filialen, für die das Recht gilt."),
+        (LogbookWrite, true, "Den Wochenbericht (Berichtsheft) der eigenen Filiale ausfüllen, abgeben und nachbereiten (Filialleitung). Gilt für die Filialen, für die das Recht vergeben ist."),
+        (LogbookReview, false, "Wochenberichte der eigenen Region oder des eigenen Bezirks lesen, beantworten, intern kommentieren, Stand setzen, Filialleitungen erinnern und an die Bezirksleitung eskalieren (Regional- und Bezirksleitung). Welche Filialen, ergibt sich aus der Hierarchie im Berichtsheft."),
+        (LogbookManageTemplate, false, "Die Vorlage des Wochenberichts pflegen: Abschnitte mit Einzelauswahl, Mehrfachauswahl oder Freitext (Bezirksleitung)."),
+        (LogbookManageStructure, false, "Die Hierarchie des Berichtsheftes pflegen: Bezirke, Regionen, Regional- und Bezirksleitungen und die Zuordnung der Filialen."),
+        (LogbookManageReminders, false, "Die automatische Erinnerung an den Wochenbericht pflegen: ein oder aus, Fälligkeit, Zeitpunkte und Höchstzahl (der Text der Erinnerung läuft über die Textpflege der Personalabteilung)."),
         (AuditRead, false, "Das Änderungsprotokoll des Portals ansehen: wann wer (Name, Personalnummer) was angelegt, geändert oder gelöscht hat."),
         (AuditReadValues, false, "Im Änderungsprotokoll des Portals zusätzlich die geänderten Werte ansehen (nur zusammen mit dem Recht, das Protokoll zu lesen)."),
     ];

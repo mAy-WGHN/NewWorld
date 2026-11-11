@@ -116,6 +116,8 @@ public sealed class EmployeeDataErasureRequestedHandler(PortalDbContext db, Perm
         await db.People.Where(p => p.EmployeeId == message.EmployeeId).ExecuteDeleteAsync(cancellationToken);
         await db.MainStoreCopies.Where(m => m.EmployeeId == message.EmployeeId).ExecuteDeleteAsync(cancellationToken);
         await db.ReportRecipients.Where(r => r.EmployeeId == message.EmployeeId).ExecuteDeleteAsync(cancellationToken);
+        await db.LogbookDistrictLeaders.Where(l => l.EmployeeId == message.EmployeeId).ExecuteDeleteAsync(cancellationToken);
+        await db.LogbookRegionLeaders.Where(l => l.EmployeeId == message.EmployeeId).ExecuteDeleteAsync(cancellationToken);
         await permissions.EraseAsync(message.EmployeeId, cancellationToken);
     }
 }

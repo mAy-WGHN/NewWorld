@@ -63,7 +63,7 @@ cd Frontend && npm start         # Frontend (beim ersten Mal vorher: npm install
 | Ressource `postgres-password` steht auf `ValueMissing`, Postgres startet nicht | Secret fehlt | `dotnet user-secrets set …` (siehe oben) |
 | Ein Dienst, meist Workforce, ist „Finished“, Log: `Database migration failed` | Datenbank war beim Start noch nicht bereit | Nur diesen Dienst neu starten (Punkt 6) |
 | Menü leer, „Für dieses Jahr ist kein Urlaubsanspruch hinterlegt“ | Datenbank neu (z. B. Volume gelöscht) oder veraltete Browser-Sitzung | Abmelden und neu anmelden; Anspruch neu setzen |
-| `dotnet build`/`dotnet test` meldet gesperrte DLLs | AppHost und Dienste laufen noch | AppHost beenden, ggf. übrig gebliebene `*.Api`-Prozesse beenden |
+| `dotnet build`/`dotnet test` meldet gesperrte DLLs | AppHost und Dienste laufen noch | AppHost beenden, ggf. übrig gebliebene `*.Api`-Prozesse beenden; ohne Beenden: in ein eigenes Ausgabeverzeichnis bauen (Umgebungsvariable `BaseOutputPath=<Ordner>/`, auch für `dotnet ef … --no-build`) |
 | Container laufen nach hartem Beenden weiter | AppHost wurde nicht mit Strg+C beendet | Nur die Projekt-Container stoppen (`bc-mock`, `postgres`, `clamav`, `servicebus*`), nie pauschal alle |
 
 ## Mehrere Instanzen, Proxy, Migrationen (Betrieb)

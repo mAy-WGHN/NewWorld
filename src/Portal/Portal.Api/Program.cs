@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Routing;
 using Portal.Api.Faqs;
+using Portal.Api.Logbook;
 using Portal.Api.Http;
 using Portal.Api.Reports;
 using Portal.Core.Faqs;
@@ -78,6 +79,7 @@ app.MapFaqEndpoints();
 app.MapReportEndpoints();
 app.MapLocationEndpoints();
 app.MapReportRecipientEndpoints();
+app.MapLogbookStructureEndpoints();
 app.MapStatisticsEndpoints();
 app.MapAuditEndpoints<PortalDbContext>("portal", PortalPrivileges.AuditRead, PortalPrivileges.AuditReadValues);
 

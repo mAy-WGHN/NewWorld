@@ -136,6 +136,113 @@ namespace Portal.Infrastructure.Migrations
                     b.ToTable("faqs", "portal");
                 });
 
+            modelBuilder.Entity("Portal.Infrastructure.Logbook.LogbookDistrictLeaderRecord", b =>
+                {
+                    b.Property<Guid>("DistrictId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("district_id");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("employee_id");
+
+                    b.HasKey("DistrictId", "EmployeeId")
+                        .HasName("pk_logbook_district_leaders");
+
+                    b.HasIndex("EmployeeId")
+                        .HasDatabaseName("ix_logbook_district_leaders_employee_id");
+
+                    b.ToTable("logbook_district_leaders", "portal");
+                });
+
+            modelBuilder.Entity("Portal.Infrastructure.Logbook.LogbookDistrictRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("name");
+
+                    b.HasKey("Id")
+                        .HasName("pk_logbook_districts");
+
+                    b.ToTable("logbook_districts", "portal");
+                });
+
+            modelBuilder.Entity("Portal.Infrastructure.Logbook.LogbookRegionLeaderRecord", b =>
+                {
+                    b.Property<Guid>("RegionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("region_id");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("employee_id");
+
+                    b.HasKey("RegionId", "EmployeeId")
+                        .HasName("pk_logbook_region_leaders");
+
+                    b.HasIndex("EmployeeId")
+                        .HasDatabaseName("ix_logbook_region_leaders_employee_id");
+
+                    b.ToTable("logbook_region_leaders", "portal");
+                });
+
+            modelBuilder.Entity("Portal.Infrastructure.Logbook.LogbookRegionRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("DistrictId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("district_id");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("name");
+
+                    b.HasKey("Id")
+                        .HasName("pk_logbook_regions");
+
+                    b.HasIndex("DistrictId")
+                        .HasDatabaseName("ix_logbook_regions_district_id");
+
+                    b.ToTable("logbook_regions", "portal");
+                });
+
+            modelBuilder.Entity("Portal.Infrastructure.Logbook.LogbookStoreAssignmentRecord", b =>
+                {
+                    b.Property<Guid>("StoreId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("store_id");
+
+                    b.Property<Guid>("DistrictId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("district_id");
+
+                    b.Property<Guid?>("RegionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("region_id");
+
+                    b.HasKey("StoreId")
+                        .HasName("pk_logbook_store_assignments");
+
+                    b.HasIndex("DistrictId")
+                        .HasDatabaseName("ix_logbook_store_assignments_district_id");
+
+                    b.HasIndex("RegionId")
+                        .HasDatabaseName("ix_logbook_store_assignments_region_id");
+
+                    b.ToTable("logbook_store_assignments", "portal");
+                });
+
             modelBuilder.Entity("Portal.Infrastructure.Messaging.MainStoreCopyRecord", b =>
                 {
                     b.Property<Guid>("EmployeeId")
@@ -534,6 +641,36 @@ namespace Portal.Infrastructure.Migrations
                         .HasForeignKey("FaqId")
                         .OnDelete(DeleteBehavior.SetNull)
                         .HasConstraintName("fk_faq_images_faqs_faq_id");
+                });
+
+            modelBuilder.Entity("Portal.Infrastructure.Logbook.LogbookDistrictLeaderRecord", b =>
+                {
+                    b.HasOne("Portal.Infrastructure.Logbook.LogbookDistrictRecord", null)
+                        .WithMany()
+                        .HasForeignKey("DistrictId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_logbook_district_leaders_logbook_districts_district_id");
+                });
+
+            modelBuilder.Entity("Portal.Infrastructure.Logbook.LogbookRegionLeaderRecord", b =>
+                {
+                    b.HasOne("Portal.Infrastructure.Logbook.LogbookRegionRecord", null)
+                        .WithMany()
+                        .HasForeignKey("RegionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_logbook_region_leaders_logbook_regions_region_id");
+                });
+
+            modelBuilder.Entity("Portal.Infrastructure.Logbook.LogbookRegionRecord", b =>
+                {
+                    b.HasOne("Portal.Infrastructure.Logbook.LogbookDistrictRecord", null)
+                        .WithMany()
+                        .HasForeignKey("DistrictId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_logbook_regions_logbook_districts_district_id");
                 });
 
             modelBuilder.Entity("Portal.Infrastructure.Reports.ReportLocationRecord", b =>

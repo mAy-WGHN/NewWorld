@@ -136,6 +136,8 @@ Der **Text** ist eine Benachrichtigungsvorlage (`portal.logbook-reminder.store`)
 
 ## Umsetzung in Schritten (je Schritt Tests zuerst, Stopp-Punkt mit Bericht)
 
+**Stand 2026-11-11: Schritt 1 gebaut.** Core: `Portal.Core/Logbook` (Struktur, Reichweite, Prüfregeln). Persistenz: Tabellen `logbook_districts`, `logbook_district_leaders`, `logbook_regions`, `logbook_region_leaders`, `logbook_store_assignments` (Migration `LogbookStructure`; beim Speichern ändert sich nur, was abweicht). Endpunkte: `GET/PUT /api/logbook/structure` (Recht `logbook:manage-structure`, als Ganzes gespeichert, Ids kommen vom Client) und `GET /api/logbook/me` (Recht `logbook:review`: Ebene und erreichbare Filialen). Abweichung vom Entwurf: Eine Filiale gehört **immer zu einem Bezirk** und **optional zu einer Region darin** (dadurch geht der Bericht einer Filiale ohne Region direkt an die Bezirksleitung). Die fünf Rechte sind im Katalog; Leitungen werden bei `EmployeeDataErasureRequested` entfernt. Offen für später: die Rechte in Access an Rollen vergeben, die Oberfläche (Schritt 6).
+
 1. **Struktur und Rechte:** Tabellen, Hierarchie pflegen und lesen, Rechte im Katalog, Reichweitenlogik (wer sieht welche Filiale) als eigene, gut getestete Klasse.
 2. **Vorlage:** Abschnitte, Versionen, Validierung der Antworten gegen die Vorlage.
 3. **Bericht ausfüllen und abgeben:** Entwurf, Abgabe, ein Bericht je Filiale und Woche, Wochengrenzen (Jahreswechsel, 53. Woche, Zeitumstellung).

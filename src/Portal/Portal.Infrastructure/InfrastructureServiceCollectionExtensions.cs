@@ -37,6 +37,8 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddMessaging<PortalDbContext>(configuration, environment);
         services.AddPermissionCachePersistence<PortalDbContext>();
 
+        services.AddScoped<Logbook.LogbookStructureStore>();
+
         // FAQ images: files outside the application folder (never in the web root); relative paths count from the content root.
         var imagePath = configuration["Portal:Faq:ImagePath"] is { Length: > 0 } configured ? configured : Path.Combine("var", "uploads", "faq");
         services.AddSingleton<IFaqImageStorage>(_ => new FileSystemFaqImageStorage(Path.GetFullPath(imagePath, environment.ContentRootPath)));

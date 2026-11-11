@@ -22,6 +22,8 @@ Entscheidungen 41 und 43 (`CLAUDE.md`), überarbeitet 2026-11-10. Die Fachlogik 
 | Meldung ändern / archivieren / Hauptmeldung lösen | `PATCH`, `DELETE /api/reports/{id}`, `DELETE …/parent` | `report:update` / `report:delete` / `report:update` |
 | Statistik | `GET /api/statistics/{monthly,monthly-by-category,by-location-severity,by-personnel-number}` | `statistic:read` (Reichweite: Filialen) |
 | Empfänger neuer Meldungen | `GET /api/report-recipients`, `PUT /api/report-recipients/{kategorie}` | `report:manage-recipients` |
+| Berichtsheft: Hierarchie lesen / pflegen | `GET/PUT /api/logbook/structure` | `logbook:manage-structure` |
+| Berichtsheft: Ebene und erreichbare Filialen der angemeldeten Person | `GET /api/logbook/me` | `logbook:review` |
 | Änderungsprotokoll | `GET /api/audit` | `portal-audit:read` (sonst `404`) |
 
 ## Regeln

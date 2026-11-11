@@ -13,5 +13,5 @@ public class PortalPrivilegesTests
     [Fact]
     public void Reports_and_statistics_can_be_scoped_to_stores_the_FAQ_cannot() =>
         PortalPrivileges.Catalog.Where(c => c.Scopable).Select(c => c.Key)
-            .ShouldBe([PortalPrivileges.ReportRead, PortalPrivileges.ReportUpdate, PortalPrivileges.ReportDelete, PortalPrivileges.StatisticRead], ignoreOrder: true);
+            .ShouldBe([PortalPrivileges.ReportRead, PortalPrivileges.ReportUpdate, PortalPrivileges.ReportDelete, PortalPrivileges.StatisticRead, PortalPrivileges.LogbookWrite], ignoreOrder: true);
 }

@@ -2,6 +2,7 @@ using Shared.Infrastructure.Audit;
 using Microsoft.EntityFrameworkCore;
 using Portal.Core.Reports;
 using Portal.Infrastructure.Faqs;
+using Portal.Infrastructure.Logbook;
 using Portal.Infrastructure.Messaging;
 using Portal.Infrastructure.Reports;
 using Shared.Infrastructure.Authorization;
@@ -23,6 +24,11 @@ public sealed class PortalDbContext(DbContextOptions<PortalDbContext> options) :
     public DbSet<ReportRecord> Reports => Set<ReportRecord>();
     public DbSet<ReportLocationRecord> ReportLocations => Set<ReportLocationRecord>();
     public DbSet<ReportRecipientRecord> ReportRecipients => Set<ReportRecipientRecord>();
+    public DbSet<LogbookDistrictRecord> LogbookDistricts => Set<LogbookDistrictRecord>();
+    public DbSet<LogbookDistrictLeaderRecord> LogbookDistrictLeaders => Set<LogbookDistrictLeaderRecord>();
+    public DbSet<LogbookRegionRecord> LogbookRegions => Set<LogbookRegionRecord>();
+    public DbSet<LogbookRegionLeaderRecord> LogbookRegionLeaders => Set<LogbookRegionLeaderRecord>();
+    public DbSet<LogbookStoreAssignmentRecord> LogbookStoreAssignments => Set<LogbookStoreAssignmentRecord>();
 
     /// <summary>Provider settings shared by runtime and design time (migrations).</summary>
     public static DbContextOptionsBuilder Configure(DbContextOptionsBuilder options, string connectionString) => options
@@ -79,6 +85,44 @@ public sealed class PortalDbContext(DbContextOptions<PortalDbContext> options) :
             b.ToTable("report_recipients");
             b.HasKey(x => new { x.Category, x.EmployeeId });
             b.Property(x => x.Category).HasConversion(new LowerCaseEnumConverter<ReportCategory>()).HasMaxLength(255);
+        });
+        modelBuilder.Entity<LogbookDistrictRecord>(b =>
+        {
+            b.ToTable("logbook_districts");
+            b.HasKey(d => d.Id);
+            b.Property(d => d.Id).ValueGeneratedNever();
+            b.Property(d => d.Name).HasMaxLength(120);
+        });
+        modelBuilder.Entity<LogbookDistrictLeaderRecord>(b =>
+        {
+            b.ToTable("logbook_district_leaders");
+            b.HasKey(l => new { l.DistrictId, l.EmployeeId });
+            b.HasIndex(l => l.EmployeeId);
+            b.HasOne<LogbookDistrictRecord>().WithMany().HasForeignKey(l => l.DistrictId).OnDelete(DeleteBehavior.Cascade);
+        });
+        modelBuilder.Entity<LogbookRegionRecord>(b =>
+        {
+            b.ToTable("logbook_regions");
+            b.HasKey(r => r.Id);
+            b.Property(r => r.Id).ValueGeneratedNever();
+            b.Property(r => r.Name).HasMaxLength(120);
+            b.HasIndex(r => r.DistrictId);
+            b.HasOne<LogbookDistrictRecord>().WithMany().HasForeignKey(r => r.DistrictId).OnDelete(DeleteBehavior.Cascade);
+        });
+        modelBuilder.Entity<LogbookRegionLeaderRecord>(b =>
+        {
+            b.ToTable("logbook_region_leaders");
+            b.HasKey(l => new { l.RegionId, l.EmployeeId });
+            b.HasIndex(l => l.EmployeeId);
+            b.HasOne<LogbookRegionRecord>().WithMany().HasForeignKey(l => l.RegionId).OnDelete(DeleteBehavior.Cascade);
+        });
+        modelBuilder.Entity<LogbookStoreAssignmentRecord>(b =>
+        {
+            b.ToTable("logbook_store_assignments");
+            b.HasKey(s => s.StoreId);
+            b.Property(s => s.StoreId).ValueGeneratedNever();
+            b.HasIndex(s => s.DistrictId);
+            b.HasIndex(s => s.RegionId);
         });
         modelBuilder.Entity<FaqRecord>(b =>
         {
