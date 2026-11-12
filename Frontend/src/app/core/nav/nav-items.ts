@@ -33,6 +33,7 @@ export const NAV: NavGroup[] = [
     title: 'Team und Personal',
     items: [
       { label: 'Team-Abwesenheiten', path: 'team-absences', requires: ['absence:read-availability', 'absence:read-reason'], about: 'Wer ist wann nicht verfügbar.', keywords: ['team', 'kollegen', 'wer ist weg', 'dienstplan'] },
+      { label: 'Berichtsheft', path: 'logbook', requires: ['logbook:write', 'logbook:review'], about: 'Wochenbericht der Filiale ausfüllen, abgeben und nachbereiten; als Leitung die Berichte lesen, beantworten und erinnern.', keywords: ['wochenbericht', 'bericht', 'filialbericht', 'filialleitung', 'regionalleitung', 'bezirksleitung', 'erinnerung'] },
       { label: 'Genehmigungen', path: 'approvals', requires: ['absence:approve'], about: 'Offene Urlaubsanträge entscheiden.', keywords: ['genehmigen', 'antrag', 'urlaubsantrag', 'freigeben'] },
       { label: 'Krankmeldungen und AU', path: 'sick-notes', requires: ['certificate:read-status', 'certificate:review'], about: 'Stand der Arbeitsunfähigkeitsbescheinigungen.', keywords: ['au', 'bescheinigung', 'krankschreibung'] },
       { label: 'Mitarbeitende', path: 'employees', requires: ['employee:read', 'employee:decide-change', 'employee:create'], about: 'Mitarbeiterkarten ansehen und anlegen.', keywords: ['personal', 'mitarbeiter', 'anlegen', 'neue mitarbeiter'] },
@@ -52,6 +53,7 @@ export const NAV: NavGroup[] = [
     items: [
       { label: 'Rollen und Rechte', path: 'admin/access', requires: ['access:role:read', 'access:assignment:read'], about: 'Rollen, Rechte, Zuständigkeiten und Hauptfilialen.', keywords: ['rollen', 'rechte', 'berechtigung', 'zuständigkeit'] },
       { label: 'Personal-Einstellungen', path: 'admin/hr', requires: ['absence:manage-vacation-rules', 'workingtime:manage-rules', 'employee:manage-lists'], about: 'Urlaubs- und Arbeitszeitregeln, Auswahllisten, Nummernkreis.', keywords: ['urlaubsregeln', 'nummernkreis', 'auswahllisten', 'regeln'] },
+      { label: 'Berichtsheft-Verwaltung', path: 'admin/logbook', requires: ['logbook:manage-structure', 'logbook:manage-template', 'logbook:manage-reminders'], about: 'Bezirke, Regionen und Leitungen, die Vorlage des Wochenberichts und die automatische Erinnerung pflegen.', keywords: ['berichtsheft', 'hierarchie', 'bezirk', 'region', 'vorlage', 'erinnerung'] },
       { label: 'Benachrichtigungstexte', path: 'admin/templates', requires: ['template:manage'], about: 'Texte der Benachrichtigungen pflegen.', keywords: ['texte', 'vorlagen', 'mitteilungstexte'] },
       { label: 'Änderungsprotokoll', path: 'admin/audit', requires: ['access-audit:read', 'workforce-audit:read', 'portal-audit:read', 'notification-audit:read'], about: 'Wer wann was angelegt, geändert oder gelöscht hat.', keywords: ['protokoll', 'audit', 'änderungen', 'log'] },
     ],

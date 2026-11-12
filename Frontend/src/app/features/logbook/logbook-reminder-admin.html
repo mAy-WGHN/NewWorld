@@ -1,0 +1,68 @@
+@if (loadError(); as message) {
+  <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="load-error">{{ message }}</p>
+}
+
+@if (loaded()) {
+  <form class="flex max-w-xl flex-col gap-4" (submit)="$event.preventDefault(); submit()">
+    <mat-checkbox [checked]="enabled()" data-testid="enabled" (change)="enabled.set($event.checked)">Automatische Erinnerung einschalten</mat-checkbox>
+    @if (enabled() && enabledAt()) {
+      <p class="m-0 -mt-2 text-sm text-on-surface-variant">Eingeschaltet seit {{ stamp(enabledAt()) }}. Zeitpunkte davor werden nicht nachgeholt.</p>
+    }
+
+    <div class="flex flex-wrap gap-4">
+      <mat-form-field>
+        <mat-label>Der Bericht ist fällig am</mat-label>
+        <select matNativeControl data-testid="due-day" [value]="dueDay()" (change)="dueDay.set(value($event))">
+          @for (d of weekdays; track d.value) {
+            <option [value]="d.value" [selected]="d.value === dueDay()">{{ d.label }}</option>
+          }
+        </select>
+      </mat-form-field>
+      <mat-form-field>
+        <mat-label>um (Uhrzeit)</mat-label>
+        <input matInput type="time" data-testid="due-time" [value]="dueTime()" (input)="dueTime.set(value($event))" />
+      </mat-form-field>
+    </div>
+
+    <fieldset class="m-0 flex flex-col gap-2 rounded-xl border border-outline-variant px-4 py-3">
+      <legend class="px-1 font-medium">Erinnern</legend>
+      <p class="m-0 text-sm text-on-surface-variant">
+        Die Filialleitung wird zu diesen Zeitpunkten erinnert, solange der Bericht nicht abgegeben ist. „Tage nach Fälligkeit“ zählt ab dem Fälligkeitstag (0 = am selben Tag).
+      </p>
+      @for (point of points(); track $index) {
+        <div class="flex flex-wrap items-center gap-3" data-testid="point">
+          <mat-form-field class="w-40">
+            <mat-label>Tage nach Fälligkeit</mat-label>
+            <input matInput type="number" min="0" max="14" [value]="point.daysAfterDue" (input)="setPoint($index, { daysAfterDue: +value($event) })" />
+          </mat-form-field>
+          <mat-form-field class="w-36">
+            <mat-label>Uhrzeit</mat-label>
+            <input matInput type="time" [value]="point.time" (input)="setPoint($index, { time: value($event) })" />
+          </mat-form-field>
+          <button mat-button type="button" data-action="remove-point" [attr.aria-label]="'Zeitpunkt ' + ($index + 1) + ' entfernen'" (click)="removePoint($index)">Entfernen</button>
+        </div>
+      } @empty {
+        <p class="m-0 text-sm text-on-surface-variant">Kein Zeitpunkt: es wird nicht automatisch erinnert.</p>
+      }
+      <div>
+        <button mat-stroked-button type="button" data-action="add-point" (click)="addPoint()">Zeitpunkt hinzufügen</button>
+      </div>
+    </fieldset>
+
+    <mat-form-field class="w-64">
+      <mat-label>Höchstens so oft je Filiale und Woche</mat-label>
+      <input matInput type="number" min="1" max="10" data-testid="max" [value]="max()" (input)="max.set(+value($event))" />
+      <mat-hint>Von Hand gesendete Erinnerungen zählen mit.</mat-hint>
+    </mat-form-field>
+
+    @if (save.error(); as message) {
+      <p class="m-0 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="save-error">{{ message }}</p>
+    }
+    @if (save.status(); as message) {
+      <p class="m-0 rounded-xl bg-primary-container px-4 py-2.5 text-on-primary-container" role="status" data-testid="save-status">{{ message }}</p>
+    }
+    <div>
+      <button mat-flat-button type="submit" data-action="save" [disabled]="save.busy()">Speichern</button>
+    </div>
+  </form>
+}

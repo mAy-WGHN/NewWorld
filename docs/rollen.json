@@ -56,6 +56,27 @@
         "workingtime:manage-rules",
         "workingtime:read"
       ]
+    },
+    {
+      "name": "Filialleitung (Berichtsheft)",
+      "privileges": [
+        "logbook:write"
+      ]
+    },
+    {
+      "name": "Regional- und Bezirksleitung (Berichtsheft)",
+      "privileges": [
+        "logbook:review"
+      ]
+    },
+    {
+      "name": "Berichtsheft-Verwaltung",
+      "privileges": [
+        "access:person:read",
+        "logbook:manage-reminders",
+        "logbook:manage-structure",
+        "logbook:manage-template"
+      ]
     }
   ]
 }

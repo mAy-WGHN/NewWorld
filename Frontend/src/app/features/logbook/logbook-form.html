@@ -1,0 +1,110 @@
+<section class="mb-8 flex flex-col gap-4" [attr.aria-label]="store().storeName" data-testid="logbook-form" [attr.data-store]="store().storeId">
+  <header class="flex flex-wrap items-center justify-between gap-2">
+    <h2 class="m-0 text-lg font-medium">{{ store().storeNumber }} {{ store().storeName }}</h2>
+    <mat-chip-set aria-label="Stand des Berichts">
+      <mat-chip data-testid="phase">{{ phaseLabel(report()?.phase ?? 'draft') }}</mat-chip>
+      @if (submitted() && report(); as r) {
+        <mat-chip data-testid="state">{{ stateLabel(r.state) }}</mat-chip>
+      }
+    </mat-chip-set>
+  </header>
+
+  @if (submitted() && report(); as r) {
+    <p class="m-0 text-sm text-on-surface-variant" data-testid="submitted-info">
+      Abgegeben am {{ stamp(r.submittedAt) }}@if (r.submittedByName) { von {{ r.submittedByName }}}.
+      @if (r.revisedAt) {
+        Zuletzt geändert am {{ stamp(r.revisedAt) }}@if (r.revisedByName) { von {{ r.revisedByName }}}.
+      }
+      <a [routerLink]="['/logbook/reports', r.id]" data-testid="open-detail">Antworten ansehen</a>
+    </p>
+  }
+
+  @if (!store().canSubmit && !submitted()) {
+    <p class="m-0 rounded-xl border border-outline-variant px-4 py-2.5 text-sm" role="note" data-testid="no-recipients">
+      Für diese Filiale ist noch keine Regionalleitung oder Bezirksleitung eingetragen. Du kannst den Entwurf speichern, abgeben geht erst danach.
+    </p>
+  }
+
+  @for (section of template().sections; track section.id) {
+    <fieldset class="m-0 flex flex-col gap-2 rounded-xl border border-outline-variant px-4 py-3" [attr.data-section]="section.id">
+      <legend class="px-1 font-medium">
+        {{ section.title }}@if (section.required) {<span aria-hidden="true"> *</span><span class="sr-only"> (Pflichtfeld)</span>}
+      </legend>
+      @if (section.hint) {
+        <p class="m-0 text-sm text-on-surface-variant">{{ section.hint }}</p>
+      }
+
+      @switch (section.kind) {
+        @case ('singleChoice') {
+          <mat-radio-group class="flex flex-col" [value]="chosen(section.id)" [attr.aria-label]="section.title" (change)="choose(section.id, $event.value)">
+            @for (option of section.options; track option.id) {
+              <mat-radio-button [value]="option.id">{{ option.label }}</mat-radio-button>
+            }
+          </mat-radio-group>
+        }
+        @case ('multiChoice') {
+          <div class="flex flex-col" role="group" [attr.aria-label]="section.title">
+            @for (option of section.options; track option.id) {
+              <mat-checkbox [checked]="isChecked(section.id, option.id)" (change)="toggle(section.id, option.id, $event.checked)">{{ option.label }}</mat-checkbox>
+            }
+          </div>
+        }
+        @default {
+          <mat-form-field class="w-full">
+            <mat-label>{{ section.title }}</mat-label>
+            <textarea matInput rows="4" [id]="'text-' + section.id" [value]="text(section.id)" (input)="write(section.id, $event)"></textarea>
+          </mat-form-field>
+        }
+      }
+    </fieldset>
+  }
+
+  @if (save.error(); as message) {
+    <p class="m-0 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="save-error">{{ message }}</p>
+  }
+  @if (save.status(); as message) {
+    <p class="m-0 rounded-xl bg-primary-container px-4 py-2.5 text-on-primary-container" role="status" data-testid="save-status">{{ message }}</p>
+  }
+  @if (!submitted() && missing().length > 0) {
+    <p class="m-0 text-sm text-on-surface-variant" data-testid="missing">
+      Zum Abgeben fehlt noch: {{ missing().length === 1 ? 'ein Pflichtfeld' : missing().length + ' Pflichtfelder' }}.
+    </p>
+  }
+
+  <div class="flex flex-wrap gap-2">
+    @if (submitted()) {
+      <button mat-flat-button type="button" data-action="save" [disabled]="save.busy() || !dirty()" (click)="saveDraft()">Änderungen speichern</button>
+    } @else {
+      <button mat-stroked-button type="button" data-action="save" [disabled]="save.busy() || !dirty()" (click)="saveDraft()">Entwurf speichern</button>
+      <button mat-flat-button type="button" data-action="submit" [disabled]="save.busy() || !canSubmit()" (click)="hand()">Abgeben</button>
+    }
+  </div>
+
+  @if (submitted() && report(); as r) {
+    <section class="flex flex-col gap-2 rounded-xl border border-outline-variant px-4 py-3" aria-label="Nachbereitung" data-testid="follow-up">
+      <h3 class="m-0 font-medium">Nachbereitet</h3>
+      @if (r.state === 'followedUp') {
+        <p class="m-0 text-sm text-on-surface-variant">Du hast den Bericht als nachbereitet markiert. Die Regionalleitung sieht das.</p>
+      } @else if (r.state === 'done') {
+        <p class="m-0 text-sm text-on-surface-variant">Der Bericht ist von der Leitung als erledigt abgeschlossen.</p>
+      } @else {
+        <p class="m-0 text-sm text-on-surface-variant">
+          Hast du dich um das gekümmert, was die Leitung geantwortet hat? Beschreibe kurz, was du getan hast, und markiere den Bericht als nachbereitet.
+        </p>
+        <mat-form-field class="w-full">
+          <mat-label>Was wurde getan?</mat-label>
+          <textarea matInput rows="2" [id]="'note-' + r.id" [value]="followNote()" (input)="writeNote($event)"></textarea>
+        </mat-form-field>
+        @if (follow.error(); as message) {
+          <p class="m-0 text-error" role="alert" data-testid="follow-error">{{ message }}</p>
+        }
+        <div>
+          <button mat-stroked-button type="button" data-action="follow-up" [disabled]="follow.busy() || !followNote().trim()" (click)="followUp()">Als nachbereitet markieren</button>
+        </div>
+      }
+      @if (follow.status(); as message) {
+        <p class="m-0 text-sm" role="status">{{ message }}</p>
+      }
+    </section>
+  }
+</section>

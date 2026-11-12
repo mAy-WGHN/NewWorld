@@ -1,0 +1,56 @@
+@if (!openOnly()) {
+  <app-logbook-week-nav [week]="week()" (weekChange)="setWeek($event)" />
+}
+
+<div class="mb-4 flex flex-wrap items-center gap-x-4 gap-y-1">
+  <mat-checkbox [checked]="openOnly()" data-testid="open-only" (change)="setOpenOnly($event.checked)">Alle offenen Berichte aller Wochen</mat-checkbox>
+  <mat-form-field class="w-52">
+    <mat-label>Stand</mat-label>
+    <select matNativeControl data-testid="state-filter" [value]="stateFilter()" (change)="setState($any($event.target).value)">
+      <option value="" [selected]="!stateFilter()">Alle</option>
+      @for (s of states; track s.value) {
+        <option [value]="s.value" [selected]="s.value === stateFilter()">{{ s.label }}</option>
+      }
+    </select>
+  </mat-form-field>
+  <mat-form-field class="w-64">
+    <mat-label>Filiale suchen</mat-label>
+    <input matInput type="search" data-testid="store-filter" [value]="query()" (input)="setQuery($event)" />
+  </mat-form-field>
+</div>
+
+@if (error(); as message) {
+  <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="error">{{ message }}</p>
+}
+
+@if (loaded() && !error() && visible().length === 0) {
+  <p class="m-0 text-on-surface-variant" data-testid="empty">Keine Berichte {{ openOnly() ? 'offen' : 'in dieser Woche' }}.</p>
+}
+
+<div class="flex flex-col gap-2.5" role="list">
+  @for (i of visible(); track i.id) {
+    <app-row-card [attention]="i.state === 'followedUp' || i.revisedSinceMyReply" data-testid="inbox-row" [attr.data-id]="i.id">
+      <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <div class="flex flex-col">
+          <strong>{{ i.storeNumber }} {{ i.storeName }}</strong>
+          <span class="text-sm text-on-surface-variant">{{ weekLabel(i.week) }} · abgegeben {{ stamp(i.submittedAt) }}</span>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <mat-chip-set aria-label="Stand und Hinweise">
+            <mat-chip data-testid="row-state">{{ stateLabel(i.state) }}</mat-chip>
+            @if (i.revisedSinceMyReply) {
+              <mat-chip data-testid="revised">Seit deiner Antwort geändert</mat-chip>
+            }
+            @if (i.escalated) {
+              <mat-chip data-testid="escalated">Eskaliert</mat-chip>
+            }
+            @if (i.commentCount > 0) {
+              <mat-chip>{{ i.commentCount }} {{ i.commentCount === 1 ? 'Kommentar' : 'Kommentare' }}</mat-chip>
+            }
+          </mat-chip-set>
+          <a mat-flat-button [routerLink]="['/logbook/reports', i.id]" data-action="open">Öffnen</a>
+        </div>
+      </div>
+    </app-row-card>
+  }
+</div>

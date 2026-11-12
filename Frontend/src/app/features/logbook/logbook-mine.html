@@ -1,0 +1,43 @@
+<app-logbook-week-nav [week]="week()" (weekChange)="setWeek($event)" />
+
+@if (error(); as message) {
+  <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="error">{{ message }}</p>
+}
+
+@if (data(); as d) {
+  @if (d.stores.length === 0) {
+    <p class="m-0 text-on-surface-variant" data-testid="no-stores">Für dich ist keine Filiale eingetragen, für die du den Wochenbericht schreibst.</p>
+  }
+  @for (store of d.stores; track store.storeId) {
+    @if (template(store.templateVersion); as tpl) {
+      <app-logbook-form [store]="store" [week]="d.week" [template]="tpl" (changed)="load()" />
+    }
+    @if (history()[store.storeId]; as past) {
+      @if (past.length > 0) {
+        <section class="mb-8" [attr.aria-label]="'Letzte Wochen ' + store.storeName" data-testid="history">
+          <h3 class="m-0 mb-2 text-base font-medium">Letzte Wochen · {{ store.storeNumber }} {{ store.storeName }}</h3>
+          <div class="flex flex-col gap-2" role="list">
+            @for (r of past; track r.id) {
+              <app-row-card data-testid="history-row">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                  <span>{{ weekLabel(r.week) }}</span>
+                  <span class="flex items-center gap-2">
+                    <mat-chip-set aria-label="Stand">
+                      <mat-chip>{{ phaseLabel(r.phase) }}</mat-chip>
+                      @if (r.phase === 'submitted') {
+                        <mat-chip>{{ stateLabel(r.state) }}</mat-chip>
+                      }
+                    </mat-chip-set>
+                    <button mat-button type="button" data-action="open-week" (click)="setWeek(r.week)">Öffnen</button>
+                  </span>
+                </div>
+              </app-row-card>
+            }
+          </div>
+        </section>
+      }
+    }
+  }
+} @else if (loading()) {
+  <p class="m-0 text-on-surface-variant" role="status">Wird geladen …</p>
+}

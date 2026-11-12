@@ -30,6 +30,8 @@ const builtAreas: Record<string, () => Promise<Type<unknown>>> = {
   notifications: () => import('./features/notifications/notifications.page').then((m) => m.NotificationsPage),
   'working-time': () => import('./features/working-time/working-time.page').then((m) => m.WorkingTimePage),
   'report-issue': () => import('./features/report-issue/report-issue.page').then((m) => m.ReportIssuePage),
+  logbook: () => import('./features/logbook/logbook.page').then((m) => m.LogbookPage),
+  'admin/logbook': () => import('./features/logbook/logbook-admin.page').then((m) => m.LogbookAdminPage),
 };
 
 /** Every area of the navigation is a placeholder page until it is built; the privilege guard applies to both. */
@@ -57,6 +59,13 @@ export const routes: Routes = [
       { path: 'settings', loadComponent: () => import('./features/settings/settings.page').then((m) => m.SettingsPage), title: 'Einstellungen' },
       { path: 'help', component: PlaceholderPage, title: 'Hilfe', data: { title: 'Hilfe', about: 'Anleitungen und Ansprechpersonen.' } },
       ...areaRoutes,
+      {
+        path: 'logbook/reports/:id',
+        loadComponent: () => import('./features/logbook/logbook-detail.page').then((m) => m.LogbookDetailPage),
+        canActivate: [privilegeGuard],
+        title: 'Wochenbericht',
+        data: { requires: ['logbook:write', 'logbook:review'], title: 'Wochenbericht' },
+      },
       { path: 'step-up/done', loadComponent: () => import('./pages/step-up/step-up-done').then((m) => m.StepUpDonePage), title: 'Bestätigung mit Microsoft' },
       { path: 'forbidden', component: ForbiddenPage, title: 'Kein Zugriff' },
     ],

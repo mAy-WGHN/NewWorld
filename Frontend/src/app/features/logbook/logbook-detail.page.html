@@ -1,0 +1,160 @@
+<app-page-head [title]="report() ? report()!.storeNumber + ' ' + report()!.storeName : 'Wochenbericht'">
+  <a mat-stroked-button routerLink="/logbook" data-testid="back">Zurück zum Berichtsheft</a>
+</app-page-head>
+
+@if (loadError(); as message) {
+  <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="load-error">{{ message }}</p>
+}
+
+@if (report(); as r) {
+  <div class="mb-4 flex flex-wrap items-center gap-3">
+    <span>{{ weekLabel(r.week) }}</span>
+    <mat-chip-set aria-label="Stand und Hinweise">
+      <mat-chip data-testid="phase">{{ phaseLabel(r.phase) }}</mat-chip>
+      <mat-chip data-testid="state">{{ stateLabel(r.state) }}</mat-chip>
+      @if (isLeader() && r.revisedSinceMyReply) {
+        <mat-chip data-testid="revised">Seit deiner Antwort geändert</mat-chip>
+      }
+      @if (r.escalatedAt) {
+        <mat-chip data-testid="escalated">Eskaliert</mat-chip>
+      }
+    </mat-chip-set>
+  </div>
+
+  @if (act.error(); as message) {
+    <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="act-error">{{ message }}</p>
+  }
+  @if (act.status(); as message) {
+    <p class="mb-3 rounded-xl bg-primary-container px-4 py-2.5 text-on-primary-container" role="status" data-testid="act-status">{{ message }}</p>
+  }
+
+  <div class="grid gap-6 lg:grid-cols-[3fr_2fr]">
+    <!-- the report -->
+    <section class="flex flex-col gap-3" aria-label="Bericht">
+      <p class="m-0 text-sm text-on-surface-variant" data-testid="submitted-info">
+        @if (r.submittedAt) {
+          Abgegeben am {{ stamp(r.submittedAt) }}@if (r.submittedByName) { von {{ r.submittedByName }}}.
+        }
+        @if (r.revisedAt) {
+          Zuletzt geändert am {{ stamp(r.revisedAt) }}@if (r.revisedByName) { von {{ r.revisedByName }}}.
+        }
+      </p>
+
+      @for (a of answers(); track a.section.id) {
+        <section class="rounded-xl border border-outline-variant px-4 py-3" data-testid="answer" [attr.data-section]="a.section.id">
+          <h2 class="m-0 mb-1 text-base font-medium">{{ a.section.title }}</h2>
+          @if (a.labels.length > 0) {
+            <ul class="m-0 pl-5">
+              @for (label of a.labels; track $index) {
+                <li>{{ label }}</li>
+              }
+            </ul>
+          }
+          @if (a.text) {
+            <p class="m-0 whitespace-pre-line">{{ a.text }}</p>
+          }
+          @if (a.labels.length === 0 && !a.text) {
+            <p class="m-0 text-sm text-on-surface-variant">Keine Angabe.</p>
+          }
+        </section>
+      }
+
+      @if (r.followedUpAt) {
+        <section class="rounded-xl border border-outline-variant px-4 py-3" data-testid="followed-up">
+          <h2 class="m-0 mb-1 text-base font-medium">Nachbereitet</h2>
+          <p class="m-0 text-sm text-on-surface-variant">Am {{ stamp(r.followedUpAt) }}@if (r.followedUpByName) { von {{ r.followedUpByName }}}.</p>
+          @if (r.followUpNote) {
+            <p class="m-0 mt-1 whitespace-pre-line">{{ r.followUpNote }}</p>
+          }
+        </section>
+      }
+      @if (r.escalatedAt) {
+        <section class="rounded-xl border border-outline-variant px-4 py-3" data-testid="escalation">
+          <h2 class="m-0 mb-1 text-base font-medium">Eskaliert an die Bezirksleitung</h2>
+          <p class="m-0 text-sm text-on-surface-variant">Am {{ stamp(r.escalatedAt) }}@if (r.escalatedByName) { von {{ r.escalatedByName }}}.</p>
+          @if (r.escalationNote) {
+            <p class="m-0 mt-1 whitespace-pre-line">{{ r.escalationNote }}</p>
+          }
+        </section>
+      }
+    </section>
+
+    <!-- replies and internal comments -->
+    <aside class="flex flex-col gap-4" aria-label="Kommentare">
+      <section class="flex flex-col gap-2" aria-labelledby="replies-title" data-testid="replies">
+        <h2 id="replies-title" class="m-0 text-lg font-medium">Antworten</h2>
+        @for (c of replies(); track c.id) {
+          <app-row-card data-testid="reply">
+            <div class="text-sm text-on-surface-variant">{{ c.authorName }} · {{ levelLabel(c) }} · {{ stamp(c.createdAt) }}</div>
+            <p class="m-0 whitespace-pre-line">{{ c.text }}</p>
+          </app-row-card>
+        } @empty {
+          <p class="m-0 text-sm text-on-surface-variant">Noch keine Antwort.</p>
+        }
+        @if (isLeader() && r.phase === 'submitted') {
+          <mat-form-field class="w-full">
+            <mat-label>{{ r.viewerLevel === 'district' ? 'Antwort an die Regionalleitung' : 'Antwort an die Filialleitung' }}</mat-label>
+            <textarea matInput rows="3" id="reply-text" [value]="reply()" (input)="write('reply', $event)"></textarea>
+          </mat-form-field>
+          <div>
+            <button mat-flat-button type="button" data-action="reply" [disabled]="act.busy() || !reply().trim()" (click)="send('reply')">Antworten</button>
+          </div>
+        }
+      </section>
+
+      @if (isLeader()) {
+        <section class="flex flex-col gap-2" aria-labelledby="internal-title" data-testid="internals">
+          <h2 id="internal-title" class="m-0 text-lg font-medium">Interne Kommentare</h2>
+          <p class="m-0 text-sm text-on-surface-variant">Nur für Leitungen sichtbar, nicht für die Filialleitung. Regionalleitungen sehen nur ihre eigenen.</p>
+          @for (c of internals(); track c.id) {
+            <app-row-card data-testid="internal">
+              <div class="text-sm text-on-surface-variant">{{ c.authorName }} · {{ levelLabel(c) }} · {{ stamp(c.createdAt) }}</div>
+              <p class="m-0 whitespace-pre-line">{{ c.text }}</p>
+            </app-row-card>
+          } @empty {
+            <p class="m-0 text-sm text-on-surface-variant">Noch kein interner Kommentar.</p>
+          }
+          @if (r.phase === 'submitted') {
+            <mat-form-field class="w-full">
+              <mat-label>Interner Kommentar</mat-label>
+              <textarea matInput rows="2" id="internal-text" [value]="internal()" (input)="write('internal', $event)"></textarea>
+            </mat-form-field>
+            <div>
+              <button mat-stroked-button type="button" data-action="internal" [disabled]="act.busy() || !internal().trim()" (click)="send('internal')">Kommentar speichern</button>
+            </div>
+          }
+        </section>
+
+        <section class="flex flex-col gap-2" aria-label="Stand und Eskalation" data-testid="actions">
+          <h2 class="m-0 text-lg font-medium">Bearbeitung</h2>
+          <div class="flex flex-wrap gap-2">
+            @if (r.state === 'done') {
+              <button mat-stroked-button type="button" data-action="reopen" [disabled]="act.busy()" (click)="setState('inProgress')">Wieder öffnen</button>
+            } @else {
+              @if (r.state !== 'inProgress') {
+                <button mat-stroked-button type="button" data-action="in-progress" [disabled]="act.busy()" (click)="setState('inProgress')">In Bearbeitung</button>
+              }
+              <button mat-flat-button type="button" data-action="done" [disabled]="act.busy()" (click)="setState('done')">Erledigt</button>
+            }
+            @if (canEscalate()) {
+              <button mat-stroked-button type="button" data-action="escalate-open" [attr.aria-expanded]="escalating()" (click)="escalating.set(!escalating())">An die Bezirksleitung eskalieren</button>
+            }
+          </div>
+          @if (escalating() && canEscalate()) {
+            <mat-form-field class="w-full">
+              <mat-label>Wobei brauchst du Hilfe? (optional)</mat-label>
+              <textarea matInput rows="2" id="escalate-note" [value]="escalateNote()" (input)="write('escalate', $event)"></textarea>
+            </mat-form-field>
+            <div>
+              <button mat-flat-button type="button" data-action="escalate" [disabled]="act.busy()" (click)="escalate()">Jetzt eskalieren</button>
+            </div>
+          }
+        </section>
+      } @else {
+        <p class="m-0 text-sm text-on-surface-variant">
+          Den Bericht änderst und bearbeitest du nach unter <a routerLink="/logbook">Berichtsheft</a>.
+        </p>
+      }
+    </aside>
+  </div>
+}

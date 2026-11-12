@@ -1,0 +1,116 @@
+@if (loadError(); as message) {
+  <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="load-error">{{ message }}</p>
+}
+
+@if (loaded()) {
+  <form class="flex max-w-4xl flex-col gap-6" (submit)="$event.preventDefault(); submit()">
+    <section class="flex flex-col gap-4" aria-labelledby="districts-title">
+      <h2 id="districts-title" class="m-0 text-lg font-medium">Bezirke und Regionen</h2>
+      <p class="m-0 text-sm text-on-surface-variant">
+        Die Bezirksleitung liest alle Berichte des Bezirks. Die Regionalleitung liest die Berichte ihrer Region und kümmert sich zuerst darum.
+      </p>
+
+      @for (district of edit().districts; track district.id) {
+        <fieldset class="m-0 flex flex-col gap-3 rounded-xl border border-outline-variant px-4 py-3" data-testid="district" [attr.data-id]="district.id">
+          <legend class="px-1 font-medium">Bezirk</legend>
+          <mat-form-field class="w-full">
+            <mat-label>Name des Bezirks</mat-label>
+            <input matInput data-testid="district-name" [value]="district.name" (input)="renameDistrict(district, value($event))" />
+          </mat-form-field>
+
+          <div class="flex flex-col gap-1" role="group" aria-label="Bezirksleitung">
+            <strong class="text-sm">Bezirksleitung</strong>
+            <mat-chip-set aria-label="Bezirksleitung">
+              @for (l of district.leaders; track l.id) {
+                <mat-chip data-testid="district-leader">
+                  {{ l.name }}
+                  <button matChipRemove type="button" [attr.aria-label]="l.name + ' entfernen'" (click)="removeDistrictLeader(district, l)">✕</button>
+                </mat-chip>
+              }
+            </mat-chip-set>
+            @for (round of [pickerRound()]; track round) {
+              <app-person-picker label="Person hinzufügen" [inputId]="'district-leader-' + district.id" (picked)="addDistrictLeader(district, $event)" />
+            }
+          </div>
+
+          @for (region of districtRegions(district.id); track region.id) {
+            <fieldset class="m-0 ml-2 flex flex-col gap-3 rounded-xl border border-outline-variant px-4 py-3" data-testid="region" [attr.data-id]="region.id">
+              <legend class="px-1 font-medium">Region</legend>
+              <mat-form-field class="w-full">
+                <mat-label>Name der Region</mat-label>
+                <input matInput data-testid="region-name" [value]="region.name" (input)="renameRegion(region, value($event))" />
+              </mat-form-field>
+              <div class="flex flex-col gap-1" role="group" aria-label="Regionalleitung">
+                <strong class="text-sm">Regionalleitung</strong>
+                <mat-chip-set aria-label="Regionalleitung">
+                  @for (l of region.leaders; track l.id) {
+                    <mat-chip data-testid="region-leader">
+                      {{ l.name }}
+                      <button matChipRemove type="button" [attr.aria-label]="l.name + ' entfernen'" (click)="removeRegionLeader(region, l)">✕</button>
+                    </mat-chip>
+                  }
+                </mat-chip-set>
+                @for (round of [pickerRound()]; track round) {
+                  <app-person-picker label="Person hinzufügen" [inputId]="'region-leader-' + region.id" (picked)="addRegionLeader(region, $event)" />
+                }
+              </div>
+              <div>
+                <button mat-button type="button" data-action="remove-region" (click)="removeRegion(region)">Region entfernen</button>
+              </div>
+            </fieldset>
+          }
+
+          <div class="flex flex-wrap gap-2">
+            <button mat-stroked-button type="button" data-action="add-region" (click)="addRegion(district)">Region hinzufügen</button>
+            <button mat-button type="button" data-action="remove-district" (click)="removeDistrict(district)">Bezirk entfernen</button>
+          </div>
+        </fieldset>
+      } @empty {
+        <p class="m-0 text-sm text-on-surface-variant" data-testid="no-districts">Es gibt noch keinen Bezirk.</p>
+      }
+
+      <div>
+        <button mat-stroked-button type="button" data-action="add-district" (click)="addDistrict()">Bezirk hinzufügen</button>
+      </div>
+    </section>
+
+    <section class="flex flex-col gap-3" aria-labelledby="stores-title">
+      <h2 id="stores-title" class="m-0 text-lg font-medium">Filialen zuordnen</h2>
+      <p class="m-0 text-sm text-on-surface-variant" data-testid="unassigned">
+        {{ unassigned() === 0 ? 'Alle Filialen sind zugeordnet.' : unassigned() + ' Filialen sind noch keinem Bezirk zugeordnet. Für sie gibt es kein Berichtsheft.' }}
+      </p>
+      <mat-form-field class="w-64">
+        <mat-label>Filiale suchen</mat-label>
+        <input matInput type="search" data-testid="store-search" [value]="storeQuery()" (input)="setQuery($event)" />
+      </mat-form-field>
+      <div class="flex flex-col gap-2" role="list">
+        @for (s of visibleStores(); track s.id) {
+          <app-row-card data-testid="store-row" [attr.data-store]="s.id">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <strong>{{ s.storeCode }} {{ s.name }}</strong>
+              <mat-form-field class="w-72">
+                <mat-label>Gehört zu</mat-label>
+                <select matNativeControl [value]="assignmentOf(s.id)" [attr.aria-label]="'Zuordnung ' + s.name" (change)="assign(s.id, value($event))">
+                  <option [value]="notAssigned" [selected]="!assignmentOf(s.id)">Nicht zugeordnet</option>
+                  @for (o of options(); track o.value) {
+                    <option [value]="o.value" [selected]="o.value === assignmentOf(s.id)">{{ o.label }}</option>
+                  }
+                </select>
+              </mat-form-field>
+            </div>
+          </app-row-card>
+        }
+      </div>
+    </section>
+
+    @if (save.error(); as message) {
+      <p class="m-0 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="save-error">{{ message }}</p>
+    }
+    @if (save.status(); as message) {
+      <p class="m-0 rounded-xl bg-primary-container px-4 py-2.5 text-on-primary-container" role="status" data-testid="save-status">{{ message }}</p>
+    }
+    <div>
+      <button mat-flat-button type="submit" data-action="save" [disabled]="save.busy()">Hierarchie speichern</button>
+    </div>
+  </form>
+}

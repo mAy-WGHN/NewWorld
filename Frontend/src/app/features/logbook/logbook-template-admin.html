@@ -1,0 +1,81 @@
+@if (loadError(); as message) {
+  <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="load-error">{{ message }}</p>
+}
+
+@if (loaded()) {
+  <p class="mb-4 text-sm text-on-surface-variant" data-testid="version-info">
+    @if (version() === 0) {
+      Das ist der Vorschlag. Mit dem ersten Speichern entsteht Version 1.
+    } @else {
+      Aktuell gilt Version {{ version() }}@if (publishedAt()) {, gespeichert am {{ stamp(publishedAt()) }}}. Jede Änderung ergibt eine neue Version, bereits geschriebene Berichte behalten ihre.
+    }
+  </p>
+
+  <form class="flex max-w-3xl flex-col gap-4" (submit)="$event.preventDefault(); submit()">
+    @for (section of sections(); track section.key; let i = $index; let first = $first; let last = $last) {
+      <fieldset class="m-0 flex flex-col gap-3 rounded-xl border border-outline-variant px-4 py-3" data-testid="section" [attr.aria-label]="'Abschnitt ' + (i + 1)">
+        <legend class="px-1 font-medium">Abschnitt {{ i + 1 }}</legend>
+
+        <mat-form-field class="w-full">
+          <mat-label>Überschrift</mat-label>
+          <input matInput data-testid="section-title" [value]="section.title" (input)="set(section, 'title', $event)" />
+        </mat-form-field>
+        <mat-form-field class="w-full">
+          <mat-label>Hinweis (optional)</mat-label>
+          <input matInput [value]="section.hint" (input)="set(section, 'hint', $event)" />
+        </mat-form-field>
+
+        <div class="flex flex-wrap items-center gap-4">
+          <mat-form-field class="w-64">
+            <mat-label>Art</mat-label>
+            <select matNativeControl data-testid="section-kind" [value]="section.kind" (change)="setKind(section, value($event))">
+              @for (k of kinds; track k.value) {
+                <option [value]="k.value" [selected]="k.value === section.kind">{{ k.label }}</option>
+              }
+            </select>
+          </mat-form-field>
+          <mat-checkbox [checked]="section.required" (change)="setRequired(section, $event.checked)">Pflichtfeld</mat-checkbox>
+        </div>
+
+        @if (choiceKind(section.kind)) {
+          <div class="flex flex-col gap-1" role="group" aria-label="Antworten">
+            @for (option of section.options; track option.key; let oi = $index; let ofirst = $first; let olast = $last) {
+              <div class="flex flex-wrap items-center gap-2" data-testid="option">
+                <mat-form-field class="min-w-64 flex-1">
+                  <mat-label>Antwort {{ oi + 1 }}</mat-label>
+                  <input matInput [value]="option.label" (input)="setOption(section, option.key, $event)" />
+                </mat-form-field>
+                <button mat-button type="button" [disabled]="ofirst" [attr.aria-label]="'Antwort ' + (oi + 1) + ' nach oben'" (click)="moveOption(section, oi, -1)">↑</button>
+                <button mat-button type="button" [disabled]="olast" [attr.aria-label]="'Antwort ' + (oi + 1) + ' nach unten'" (click)="moveOption(section, oi, 1)">↓</button>
+                <button mat-button type="button" data-action="remove-option" [attr.aria-label]="'Antwort ' + (oi + 1) + ' entfernen'" (click)="removeOption(section, option.key)">Entfernen</button>
+              </div>
+            }
+            <div>
+              <button mat-stroked-button type="button" data-action="add-option" (click)="addOption(section)">Antwort hinzufügen</button>
+            </div>
+          </div>
+        }
+
+        <div class="flex flex-wrap gap-2">
+          <button mat-button type="button" [disabled]="first" [attr.aria-label]="'Abschnitt ' + (i + 1) + ' nach oben'" (click)="moveSection(i, -1)">Nach oben</button>
+          <button mat-button type="button" [disabled]="last" [attr.aria-label]="'Abschnitt ' + (i + 1) + ' nach unten'" (click)="moveSection(i, 1)">Nach unten</button>
+          <button mat-button type="button" data-action="remove-section" [attr.aria-label]="'Abschnitt ' + (i + 1) + ' entfernen'" (click)="removeSection(section)">Abschnitt entfernen</button>
+        </div>
+      </fieldset>
+    }
+
+    <div>
+      <button mat-stroked-button type="button" data-action="add-section" (click)="addSection()">Abschnitt hinzufügen</button>
+    </div>
+
+    @if (save.error(); as message) {
+      <p class="m-0 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="save-error">{{ message }}</p>
+    }
+    @if (save.status(); as message) {
+      <p class="m-0 rounded-xl bg-primary-container px-4 py-2.5 text-on-primary-container" role="status" data-testid="save-status">{{ message }}</p>
+    }
+    <div>
+      <button mat-flat-button type="submit" data-action="save" [disabled]="save.busy()">Vorlage speichern</button>
+    </div>
+  </form>
+}
