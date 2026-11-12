@@ -58,15 +58,55 @@
       ]
     },
     {
-      "name": "Filialleitung (Berichtsheft)",
+      "name": "Filialleitung",
       "privileges": [
+        "absence:read-own",
+        "absence:create-own",
+        "absence:update-own",
+        "certificate:upload-own",
+        "employee:read-own",
+        "employee:request-change-own",
+        "workingtime:read-own",
+        "notification:read-own",
+        "notification:update-own",
+        "preference:read-own",
+        "preference:update-own",
         "logbook:write"
       ]
     },
     {
-      "name": "Regional- und Bezirksleitung (Berichtsheft)",
+      "name": "Regionalleitung",
       "privileges": [
+        "absence:read-own",
+        "absence:create-own",
+        "absence:update-own",
+        "certificate:upload-own",
+        "employee:read-own",
+        "employee:request-change-own",
+        "workingtime:read-own",
+        "notification:read-own",
+        "notification:update-own",
+        "preference:read-own",
+        "preference:update-own",
         "logbook:review"
+      ]
+    },
+    {
+      "name": "Bezirksleitung",
+      "privileges": [
+        "absence:read-own",
+        "absence:create-own",
+        "absence:update-own",
+        "certificate:upload-own",
+        "employee:read-own",
+        "employee:request-change-own",
+        "workingtime:read-own",
+        "notification:read-own",
+        "notification:update-own",
+        "preference:read-own",
+        "preference:update-own",
+        "logbook:review",
+        "logbook:manage-template"
       ]
     },
     {
