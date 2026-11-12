@@ -80,11 +80,14 @@ Anmeldung im Frontend (`http://localhost:4200`) mit **Personalnummer + PIN**. Di
 | `10099` | Anna Admin | Administrator (Recht `*`) | keine |
 | `10044` | Ben Kollege | Personalabteilung, genehmigt Urlaub für alle | F017 |
 | `10042` | Erika Mustermann | Public User | F017 |
-| `10043` | Max Filialleiter | Public User (eine Filialleiter-Rolle gibt es nicht) | F017 |
+| `10043` | Max Filialleiter | Filialleitung (Berichtsheft: Wochenbericht für die eigene Filiale F017) | F017 |
+| `10051` | Rita Regionalleitung | Regionalleitung (Berichtsheft: sieht die Berichte der Demo-Region) | keine |
+| `10052` | Bernd Bezirksleitung | Bezirksleitung (Berichtsheft: sieht alles im Demo-Bezirk, pflegt die Vorlage) | keine |
 | `10045` | Clara Drossel | Public User | F017 |
 | `10046` | Dora Fehler | Public User | F017 |
 
 - Rollen und die HR-Person richtet der AppHost beim Start selbst ein (Seed aus `docs/rollen.json`, nur lokal). Alle anderen Personen haben nur „Public User“.
+- **Demo des Berichtsheftes ohne Administrator:** Max (10043), Rita (10051) und Bernd (10052) bekommen ihre Rolle (Filialleitung nur für die eigene Filiale, die beiden anderen überall) beim Start (`Access:DevelopmentSeed:Assignments`), und das Portal legt dafür die Hierarchie an: ein Demo-Bezirk (Bernd) mit einer Demo-Region (Rita), in der die Filiale F017 liegt (`Portal:DevelopmentSeed:Logbook`, `LogbookDemoSeedService`). Es greift nur, solange noch keine Hierarchie gepflegt ist, und braucht nach dem Start etwa eine Minute, bis die Personen angekommen sind. Bei einer schon bestehenden lokalen Datenbank kommen die Rollen dazu, die Hierarchie nur, wenn sie leer ist.
 - Den Urlaubsanspruch gibt es nicht automatisch, er wird per API gesetzt (`know-how.md`).
 - Weitere Personen oder andere PINs: `pin-<Nummer>.json` und einen Eintrag in `employees.json` unter `tests/Fixtures/Bc/e2e-landscape/` anlegen (die Dateien nutzen auch die End-to-End-Tests).
 - Start, Ports und Fehlersuche: `know-how.md`.

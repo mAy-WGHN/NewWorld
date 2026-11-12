@@ -48,6 +48,12 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<Logbook.LogbookRetentionService>();
         services.AddPostgresAdvisoryLock<PortalDbContext>(); // the reminders run on one instance at a time
         services.AddHostedService<Logbook.LogbookReminderBackgroundService>();
+        var demoSeed = configuration.GetSection(Logbook.LogbookDemoSeedOptions.ConfigurationSection).Get<Logbook.LogbookDemoSeedOptions>() ?? new Logbook.LogbookDemoSeedOptions();
+        if (demoSeed.IsActive)
+        {
+            services.AddSingleton(demoSeed); // local demo only, the AppHost sets it
+            services.AddHostedService<Logbook.LogbookDemoSeedService>();
+        }
 
         // FAQ images: files outside the application folder (never in the web root); relative paths count from the content root.
         var imagePath = configuration["Portal:Faq:ImagePath"] is { Length: > 0 } configured ? configured : Path.Combine("var", "uploads", "faq");

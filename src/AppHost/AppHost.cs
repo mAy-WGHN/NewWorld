@@ -40,7 +40,7 @@ var serviceBus = builder.AddAzureServiceBus("servicebus").RunAsEmulator(emulator
     emulator.WithConfigurationFile(Path.GetFullPath(Path.Combine(builder.AppHostDirectory, "..", "..", "infra", "servicebus-emulator.json"))));
 
 // WireMock.Net stands in for Business Central: the same mapping files as the tests (tests/Fixtures/Bc).
-// The "e2e-landscape" scenario delivers one store, six employees and the PIN check; tests add absence scenarios through the admin API.
+// The "e2e-landscape" scenario delivers one store, eight employees (six colleagues and the demo regional and district leader) and the PIN check; tests add absence scenarios through the admin API.
 var bcMock = builder.AddContainer("bc-mock", "sheyenrath/wiremock.net", "2.19.0")
     .WithBindMount(Path.GetFullPath(Path.Combine(builder.AppHostDirectory, "..", "..", "tests", "Fixtures", "Bc", "e2e-landscape")), "/app/__admin/mappings", isReadOnly: true)
     .WithArgs("--ReadStaticMappings", "true")
@@ -81,6 +81,8 @@ var access = builder.AddProject<Projects.Access_Api>("access-api")
     .WithEnvironment("Access__BootstrapAdministrators__0", "10099")
     // Local seed: the roles of docs/rollen.json and the HR team (Ben Kollege, 10044: approves vacation for everybody), so a fresh start is usable.
     .WithDevelopmentSeed(developmentSeed, Path.GetFullPath(Path.Combine(builder.AppHostDirectory, "..", "..", "docs", "rollen.json")), "10044")
+    // Demo leaders without the administrator role (PIN 4711 like the others): Max Filialleiter (10043) store manager of F017, Rita Regionalleitung (10051), Bernd Bezirksleitung (10052).
+    .WithDemoLeaders(developmentSeed)
     // Login: PIN check through BC Integration.
     .WithEnvironment("BcIntegration__BaseUrl", bcIntegration.GetEndpoint("http"))
     .WithReference(serviceBus).WaitFor(serviceBus)
@@ -122,6 +124,8 @@ builder.AddProject<Projects.Portal_Api>("portal-api")
     .WithServiceIdentity("portal", portalKey)
     .WithReference(serviceBus).WaitFor(serviceBus)
     .WithAccess(access)
+    // Berichtsheft hierarchy for the demo: one district and one region with the store of the demo store manager, led by the demo leaders.
+    .WithDemoLogbookHierarchy(developmentSeed)
     .WithFixedPort(5103, fixedPorts)
     .WithHttpHealthCheck("/health/ready");
 
@@ -134,6 +138,24 @@ internal static class AppHostExtensions
         enabled
             ? access.WithEnvironment("Access__DevelopmentSeed__RoleFile", roleFile).WithEnvironment("Access__DevelopmentSeed__HrPersonnelNumbers__0", hrPersonnelNumber)
             : access;
+
+    /// <summary>Gives the demo leaders their roles in Access (the store manager only for the own store); nothing if <paramref name="enabled"/> is false.</summary>
+    public static IResourceBuilder<ProjectResource> WithDemoLeaders(this IResourceBuilder<ProjectResource> access, bool enabled) =>
+        enabled
+            ? access
+                .WithEnvironment("Access__DevelopmentSeed__Assignments__0", "10043:Filialleitung:home")
+                .WithEnvironment("Access__DevelopmentSeed__Assignments__1", "10051:Regionalleitung")
+                .WithEnvironment("Access__DevelopmentSeed__Assignments__2", "10052:Bezirksleitung")
+            : access;
+
+    /// <summary>Lets the Portal set up the hierarchy of the Berichtsheft for the demo leaders; nothing if <paramref name="enabled"/> is false.</summary>
+    public static IResourceBuilder<ProjectResource> WithDemoLogbookHierarchy(this IResourceBuilder<ProjectResource> portal, bool enabled) =>
+        enabled
+            ? portal
+                .WithEnvironment("Portal__DevelopmentSeed__Logbook__StoreNumbers__0", "F017")
+                .WithEnvironment("Portal__DevelopmentSeed__Logbook__RegionalLeader", "10051")
+                .WithEnvironment("Portal__DevelopmentSeed__Logbook__DistrictLeader", "10052")
+            : portal;
 
     /// <summary>The http endpoint of a project listens on a fixed port (the dev proxy of the frontend knows it); ignored when <paramref name="enabled"/> is false.</summary>
     public static IResourceBuilder<ProjectResource> WithFixedPort(this IResourceBuilder<ProjectResource> project, int port, bool enabled) =>

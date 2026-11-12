@@ -90,8 +90,33 @@
           "positionCode": "VERKAUF",
           "employmentType": "VOLLZEIT",
           "contractedHoursPerWeek": 40
+        },
+        {
+          "id": "bbbbbbbb-0000-0000-0000-000000000051",
+          "number": "10051",
+          "displayName": "Rita Regionalleitung",
+          "employmentDate": "2024-01-01",
+          "terminationDate": "0001-01-01",
+          "lastModifiedDateTime": "2026-10-01T08:00:00Z",
+          "storeNumber": "",
+          "positionCode": "REGIONALLEITUNG",
+          "employmentType": "VOLLZEIT",
+          "contractedHoursPerWeek": 40
+        },
+        {
+          "id": "bbbbbbbb-0000-0000-0000-000000000052",
+          "number": "10052",
+          "displayName": "Bernd Bezirksleitung",
+          "employmentDate": "2024-01-01",
+          "terminationDate": "0001-01-01",
+          "lastModifiedDateTime": "2026-10-01T08:00:00Z",
+          "storeNumber": "",
+          "positionCode": "BEZIRKSLEITUNG",
+          "employmentType": "VOLLZEIT",
+          "contractedHoursPerWeek": 40
         }
       ]
+
     }
   }
 }

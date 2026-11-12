@@ -30,12 +30,12 @@ public class BcIntegrationE2ETests(AppHostFixture fixture)
                 types.Add(reader.GetString(0));
             }
 
-            if (types.Count < 7)
+            if (types.Count < 9)
             {
                 await Task.Delay(TimeSpan.FromSeconds(1), cts.Token);
             }
         }
 
-        types.ShouldBe(["EmployeeChanged", "EmployeeChanged", "EmployeeChanged", "EmployeeChanged", "EmployeeChanged", "EmployeeChanged", "StoreChanged"]);
+        types.ShouldBe([.. Enumerable.Repeat("EmployeeChanged", 8), "StoreChanged"]); // eight employees (six colleagues and the demo regional and district leader) and one store
     }
 }

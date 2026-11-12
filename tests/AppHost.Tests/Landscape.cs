@@ -203,11 +203,11 @@ public sealed class Landscape
             await _fixture.WaitHealthyAsync(service, TimeSpan.FromMinutes(4), cts.Token);
         }
 
-        // 1. BC Integration compares master data (WireMock BC): one store, six employees; the ids come from its events.
+        // 1. BC Integration compares master data (WireMock BC): one store, eight employees (the demo leaders 10051 and 10052 included); the ids come from its events.
         var payloads = await UntilAsync("master data events", async () =>
         {
             var rows = await QueryAsync("bcintegration", "select payload from bc_integration.outbox_messages where message_type in ('EmployeeChanged','StoreChanged')");
-            return rows.Count >= 7 ? rows : null;
+            return rows.Count >= 9 ? rows : null;
         });
         foreach (var payload in payloads)
         {

@@ -27,6 +27,7 @@ public static class DevelopmentSeeder
         }
 
         var hrRole = await EnsureRolesAsync(db, options, time, cancellationToken);
+        await EnsureDemoAssignmentsAsync(db, options, time, cancellationToken);
         if (hrRole is null || options.HrPersonnelNumbers.Count == 0)
         {
             return;
@@ -61,6 +62,40 @@ public static class DevelopmentSeeder
                     });
                 }
             }
+        }
+    }
+
+    /// <summary>
+    /// The demo people (<c>personnelNumber:role[:home]</c>) get their role, once their copy has arrived (the recalculation runs again every minute).
+    /// A person or role that is not there yet is skipped; an assignment that exists is left alone.
+    /// </summary>
+    private static async Task EnsureDemoAssignmentsAsync(AccessDbContext db, DevelopmentSeedOptions options, TimeProvider time, CancellationToken cancellationToken)
+    {
+        foreach (var entry in options.Assignments)
+        {
+            var parts = entry.Split(':', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length < 2)
+            {
+                continue;
+            }
+
+            var role = await FindRoleAsync(db, parts[1], cancellationToken);
+            var employeeId = await db.People.Where(p => p.PersonnelNumber == parts[0]).Select(p => (Guid?)p.EmployeeId).FirstOrDefaultAsync(cancellationToken);
+            if (role is null || employeeId is not { } id || Has(db.Assignments, a => a.EmployeeId == id && a.RoleId == role.Id && a.Source == nameof(AssignmentSource.Seed)))
+            {
+                continue;
+            }
+
+            var homeOnly = parts.Length > 2 && string.Equals(parts[2], "home", StringComparison.OrdinalIgnoreCase);
+            db.Assignments.Add(new AssignmentRecord
+            {
+                Id = Guid.CreateVersion7(time.GetUtcNow()),
+                EmployeeId = id,
+                RoleId = role.Id,
+                Unrestricted = !homeOnly,
+                IncludeHomeStore = homeOnly,
+                Source = nameof(AssignmentSource.Seed),
+            });
         }
     }
 

@@ -21,7 +21,8 @@ public sealed class DevelopmentSeedTests(PostgresFixture postgres) : IClassFixtu
               "customPrivileges": [],
               "roles": [
                 { "name": "Public User", "privileges": [ "absence:read-own" ] },
-                { "name": "Personalabteilung", "privileges": [ "absence:approve", "absence:read-reason" ] }
+                { "name": "Personalabteilung", "privileges": [ "absence:approve", "absence:read-reason" ] },
+                { "name": "Filialleitung", "privileges": [ "logbook:write" ] }
               ]
             }
             """);
@@ -88,6 +89,39 @@ public sealed class DevelopmentSeedTests(PostgresFixture postgres) : IClassFixtu
             (await InDbAsync(api, db => db.Roles.SingleAsync(r => r.Name == "Personalabteilung"))).Privileges.ShouldBe(["absence:approve"]);
             (await InDbAsync(api, db => db.Assignments.CountAsync(a => a.EmployeeId == Erika && a.Source == nameof(AssignmentSource.Seed)))).ShouldBe(1);
             (await InDbAsync(api, db => db.Responsibilities.CountAsync(r => r.ResponsibleEmployeeId == Erika))).ShouldBe(DevelopmentSeeder.HrTopics.Length);
+        }
+        finally
+        {
+            File.Delete(file);
+        }
+    }
+
+    [Fact]
+    public async Task Demo_people_get_their_role_everywhere_or_only_for_the_main_store_and_what_is_unknown_is_skipped()
+    {
+        var file = WriteRoleFile();
+        try
+        {
+            await using var api = await StartAsync(postgres, settings: new Dictionary<string, string>
+            {
+                ["Access:DevelopmentSeed:RoleFile"] = file,
+                ["Access:DevelopmentSeed:Assignments:0"] = "10001:Filialleitung:home", // Max, only the own store
+                ["Access:DevelopmentSeed:Assignments:1"] = "10042:Filialleitung", // Erika, everywhere
+                ["Access:DevelopmentSeed:Assignments:2"] = "99999:Filialleitung", // nobody has this number (yet)
+                ["Access:DevelopmentSeed:Assignments:3"] = "10002:Unknown role",
+                ["Access:DevelopmentSeed:Assignments:4"] = "broken",
+            });
+            await api.ReceiveAsync(Tom, "10002", "Tom Tester", F018); // another recalculation runs the seed again: nothing doubles
+
+            var role = (await InDbAsync(api, db => db.Roles.SingleAsync(r => r.Name == "Filialleitung")));
+            var seeded = await InDbAsync(api, db => db.Assignments.Where(a => a.RoleId == role.Id).ToListAsync());
+            seeded.Count.ShouldBe(2);
+            var max = seeded.Single(a => a.EmployeeId == Max);
+            max.Unrestricted.ShouldBeFalse();
+            max.IncludeHomeStore.ShouldBeTrue();
+            seeded.Single(a => a.EmployeeId == Erika).Unrestricted.ShouldBeTrue();
+            seeded.ShouldAllBe(a => a.Source == nameof(AssignmentSource.Seed));
+            (await InDbAsync(api, db => db.Assignments.AnyAsync(a => a.EmployeeId == Tom && a.Source == nameof(AssignmentSource.Seed)))).ShouldBeFalse();
         }
         finally
         {

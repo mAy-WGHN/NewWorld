@@ -18,7 +18,7 @@ cd Frontend && npm start         # Frontend (beim ersten Mal vorher: npm install
   dotnet user-secrets set "Parameters:postgres-password" "<Passwort>" --id newworld-apphost
   ```
 
-- **Testnutzer** (PIN immer `4711`): `10099` Administrator, `10044` Personalabteilung, `10042` normale Mitarbeiterin (Filiale F017).
+- **Testnutzer** (PIN immer `4711`): `10099` Administrator, `10044` Personalabteilung, `10042` normale Mitarbeiterin (Filiale F017); für die Berichtsheft-Demo ohne Administrator `10043` Filialleitung (F017), `10051` Regionalleitung, `10052` Bezirksleitung (Hierarchie und Rollen legt der Start selbst an, siehe `README.md`).
 - **Feste Ports** 5101 (Access), 5102 (Workforce), 5103 (Portal), 5104 (Notifications); `Frontend/proxy.conf.json` zeigt darauf.
 - **Wartezeit:** Der erste Start dauert 3 bis 10 Minuten (Images, Datenbanken anlegen). Bereit heißt: alle vier Ports antworten auf `/health/ready` mit 200.
 - **Beenden:** Strg+C im Fenster des AppHost. Die Daten bleiben im Volume `newworld-postgres-data-local`.

@@ -12,7 +12,13 @@ public sealed class DevelopmentSeedOptions
 
     public string HrRoleName { get; set; } = "Personalabteilung";
 
-    public bool IsActive => !string.IsNullOrWhiteSpace(RoleFile) || HrPersonnelNumbers.Count > 0;
+    /// <summary>
+    /// Demo people with one role each, as <c>personnelNumber:role</c> (reach everywhere) or <c>personnelNumber:role:home</c> (reach only the main store),
+    /// so the local landscape can be shown without the administrator role.
+    /// </summary>
+    public List<string> Assignments { get; set; } = [];
+
+    public bool IsActive => !string.IsNullOrWhiteSpace(RoleFile) || HrPersonnelNumbers.Count > 0 || Assignments.Count > 0;
 }
 
 public sealed class AccessOptions
