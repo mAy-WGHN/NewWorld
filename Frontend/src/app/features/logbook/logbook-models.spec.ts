@@ -6,6 +6,7 @@ import {
   logbookError,
   missingRequired,
   mondayOf,
+  RATING_SECTION_ID,
   shiftWeek,
   shownAnswers,
   stamp,
@@ -108,7 +109,24 @@ describe('answers', () => {
     expect(missingRequired(template, drafts)).toEqual([]);
   });
 
+  it('treats the rating like a choice: one value is an answer, none is missing', () => {
+    const rated: LogbookTemplate = {
+      version: 1,
+      publishedAt: null,
+      sections: [{ id: RATING_SECTION_ID, title: 'Gesamtsituation', hint: null, kind: 'rating', required: true, options: [{ id: 'v1', label: '1' }, { id: 'v5', label: '5' }] }],
+    };
+    const drafts = draftsFrom(rated, undefined);
+
+    expect(missingRequired(rated, drafts).map((s) => s.id)).toEqual([RATING_SECTION_ID]);
+    expect(toRequest(rated, drafts)).toEqual({});
+    drafts[RATING_SECTION_ID] = { optionIds: ['v5'], text: '' };
+    expect(missingRequired(rated, drafts)).toEqual([]);
+    expect(toRequest(rated, drafts)).toEqual({ [RATING_SECTION_ID]: { optionIds: ['v5'], text: null } });
+    expect(shownAnswers(rated, toRequest(rated, drafts))[0].labels).toEqual(['5']);
+  });
+
   it('shows the answers in the order of the template and says so if an answer was removed from the template', () => {
+
     const shown = shownAnswers(template, { s3: { optionIds: [], text: ' Hallo ' }, s2: { optionIds: ['o4', 'gone'], text: null } });
 
     expect(shown.map((s) => s.section.id)).toEqual(['s1', 's2', 's3']);

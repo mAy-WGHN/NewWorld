@@ -18,6 +18,15 @@ public enum LogbookTemplateError
     OptionLabelMissing = 12,
     OptionLabelTooLong = 13,
     OptionLabelNotUnique = 14,
+
+    /// <summary>The overall rating 1 to 5 is missing: every template has it, it cannot be removed.</summary>
+    RatingMissing = 15,
+
+    /// <summary>The rating section was changed (kind, required or options); only title and hint may be.</summary>
+    RatingChanged = 16,
+
+    /// <summary>A section of the kind rating other than the fixed one.</summary>
+    RatingNotAllowed = 17,
 }
 
 /// <summary>One error with the id of the section it is about (<see cref="Guid.Empty"/> for the template as a whole).</summary>
@@ -37,6 +46,11 @@ public static class LogbookTemplateValidator
         if (sections.Count > LogbookLimits.MaxSections)
         {
             errors.Add(new(LogbookTemplateError.TooManySections, Guid.Empty));
+        }
+
+        if (!sections.Any(s => s.Id == LogbookRating.SectionId))
+        {
+            errors.Add(new(LogbookTemplateError.RatingMissing, LogbookRating.SectionId));
         }
 
         foreach (var duplicate in sections.Where(s => s.Id != Guid.Empty).GroupBy(s => s.Id).Where(g => g.Count() > 1))
@@ -74,8 +88,21 @@ public static class LogbookTemplateValidator
             errors.Add(new(LogbookTemplateError.HintTooLong, id));
         }
 
+        if (id == LogbookRating.SectionId)
+        {
+            if (!LogbookRating.IsCanonical(section))
+            {
+                errors.Add(new(LogbookTemplateError.RatingChanged, id));
+            }
+
+            return;
+        }
+
         switch (section.Kind)
         {
+            case LogbookSectionKind.Rating:
+                errors.Add(new(LogbookTemplateError.RatingNotAllowed, id));
+                break;
             case LogbookSectionKind.SingleChoice or LogbookSectionKind.MultiChoice:
                 ValidateOptions(section, errors);
                 break;

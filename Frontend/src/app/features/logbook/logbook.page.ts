@@ -1,5 +1,6 @@
 import { Component, computed, inject } from '@angular/core';
 import { AuthService } from '../../core/auth/auth.service';
+import { LogbookEvaluationView } from './logbook-evaluation';
 import { LogbookInbox } from './logbook-inbox';
 import { LogbookMine } from './logbook-mine';
 import { LogbookMissing } from './logbook-missing';
@@ -12,7 +13,7 @@ import { LOGBOOK_UI } from './logbook-ui';
  */
 @Component({
   selector: 'app-logbook',
-  imports: [LogbookMine, LogbookInbox, LogbookMissing, ...LOGBOOK_UI],
+  imports: [LogbookMine, LogbookInbox, LogbookMissing, LogbookEvaluationView, ...LOGBOOK_UI],
   template: `
     <app-page-head title="Berichtsheft" />
     <mat-tab-group animationDuration="0ms" [mat-stretch-tabs]="false" data-testid="tabs">
@@ -32,6 +33,13 @@ import { LOGBOOK_UI } from './logbook-ui';
         <mat-tab label="Fehlende Berichte">
           <ng-template matTabContent>
             <div class="pt-4"><app-logbook-missing /></div>
+          </ng-template>
+        </mat-tab>
+      }
+      @if (canWrite() || canReview()) {
+        <mat-tab label="Auswertung">
+          <ng-template matTabContent>
+            <div class="pt-4"><app-logbook-evaluation /></div>
           </ng-template>
         </mat-tab>
       }

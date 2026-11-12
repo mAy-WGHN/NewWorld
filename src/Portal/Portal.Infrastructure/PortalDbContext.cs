@@ -33,6 +33,7 @@ public sealed class PortalDbContext(DbContextOptions<PortalDbContext> options) :
     public DbSet<LogbookReportRecord> LogbookReports => Set<LogbookReportRecord>();
     public DbSet<LogbookCommentRecord> LogbookComments => Set<LogbookCommentRecord>();
     public DbSet<LogbookReminderRecord> LogbookReminders => Set<LogbookReminderRecord>();
+    public DbSet<LogbookWeekStatRecord> LogbookWeekStats => Set<LogbookWeekStatRecord>();
     public DbSet<LogbookReminderSettingsRecord> LogbookReminderSettings => Set<LogbookReminderSettingsRecord>();
 
     /// <summary>Provider settings shared by runtime and design time (migrations).</summary>
@@ -157,6 +158,12 @@ public sealed class PortalDbContext(DbContextOptions<PortalDbContext> options) :
             b.Property(c => c.Level).HasConversion<string>().HasMaxLength(20);
             b.HasIndex(c => c.ReportId);
             b.HasOne<LogbookReportRecord>().WithMany().HasForeignKey(c => c.ReportId).OnDelete(DeleteBehavior.Cascade);
+        });
+        modelBuilder.Entity<LogbookWeekStatRecord>(b =>
+        {
+            b.ToTable("logbook_week_stats");
+            b.HasKey(s => new { s.StoreId, s.Week });
+            b.HasIndex(s => s.Week);
         });
         modelBuilder.Entity<LogbookReminderRecord>(b =>
         {

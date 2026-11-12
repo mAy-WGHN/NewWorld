@@ -44,6 +44,8 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<Logbook.LogbookReviewService>();
         services.AddScoped<Logbook.LogbookNotifier>();
         services.AddScoped<Logbook.LogbookReminderService>();
+        services.AddScoped<Logbook.LogbookEvaluationService>();
+        services.AddScoped<Logbook.LogbookRetentionService>();
         services.AddPostgresAdvisoryLock<PortalDbContext>(); // the reminders run on one instance at a time
         services.AddHostedService<Logbook.LogbookReminderBackgroundService>();
 

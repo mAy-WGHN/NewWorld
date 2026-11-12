@@ -13,7 +13,7 @@ import {
   structureInput,
   withLeader,
 } from './logbook-admin-models';
-import { LogbookTemplate, Structure } from './logbook-models';
+import { LogbookTemplate, RATING_HINT, RATING_SECTION_ID, RATING_TITLE, Structure } from './logbook-models';
 
 const template: LogbookTemplate = {
   version: 2,
@@ -21,6 +21,7 @@ const template: LogbookTemplate = {
   sections: [
     { id: 's1', title: 'Stimmung', hint: 'Kurz', kind: 'singleChoice', required: true, options: [{ id: 'o1', label: 'Gut' }, { id: 'o2', label: 'Schlecht' }] },
     { id: 's2', title: 'Sonstiges', hint: null, kind: 'freeText', required: false, options: [] },
+    { id: RATING_SECTION_ID, title: 'Gesamtsituation', hint: null, kind: 'rating', required: true, options: [] },
   ],
 };
 
@@ -29,12 +30,12 @@ describe('template editing', () => {
     const sections = editSections(template);
     const added = newSection();
 
-    expect(sections.map((s) => s.id)).toEqual(['s1', 's2']);
+    expect(sections.map((s) => s.id)).toEqual(['s1', 's2', RATING_SECTION_ID]);
     expect(sections[0].options.map((o) => o.id)).toEqual(['o1', 'o2']);
     expect(sections[1].hint).toBe('');
     expect(added.id).toBeNull();
     expect(added.options).toHaveLength(2);
-    expect(new Set([...sections.map((s) => s.key), added.key]).size).toBe(3); // every part has its own key
+    expect(new Set([...sections.map((s) => s.key), added.key]).size).toBe(4); // every part has its own key
   });
 
   it('makes the request: texts trimmed, an empty hint is none, empty answers are left out', () => {
@@ -58,6 +59,21 @@ describe('template editing', () => {
     sections[0] = { ...sections[0], kind: 'freeText' };
 
     expect(sectionInputs(sections)[0].options).toEqual([]);
+  });
+
+  it('puts the rating in front of an old template that has none and leaves one that has it where it is', () => {
+    const old = editSections({ ...template, sections: template.sections.slice(0, 2) });
+
+    expect(old.map((s) => s.id)).toEqual([RATING_SECTION_ID, 's1', 's2']);
+    expect(old[0]).toMatchObject({ kind: 'rating', required: true, title: RATING_TITLE, hint: RATING_HINT, options: [] });
+    expect(editSections(template).map((s) => s.id)).toEqual(['s1', 's2', RATING_SECTION_ID]);
+  });
+
+  it('always sends the rating as required with no answers of its own, whatever was edited', () => {
+    const sections = editSections(template);
+    sections[2] = { ...sections[2], required: false, options: [newOption()] };
+
+    expect(sectionInputs(sections)[2]).toEqual({ id: RATING_SECTION_ID, title: 'Gesamtsituation', hint: null, kind: 'rating', required: true, options: [] });
   });
 
   it('moves an item by one place and leaves the list alone at the ends', () => {

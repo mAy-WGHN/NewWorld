@@ -85,7 +85,7 @@ public static class LogbookAnswerValidator
             errors.Add(new(LogbookAnswerError.UnknownOption, id));
         }
 
-        if (section.Kind == LogbookSectionKind.SingleChoice && answer.OptionIds.Count > 1)
+        if (section.Kind is LogbookSectionKind.SingleChoice or LogbookSectionKind.Rating && answer.OptionIds.Count > 1)
         {
             errors.Add(new(LogbookAnswerError.TooManySelections, id));
         }

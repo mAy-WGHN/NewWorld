@@ -26,6 +26,9 @@ public sealed class LogbookReportRecord
     public DateTimeOffset? SubmittedAt { get; set; }
     public Guid? SubmittedBy { get; set; }
 
+    /// <summary>Whether the report was handed in until the due moment of its week, decided at the hand in with the settings of that time (so later changes of the due day do not change history).</summary>
+    public bool? SubmittedOnTime { get; set; }
+
     /// <summary>Set when the answers were changed after the hand in (so the regional leader can see the report was revised).</summary>
     public DateTimeOffset? RevisedAt { get; set; }
 
@@ -165,10 +168,14 @@ public sealed class LogbookReportService(
         report.State = LogbookReportState.New;
         report.SubmittedAt = now;
         report.SubmittedBy = by;
+        report.SubmittedOnTime = LogbookEvaluation.IsOnTime(await CurrentSettingsAsync(cancellationToken), week, now, options.Zone);
         report.UpdatedAt = now;
         notifier.ReportSubmitted(report, by, LogbookReach.RecipientsOf(structure, storeId)); // in the same transaction as the hand in
         return await SaveChangesAsync(report, cancellationToken);
     }
+
+    private async Task<LogbookReminderSettings> CurrentSettingsAsync(CancellationToken cancellationToken) =>
+        await db.LogbookReminderSettings.AsNoTracking().FirstOrDefaultAsync(cancellationToken) is { } row ? LogbookReminderService.ToSettings(row) : LogbookReminderSettings.Default;
 
     /// <summary>For each store the report of the week (if there is one), the template version that applies, and whether handing in would reach somebody.</summary>
     public async Task<IReadOnlyList<LogbookStoreWeek>> WeekOfStoresAsync(IReadOnlyCollection<Guid> storeIds, DateOnly day, CancellationToken cancellationToken)

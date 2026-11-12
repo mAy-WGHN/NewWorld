@@ -1,0 +1,104 @@
+<div class="mb-4 flex flex-wrap items-center gap-4">
+  <mat-form-field class="w-40">
+    <mat-label>Jahr</mat-label>
+    <select matNativeControl data-testid="year" [value]="year()" (change)="setYear($any($event.target).value)">
+      @for (y of years; track y) {
+        <option [value]="y" [selected]="y === year()">{{ y }}</option>
+      }
+    </select>
+  </mat-form-field>
+  @if (data(); as d) {
+    <span class="text-sm text-on-surface-variant" data-testid="as-of">Stand: {{ stamp(d.asOf) }}</span>
+  }
+</div>
+
+@if (error(); as message) {
+  <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="error">{{ message }}</p>
+}
+
+@if (data(); as d) {
+  <p class="mb-4 max-w-3xl text-sm text-on-surface-variant" data-testid="explanation">
+    Pünktlich heißt: bis zur Fälligkeit (Tag und Uhrzeit der Erinnerung) abgegeben. Erwartet sind die abgegebenen Berichte und die Wochen, deren Fälligkeit vorbei ist, ohne abgegebenen Bericht (fehlend).
+    Gezählt werden die Filialen, wie sie jetzt eingeordnet sind. Berichte werden ein Jahr aufbewahrt, danach bleiben nur die Kennzahlen.
+  </p>
+
+  <section class="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label="Zusammenfassung" data-testid="summary">
+    <div class="rounded-xl border border-outline-variant px-4 py-3">
+      <div class="text-sm text-on-surface-variant">Pünktlich abgegeben</div>
+      <div class="text-2xl font-medium" data-testid="total-rate">{{ formatRate(d.total.onTimeRate) }}</div>
+      <div class="text-sm text-on-surface-variant">{{ d.total.onTime }} von {{ d.total.expected }} erwartet</div>
+    </div>
+    <div class="rounded-xl border border-outline-variant px-4 py-3">
+      <div class="text-sm text-on-surface-variant">Ø Bewertung</div>
+      <div class="text-2xl font-medium" data-testid="total-average">{{ formatAverage(d.total.ratingAverage) }}</div>
+      <div class="text-sm text-on-surface-variant">von 5, aus {{ d.total.ratedCount }} Berichten</div>
+    </div>
+    <div class="rounded-xl border border-outline-variant px-4 py-3">
+      <div class="text-sm text-on-surface-variant">Abgegeben, davon verspätet</div>
+      <div class="text-2xl font-medium" data-testid="total-submitted">{{ d.total.submitted }}</div>
+      <div class="text-sm text-on-surface-variant">{{ d.total.late }} verspätet, {{ d.total.missing }} fehlend</div>
+    </div>
+    <div class="rounded-xl border border-outline-variant px-4 py-3">
+      <div class="text-sm text-on-surface-variant">Bearbeitung</div>
+      <div class="text-2xl font-medium" data-testid="total-done">{{ d.total.done }} erledigt</div>
+      <div class="text-sm text-on-surface-variant">{{ d.total.answered }} beantwortet, {{ d.total.escalated }} eskaliert</div>
+    </div>
+  </section>
+
+  <ng-template #table let-title="title" let-rows="rows" let-testid="testid">
+    @if (rows.length > 0) {
+      <section class="mb-8" [attr.aria-label]="title" [attr.data-testid]="testid">
+        <h2 class="m-0 mb-2 text-lg font-medium">{{ title }}</h2>
+        <div class="overflow-x-auto">
+          <table class="w-full border-collapse text-left text-sm">
+            <thead>
+              <tr class="border-b border-outline-variant">
+                <th scope="col" class="py-2 pr-3 font-medium">Name</th>
+                <th scope="col" class="py-2 pr-3 text-right font-medium">Pünktlich</th>
+                <th scope="col" class="py-2 pr-3 text-right font-medium">Abgegeben</th>
+                <th scope="col" class="py-2 pr-3 text-right font-medium">Verspätet</th>
+                <th scope="col" class="py-2 pr-3 text-right font-medium">Fehlend</th>
+                <th scope="col" class="py-2 pr-3 text-right font-medium">Ø Bewertung</th>
+                <th scope="col" class="py-2 pr-3 font-medium">Verteilung 1 bis 5</th>
+                <th scope="col" class="py-2 pr-3 text-right font-medium">Eskaliert</th>
+                <th scope="col" class="py-2 pr-3 text-right font-medium">Erledigt</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of rows; track row.id) {
+                <tr class="border-b border-outline-variant" data-testid="row" [attr.data-id]="row.id">
+                  <th scope="row" class="py-2 pr-3 font-normal">
+                    {{ row.name }}
+                    @if (row.note) {
+                      <span class="block text-xs text-on-surface-variant">{{ row.note }}</span>
+                    }
+                  </th>
+                  <td class="py-2 pr-3 text-right" data-col="rate">{{ formatRate(row.figures.onTimeRate) }}</td>
+                  <td class="py-2 pr-3 text-right" data-col="submitted">{{ row.figures.submitted }}</td>
+                  <td class="py-2 pr-3 text-right" data-col="late">{{ row.figures.late }}</td>
+                  <td class="py-2 pr-3 text-right" data-col="missing">{{ row.figures.missing }}</td>
+                  <td class="py-2 pr-3 text-right" data-col="average">{{ formatAverage(row.figures.ratingAverage) }}</td>
+                  <td class="py-2 pr-3">
+                    <span class="inline-flex h-6 items-end gap-0.5" role="img" [attr.aria-label]="distributionLabel(row.figures.distribution)">
+                      @for (height of barHeights(row.figures.distribution); track $index) {
+                        <span class="inline-block w-2 rounded-sm bg-primary" [style.height.%]="height || 4" [class.opacity-30]="height === 0"></span>
+                      }
+                    </span>
+                  </td>
+                  <td class="py-2 pr-3 text-right" data-col="escalated">{{ row.figures.escalated }}</td>
+                  <td class="py-2 pr-3 text-right" data-col="done">{{ row.figures.done }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+    }
+  </ng-template>
+
+  <ng-container [ngTemplateOutlet]="table" [ngTemplateOutletContext]="{ title: 'Bezirke', rows: districts(), testid: 'districts' }" />
+  <ng-container [ngTemplateOutlet]="table" [ngTemplateOutletContext]="{ title: 'Regionen', rows: regions(), testid: 'regions' }" />
+  <ng-container [ngTemplateOutlet]="table" [ngTemplateOutletContext]="{ title: 'Filialen', rows: stores(), testid: 'stores' }" />
+} @else if (loading()) {
+  <p class="m-0 text-on-surface-variant" role="status">Wird geladen …</p>
+}

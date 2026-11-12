@@ -103,7 +103,23 @@ describe('LogbookApi', () => {
     expect(await remind).toBeUndefined();
   });
 
+  it('asks for the evaluation of a year, or of the current one without a year', async () => {
+    const withYear = api.evaluation(2025);
+    const request = http.expectOne((r) => r.url === '/svc/portal/api/logbook/evaluation');
+    expect(request.request.method).toBe('GET');
+    expect(request.request.params.get('year')).toBe('2025');
+    request.flush({ success: true, data: { year: 2025, stores: [] } });
+    expect((await withYear).year).toBe(2025);
+
+    const current = api.evaluation();
+    const second = http.expectOne('/svc/portal/api/logbook/evaluation');
+    expect(second.request.params.keys()).toEqual([]);
+    second.flush({ success: true, data: { year: 2026, stores: [] } });
+    await current;
+  });
+
   it('keeps only the stores that are not archived for the hierarchy', async () => {
+
     const done = api.stores();
     http.expectOne('/svc/portal/api/locations').flush({
       success: true,

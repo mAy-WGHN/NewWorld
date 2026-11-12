@@ -11,7 +11,7 @@ import { LogbookReminderAdmin } from './logbook-reminder-admin';
 import { LogbookStructureAdmin } from './logbook-structure-admin';
 import { LogbookTemplateAdmin } from './logbook-template-admin';
 import { LogbookApi } from './logbook.api';
-import { LogbookTemplate, ReminderSettings, Structure } from './logbook-models';
+import { LogbookTemplate, RATING_SECTION_ID, ReminderSettings, Structure } from './logbook-models';
 
 async function settle(fixture: ComponentFixture<unknown>): Promise<void> {
   for (let i = 0; i < 4; i++) {
@@ -146,6 +146,7 @@ describe('LogbookTemplateAdmin', () => {
     sections: [
       { id: 's1', title: 'Stimmung', hint: 'Kurz', kind: 'singleChoice', required: true, options: [{ id: 'o1', label: 'Gut' }, { id: 'o2', label: 'Schlecht' }] },
       { id: 's2', title: 'Sonstiges', hint: null, kind: 'freeText', required: false, options: [] },
+      { id: RATING_SECTION_ID, title: 'Gesamtsituation', hint: '1 = sehr schlecht, 5 = sehr gut', kind: 'rating', required: true, options: [] },
     ],
   };
   let api: Record<'currentTemplate' | 'saveTemplate', ReturnType<typeof vi.fn>>;
@@ -180,7 +181,7 @@ describe('LogbookTemplateAdmin', () => {
     await create();
 
     expect(q('[data-testid="version-info"]')!.textContent).toContain('Version 2');
-    expect(sections().length).toBe(2);
+    expect(sections().length).toBe(3); // the two and the rating
     expect(sections()[0].querySelectorAll('[data-testid="option"]').length).toBe(2);
     expect(sections()[1].querySelector('[data-testid="option"]')).toBeNull(); // a free text has no answers
     expect(sections()[0].querySelector<HTMLSelectElement>('[data-testid="section-kind"]')!.value).toBe('singleChoice');
@@ -207,11 +208,12 @@ describe('LogbookTemplateAdmin', () => {
     await save();
 
     const sent = api.saveTemplate.mock.calls[0][0];
-    expect(sent).toHaveLength(3);
+    expect(sent).toHaveLength(4);
     expect(sent[0]).toMatchObject({ id: 's1', title: 'Stimmung der Woche', hint: 'Kurz', required: true });
     expect(sent[0].options).toEqual([{ id: 'o2', label: 'Schlecht' }, { id: null, label: 'Mittel' }]);
     expect(sent[1]).toMatchObject({ id: 's2', kind: 'freeText', options: [] });
-    expect(sent[2]).toMatchObject({ id: null, title: '', kind: 'singleChoice', options: [] }); // the empty answers of a new section are left out
+    expect(sent[2]).toMatchObject({ id: RATING_SECTION_ID, kind: 'rating', required: true, options: [] }); // the rating is always sent
+    expect(sent[3]).toMatchObject({ id: null, title: '', kind: 'singleChoice', options: [] }); // the empty answers of a new section are left out
     expect(q('[data-testid="save-status"]')!.textContent).toContain('Vorlage ist gespeichert');
     expect(q('[data-testid="version-info"]')!.textContent).toContain('Version 3');
   });
@@ -233,13 +235,13 @@ describe('LogbookTemplateAdmin', () => {
 
     await click(sections()[0].querySelector('[aria-label="Abschnitt 1 nach unten"]'));
     await save();
-    expect(api.saveTemplate.mock.calls[0][0].map((s: { id: string }) => s.id)).toEqual(['s2', 's1']);
+    expect(api.saveTemplate.mock.calls[0][0].map((s: { id: string }) => s.id)).toEqual(['s2', 's1', RATING_SECTION_ID]);
 
     // the saved order shows now: s2 first; move it down again and the answers of s1 around
     await click(sections()[0].querySelector('[aria-label="Abschnitt 1 nach unten"]'));
     await click(sections()[0].querySelector('[aria-label="Antwort 2 nach oben"]'));
     await save();
-    expect(api.saveTemplate.mock.calls[1][0].map((s: { id: string }) => s.id)).toEqual(['s1', 's2']);
+    expect(api.saveTemplate.mock.calls[1][0].map((s: { id: string }) => s.id)).toEqual(['s1', 's2', RATING_SECTION_ID]);
     expect(api.saveTemplate.mock.calls[1][0][0].options.map((o: { id: string }) => o.id)).toEqual(['o2', 'o1']);
   });
 
@@ -249,11 +251,46 @@ describe('LogbookTemplateAdmin', () => {
     await click(sections()[1].querySelector('[data-action="remove-section"]'));
     await save();
 
-    expect(api.saveTemplate.mock.calls[0][0].map((s: { id: string }) => s.id)).toEqual(['s1']);
+    expect(api.saveTemplate.mock.calls[0][0].map((s: { id: string }) => s.id)).toEqual(['s1', RATING_SECTION_ID]);
+  });
+
+  it('has the rating locked: it cannot be removed, its kind and answers are not offered, only the wording is', async () => {
+    await create();
+    const rating = sections()[2];
+
+    expect(rating.querySelector('[data-testid="rating-note"]')!.textContent).toContain('Pflicht');
+    expect(rating.querySelector('[data-action="remove-section"]')).toBeNull();
+    expect(rating.querySelector('[data-testid="section-kind"]')).toBeNull();
+    expect(rating.querySelector('mat-checkbox')).toBeNull(); // always required
+    expect(rating.querySelector('[data-testid="option"]')).toBeNull(); // the five values are fixed
+    expect(rating.querySelector('[data-testid="section-title"]')).not.toBeNull();
+    expect(sections()[0].querySelector('[data-testid="rating-note"]')).toBeNull();
+
+    typeInto(rating as HTMLElement, '[data-testid="section-title"]', 'Wie läuft es?');
+    await settle(fixture);
+    await save();
+    expect(api.saveTemplate.mock.calls[0][0][2]).toMatchObject({ id: RATING_SECTION_ID, title: 'Wie läuft es?', kind: 'rating', required: true, options: [] });
+  });
+
+  it('adds the rating to an old template that has none, so saving brings it', async () => {
+    await create({ ...template, sections: template.sections.slice(0, 2) });
+
+    expect(sections().length).toBe(3);
+    expect(sections()[0].querySelector('[data-testid="rating-note"]')).not.toBeNull(); // in front
+    await save();
+    expect(api.saveTemplate.mock.calls[0][0][0]).toMatchObject({ id: RATING_SECTION_ID, kind: 'rating', required: true });
+  });
+
+  it('does not offer the rating as a kind for the other sections', async () => {
+    await create();
+
+    const kinds = [...sections()[0].querySelectorAll<HTMLOptionElement>('[data-testid="section-kind"] option')].map((o) => o.value);
+    expect(kinds).toEqual(['singleChoice', 'multiChoice', 'freeText']);
   });
 
   it('shows what the service refuses', async () => {
     api.saveTemplate.mockRejectedValue(refused('Der Abschnitt braucht eine Überschrift.'));
+
     await create();
 
     await save();

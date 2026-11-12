@@ -4,7 +4,16 @@ import { envelopeMessage } from '../reports/report-models';
 
 // ---------------------------------------------------------------- template
 
-export type SectionKind = 'singleChoice' | 'multiChoice' | 'freeText';
+export type SectionKind = 'singleChoice' | 'multiChoice' | 'freeText' | 'rating';
+
+/**
+ * The overall rating 1 to 5 ("Zustandsabfrage"): every template has exactly this section, it is required and cannot be removed or changed except for its
+ * wording. The id is the fixed one of the service (`LogbookRating.SectionId`).
+ */
+export const RATING_SECTION_ID = '98d00f7f-28bc-a7c4-27d6-05c7283fc341';
+
+export const RATING_TITLE = 'Wie ist die Gesamtsituation in der Filiale?';
+export const RATING_HINT = '1 = sehr schlecht, 5 = sehr gut';
 
 export interface LogbookOption {
   id: string;
@@ -30,7 +39,11 @@ export const KIND_LABELS: Record<SectionKind, string> = {
   singleChoice: 'Eine Antwort wählen',
   multiChoice: 'Mehrere Antworten wählen',
   freeText: 'Freitext',
+  rating: 'Gesamtbewertung 1 bis 5',
 };
+
+/** The kinds a district leader can choose for a section: the rating is not one of them, it is always there. */
+export const SELECTABLE_KINDS: SectionKind[] = ['singleChoice', 'multiChoice', 'freeText'];
 
 // ---------------------------------------------------------------- reports
 

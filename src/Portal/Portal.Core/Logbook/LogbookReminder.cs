@@ -79,8 +79,17 @@ public static class LogbookReminderPlan
     public static DateTimeOffset ScheduledAt(LogbookReminderSettings settings, DateOnly week, int point, TimeZoneInfo zone)
     {
         var p = Ordered(settings)[point];
-        var dueOffset = ((int)settings.DueDay + 6) % 7; // Monday = 0
-        var local = week.AddDays(dueOffset + p.DaysAfterDue).ToDateTime(p.Time);
+        return AtLocal(week, DueOffset(settings) + p.DaysAfterDue, p.Time, zone);
+    }
+
+    /// <summary>The moment the report of the week is due: the due day of the week at the due time (local time, with the same care on the days of the clock change).</summary>
+    public static DateTimeOffset DueAt(LogbookReminderSettings settings, DateOnly week, TimeZoneInfo zone) => AtLocal(week, DueOffset(settings), settings.DueTime, zone);
+
+    private static int DueOffset(LogbookReminderSettings settings) => ((int)settings.DueDay + 6) % 7; // Monday = 0
+
+    private static DateTimeOffset AtLocal(DateOnly week, int days, TimeOnly time, TimeZoneInfo zone)
+    {
+        var local = week.AddDays(days).ToDateTime(time);
         if (zone.IsInvalidTime(local))
         {
             local = local.AddHours(1);

@@ -14,7 +14,12 @@
   <form class="flex max-w-3xl flex-col gap-4" (submit)="$event.preventDefault(); submit()">
     @for (section of sections(); track section.key; let i = $index; let first = $first; let last = $last) {
       <fieldset class="m-0 flex flex-col gap-3 rounded-xl border border-outline-variant px-4 py-3" data-testid="section" [attr.aria-label]="'Abschnitt ' + (i + 1)">
-        <legend class="px-1 font-medium">Abschnitt {{ i + 1 }}</legend>
+        <legend class="px-1 font-medium">Abschnitt {{ i + 1 }}@if (isRating(section)) { · Gesamtbewertung}</legend>
+        @if (isRating(section)) {
+          <p class="m-0 text-sm text-on-surface-variant" data-testid="rating-note">
+            Die Zustandsabfrage von 1 (sehr schlecht) bis 5 (sehr gut) ist Pflicht in jedem Wochenbericht. Sie kann nicht entfernt oder anders eingestellt werden, nur Überschrift und Hinweis sind änderbar. Sie ist die Grundlage der Jahresauswertung.
+          </p>
+        }
 
         <mat-form-field class="w-full">
           <mat-label>Überschrift</mat-label>
@@ -25,17 +30,19 @@
           <input matInput [value]="section.hint" (input)="set(section, 'hint', $event)" />
         </mat-form-field>
 
-        <div class="flex flex-wrap items-center gap-4">
-          <mat-form-field class="w-64">
-            <mat-label>Art</mat-label>
-            <select matNativeControl data-testid="section-kind" [value]="section.kind" (change)="setKind(section, value($event))">
-              @for (k of kinds; track k.value) {
-                <option [value]="k.value" [selected]="k.value === section.kind">{{ k.label }}</option>
-              }
-            </select>
-          </mat-form-field>
-          <mat-checkbox [checked]="section.required" (change)="setRequired(section, $event.checked)">Pflichtfeld</mat-checkbox>
-        </div>
+        @if (!isRating(section)) {
+          <div class="flex flex-wrap items-center gap-4">
+            <mat-form-field class="w-64">
+              <mat-label>Art</mat-label>
+              <select matNativeControl data-testid="section-kind" [value]="section.kind" (change)="setKind(section, value($event))">
+                @for (k of kinds; track k.value) {
+                  <option [value]="k.value" [selected]="k.value === section.kind">{{ k.label }}</option>
+                }
+              </select>
+            </mat-form-field>
+            <mat-checkbox [checked]="section.required" (change)="setRequired(section, $event.checked)">Pflichtfeld</mat-checkbox>
+          </div>
+        }
 
         @if (choiceKind(section.kind)) {
           <div class="flex flex-col gap-1" role="group" aria-label="Antworten">
@@ -59,7 +66,9 @@
         <div class="flex flex-wrap gap-2">
           <button mat-button type="button" [disabled]="first" [attr.aria-label]="'Abschnitt ' + (i + 1) + ' nach oben'" (click)="moveSection(i, -1)">Nach oben</button>
           <button mat-button type="button" [disabled]="last" [attr.aria-label]="'Abschnitt ' + (i + 1) + ' nach unten'" (click)="moveSection(i, 1)">Nach unten</button>
-          <button mat-button type="button" data-action="remove-section" [attr.aria-label]="'Abschnitt ' + (i + 1) + ' entfernen'" (click)="removeSection(section)">Abschnitt entfernen</button>
+          @if (!isRating(section)) {
+            <button mat-button type="button" data-action="remove-section" [attr.aria-label]="'Abschnitt ' + (i + 1) + ' entfernen'" (click)="removeSection(section)">Abschnitt entfernen</button>
+          }
         </div>
       </fieldset>
     }

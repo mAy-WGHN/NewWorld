@@ -6,7 +6,7 @@ using Shared.Infrastructure.Persistence;
 namespace Portal.Infrastructure.Logbook;
 
 /// <summary>
-/// Sends the automatic reminders of the Berichtsheft (decision 49) once an hour: the store managers of a store without a handed-in report for the week get a
+/// Once an hour: deletes the reports of the Berichtsheft that are past their retention (<see cref="LogbookRetentionService"/>) and sends the automatic reminders of the Berichtsheft (decision 49): the store managers of a store without a handed-in report for the week get a
 /// reminder at the points of the settings. With several instances one round runs on one instance only (<see cref="IDistributedLock"/>); a reminder is
 /// unique per store, week and point, so a repeated round sends nothing twice. Logs counts and the type of an error only, never content.
 /// </summary>
@@ -40,6 +40,11 @@ public sealed partial class LogbookReminderBackgroundService(
             await using var scope = scopes.CreateAsyncScope();
             var sent = await scope.ServiceProvider.GetRequiredService<LogbookReminderService>().RunAutomaticAsync(cancellationToken);
             LogRound(sent);
+            var deleted = await scope.ServiceProvider.GetRequiredService<LogbookRetentionService>().RunAsync(cancellationToken);
+            if (deleted > 0)
+            {
+                LogRetention(deleted);
+            }
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -49,6 +54,9 @@ public sealed partial class LogbookReminderBackgroundService(
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Logbook reminders: {Count} sent")]
     private partial void LogRound(int count);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Logbook retention: {Count} reports deleted")]
+    private partial void LogRetention(int count);
 
     [LoggerMessage(Level = LogLevel.Debug, Message = "Logbook reminders: another instance is running it, round skipped")]
     private partial void LogSkipped();

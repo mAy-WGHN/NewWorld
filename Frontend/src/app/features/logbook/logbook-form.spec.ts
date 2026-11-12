@@ -3,7 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { LogbookForm } from './logbook-form';
 import { LogbookApi } from './logbook.api';
-import { LogbookReport, LogbookTemplate, StoreWeek } from './logbook-models';
+import { LogbookReport, LogbookTemplate, RATING_SECTION_ID, StoreWeek } from './logbook-models';
 
 const template: LogbookTemplate = {
   version: 1,
@@ -100,7 +100,31 @@ describe('LogbookForm', () => {
     expect(q('[data-testid="phase"]')!.textContent).toContain('Entwurf');
   });
 
+  it('shows the rating 1 to 5 as a row of choices that has to be answered before handing in', async () => {
+    const rated: LogbookTemplate = {
+      ...template,
+      sections: [
+        { id: RATING_SECTION_ID, title: 'Gesamtsituation', hint: '1 = sehr schlecht, 5 = sehr gut', kind: 'rating', required: true, options: ['1 – sehr schlecht', '2 – schlecht', '3 – mittel', '4 – gut', '5 – sehr gut'].map((label, i) => ({ id: `v${i + 1}`, label })) },
+      ],
+    };
+    await create(storeWeek());
+    fixture.componentRef.setInput('template', rated);
+    await settle();
+
+    expect(root.querySelectorAll('[data-testid="rating"] mat-radio-button').length).toBe(5);
+    expect(q('[data-section="' + RATING_SECTION_ID + '"] legend')!.textContent).toContain('*');
+    expect(button('submit').disabled).toBe(true);
+    expect(q('[data-testid="missing"]')!.textContent).toContain('ein Pflichtfeld');
+
+    await click(radio(RATING_SECTION_ID, '4 – gut'));
+    expect(button('submit').disabled).toBe(false);
+    await click(button('submit'));
+    expect(api.save).toHaveBeenCalledWith('st1', '2026-10-19', { [RATING_SECTION_ID]: { optionIds: ['v4'], text: null } });
+    expect(api.submit).toHaveBeenCalled();
+  });
+
   it('can only be handed in when every required section is answered', async () => {
+
     await create(storeWeek());
     expect(button('submit').disabled).toBe(true);
     expect(q('[data-testid="missing"]')!.textContent).toContain('2 Pflichtfelder');

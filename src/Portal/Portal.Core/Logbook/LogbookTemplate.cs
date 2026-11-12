@@ -3,13 +3,14 @@ using System.Text;
 
 namespace Portal.Core.Logbook;
 
-/// <summary>The kind of a section of the weekly report: one option, several options, or free text.</summary>
+/// <summary>The kind of a section of the weekly report: one option, several options, free text, or the overall rating 1 to 5 (exactly one, see <see cref="LogbookRating"/>).</summary>
 public enum LogbookSectionKind
 {
     Unknown = 0,
     SingleChoice = 1,
     MultiChoice = 2,
     FreeText = 3,
+    Rating = 4,
 }
 
 /// <summary>Limits of the template and of the answers (so that nobody saves a book instead of a report).</summary>
@@ -58,7 +59,7 @@ public sealed record LogbookTemplate(int Version, IReadOnlyList<LogbookSection> 
         return new LogbookTemplate(
             0,
             [
-                Choice("overall", "Wie war die Woche insgesamt?", LogbookSectionKind.SingleChoice, true, "Läuft gut", "Kleinere Probleme", "Ernste Probleme"),
+                LogbookRating.Section(),
                 Choice("staff", "Wie ist die Personalsituation?", LogbookSectionKind.SingleChoice, true, "Voll besetzt", "Engpässe", "Kritisch"),
                 Choice("topics", "Was belastet die Filiale?", LogbookSectionKind.MultiChoice, false, "Personal", "Kasse und Technik", "Ware und Lieferung", "Kundschaft", "Gebäude und Sauberkeit", "Sicherheit", "Sonstiges"),
                 Text("good", "Was lief gut?", "Kurz und konkret. Bitte keine Gesundheitsdaten."),

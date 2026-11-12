@@ -84,6 +84,7 @@ app.MapLogbookTemplateEndpoints();
 app.MapLogbookReportEndpoints();
 app.MapLogbookReviewEndpoints();
 app.MapLogbookReminderEndpoints();
+app.MapLogbookEvaluationEndpoints();
 app.MapStatisticsEndpoints();
 app.MapAuditEndpoints<PortalDbContext>("portal", PortalPrivileges.AuditRead, PortalPrivileges.AuditReadValues);
 

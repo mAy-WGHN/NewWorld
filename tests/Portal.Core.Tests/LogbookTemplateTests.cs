@@ -18,13 +18,16 @@ public sealed class LogbookTemplateTests
     private static readonly Guid Tech = Guid.Parse("00000000-0000-0000-0000-0000000000c2");
     private static readonly Guid Goods = Guid.Parse("00000000-0000-0000-0000-0000000000c3");
 
-    /// <summary>One required single choice, one multiple choice, one optional free text.</summary>
+    /// <summary>One required single choice, one multiple choice, one optional free text, and the rating that every template has (required).</summary>
     private static IReadOnlyList<LogbookSection> Sections() =>
     [
         new(S1, "Gesamtlage", null, LogbookSectionKind.SingleChoice, true, [new(Good, "Läuft gut"), new(Bad, "Probleme")]),
         new(S2, "Themen", "Mehrere möglich", LogbookSectionKind.MultiChoice, false, [new(Staff, "Personal"), new(Tech, "Technik"), new(Goods, "Ware")]),
         new(S3, "Anmerkungen", null, LogbookSectionKind.FreeText, false, []),
+        LogbookRating.Section(),
     ];
+
+    private static Guid Rate(int value) => LogbookRating.OptionIds[value - 1];
 
     private static LogbookTemplate Template() => new(3, Sections(), null, null);
 
@@ -44,7 +47,7 @@ public sealed class LogbookTemplateTests
         Errors(Sections()).ShouldBeEmpty();
         LogbookTemplateValidator.Validate(LogbookTemplate.Default.Sections).ShouldBeEmpty();
         LogbookTemplate.Default.Version.ShouldBe(0); // not stored: the version before the first one that is saved
-        LogbookTemplate.Default.Sections.Select(s => s.Kind).Distinct().Count().ShouldBe(3); // all three kinds appear
+        LogbookTemplate.Default.Sections.Select(s => s.Kind).Distinct().Count().ShouldBe(4); // all four kinds appear
         LogbookTemplate.Default.Sections.Any(s => s.Required).ShouldBeTrue();
     }
 
@@ -122,7 +125,94 @@ public sealed class LogbookTemplateTests
         errors.ShouldContain(LogbookTemplateError.OptionLabelTooLong);
     }
 
+    // ---------------------------------------------------------------- the rating 1 to 5 (always there, required, not removable)
+
+    [Fact]
+    public void Every_template_needs_the_rating_and_it_cannot_be_removed()
+    {
+        var without = Sections().Where(s => s.Id != LogbookRating.SectionId).ToList();
+
+        var errors = LogbookTemplateValidator.Validate(without);
+
+        errors.ShouldContain(e => e.Code == LogbookTemplateError.RatingMissing && e.SectionId == LogbookRating.SectionId);
+        Errors([new(S3, "Nur Text", null, LogbookSectionKind.FreeText, false, [])]).ShouldContain(LogbookTemplateError.RatingMissing);
+        Errors(Sections()).ShouldNotContain(LogbookTemplateError.RatingMissing);
+    }
+
+    [Fact]
+    public void The_rating_cannot_be_changed_except_for_its_wording()
+    {
+        LogbookTemplateError[] Changed(Func<LogbookSection, LogbookSection> change) =>
+            [.. LogbookTemplateValidator.Validate([.. Sections().Select(s => s.Id == LogbookRating.SectionId ? change(s) : s)]).Select(e => e.Code)];
+
+        Changed(s => s with { Required = false }).ShouldContain(LogbookTemplateError.RatingChanged); // not optional
+        Changed(s => s with { Kind = LogbookSectionKind.SingleChoice }).ShouldContain(LogbookTemplateError.RatingChanged);
+        Changed(s => s with { Kind = LogbookSectionKind.FreeText, Options = [] }).ShouldContain(LogbookTemplateError.RatingChanged);
+        Changed(s => s with { Options = [.. s.Options.Take(4)] }).ShouldContain(LogbookTemplateError.RatingChanged); // five values, not four
+        Changed(s => s with { Options = [.. s.Options.Reverse()] }).ShouldContain(LogbookTemplateError.RatingChanged); // the position is the value
+        Changed(s => s with { Options = [.. s.Options, new LogbookOption(Guid.NewGuid(), "6")] }).ShouldContain(LogbookTemplateError.RatingChanged);
+        Changed(s => s with { Title = "Gesamtlage der Filiale", Hint = "Ehrlich bewerten" }).ShouldBeEmpty(); // the wording is the district leaders'
+    }
+
+    [Fact]
+    public void There_is_only_one_rating_and_no_other_section_can_be_one()
+    {
+        var other = new LogbookSection(Guid.NewGuid(), "Noch eine Bewertung", null, LogbookSectionKind.Rating, true, [.. LogbookRating.OptionIds.Select(id => new LogbookOption(id, "x"))]);
+
+        Errors([.. Sections(), other]).ShouldContain(LogbookTemplateError.RatingNotAllowed);
+        Errors([.. Sections(), LogbookRating.Section()]).ShouldContain(LogbookTemplateError.DuplicateId);
+    }
+
+    [Fact]
+    public void The_rating_has_fixed_ids_and_values_from_1_to_5_and_the_default_template_has_it_first()
+    {
+        LogbookRating.OptionIds.Count.ShouldBe(5);
+        LogbookRating.OptionIds.Distinct().Count().ShouldBe(5);
+        LogbookRating.OptionIds.ShouldNotContain(LogbookRating.SectionId);
+        LogbookRating.Labels.Count.ShouldBe(5);
+        LogbookRating.Section().Options.Select(o => o.Label).ShouldBe(LogbookRating.Labels);
+        for (var value = 1; value <= 5; value++)
+        {
+            LogbookRating.ValueOf(LogbookRating.OptionIds[value - 1]).ShouldBe(value);
+        }
+
+        LogbookRating.ValueOf(Guid.NewGuid()).ShouldBeNull();
+        LogbookTemplate.Default.Sections[0].Id.ShouldBe(LogbookRating.SectionId);
+        LogbookRating.IsCanonical(LogbookTemplate.Default.Sections[0]).ShouldBeTrue();
+        LogbookTemplate.Default.Sections.Count(s => s.Kind == LogbookSectionKind.Rating).ShouldBe(1);
+    }
+
+    [Fact]
+    public void The_id_of_the_rating_is_fixed_because_the_frontend_and_old_reports_rely_on_it()
+    {
+        // The same value is RATING_SECTION_ID in the frontend (logbook-models.ts); change both together or never.
+        LogbookRating.SectionId.ShouldBe(Guid.Parse("98d00f7f-28bc-a7c4-27d6-05c7283fc341"));
+    }
+
+    [Fact]
+    public void The_rating_is_read_from_the_answers_of_a_report()
+    {
+        LogbookRating.ValueOf(Answers((LogbookRating.SectionId, Choice(Rate(2))))).ShouldBe(2);
+        LogbookRating.ValueOf(Answers()).ShouldBeNull(); // a report of a version without it, or not answered
+        LogbookRating.ValueOf(Answers((LogbookRating.SectionId, Choice()))).ShouldBeNull();
+        LogbookRating.ValueOf(Answers((LogbookRating.SectionId, Choice(Rate(1), Rate(2))))).ShouldBeNull(); // one value, never two
+        LogbookRating.ValueOf(Answers((S1, Choice(Good)))).ShouldBeNull();
+    }
+
+    [Fact]
+    public void An_answer_for_the_rating_is_one_of_the_five_values_and_the_submission_needs_it()
+    {
+        var template = Template();
+
+        LogbookAnswerValidator.Validate(template, Answers((LogbookRating.SectionId, Choice(Rate(5)))), forSubmit: false).ShouldBeEmpty();
+        LogbookAnswerValidator.Validate(template, Answers((LogbookRating.SectionId, Choice(Rate(1), Rate(5)))), forSubmit: false).Select(e => e.Code).ShouldContain(LogbookAnswerError.TooManySelections);
+        LogbookAnswerValidator.Validate(template, Answers((LogbookRating.SectionId, Choice(Good))), forSubmit: false).Select(e => e.Code).ShouldContain(LogbookAnswerError.UnknownOption);
+        LogbookAnswerValidator.Validate(template, Answers((LogbookRating.SectionId, new LogbookAnswer([], "Gut"))), forSubmit: false).Select(e => e.Code).ShouldContain(LogbookAnswerError.TextNotAllowed);
+        LogbookAnswerValidator.Validate(template, Answers((S1, Choice(Good))), forSubmit: true).ShouldContain(e => e.Code == LogbookAnswerError.RequiredMissing && e.SectionId == LogbookRating.SectionId);
+    }
+
     // ---------------------------------------------------------------- versions
+
 
     [Fact]
     public void The_same_content_is_not_a_new_version_but_every_change_that_matters_is()
@@ -142,7 +232,7 @@ public sealed class LogbookTemplateTests
     [Fact]
     public void A_complete_answer_is_valid_for_a_draft_and_for_the_submission()
     {
-        var answers = Answers((S1, Choice(Good)), (S2, Choice(Staff, Tech)), (S3, Text("Alles ruhig.")));
+        var answers = Answers((S1, Choice(Good)), (S2, Choice(Staff, Tech)), (S3, Text("Alles ruhig.")), (LogbookRating.SectionId, Choice(Rate(4))));
 
         LogbookAnswerValidator.Validate(Template(), answers, forSubmit: false).ShouldBeEmpty();
         LogbookAnswerValidator.Validate(Template(), answers, forSubmit: true).ShouldBeEmpty();
@@ -155,7 +245,7 @@ public sealed class LogbookTemplateTests
 
         LogbookAnswerValidator.Validate(Template(), nothing, forSubmit: false).ShouldBeEmpty();
         var missing = LogbookAnswerValidator.Validate(Template(), nothing, forSubmit: true);
-        missing.Select(e => (e.Code, e.SectionId)).ShouldBe([(LogbookAnswerError.RequiredMissing, S1)]); // only S1 is required
+        missing.Select(e => (e.Code, e.SectionId)).ShouldBe([(LogbookAnswerError.RequiredMissing, S1), (LogbookAnswerError.RequiredMissing, LogbookRating.SectionId)]); // S1 and the rating are required
         LogbookAnswerValidator.Validate(Template(), Answers((S1, Choice())), forSubmit: true).Select(e => e.Code).ShouldContain(LogbookAnswerError.RequiredMissing);
         LogbookAnswerValidator.Validate(Template(), Answers((S1, new LogbookAnswer([], "text"))), forSubmit: true).Select(e => e.Code).ShouldContain(LogbookAnswerError.RequiredMissing);
     }

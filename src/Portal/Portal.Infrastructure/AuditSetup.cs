@@ -10,7 +10,10 @@ public static class AuditExclusions
     public static void Configure(AuditOptions options) => options
         .Exclude<PersonRecord>()
         .Exclude<StoreRecord>()
-        .Exclude<MainStoreCopyRecord>();
+        .Exclude<MainStoreCopyRecord>()
+        // the Berichtsheft is kept for one year (decision 49): its content must not live on in the log; who did what stays in the report itself
+        .Exclude<Logbook.LogbookReportRecord>()
+        .Exclude<Logbook.LogbookCommentRecord>();
 }
 
 public sealed class PortalAuditPersonLookup : IAuditPersonLookup

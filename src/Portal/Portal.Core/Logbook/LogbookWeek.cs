@@ -9,6 +9,9 @@ public sealed class LogbookOptions
     public string TimeZoneId { get; set; } = "Europe/Berlin";
 
     public TimeZoneInfo Zone => TimeZoneInfo.FindSystemTimeZoneById(TimeZoneId);
+
+    /// <summary>How long a report is kept: reports of weeks that began longer ago than this are deleted, what remains is the figures for the evaluation (no content, no persons).</summary>
+    public int RetentionDays { get; set; } = 365;
 }
 
 /// <summary>Why a week cannot be written.</summary>

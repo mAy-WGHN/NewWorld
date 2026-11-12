@@ -30,6 +30,7 @@ Entscheidungen 41 und 43 (`CLAUDE.md`), überarbeitet 2026-11-10. Die Fachlogik 
 | Berichtsheft: Berichte der Leitungen lesen (Liste, Filter) | `GET /api/logbook/reports` | `logbook:review` (Reichweite aus der Hierarchie) |
 | Berichtsheft: Bericht mit Kommentaren lesen | `GET /api/logbook/reports/{id}` | Leitung der Filiale oder `logbook:write` für die Filiale |
 | Berichtsheft: antworten, intern kommentieren, Stand setzen | `POST …/comments`, `PUT …/state` | `logbook:review` |
+| Berichtsheft: Jahresauswertung je Filiale, Region, Bezirk | `GET /api/logbook/evaluation?year=` | angemeldet, Reichweite aus `logbook:write` oder Hierarchie (sonst `403`) |
 | Berichtsheft: eskalieren (Regionalleitung an Bezirksleitung) | `POST /api/logbook/reports/{id}/escalate` | `logbook:review` |
 | Berichtsheft: fehlende Berichte der Woche, von Hand erinnern | `GET /api/logbook/missing`, `POST /api/logbook/reminders` | `logbook:review` |
 | Berichtsheft: automatische Erinnerung einstellen | `GET/PUT /api/logbook/reminder-settings` | `logbook:manage-reminders` |

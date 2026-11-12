@@ -9,7 +9,7 @@ namespace Portal.Api.Logbook;
 
 public sealed record LogbookOptionDto(Guid Id, string Label);
 
-/// <summary><c>Kind</c> is <c>singleChoice</c>, <c>multiChoice</c> or <c>freeText</c>.</summary>
+/// <summary><c>Kind</c> is <c>singleChoice</c>, <c>multiChoice</c>, <c>freeText</c> or <c>rating</c> (the overall rating 1 to 5: exactly one, always there, required, not removable).</summary>
 public sealed record LogbookSectionDto(Guid Id, string Title, string? Hint, string Kind, bool Required, IReadOnlyList<LogbookOptionDto> Options);
 
 public sealed record LogbookTemplateDto(int Version, DateTimeOffset? PublishedAt, IReadOnlyList<LogbookSectionDto> Sections);
@@ -92,8 +92,16 @@ public static class LogbookTemplateEndpoints
                 "singlechoice" => LogbookSectionKind.SingleChoice,
                 "multichoice" => LogbookSectionKind.MultiChoice,
                 "freetext" => LogbookSectionKind.FreeText,
+                "rating" => LogbookSectionKind.Rating,
                 _ => LogbookSectionKind.Unknown,
             };
+            if (input.Id == LogbookRating.SectionId)
+            {
+                // The rating is always the same: only the wording (title and hint) is the district leaders'. Whatever else is sent is ignored.
+                sections.Add(LogbookRating.Section(input.Title, input.Hint));
+                continue;
+            }
+
             sections.Add(new LogbookSection(
                 input.Id is { } id && id != Guid.Empty ? id : Guid.CreateVersion7(),
                 input.Title ?? string.Empty, input.Hint, kind, input.Required,
@@ -128,6 +136,9 @@ public static class LogbookTemplateEndpoints
         LogbookTemplateError.OptionLabelMissing => "Jede Möglichkeit braucht einen Text.",
         LogbookTemplateError.OptionLabelTooLong => $"Der Text einer Möglichkeit darf höchstens {LogbookLimits.MaxOptionLabel} Zeichen haben.",
         LogbookTemplateError.OptionLabelNotUnique => "Die Möglichkeiten eines Abschnitts müssen sich unterscheiden.",
+        LogbookTemplateError.RatingMissing => "Die Gesamtbewertung von 1 bis 5 ist Pflicht und kann nicht entfernt werden.",
+        LogbookTemplateError.RatingChanged => "Die Gesamtbewertung kann nur in Überschrift und Hinweis geändert werden.",
+        LogbookTemplateError.RatingNotAllowed => "Es gibt nur eine Gesamtbewertung.",
         _ => "Die Vorlage ist nicht gültig.",
     };
 
@@ -135,6 +146,6 @@ public static class LogbookTemplateEndpoints
         template.Version, template.PublishedAt,
         [.. template.Sections.Select(s => new LogbookSectionDto(
             s.Id, s.Title, s.Hint,
-            s.Kind switch { LogbookSectionKind.SingleChoice => "singleChoice", LogbookSectionKind.MultiChoice => "multiChoice", _ => "freeText" },
+            s.Kind switch { LogbookSectionKind.SingleChoice => "singleChoice", LogbookSectionKind.MultiChoice => "multiChoice", LogbookSectionKind.Rating => "rating", _ => "freeText" },
             s.Required, [.. s.Options.Select(o => new LogbookOptionDto(o.Id, o.Label))]))]);
 }

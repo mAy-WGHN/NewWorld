@@ -296,7 +296,11 @@ public sealed class LogbookReportEndpointTests(PostgresFixture postgres) : IClas
 
         var changed = new
         {
-            sections = new object[] { new { id = (Guid?)null, title = "Neu", hint = (string?)null, kind = "freeText", required = false, options = Array.Empty<object>() } },
+            sections = new object[]
+            {
+                new { id = (Guid?)null, title = "Neu", hint = (string?)null, kind = "freeText", required = false, options = Array.Empty<object>() },
+                new { id = (Guid?)LogbookRating.SectionId, title = "Gesamtsituation", hint = (string?)null, kind = "rating", required = true, options = Array.Empty<object>() },
+            },
         };
         api.Grant(Hanna, TestGrant.Everywhere(PortalPrivileges.LogbookManageTemplate));
         (await api.SendAsync(HttpMethod.Put, "/api/logbook/template", Hanna, changed)).StatusCode.ShouldBe(HttpStatusCode.OK);

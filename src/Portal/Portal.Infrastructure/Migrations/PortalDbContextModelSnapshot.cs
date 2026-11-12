@@ -436,6 +436,10 @@ namespace Portal.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("submitted_by");
 
+                    b.Property<bool?>("SubmittedOnTime")
+                        .HasColumnType("boolean")
+                        .HasColumnName("submitted_on_time");
+
                     b.Property<int>("TemplateVersion")
                         .HasColumnType("integer")
                         .HasColumnName("template_version");
@@ -510,6 +514,49 @@ namespace Portal.Infrastructure.Migrations
                         .HasName("pk_logbook_templates");
 
                     b.ToTable("logbook_templates", "portal");
+                });
+
+            modelBuilder.Entity("Portal.Infrastructure.Logbook.LogbookWeekStatRecord", b =>
+                {
+                    b.Property<Guid>("StoreId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("store_id");
+
+                    b.Property<DateOnly>("Week")
+                        .HasColumnType("date")
+                        .HasColumnName("week");
+
+                    b.Property<bool>("Answered")
+                        .HasColumnType("boolean")
+                        .HasColumnName("answered");
+
+                    b.Property<DateTimeOffset>("ArchivedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("archived_at");
+
+                    b.Property<bool>("Done")
+                        .HasColumnType("boolean")
+                        .HasColumnName("done");
+
+                    b.Property<bool>("Escalated")
+                        .HasColumnType("boolean")
+                        .HasColumnName("escalated");
+
+                    b.Property<bool>("OnTime")
+                        .HasColumnType("boolean")
+                        .HasColumnName("on_time");
+
+                    b.Property<int?>("Rating")
+                        .HasColumnType("integer")
+                        .HasColumnName("rating");
+
+                    b.HasKey("StoreId", "Week")
+                        .HasName("pk_logbook_week_stats");
+
+                    b.HasIndex("Week")
+                        .HasDatabaseName("ix_logbook_week_stats_week");
+
+                    b.ToTable("logbook_week_stats", "portal");
                 });
 
             modelBuilder.Entity("Portal.Infrastructure.Messaging.MainStoreCopyRecord", b =>

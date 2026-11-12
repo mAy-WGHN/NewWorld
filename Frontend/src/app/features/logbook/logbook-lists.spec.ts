@@ -311,18 +311,18 @@ describe('LogbookPage', () => {
     await create('logbook:write');
 
     expect(root.querySelector('h1')!.textContent).toContain('Berichtsheft');
-    expect(tabs()).toEqual(['Mein Bericht']);
+    expect(tabs()).toEqual(['Mein Bericht', 'Auswertung']);
   });
 
   it('shows a leader the inbox and the missing reports, but not the own report', async () => {
     await create('logbook:review');
 
-    expect(tabs()).toEqual(['Eingang', 'Fehlende Berichte']);
+    expect(tabs()).toEqual(['Eingang', 'Fehlende Berichte', 'Auswertung']);
   });
 
   it('shows somebody who does both all three, with the own report first', async () => {
     await create('logbook:write', 'logbook:review');
 
-    expect(tabs()).toEqual(['Mein Bericht', 'Eingang', 'Fehlende Berichte']);
+    expect(tabs()).toEqual(['Mein Bericht', 'Eingang', 'Fehlende Berichte', 'Auswertung']);
   });
 });

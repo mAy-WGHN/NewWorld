@@ -1,7 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { LogbookApi } from './logbook.api';
-import { EditSection, choiceKind, editSections, moved, newOption, newSection, sectionInputs } from './logbook-admin-models';
-import { KIND_LABELS, SectionKind, logbookError, stamp } from './logbook-models';
+import { EditSection, choiceKind, editSections, isRating, moved, newOption, newSection, sectionInputs } from './logbook-admin-models';
+import { KIND_LABELS, SELECTABLE_KINDS, SectionKind, logbookError, stamp } from './logbook-models';
 import { Action, LOGBOOK_UI } from './logbook-ui';
 
 /**
@@ -17,13 +17,14 @@ import { Action, LOGBOOK_UI } from './logbook-ui';
 export class LogbookTemplateAdmin {
   private readonly api = inject(LogbookApi);
 
-  protected readonly kinds = Object.entries(KIND_LABELS).map(([value, label]) => ({ value: value as SectionKind, label }));
+  protected readonly kinds = SELECTABLE_KINDS.map((value) => ({ value, label: KIND_LABELS[value] }));
   protected readonly sections = signal<EditSection[]>([]);
   protected readonly version = signal<number | null>(null);
   protected readonly publishedAt = signal<string | null>(null);
   protected readonly loadError = signal<string | null>(null);
   protected readonly save = new Action();
   protected readonly choiceKind = choiceKind;
+  protected readonly isRating = isRating;
   protected readonly stamp = stamp;
   protected readonly loaded = computed(() => this.version() !== null);
 
@@ -56,10 +57,16 @@ export class LogbookTemplateAdmin {
   }
 
   protected setKind(section: EditSection, kind: string): void {
+    if (isRating(section)) {
+      return;
+    }
     this.change(section.key, { kind: kind as SectionKind });
   }
 
   protected setRequired(section: EditSection, required: boolean): void {
+    if (isRating(section)) {
+      return;
+    }
     this.change(section.key, { required });
   }
 
@@ -69,6 +76,9 @@ export class LogbookTemplateAdmin {
   }
 
   protected removeSection(section: EditSection): void {
+    if (isRating(section)) {
+      return; // the rating is always there
+    }
     this.sections.update((all) => all.filter((s) => s.key !== section.key));
     this.save.reset();
   }

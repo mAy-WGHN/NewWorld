@@ -1,4 +1,4 @@
-import { Leader, LogbookTemplate, SectionKind, Structure, newId } from './logbook-models';
+import { Leader, LogbookTemplate, RATING_HINT, RATING_SECTION_ID, RATING_TITLE, SectionKind, Structure, newId } from './logbook-models';
 
 // ---------------------------------------------------------------- what is sent
 
@@ -39,9 +39,21 @@ export interface EditSection {
   options: EditOption[];
 }
 
-export const choiceKind = (kind: SectionKind): boolean => kind !== 'freeText';
+/** Only these have answers of their own to maintain; the rating has its five fixed ones. */
+export const choiceKind = (kind: SectionKind): boolean => kind === 'singleChoice' || kind === 'multiChoice';
 
+/** The rating cannot be removed, and only its title and hint can be changed. */
+export const isRating = (section: Pick<EditSection, 'kind'>): boolean => section.kind === 'rating';
+
+/** The sections as they are edited. The rating is always among them: a template that has none (an old one) gets it in front, so saving brings it. */
 export function editSections(template: LogbookTemplate): EditSection[] {
+  const sections = editSectionsOf(template);
+  return sections.some(isRating)
+    ? sections
+    : [{ key: nextKey(), id: RATING_SECTION_ID, title: RATING_TITLE, hint: RATING_HINT, kind: 'rating', required: true, options: [] }, ...sections];
+}
+
+function editSectionsOf(template: LogbookTemplate): EditSection[] {
   return template.sections.map((s) => ({
     key: nextKey(),
     id: s.id,
@@ -68,7 +80,7 @@ export function sectionInputs(sections: readonly EditSection[]): SectionInput[] 
     title: s.title.trim(),
     hint: s.hint.trim() || null,
     kind: s.kind,
-    required: s.required,
+    required: isRating(s) ? true : s.required,
     options: choiceKind(s.kind) ? s.options.filter((o) => o.label.trim()).map((o) => ({ id: o.id, label: o.label.trim() })) : [],
   }));
 }

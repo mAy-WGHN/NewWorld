@@ -205,7 +205,7 @@ public sealed class LogbookReminderService(
 
     // ------------------------------------------------------------------ mapping
 
-    private static LogbookReminderSettings ToSettings(LogbookReminderSettingsRecord row) => new(
+    internal static LogbookReminderSettings ToSettings(LogbookReminderSettingsRecord row) => new(
         row.Enabled, row.EnabledAt, row.DueDay, row.DueTime,
         JsonSerializer.Deserialize<List<LogbookReminderPoint>>(row.PointsJson, Json) ?? [], row.MaxReminders);
 

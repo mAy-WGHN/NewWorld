@@ -3,6 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { firstValueFrom, map } from 'rxjs';
 import { ConfigService } from '../../core/config';
 import { SectionInput, StructureInput } from './logbook-admin-models';
+import { Evaluation } from './logbook-evaluation-models';
 import {
   LogbookAnswer,
   LogbookComment,
@@ -111,6 +112,11 @@ export class LogbookApi {
 
   remind(storeId: string, week: string): Promise<void> {
     return this.send<unknown>('POST', '/reminders', { storeId, week }).then(() => undefined);
+  }
+
+  /** The figures of a calendar year for the stores, regions and districts the person sees. */
+  evaluation(year?: number): Promise<Evaluation> {
+    return this.get('/evaluation', year ? new HttpParams().set('year', year) : undefined);
   }
 
   // -------------------------------------------------------------- administration
