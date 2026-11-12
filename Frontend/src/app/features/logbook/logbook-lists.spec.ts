@@ -289,8 +289,11 @@ describe('LogbookPage', () => {
   let fixture: ComponentFixture<LogbookPage>;
   let root: HTMLElement;
 
+  let me: ReturnType<typeof vi.fn>;
+
   async function create(...privileges: string[]): Promise<void> {
     const api = {
+      me,
       myReports: vi.fn().mockResolvedValue({ week: currentWeek(), stores: [] }),
       history: vi.fn().mockResolvedValue([]),
       template: vi.fn(),
@@ -306,6 +309,39 @@ describe('LogbookPage', () => {
   }
 
   const tabs = (): string[] => [...root.querySelectorAll('[role="tab"]')].map((t) => t.textContent!.trim());
+
+  beforeEach(() => {
+    me = vi.fn().mockResolvedValue({ level: 'regional', isRegionalLeader: true, isDistrictLeader: false, stores: [{ storeId: 'a', storeNumber: '001', storeName: 'Augsburg' }] });
+  });
+
+  it('tells a leader who is not entered in the hierarchy why there is nothing to see, instead of showing empty lists', async () => {
+    me.mockResolvedValue({ level: 'none', isRegionalLeader: false, isDistrictLeader: false, stores: [] });
+    await create('logbook:review');
+
+    const note = root.querySelector('[data-testid="no-reach"]')!;
+    expect(note.textContent).toContain('keiner Region und keinem Bezirk');
+    expect(note.textContent).toContain('Hierarchie');
+    expect(note.textContent).toContain('Die Rolle allein reicht dafür nicht');
+  });
+
+  it('shows no such hint to a leader who reaches stores, nor to a store manager, and does not even ask a store manager', async () => {
+    await create('logbook:review');
+    expect(root.querySelector('[data-testid="no-reach"]')).toBeNull();
+    expect(me).toHaveBeenCalledTimes(1);
+
+    TestBed.resetTestingModule();
+    me.mockClear();
+    await create('logbook:write');
+    expect(root.querySelector('[data-testid="no-reach"]')).toBeNull();
+    expect(me).not.toHaveBeenCalled(); // the hierarchy only matters to leaders
+  });
+
+  it('shows no hint if the service cannot say where the leader belongs', async () => {
+    me.mockRejectedValue(new Error('offline'));
+    await create('logbook:review');
+
+    expect(root.querySelector('[data-testid="no-reach"]')).toBeNull();
+  });
 
   it('shows a store manager the own report only', async () => {
     await create('logbook:write');

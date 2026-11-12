@@ -8,6 +8,7 @@ import {
   LogbookAnswer,
   LogbookComment,
   LogbookTemplate,
+  LogbookMe,
   Missing,
   MyReports,
   ReminderSettings,
@@ -104,6 +105,11 @@ export class LogbookApi {
 
   escalate(id: string, note: string | null): Promise<ReportDetail> {
     return this.send('POST', `/reports/${id}/escalate`, { note });
+  }
+
+  /** The stores the person reaches as a leader (the hierarchy decides, not the role). */
+  me(): Promise<LogbookMe> {
+    return this.get('/me');
   }
 
   missing(week?: string): Promise<Missing> {

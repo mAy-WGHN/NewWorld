@@ -140,6 +140,14 @@ export interface ReviewFilter {
   state?: ReportState;
 }
 
+/** Where the person is a leader in the hierarchy of the Berichtsheft (`GET /api/logbook/me`): the stores they reach; none if they lead nothing. */
+export interface LogbookMe {
+  level: 'none' | 'regional' | 'district';
+  isRegionalLeader: boolean;
+  isDistrictLeader: boolean;
+  stores: { storeId: string; storeNumber: string; storeName: string }[];
+}
+
 export interface MissingStore {
   storeId: string;
   storeNumber: string;
