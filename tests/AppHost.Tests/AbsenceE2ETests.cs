@@ -67,7 +67,7 @@ public class AbsenceE2ETests(AppHostFixture fixture)
             managerView.GetProperty("type").GetString().ShouldBe("Sickness");
 
             // Employees and stores reached the Portal API (event distribution to a third consumer), too.
-            (await landscape.QueryAsync("portal", "select count(*) from portal.people"))[0].ShouldBe("6");
+            (await landscape.QueryAsync("portal", "select count(*) from portal.people"))[0].ShouldBe("8");
             (await landscape.QueryAsync("portal", "select count(*) from portal.stores"))[0].ShouldBe("1");
         }
         finally
