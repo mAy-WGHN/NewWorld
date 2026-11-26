@@ -97,7 +97,8 @@ public sealed class CashRegisterReminderEndpointTests(PostgresFixture postgres) 
         var district = sent.Single(n => n.TemplateKey == CashRegisterNotifier.UnsealedDistrict);
         district.RecipientEmployeeIds.ShouldBe([Ben]);
         sent.ShouldAllBe(n => n.Data.Count == 0 && n.DeepLink == "/cash-registers");
-        sent.ShouldAllBe(n => n.Channels.SequenceEqual(new[] { NotificationChannel.InApp, NotificationChannel.Push }));
+        store.Channels.ShouldBe([NotificationChannel.InApp, NotificationChannel.Push]);
+        district.Channels.ShouldBe([NotificationChannel.InApp]); // the district leaders are informed quietly: an info in the portal, no push
     }
 
     [Fact]

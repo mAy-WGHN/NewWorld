@@ -130,6 +130,21 @@ public sealed class LogbookNotificationEndpointTests(PostgresFixture postgres) :
     }
 
     [Fact]
+    public async Task Handing_in_also_tells_the_district_leaders_quietly_as_an_info_without_push()
+    {
+        await using var api = await StartUpAsync(postgres);
+
+        var report = await SubmittedAsync(api, Erika, StoreA);
+
+        var info = (await SentAsync(api, LogbookNotifier.SubmittedDistrict)).ShouldHaveSingleItem();
+        Recipients(info).ShouldBe([Revisor]);
+        info.Message.Channels.ShouldBe([NotificationChannel.InApp]);
+        info.Message.DeepLink.ShouldBe($"/logbook/reports/{report}");
+        info.Message.Data.ShouldBeEmpty();
+        info.Payload.ShouldNotContain(SecretText);
+    }
+
+    [Fact]
     public async Task A_second_hand_in_and_a_draft_notify_nobody()
     {
         await using var api = await StartUpAsync(postgres);

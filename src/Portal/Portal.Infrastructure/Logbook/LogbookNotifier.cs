@@ -16,7 +16,8 @@ namespace Portal.Infrastructure.Logbook;
 public sealed class LogbookNotifier(Outbox<PortalDbContext> outbox, IPermissionCache permissions, TimeProvider time)
 {
     public const string Submitted = "portal.logbook-submitted.regional";
-    public const string ReplyToStore = "portal.logbook-reply.store";
+    public const string SubmittedDistrict = "portal.logbook-submitted.district";
+    public const string ReplyToStore ="portal.logbook-reply.store";
     public const string ReplyToRegional = "portal.logbook-reply.regional";
     public const string FollowedUp = "portal.logbook-followed-up.regional";
     public const string Escalated = "portal.logbook-escalated.district";
@@ -30,8 +31,14 @@ public sealed class LogbookNotifier(Outbox<PortalDbContext> outbox, IPermissionC
             .Order()];
 
     /// <summary>A handed-in report: the regional leaders, or the district leaders if the store has no regional leader.</summary>
-    public void ReportSubmitted(LogbookReportRecord report, Guid actor, LogbookRecipients recipients) =>
+    public void ReportSubmitted(LogbookReportRecord report, Guid actor, LogbookRecipients recipients)
+    {
         Send(Submitted, $"{report.Id}:submitted", recipients.Primary, actor, report.Id, $"/logbook/reports/{report.Id}");
+
+        // The district leaders always know about it, but quietly: an info in the portal only, no push (those who were told above as the primary
+        // recipients, because the store has no regional leader, are not told twice).
+        Send(SubmittedDistrict, $"{report.Id}:submitted", recipients.District.Except(recipients.Primary), actor, report.Id, $"/logbook/reports/{report.Id}", quiet: true);
+    }
 
     /// <summary>A reply: a regional leader answers the store managers, a district leader answers the regional leaders (nobody if the store has none).</summary>
     public void Replied(LogbookReportRecord report, LogbookCommentRecord comment, LogbookRecipients recipients)
@@ -61,7 +68,7 @@ public sealed class LogbookNotifier(Outbox<PortalDbContext> outbox, IPermissionC
     public bool ReminderSent(Guid storeId, string key, Guid? actor, Guid correlation) =>
         Send(Reminder, key, StoreManagersOf(storeId), actor ?? Guid.Empty, correlation, "/logbook");
 
-    private bool Send(string template, string key, IEnumerable<Guid> recipients, Guid actor, Guid correlation, string deepLink)
+    private bool Send(string template, string key, IEnumerable<Guid> recipients, Guid actor, Guid correlation, string deepLink, bool quiet = false)
     {
         var to = recipients.Where(r => r != actor).Distinct().ToList();
         if (to.Count == 0)
@@ -72,7 +79,7 @@ public sealed class LogbookNotifier(Outbox<PortalDbContext> outbox, IPermissionC
         var now = time.GetUtcNow();
         outbox.Send(new SendNotification(
             Guid.CreateVersion7(now), correlation, now, Deterministic($"{template}:{key}"), to, template, new Dictionary<string, string>(),
-            [NotificationChannel.InApp, NotificationChannel.Push], deepLink));
+            quiet ? [NotificationChannel.InApp] : [NotificationChannel.InApp, NotificationChannel.Push], deepLink));
         return true;
     }
 

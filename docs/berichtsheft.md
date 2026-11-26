@@ -164,3 +164,5 @@ Keine fachlichen Punkte mehr offen; die Entscheidungen stehen oben. Bei der Umse
 - **Datenschutzbeauftragter:** Aufbewahrungsfrist der Berichte, Hinweis im Formular (keine Gesundheitsdaten), Anonymisierung bei Löschung der Person (Vorschlag siehe Datenschutz).
 - **Einrichtung in Access** (Konfiguration, kein Code): Rollen mit `logbook:write` (Filialleitung, Reichweite Filialen) und `logbook:review`, Rechte für die Verwaltung; Hierarchie und Vorlage im Berichtsheft anlegen.
 - **Abweichung von Entscheidung 13** (Entscheidung 49): Das Wo für RL und BL kommt aus der Hierarchie im Berichtsheft, nicht aus Access.
+
+**Ergänzung 2026-11-26 (Bezirksleitung):** Bei jeder Abgabe wird die Bezirksleitung zusätzlich **still** informiert (Vorlage `portal.logbook-submitted.district`, nur InApp, kein Push, Pflichtvorlage). Hat die Filiale keine Regionalleitung, bleibt es bei der Mitteilung mit Push an die Bezirksleitung als erste Empfänger (keine doppelte Mitteilung). Einsicht hatte die Bezirksleitung schon immer in alle Berichte ihres Bezirks.

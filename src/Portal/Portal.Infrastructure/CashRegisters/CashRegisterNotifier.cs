@@ -24,7 +24,8 @@ public sealed class CashRegisterNotifier(Outbox<PortalDbContext> outbox, IPermis
             .Select(s => s.EmployeeId)
             .Order()];
 
-    public bool Send(string template, string key, IEnumerable<Guid> recipients, Guid correlation)
+    /// <summary><paramref name="quiet"/>: an info in the portal only, no push (the district leaders are informed this way).</summary>
+    public bool Send(string template, string key, IEnumerable<Guid> recipients, Guid correlation, bool quiet = false)
     {
         var to = recipients.Distinct().ToList();
         if (to.Count == 0)
@@ -35,7 +36,7 @@ public sealed class CashRegisterNotifier(Outbox<PortalDbContext> outbox, IPermis
         var now = time.GetUtcNow();
         outbox.Send(new SendNotification(
             Guid.CreateVersion7(now), correlation, now, Deterministic($"{template}:{key}"), to, template, new Dictionary<string, string>(),
-            [NotificationChannel.InApp, NotificationChannel.Push], "/cash-registers"));
+            quiet ? [NotificationChannel.InApp] : [NotificationChannel.InApp, NotificationChannel.Push], "/cash-registers"));
         return true;
     }
 

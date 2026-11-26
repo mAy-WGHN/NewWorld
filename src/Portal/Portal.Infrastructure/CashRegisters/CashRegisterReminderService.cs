@@ -61,7 +61,7 @@ public sealed class CashRegisterReminderService(PortalDbContext db, LogbookStruc
         var districts = structure.Stores.Where(s => unsealedStores.Contains(s.StoreId)).Select(s => s.DistrictId).Distinct().ToList();
         foreach (var district in structure.Districts.Where(d => districts.Contains(d.Id)))
         {
-            if (notifier.Send(CashRegisterNotifier.UnsealedDistrict, $"{district.Id}:{day:yyyy-MM-dd}", district.LeaderIds, correlation))
+            if (notifier.Send(CashRegisterNotifier.UnsealedDistrict, $"{district.Id}:{day:yyyy-MM-dd}", district.LeaderIds, correlation, quiet: true))
             {
                 sent++;
             }
