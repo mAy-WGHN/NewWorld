@@ -24,32 +24,11 @@
       <p class="m-0 text-sm text-on-surface-variant" data-testid="empty">In diesem Zeitraum gibt es keine Meldungen.</p>
     } @else {
       <div class="mb-2"><wghn-quick-filter [table]="monthlyTable" name="year" label="Jahr" [options]="monthlyYears()" /></div>
-      <div class="overflow-x-auto">
-        <table [appSortTable]="monthlyTable" class="w-full border-collapse text-left text-sm">
-          <caption class="sr-only">Meldungen pro Monat, von Mitarbeitenden und vom System</caption>
-          <thead>
-            <tr class="border-b border-outline-variant">
-              <th scope="col" class="py-1.5 pe-3" mat-sort-header="month">Monat</th>
-              <th scope="col" class="py-1.5 pe-3 text-right" mat-sort-header="employee">Mitarbeitende</th>
-              <th scope="col" class="py-1.5 pe-3 text-right" mat-sort-header="system">System</th>
-              <th scope="col" class="py-1.5 pe-3 text-right" mat-sort-header="total">Gesamt</th>
-              <th scope="col" class="w-1/3 py-1.5"><span class="sr-only">Balken</span></th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (r of monthlyTable.rows(); track r.month) {
-              <tr class="border-b border-outline-variant" data-testid="monthly-row">
-                <th scope="row" class="py-1.5 pe-3 font-normal">{{ monthLabel(r.month) }}</th>
-                <td class="py-1.5 pe-3 text-right">{{ r.employee }}</td>
-                <td class="py-1.5 pe-3 text-right">{{ r.system }}</td>
-                <td class="py-1.5 pe-3 text-right font-medium">{{ r.total }}</td>
-                <td class="py-1.5" aria-hidden="true"><div class="h-3 rounded-sm bg-primary" [style.width.%]="barPercent(r.total, monthlyMax())"></div></td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-      <wghn-pager [table]="monthlyTable" />
+      <wghn-table [state]="monthlyTable" [columns]="monthlyColumns" density="compact" rowTestId="monthly-row" caption="Meldungen pro Monat, von Mitarbeitenden und vom System">
+  <ng-template wghnCell="month" let-r>{{ monthLabel(r.month) }}</ng-template>
+  <ng-template wghnCell="total" let-r><span class="font-medium">{{ r.total }}</span></ng-template>
+  <ng-template wghnCell="bar" let-r><div class="h-3 rounded-sm bg-primary" [style.width.%]="barPercent(r.total, monthlyMax())"></div></ng-template>
+</wghn-table>
     }
   </section>
 
@@ -59,38 +38,11 @@
       <p class="m-0 text-sm text-on-surface-variant">In diesem Zeitraum gibt es keine Meldungen.</p>
     } @else {
       <div class="mb-2"><wghn-quick-filter [table]="categoryTable" name="year" label="Jahr" [options]="categoryYears()" /></div>
-      <div class="overflow-x-auto">
-        <table [appSortTable]="categoryTable" class="w-full border-collapse text-left text-sm">
-          <caption class="sr-only">Meldungen pro Monat nach Kategorie</caption>
-          <thead>
-            <tr class="border-b border-outline-variant">
-              <th scope="col" class="py-1.5 pe-3" mat-sort-header="month">Monat</th>
-              <th scope="col" class="py-1.5 pe-3 text-right" mat-sort-header="bug">Fehler</th>
-              <th scope="col" class="py-1.5 pe-3 text-right" mat-sort-header="virus">Virus</th>
-              <th scope="col" class="py-1.5 pe-3 text-right" mat-sort-header="theft">Diebstahl</th>
-              <th scope="col" class="py-1.5 pe-3 text-right" mat-sort-header="other">Sonstiges</th>
-              <th scope="col" class="py-1.5 pe-3 text-right" mat-sort-header="suggestion">Vorschlag</th>
-              <th scope="col" class="py-1.5 pe-3 text-right" mat-sort-header="total">Gesamt</th>
-              <th scope="col" class="w-1/4 py-1.5"><span class="sr-only">Balken</span></th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (r of categoryTable.rows(); track r.month) {
-              <tr class="border-b border-outline-variant" data-testid="category-row">
-                <th scope="row" class="py-1.5 pe-3 font-normal">{{ monthLabel(r.month) }}</th>
-                <td class="py-1.5 pe-3 text-right">{{ r.bug }}</td>
-                <td class="py-1.5 pe-3 text-right">{{ r.virus }}</td>
-                <td class="py-1.5 pe-3 text-right">{{ r.theft }}</td>
-                <td class="py-1.5 pe-3 text-right">{{ r.other }}</td>
-                <td class="py-1.5 pe-3 text-right">{{ r.suggestion }}</td>
-                <td class="py-1.5 pe-3 text-right font-medium">{{ r.total }}</td>
-                <td class="py-1.5" aria-hidden="true"><div class="h-3 rounded-sm bg-primary" [style.width.%]="barPercent(r.total, categoryMax())"></div></td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-      <wghn-pager [table]="categoryTable" />
+      <wghn-table [state]="categoryTable" [columns]="categoryColumns" density="compact" rowTestId="category-row" caption="Meldungen pro Monat nach Kategorie">
+  <ng-template wghnCell="month" let-r>{{ monthLabel(r.month) }}</ng-template>
+  <ng-template wghnCell="total" let-r><span class="font-medium">{{ r.total }}</span></ng-template>
+  <ng-template wghnCell="bar" let-r><div class="h-3 rounded-sm bg-primary" [style.width.%]="barPercent(r.total, categoryMax())"></div></ng-template>
+</wghn-table>
     }
   </section>
 
@@ -101,36 +53,12 @@
       <p class="m-0 text-sm text-on-surface-variant">In diesem Zeitraum gibt es keine Meldungen.</p>
     } @else {
       <div class="mb-2 flex flex-wrap items-center gap-3"><wghn-table-search [table]="locationTable" label="Filiale suchen" /><wghn-quick-filter [table]="locationTable" name="critical" label="Schwere" [options]="criticalOptions" /></div>
-      <div class="overflow-x-auto">
-        <table [appSortTable]="locationTable" class="w-full border-collapse text-left text-sm">
-          <caption class="sr-only">Meldungen pro Filiale nach Schwere</caption>
-          <thead>
-            <tr class="border-b border-outline-variant">
-              <th scope="col" class="py-1.5 pe-3" mat-sort-header="name">Filiale</th>
-              <th scope="col" class="py-1.5 pe-3 text-right" mat-sort-header="low">Niedrig</th>
-              <th scope="col" class="py-1.5 pe-3 text-right" mat-sort-header="medium">Mittel</th>
-              <th scope="col" class="py-1.5 pe-3 text-right" mat-sort-header="high">Hoch</th>
-              <th scope="col" class="py-1.5 pe-3 text-right" mat-sort-header="critical">Kritisch</th>
-              <th scope="col" class="py-1.5 pe-3 text-right" mat-sort-header="total">Gesamt</th>
-              <th scope="col" class="w-1/4 py-1.5"><span class="sr-only">Balken</span></th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (r of locationTable.rows(); track r.locationId) {
-              <tr class="border-b border-outline-variant" data-testid="location-row">
-                <th scope="row" class="py-1.5 pe-3 font-normal">{{ r.locationName || 'Unbekannte Filiale' }}</th>
-                <td class="py-1.5 pe-3 text-right">{{ r.low }}</td>
-                <td class="py-1.5 pe-3 text-right">{{ r.medium }}</td>
-                <td class="py-1.5 pe-3 text-right">{{ r.high }}</td>
-                <td class="py-1.5 pe-3 text-right" [class.text-error]="r.critical > 0" [class.font-medium]="r.critical > 0">{{ r.critical }}</td>
-                <td class="py-1.5 pe-3 text-right font-medium">{{ r.total }}</td>
-                <td class="py-1.5" aria-hidden="true"><div class="h-3 rounded-sm bg-primary" [style.width.%]="barPercent(r.total, locationMax())"></div></td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-      <wghn-pager [table]="locationTable" />
+      <wghn-table [state]="locationTable" [columns]="locationColumns" density="compact" rowTestId="location-row" caption="Meldungen pro Filiale nach Schwere">
+  <ng-template wghnCell="name" let-r>{{ r.locationName || 'Unbekannte Filiale' }}</ng-template>
+  <ng-template wghnCell="critical" let-r><span [class.text-error]="r.critical > 0" [class.font-medium]="r.critical > 0">{{ r.critical }}</span></ng-template>
+  <ng-template wghnCell="total" let-r><span class="font-medium">{{ r.total }}</span></ng-template>
+  <ng-template wghnCell="bar" let-r><div class="h-3 rounded-sm bg-primary" [style.width.%]="barPercent(r.total, locationMax())"></div></ng-template>
+</wghn-table>
     }
   </section>
 
@@ -140,36 +68,12 @@
       <p class="m-0 text-sm text-on-surface-variant">In diesem Zeitraum gibt es keine Meldungen.</p>
     } @else {
       <div class="mb-2 flex flex-wrap items-center gap-3"><wghn-table-search [table]="personTable" label="Personalnummer suchen" /><wghn-quick-filter [table]="personTable" name="critical" label="Schwere" [options]="criticalOptions" /></div>
-      <div class="overflow-x-auto">
-        <table [appSortTable]="personTable" class="w-full border-collapse text-left text-sm">
-          <caption class="sr-only">Meldungen pro Personalnummer nach Schwere</caption>
-          <thead>
-            <tr class="border-b border-outline-variant">
-              <th scope="col" class="py-1.5 pe-3" mat-sort-header="personnel">Personalnummer</th>
-              <th scope="col" class="py-1.5 pe-3 text-right" mat-sort-header="low">Niedrig</th>
-              <th scope="col" class="py-1.5 pe-3 text-right" mat-sort-header="medium">Mittel</th>
-              <th scope="col" class="py-1.5 pe-3 text-right" mat-sort-header="high">Hoch</th>
-              <th scope="col" class="py-1.5 pe-3 text-right" mat-sort-header="critical">Kritisch</th>
-              <th scope="col" class="py-1.5 pe-3 text-right" mat-sort-header="total">Gesamt</th>
-              <th scope="col" class="w-1/4 py-1.5"><span class="sr-only">Balken</span></th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (r of personTable.rows(); track r.personnelNumber) {
-              <tr class="border-b border-outline-variant" data-testid="person-row">
-                <th scope="row" class="py-1.5 pe-3 font-normal">{{ r.personnelNumber }}</th>
-                <td class="py-1.5 pe-3 text-right">{{ r.low }}</td>
-                <td class="py-1.5 pe-3 text-right">{{ r.medium }}</td>
-                <td class="py-1.5 pe-3 text-right">{{ r.high }}</td>
-                <td class="py-1.5 pe-3 text-right" [class.text-error]="r.critical > 0" [class.font-medium]="r.critical > 0">{{ r.critical }}</td>
-                <td class="py-1.5 pe-3 text-right font-medium">{{ r.total }}</td>
-                <td class="py-1.5" aria-hidden="true"><div class="h-3 rounded-sm bg-primary" [style.width.%]="barPercent(r.total, personMax())"></div></td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-      <wghn-pager [table]="personTable" />
+      <wghn-table [state]="personTable" [columns]="personColumns" density="compact" rowTestId="person-row" caption="Meldungen pro Personalnummer nach Schwere">
+  <ng-template wghnCell="personnel" let-r>{{ r.personnelNumber }}</ng-template>
+  <ng-template wghnCell="critical" let-r><span [class.text-error]="r.critical > 0" [class.font-medium]="r.critical > 0">{{ r.critical }}</span></ng-template>
+  <ng-template wghnCell="total" let-r><span class="font-medium">{{ r.total }}</span></ng-template>
+  <ng-template wghnCell="bar" let-r><div class="h-3 rounded-sm bg-primary" [style.width.%]="barPercent(r.total, personMax())"></div></ng-template>
+</wghn-table>
     }
   </section>
 }

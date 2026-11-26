@@ -49,27 +49,13 @@
       <p class="m-0 text-sm text-on-surface-variant">Noch keine Buchungen.</p>
     } @else {
       <div class="mb-2"><wghn-quick-filter [table]="bookingTable" name="kind" label="Art" [options]="kindOptions()" /></div>
-      <mat-card appearance="outlined" class="overflow-x-auto">
-        <table [appSortTable]="bookingTable" class="w-full border-collapse">
-          <thead>
-            <tr class="text-sm text-on-surface-variant">
-              <th scope="col" class="px-3.5 py-2.5 text-left font-medium" mat-sort-header="date">Datum</th>
-              <th scope="col" class="px-3.5 py-2.5 text-left font-medium" mat-sort-header="kind">Art</th>
-              <th scope="col" class="px-3.5 py-2.5 text-right font-medium" mat-sort-header="hours">Stunden</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (b of bookingTable.rows(); track b.id) {
-              <tr class="border-t border-outline-variant" data-testid="booking">
-                <td class="px-3.5 py-2.5">{{ formatDate(b.date) }}</td>
-                <td class="px-3.5 py-2.5">{{ kindLabel(b.kind) }}</td>
-                <td class="px-3.5 py-2.5 text-right tabular-nums" [class.text-error]="b.hours < 0">{{ formatHours(b.hours) }}</td>
-              </tr>
-            }
-          </tbody>
-        </table>
+      <mat-card appearance="outlined">
+        <wghn-table [state]="bookingTable" [columns]="bookingColumns" rowTestId="booking">
+          <ng-template wghnCell="date" let-b>{{ formatDate(b.date) }}</ng-template>
+          <ng-template wghnCell="kind" let-b>{{ kindLabel(b.kind) }}</ng-template>
+          <ng-template wghnCell="hours" let-b><span class="tabular-nums" [class.text-error]="b.hours < 0">{{ formatHours(b.hours) }}</span></ng-template>
+        </wghn-table>
       </mat-card>
-      <wghn-pager [table]="bookingTable" />
     }
   </section>
 
@@ -77,29 +63,14 @@
     <section data-testid="closes" aria-labelledby="closes-title">
       <h2 id="closes-title" class="m-0 mb-2 text-lg font-medium">Monatsabschlüsse</h2>
       <div class="mb-2"><wghn-quick-filter [table]="closeTable" name="year" label="Jahr" [options]="closeYears()" /></div>
-      <mat-card appearance="outlined" class="overflow-x-auto">
-        <table [appSortTable]="closeTable" class="w-full border-collapse">
-          <thead>
-            <tr class="text-sm text-on-surface-variant">
-              <th scope="col" class="px-3.5 py-2.5 text-left font-medium" mat-sort-header="month">Monat</th>
-              <th scope="col" class="px-3.5 py-2.5 text-right font-medium" mat-sort-header="worked">Gearbeitet</th>
-              <th scope="col" class="px-3.5 py-2.5 text-right font-medium" mat-sort-header="threshold">Schwelle</th>
-              <th scope="col" class="px-3.5 py-2.5 text-right font-medium" mat-sort-header="overtime">Überstunden</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (c of closeTable.rows(); track c.id) {
-              <tr class="border-t border-outline-variant">
-                <td class="px-3.5 py-2.5">{{ monthLabel(c.year, c.month) }}</td>
-                <td class="px-3.5 py-2.5 text-right tabular-nums">{{ formatHours(c.workedHours, false) }}</td>
-                <td class="px-3.5 py-2.5 text-right tabular-nums">{{ formatHours(c.thresholdHours, false) }}</td>
-                <td class="px-3.5 py-2.5 text-right tabular-nums">{{ formatHours(c.overtimeHours - c.minusHours) }}</td>
-              </tr>
-            }
-          </tbody>
-        </table>
+      <mat-card appearance="outlined">
+        <wghn-table [state]="closeTable" [columns]="closeColumns">
+          <ng-template wghnCell="month" let-c>{{ monthLabel(c.year, c.month) }}</ng-template>
+          <ng-template wghnCell="worked" let-c><span class="tabular-nums">{{ formatHours(c.workedHours, false) }}</span></ng-template>
+          <ng-template wghnCell="threshold" let-c><span class="tabular-nums">{{ formatHours(c.thresholdHours, false) }}</span></ng-template>
+          <ng-template wghnCell="overtime" let-c><span class="tabular-nums">{{ formatHours(c.overtimeHours - c.minusHours) }}</span></ng-template>
+        </wghn-table>
       </mat-card>
-      <wghn-pager [table]="closeTable" />
     </section>
   }
 }

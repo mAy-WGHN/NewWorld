@@ -1,6 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { PAGE_UI } from '../../shared/wghn/material';
 import { FilterOption, TABLE_UI, TableState } from '../../shared/wghn/table-state';
+import type { WghnColumn } from '../../shared/wghn/wghn-table';
 import { envelopeMessage } from '../reports/report-models';
 import {
   LocationSeverityStatistic,
@@ -19,12 +20,52 @@ import { StatisticsApi } from './statistics.api';
  * "Statistik": how many reports were filed, by month, category, store and personnel number, within the months chosen. Only the reports
  * the person's privilege reaches are counted (the portal decides). Tables carry every number; the bars only help to compare.
  */
+/** The severity columns of the tables per store and per person. */
+const SEVERITY_COLUMNS: WghnColumn[] = [
+  { key: 'low', header: 'Niedrig', sortable: true, align: 'end' },
+  { key: 'medium', header: 'Mittel', sortable: true, align: 'end' },
+  { key: 'high', header: 'Hoch', sortable: true, align: 'end' },
+  { key: 'critical', header: 'Kritisch', sortable: true, align: 'end' },
+  { key: 'total', header: 'Gesamt', sortable: true, align: 'end' },
+];
+
 @Component({
   selector: 'app-statistics',
   imports: [...PAGE_UI, ...TABLE_UI],
   templateUrl: './statistics.page.html',
 })
 export class StatisticsPage {
+  protected readonly monthlyColumns: WghnColumn[] = [
+    { key: 'month', header: 'Monat', sortable: true, rowHeader: true, class: 'font-normal' },
+    { key: 'employee', header: 'Mitarbeitende', sortable: true, align: 'end' },
+    { key: 'system', header: 'System', sortable: true, align: 'end' },
+    { key: 'total', header: 'Gesamt', sortable: true, align: 'end' },
+    { key: 'bar', header: 'Balken', hideHeader: true, decorative: true, class: 'w-1/3' },
+  ];
+
+  protected readonly categoryColumns: WghnColumn[] = [
+    { key: 'month', header: 'Monat', sortable: true, rowHeader: true, class: 'font-normal' },
+    { key: 'bug', header: 'Fehler', sortable: true, align: 'end' },
+    { key: 'virus', header: 'Virus', sortable: true, align: 'end' },
+    { key: 'theft', header: 'Diebstahl', sortable: true, align: 'end' },
+    { key: 'other', header: 'Sonstiges', sortable: true, align: 'end' },
+    { key: 'suggestion', header: 'Vorschlag', sortable: true, align: 'end' },
+    { key: 'total', header: 'Gesamt', sortable: true, align: 'end' },
+    { key: 'bar', header: 'Balken', hideHeader: true, decorative: true, class: 'w-1/4' },
+  ];
+
+  protected readonly locationColumns: WghnColumn[] = [
+    { key: 'name', header: 'Filiale', sortable: true, rowHeader: true, class: 'font-normal' },
+    ...SEVERITY_COLUMNS,
+    { key: 'bar', header: 'Balken', hideHeader: true, decorative: true, class: 'w-1/4' },
+  ];
+
+  protected readonly personColumns: WghnColumn[] = [
+    { key: 'personnel', header: 'Personalnummer', sortable: true, rowHeader: true, class: 'font-normal' },
+    ...SEVERITY_COLUMNS,
+    { key: 'bar', header: 'Balken', hideHeader: true, decorative: true, class: 'w-1/4' },
+  ];
+
   private readonly api = inject(StatisticsApi);
 
   protected readonly range = signal<MonthRange>({ from: '', to: '' });

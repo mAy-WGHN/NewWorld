@@ -5,6 +5,7 @@ import { ConfigService } from '../../core/config';
 import { PAGE_UI } from '../../shared/wghn/material';
 import { formatDateTime } from '../notifications/notification-models';
 import { FilterOption, TABLE_UI, TableState } from '../../shared/wghn/table-state';
+import type { WghnColumn } from '../../shared/wghn/wghn-table';
 
 /** One line of the audit log of a service (`GET /api/audit`); `changes` is only there for people who may read the values. */
 export interface AuditEntry {
@@ -82,39 +83,13 @@ export function actorLabel(entry: AuditEntry): string {
       <p class="mb-3" role="alert">{{ error() }}</p>
     }
 
-    <div class="overflow-x-auto">
-      <table [appSortTable]="table" class="w-full text-left text-sm">
-        <thead>
-          <tr>
-            <th scope="col" class="p-2" mat-sort-header="time">Zeitpunkt</th>
-            <th scope="col" class="p-2" mat-sort-header="actor">Person</th>
-            <th scope="col" class="p-2" mat-sort-header="action">Aktion</th>
-            <th scope="col" class="p-2" mat-sort-header="service">Bereich</th>
-            <th scope="col" class="p-2" mat-sort-header="entity">Objekt</th>
-            @if (hasValues()) {
-              <th scope="col" class="p-2">Werte</th>
-            }
-          </tr>
-        </thead>
-        <tbody>
-          @for (e of table.rows(); track e.id) {
-            <tr class="border-t align-top">
-              <td class="p-2 whitespace-nowrap">{{ time(e) }}</td>
-              <td class="p-2">{{ actor(e) }}</td>
-              <td class="p-2">{{ action(e) }}</td>
-              <td class="p-2">{{ e.service }}</td>
-              <td class="p-2">{{ e.entityType }}<br /><span class="text-xs opacity-70">{{ e.entityId }}</span></td>
-              @if (hasValues()) {
-                <td class="p-2 max-w-md break-words font-mono text-xs">{{ e.changes ?? '' }}</td>
-              }
-            </tr>
-          } @empty {
-            <tr><td class="p-2" colspan="6">{{ loaded() ? 'Keine Einträge.' : 'Noch nicht geladen.' }}</td></tr>
-          }
-        </tbody>
-      </table>
-    </div>
-    <wghn-pager [table]="table" />
+    <wghn-table [state]="table" [columns]="columns()" density="compact" [emptyText]="loaded() ? 'Keine Einträge.' : 'Noch nicht geladen.'">
+      <ng-template wghnCell="time" let-e><span class="whitespace-nowrap">{{ time(e) }}</span></ng-template>
+      <ng-template wghnCell="actor" let-e>{{ actor(e) }}</ng-template>
+      <ng-template wghnCell="action" let-e>{{ action(e) }}</ng-template>
+      <ng-template wghnCell="entity" let-e>{{ e.entityType }}<br /><span class="text-xs opacity-70">{{ e.entityId }}</span></ng-template>
+      <ng-template wghnCell="changes" let-e><span class="block max-w-md break-words font-mono text-xs">{{ e.changes ?? '' }}</span></ng-template>
+    </wghn-table>
     @if (canLoadMore()) {
       <div class="mt-3">
         <button mat-stroked-button type="button" data-action="load-more" (click)="loadMore()" [disabled]="busy()">Ältere Einträge laden</button>
@@ -123,6 +98,16 @@ export function actorLabel(entry: AuditEntry): string {
   `,
 })
 export class AuditPage {
+  /** The columns of the log; the changed values only for those who may see them. */
+  protected readonly columns = computed<WghnColumn[]>(() => [
+    { key: 'time', header: 'Zeitpunkt', sortable: true },
+    { key: 'actor', header: 'Person', sortable: true },
+    { key: 'action', header: 'Aktion', sortable: true },
+    { key: 'service', header: 'Bereich', sortable: true },
+    { key: 'entity', header: 'Objekt', sortable: true },
+    ...(this.hasValues() ? [{ key: 'changes', header: 'Werte' }] : []),
+  ]);
+
   private readonly http = inject(HttpClient);
   private readonly config = inject(ConfigService);
 

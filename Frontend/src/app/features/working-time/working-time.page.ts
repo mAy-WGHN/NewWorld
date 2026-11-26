@@ -2,6 +2,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { todayIso } from '../../core/dates';
 import { PAGE_UI } from '../../shared/wghn/material';
 import { FilterOption, TABLE_UI, TableState } from '../../shared/wghn/table-state';
+import type { WghnColumn } from '../../shared/wghn/wghn-table';
 import { formatDate } from '../absences/absence-models';
 import { MonthClose, TimeBooking, WorkingTime, expiringSoon, formatHours, kindLabel, monthLabel } from './working-time-models';
 import { WorkingTimeApi } from './working-time.api';
@@ -16,6 +17,19 @@ const WARN_DAYS = 60;
   templateUrl: './working-time.page.html',
 })
 export class WorkingTimePage {
+  protected readonly bookingColumns: WghnColumn[] = [
+    { key: 'date', header: 'Datum', sortable: true },
+    { key: 'kind', header: 'Art', sortable: true },
+    { key: 'hours', header: 'Stunden', sortable: true, align: 'end' },
+  ];
+
+  protected readonly closeColumns: WghnColumn[] = [
+    { key: 'month', header: 'Monat', sortable: true },
+    { key: 'worked', header: 'Gearbeitet', sortable: true, align: 'end' },
+    { key: 'threshold', header: 'Schwelle', sortable: true, align: 'end' },
+    { key: 'overtime', header: 'Überstunden', sortable: true, align: 'end' },
+  ];
+
   private readonly api = inject(WorkingTimeApi);
 
   protected readonly account = signal<WorkingTime | null>(null);

@@ -16,6 +16,8 @@ export interface WghnColumn {
   /** A column without a visible title (actions, bars): the title is only read out. */
   hideHeader?: boolean;
   nowrap?: boolean;
+  /** Only decoration (a bar next to the figures): hidden from screen readers. */
+  decorative?: boolean;
   /** Extra classes for the cells of the column (weight, width …) and for its header. */
   class?: string;
   headClass?: string;
@@ -84,7 +86,7 @@ export class WghnCell {
                       <ng-container [ngTemplateOutlet]="template(c.key) ?? plain" [ngTemplateOutletContext]="{ $implicit: row, index: i, key: c.key }" />
                     </th>
                   } @else {
-                    <td [class]="cellClass(c)">
+                    <td [class]="cellClass(c)" [attr.aria-hidden]="c.decorative ? 'true' : null">
                       <ng-container [ngTemplateOutlet]="template(c.key) ?? plain" [ngTemplateOutletContext]="{ $implicit: row, index: i, key: c.key }" />
                     </td>
                   }
