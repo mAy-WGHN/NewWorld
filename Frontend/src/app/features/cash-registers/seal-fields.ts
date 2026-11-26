@@ -1,6 +1,7 @@
 import { Component, OnDestroy, computed, effect, inject, model, signal, untracked } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { CashRegisterApi } from './cash-register.api';
+import { FileDrop } from '../sick-notes/file-drop';
 import { PersonOption, SealFormValue } from './cash-register-models';
 
 /**
@@ -9,14 +10,15 @@ import { PersonOption, SealFormValue } from './cash-register-models';
  */
 @Component({
   selector: 'app-seal-fields',
-  imports: [MatButtonModule],
+  imports: [MatButtonModule, FileDrop],
   template: `
     <fieldset class="m-0 flex min-w-0 flex-col gap-3 rounded-xl border border-outline-variant px-4 py-3" data-testid="seal-fields">
       <legend class="px-1 font-medium">Siegel</legend>
 
       <div class="flex flex-col gap-1">
-        <label class="font-medium" for="seal-photo">Foto des Siegels *</label>
-        <input id="seal-photo" type="file" accept="image/png,image/jpeg,image/webp" capture="environment" data-testid="seal-photo" (change)="onPhoto($event)" />
+        <span class="font-medium" id="seal-photo-label">Foto des Siegels *</span>
+        <!-- the same drop zone as for the AU of a sick note: drag the photo onto it or choose it -->
+        <app-file-drop inputId="seal-photo" accept="image/png,image/jpeg,image/webp" [file]="value().photo" (chosen)="onPhoto($event)" (cleared)="onPhoto(null)" />
         @if (previewUrl(); as url) {
           <img class="mt-1 max-h-40 w-fit rounded-lg border border-outline-variant" [src]="url" alt="Gewähltes Foto des Siegels" data-testid="seal-photo-preview" />
         }
@@ -94,8 +96,7 @@ export class SealFields implements OnDestroy {
     }
   }
 
-  protected onPhoto(event: Event): void {
-    const file = (event.target as HTMLInputElement).files?.[0] ?? null;
+  protected onPhoto(file: File | null): void {
     this.value.update((v) => ({ ...v, photo: file }));
   }
 

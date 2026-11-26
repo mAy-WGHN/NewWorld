@@ -319,7 +319,7 @@ describe('CashRegistersPage', () => {
 
   /** Chooses a file in the photo field of the seal form. */
   const choosePhoto = async (file: File) => {
-    const input = q<HTMLInputElement>('[data-testid="seal-photo"]')!;
+    const input = q<HTMLInputElement>('[data-testid="seal-fields"] input[type="file"]')!; // the hidden input of the drop zone
     Object.defineProperty(input, 'files', { value: [file], configurable: true });
     input.dispatchEvent(new Event('change'));
     await settle();
@@ -340,6 +340,22 @@ describe('CashRegistersPage', () => {
     expect(api.seal).toHaveBeenCalledWith('r1', { photoId: 'p-new', sealedBy: 'e0' });
     expect(q('[data-testid="status"]')!.textContent).toContain('Siegel');
     expect(q('[data-testid="seal-form"]')).toBeNull();
+  });
+
+  it('takes the photo in the same drop zone as the AU: shows the file, lets it be changed or removed', async () => {
+    await create();
+    await click(all('[data-action="seal"]')[0]);
+    expect(q('[data-testid="file-drop"]')!.textContent).toContain('Datei hierher ziehen oder');
+
+    await choosePhoto(photo());
+    expect(q('[data-testid="file-name"]')!.textContent).toContain('siegel.png');
+    expect(q('[data-testid="seal-photo-preview"]')).not.toBeNull();
+
+    await click(q('[data-testid="remove-file"]'));
+    expect(q('[data-testid="file-name"]')).toBeNull();
+    await click(q('[data-testid="seal-save"]'));
+    expect(q('[data-testid="error"]')!.textContent).toContain('Foto');
+    expect(api.uploadPhoto).not.toHaveBeenCalled();
   });
 
   it('does not send the form of a seal without a photo or with a wrong file', async () => {
