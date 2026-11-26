@@ -9,16 +9,15 @@ import {
   PersonOption,
   ReminderSettings,
   SealFormValue,
-  STATUS_FILTERS,
-  StatusFilter,
   cashRegisterError,
-  filterRegisters,
   formatDateTime,
   isValidTime,
   kindLabel,
   sealFormProblem,
 } from './cash-register-models';
 import { SealFields } from './seal-fields';
+import { FilterOption, TABLE_UI, TableState } from '../../shared/wghn/table-state';
+import type { WghnColumn } from '../../shared/wghn/wghn-table';
 
 /** The form for "Kasse erfassen" (no `id`) and "Bearbeiten" (with the `id` of the register). */
 interface Draft {
@@ -48,7 +47,7 @@ interface Sealing {
  */
 @Component({
   selector: 'app-cash-registers',
-  imports: [...PAGE_UI, SealFields],
+  imports: [...PAGE_UI, ...TABLE_UI, SealFields],
   templateUrl: './cash-registers.page.html',
 })
 export class CashRegistersPage implements OnDestroy {
@@ -68,9 +67,7 @@ export class CashRegistersPage implements OnDestroy {
   protected readonly error = signal<string | null>(null);
   protected readonly status = signal<string | null>(null);
 
-  protected readonly statusFilter = signal<StatusFilter>('all');
   protected readonly storeFilter = signal('');
-  protected readonly query = signal('');
   protected readonly draft = signal<Draft | null>(null);
   protected readonly sealing = signal<Sealing | null>(null);
   protected readonly confirmDelete = signal<string | null>(null);
@@ -78,11 +75,56 @@ export class CashRegistersPage implements OnDestroy {
   protected readonly history = signal<CashRegisterEvent[] | null>(null);
   protected readonly photoView = signal<{ url: string; title: string } | null>(null);
 
-  protected readonly filters = STATUS_FILTERS;
   protected readonly formatDateTime = formatDateTime;
   protected readonly kindLabel = kindLabel;
 
-  protected readonly rows = computed(() => filterRegisters(this.data()?.items ?? [], this.statusFilter(), this.storeFilter(), this.query()));
+  /** The registers with sorting, the status filter, the store filter, the search and paging (the library's table state). */
+  protected readonly table = new TableState<CashRegister>(() => this.data()?.items ?? [], {
+    columns: {
+      store: (r) => r.storeNumber,
+      name: (r) => r.name,
+      status: (r) => (r.sealed ? 1 : 0),
+      recorded: (r) => r.lastRecordedAt,
+      by: (r) => r.recordedBy,
+    },
+    sortKey: 'store',
+    search: (r) => `${r.storeNumber} ${r.storeName} ${r.name}`,
+    filters: {
+      status: (r, value) => (value === 'sealed') === r.sealed,
+      store: (r, value) => r.storeId === value,
+    },
+  });
+
+  protected readonly historyTable = new TableState<CashRegisterEvent>(() => this.history() ?? [], {
+    columns: { at: (e) => e.at, store: (e) => e.storeNumber, register: (e) => e.registerName, kind: (e) => e.kind, by: (e) => e.by },
+    sortKey: 'at',
+    sortDir: 'desc',
+  });
+
+  protected readonly statusOptions: FilterOption[] = [
+    { value: '', label: 'Alle' },
+    { value: 'sealed', label: 'Versiegelt' },
+    { value: 'notSealed', label: 'Nicht versiegelt' },
+  ];
+
+  protected readonly columns: WghnColumn[] = [
+    { key: 'store', header: 'Filiale', sortable: true, rowHeader: true },
+    { key: 'name', header: 'Kasse', sortable: true },
+    { key: 'status', header: 'Status', sortable: true },
+    { key: 'recorded', header: 'Zuletzt erfasst', sortable: true, nowrap: true },
+    { key: 'by', header: 'Kürzel', sortable: true },
+    { key: 'actions', header: 'Aktionen', hideHeader: true },
+  ];
+
+  protected readonly historyColumns: WghnColumn[] = [
+    { key: 'at', header: 'Zeitpunkt', sortable: true, nowrap: true },
+    { key: 'store', header: 'Filiale', sortable: true, class: 'font-semibold' },
+    { key: 'register', header: 'Kasse', sortable: true },
+    { key: 'kind', header: 'Was' },
+    { key: 'by', header: 'Kürzel', sortable: true },
+  ];
+
+  protected readonly rowId = (r: CashRegister): string => r.id;
 
   /** The person who is filling in the form: the default for "who attached the seal". */
   private readonly me = computed<PersonOption | null>(() => {
@@ -300,13 +342,10 @@ export class CashRegistersPage implements OnDestroy {
 
   protected async setStore(event: Event): Promise<void> {
     this.storeFilter.set((event.target as HTMLSelectElement).value);
+    this.table.setFilter('store', this.storeFilter());
     if (this.showHistory()) {
       await this.loadHistory();
     }
-  }
-
-  protected setQuery(event: Event): void {
-    this.query.set((event.target as HTMLInputElement).value);
   }
 
   /** Runs a change, reloads the list (and the history if it is open) and says what happened; a failure becomes a plain German message. */

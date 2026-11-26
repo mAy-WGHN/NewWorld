@@ -109,13 +109,6 @@ export function isValidTime(value: string): boolean {
   return /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
 }
 
-export type StatusFilter ='all' | 'sealed' | 'notSealed';
-
-export const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
-  { value: 'all', label: 'Alle' },
-  { value: 'sealed', label: 'Versiegelt' },
-  { value: 'notSealed', label: 'Nicht versiegelt' },
-];
 
 const KIND_LABELS: Record<CashRegisterEventKind, string> = {
   recorded: 'Erfasst',
@@ -136,17 +129,6 @@ export function formatDateTime(iso: string): string {
     return iso;
   }
   return date.toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
-}
-
-/** The rows the filters keep: status, store (empty = all) and a search in store and register. */
-export function filterRegisters(items: CashRegister[], status: StatusFilter, storeId: string, query: string): CashRegister[] {
-  const needle = query.trim().toLocaleLowerCase('de');
-  return items.filter(
-    (r) =>
-      (status === 'all' || (status === 'sealed') === r.sealed) &&
-      (!storeId || r.storeId === storeId) &&
-      (!needle || `${r.storeNumber} ${r.storeName} ${r.name}`.toLocaleLowerCase('de').includes(needle)),
-  );
 }
 
 const GENERIC_ERROR = 'Es ist ein Fehler aufgetreten. Bitte versuche es noch einmal.';

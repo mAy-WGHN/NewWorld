@@ -5,7 +5,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { AuthService } from '../../core/auth/auth.service';
 import { PrivilegeSet } from '../../core/auth/privileges';
 import { CashRegisterApi } from './cash-register.api';
-import { CashRegister, CashRegisterList, cashRegisterError, filterRegisters, formatDateTime, isValidTime, kindLabel, sealFormProblem } from './cash-register-models';
+import { CashRegister, CashRegisterList, cashRegisterError, formatDateTime, isValidTime, kindLabel, sealFormProblem } from './cash-register-models';
 import { CashRegistersPage } from './cash-registers.page';
 
 const register = (patch: Partial<CashRegister>): CashRegister => ({
@@ -43,17 +43,6 @@ const list = (items: CashRegister[]): CashRegisterList => ({
 const grant = (...keys: string[]) => new PrivilegeSet(keys.map((key) => ({ key, unrestricted: true, storeIds: [], employeeIds: [] })));
 
 describe('cash register models', () => {
-  it('filters by status, store and search text', () => {
-    const items = [first, second];
-    expect(filterRegisters(items, 'all', '', '')).toHaveLength(2);
-    expect(filterRegisters(items, 'sealed', '', '')).toEqual([second]);
-    expect(filterRegisters(items, 'notSealed', '', '')).toEqual([first]);
-    expect(filterRegisters(items, 'all', 's12', '')).toEqual([second]);
-    expect(filterRegisters(items, 'all', '', 'oberhausen')).toEqual([first]);
-    expect(filterRegisters(items, 'all', '', '0012')).toEqual([second]);
-    expect(filterRegisters(items, 'sealed', 's10', '')).toEqual([]);
-  });
-
   it('names the steps of the history in German and leaves unknown ones as they are', () => {
     expect(kindLabel('recorded')).toBe('Erfasst');
     expect(kindLabel('sealed')).toBe('Siegel erneuert');
@@ -268,23 +257,45 @@ describe('CashRegistersPage', () => {
     expect(rows[1].textContent).toContain('Versiegelt');
   });
 
-  it('filters by status, by store and by the search text', async () => {
+  /** The chip of the status filter with this text (the filter is the chips of the library's quick filter). */
+  const statusChip = (label: string) => all('wghn-quick-filter mat-chip-option').find((c) => c.textContent?.trim() === label)!.querySelector<HTMLElement>('button')!;
+
+  it('filters by status, by store and by the search text with the library filters', async () => {
     await create();
 
-    await click(q('[data-testid="filter-sealed"]'));
+    await click(statusChip('Versiegelt'));
     expect(all('[data-testid="row"]')).toHaveLength(1);
     expect(all('[data-testid="row"]')[0].textContent).toContain('Kasse 1');
-    expect(q('[data-testid="filter-sealed"]')!.getAttribute('aria-pressed')).toBe('true');
 
-    await click(q('[data-testid="filter-all"]'));
+    await click(statusChip('Nicht versiegelt'));
+    expect(all('[data-testid="row"]')).toHaveLength(1);
+    expect(all('[data-testid="row"]')[0].textContent).toContain('Oberhausen');
+
+    await click(statusChip('Alle'));
     await type('[data-testid="store-filter"]', 's10', 'change');
     expect(all('[data-testid="row"]')).toHaveLength(1);
     expect(all('[data-testid="row"]')[0].textContent).toContain('Oberhausen');
 
     await type('[data-testid="store-filter"]', '', 'change');
-    await type('[data-testid="search"]', 'zzz');
+    await type('wghn-table-search input[type="search"]', 'zzz');
     expect(q('[data-testid="empty"]')!.textContent).toContain('passt zu diesen Filtern');
+
+    await type('wghn-table-search input[type="search"]', '0012');
+    expect(all('[data-testid="row"]')).toHaveLength(1);
+    expect(all('[data-testid="row"]')[0].textContent).toContain('HBF');
   });
+
+  it('sorts by a header, and a second click turns the order around', async () => {
+    await create();
+
+    const names = () => all('[data-testid="row"]').map((r) => r.querySelector('th')!.textContent!.trim());
+    expect(names()).toEqual(['0010 Augsburg Oberhausen', '0012 Augsburg HBF BaBu']);
+    await click(all('th.mat-sort-header').find((h) => h.textContent?.includes('Filiale')) as HTMLElement);
+    expect(names()).toEqual(['0012 Augsburg HBF BaBu', '0010 Augsburg Oberhausen']);
+    await click(all('th.mat-sort-header').find((h) => h.textContent?.includes('Filiale')) as HTMLElement);
+    expect(names()).toEqual(['0010 Augsburg Oberhausen', '0012 Augsburg HBF BaBu']);
+  });
+
 
   it('records a register: the form asks for store and name and reloads the list', async () => {
     await create();
@@ -535,7 +546,9 @@ describe('CashRegistersPage', () => {
 
     expect(api.history).toHaveBeenCalledWith('s10');
     expect(all('[data-testid="history-row"]')).toHaveLength(2);
-    expect(all('[data-testid="history-row"]')[0].textContent).toContain('Erfasst');
+    // newest first (the table sorts the history by time, descending)
+    expect(all('[data-testid="history-row"]')[0].textContent).toContain('Siegel erneuert');
+    expect(all('[data-testid="history-row"]')[1].textContent).toContain('Erfasst');
     expect(q('[data-testid="table"]')).toBeNull();
 
     await click(q('[data-testid="history-button"]'));
