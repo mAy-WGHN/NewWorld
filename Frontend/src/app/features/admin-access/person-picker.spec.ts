@@ -73,6 +73,7 @@ describe('PersonPicker', () => {
   it('waits after typing and only asks once for what was typed last', async () => {
     await create();
     fixture.componentRef.setInput('debounceMs', 400); // long enough that a slow test run does not let the first keys through
+    await settle(); // the wrapper hands the new wait on to the library picker
 
     await type('mu');
     await type('mus');

@@ -1,5 +1,3 @@
-import { HttpErrorResponse } from '@angular/common/http';
-
 /** One cash register of a store as the portal service lists it (`GET /api/cash-registers`). */
 export interface CashRegister {
   id: string;
@@ -131,19 +129,6 @@ export function formatDateTime(iso: string): string {
   return date.toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
 }
 
-const GENERIC_ERROR = 'Es ist ein Fehler aufgetreten. Bitte versuche es noch einmal.';
 
-/** The German text of a failed call: validation problems of the form, else the message of the service. */
-export function cashRegisterError(error: unknown): string {
-  if (error instanceof HttpErrorResponse && typeof error.error === 'object' && error.error !== null) {
-    const body = error.error as { message?: unknown; errors?: { message?: unknown }[] };
-    const messages = (body.errors ?? []).map((e) => e.message).filter((m): m is string => typeof m === 'string' && m.length > 0);
-    if (messages.length > 0) {
-      return [...new Set(messages)].join(' ');
-    }
-    if (typeof body.message === 'string' && body.message) {
-      return body.message;
-    }
-  }
-  return GENERIC_ERROR;
-}
+/** The German text of a failed call (the one function of the library). */
+export { envelopeProblem as cashRegisterError } from '../../shared/wghn/problem';

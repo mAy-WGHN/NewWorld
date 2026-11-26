@@ -101,8 +101,8 @@ export interface Person {
 export const personLabel = (person: Pick<Person, 'name' | 'personnelNumber'>): string =>
   person.personnelNumber ? `${person.name} (${person.personnelNumber})` : person.name;
 
-/** The service wants at least this many characters to search. */
-export const PERSON_SEARCH_MIN = 2;
+/** The service wants at least this many characters to search (the library's picker owns the number). */
+export { PERSON_SEARCH_MIN, isGuid } from '../../shared/wghn/wghn-person-picker';
 
 export const ADMINISTRATOR_ROLE_ID ='a0000000-0000-0000-0000-000000000001';
 
@@ -125,9 +125,6 @@ export const TARGET_KINDS: readonly { kind: TargetKind; label: string; hint: str
 
 const PATTERN = /^(\*|[a-z0-9-]+(:[a-z0-9-]+)*:(\*|[a-z0-9-]+))$/;
 const TOPIC = /^[a-z0-9-]+(\.[a-z0-9-]+)*$/;
-const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-export const isGuid = (text: string): boolean => GUID.test(text.trim());
 export const isValidTopic = (text: string): boolean => TOPIC.test(text.trim());
 export const isValidPattern = (text: string): boolean => PATTERN.test(text);
 

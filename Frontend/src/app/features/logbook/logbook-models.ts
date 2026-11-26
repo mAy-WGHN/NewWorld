@@ -1,4 +1,3 @@
-import { HttpErrorResponse } from '@angular/common/http';
 import { todayIso } from '../../core/dates';
 import { envelopeMessage } from '../reports/report-models';
 
@@ -363,17 +362,8 @@ export function shownAnswers(template: LogbookTemplate, answers: Record<string, 
 
 // ---------------------------------------------------------------- errors
 
-/** The problem as the person should read it: the messages of the fields for a validation error, otherwise the message of the service. */
-export function logbookError(error: unknown): string {
-  if (error instanceof HttpErrorResponse && error.status === 422 && typeof error.error === 'object' && error.error !== null) {
-    const errors = (error.error as { errors?: { message?: unknown }[] }).errors;
-    const messages = (errors ?? []).map((e) => e.message).filter((m): m is string => typeof m === 'string' && m.length > 0);
-    if (messages.length > 0) {
-      return [...new Set(messages)].join(' ');
-    }
-  }
-  return envelopeMessage(error);
-}
+/** The problem as the person should read it (the one function of the library). */
+export { envelopeProblem as logbookError } from '../../shared/wghn/problem';
 
 /** A new id for something the person adds in the administration (the service takes ids from the client). */
 export function newId(): string {

@@ -1,6 +1,3 @@
-import { HttpErrorResponse } from '@angular/common/http';
-import { GENERIC_ERROR } from '../absences/absence-models';
-
 export interface ReportLocation {
   id: string;
   name: string;
@@ -52,13 +49,4 @@ export function formatCreated(iso: string): string {
 
 export const locationNames = (report: Report): string => (report.locations.length ? report.locations.map((l) => l.name).join(', ') : 'Keine Filiale');
 
-/** The `message` of an error answer of the portal (`{success:false,message,errors[]}`). */
-export function envelopeMessage(error: unknown): string {
-  if (error instanceof HttpErrorResponse && typeof error.error === 'object' && error.error !== null) {
-    const message = (error.error as { message?: unknown }).message;
-    if (typeof message === 'string' && message) {
-      return message;
-    }
-  }
-  return GENERIC_ERROR;
-}
+export { envelopeMessage } from '../../shared/wghn/problem';

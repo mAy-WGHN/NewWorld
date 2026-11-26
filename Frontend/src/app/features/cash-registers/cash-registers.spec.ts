@@ -80,7 +80,7 @@ describe('cash register models', () => {
     const conflict = new HttpErrorResponse({ status: 409, error: { success: false, message: 'In dieser Filiale gibt es schon eine Kasse mit diesem Namen.', errors: [] } });
     expect(cashRegisterError(validation)).toBe('Dieser Wert darf nicht leer sein.');
     expect(cashRegisterError(conflict)).toContain('schon eine Kasse');
-    expect(cashRegisterError(new Error('boom'))).toContain('Fehler');
+    expect(cashRegisterError(new Error('boom'))).toContain('nicht geklappt');
   });
 });
 
@@ -341,7 +341,7 @@ describe('CashRegistersPage', () => {
 
     await click(all('[data-action="seal"]')[0]);
     expect(q('[data-testid="seal-form"]')!.textContent).toContain('Siegel anbringen');
-    expect(q('[data-testid="seal-person"]')!.textContent).toContain('Anna Admin'); // the default
+    expect(q('[data-testid="person-selected"]')!.textContent).toContain('Anna Admin'); // the default
     expect(q('[data-testid="seal-form"]')!.textContent).toContain('Datum und Uhrzeit werden automatisch gespeichert');
 
     await choosePhoto(photo());
@@ -390,19 +390,19 @@ describe('CashRegistersPage', () => {
     await click(all('[data-action="seal"]')[0]);
 
     await choosePhoto(photo());
-    await click(q('[data-testid="seal-person-change"]'));
-    expect(q('[data-testid="seal-person"]')).toBeNull();
+    await click(q('[data-action="clear-person"]'));
+    expect(q('[data-testid="person-selected"]')).toBeNull();
     await click(q('[data-testid="seal-save"]'));
     expect(q('[data-testid="error"]')!.textContent).toContain('wer das Siegel angebracht hat'); // nobody chosen yet
 
-    const search = q<HTMLInputElement>('[data-testid="seal-person-search"]')!;
+    const search = q<HTMLInputElement>('[data-testid="person-search"]')!;
     search.value = 'erik';
     search.dispatchEvent(new Event('input'));
     await new Promise((r) => setTimeout(r, 350)); // the search starts a moment after the last key
     await settle();
     expect(api.people).toHaveBeenCalledWith('erik');
-    await click(q('[data-testid="seal-person-option"]'));
-    expect(q('[data-testid="seal-person"]')!.textContent).toContain('Erika Mustermann');
+    await click(q('[data-testid="person-result"]'));
+    expect(q('[data-testid="person-selected"]')!.textContent).toContain('Erika Mustermann');
 
     await choosePhoto(photo());
     await click(q('[data-testid="seal-save"]'));

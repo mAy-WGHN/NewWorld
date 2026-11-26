@@ -53,7 +53,9 @@
               (keydown.arrowup)="move($event, -1)"
             >
               <strong>{{ r.name }}</strong>
-              <span class="ml-2 text-sm">Personalnummer {{ r.personnelNumber }}</span>
+              @if (r.personnelNumber) {
+                <span class="ml-2 text-sm">Personalnummer {{ r.personnelNumber }}</span>
+              }
               @if (r.position) {
                 <span class="ml-2 text-[13px] opacity-70">{{ r.position }}</span>
               }
