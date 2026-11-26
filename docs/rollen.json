@@ -111,7 +111,8 @@
         "preference:update-own",
         "logbook:review",
         "logbook:manage-template",
-        "cashregister:read"
+        "cashregister:read",
+        "cashregister:manage-reminders"
       ]
     },
     {

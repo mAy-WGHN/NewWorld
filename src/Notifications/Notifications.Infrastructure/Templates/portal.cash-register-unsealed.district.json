@@ -1,0 +1,17 @@
+{
+  "key": "portal.cash-register-unsealed.district",
+  "mandatory": true,
+  "placeholders": {},
+  "inApp": {
+    "title": "Kassen nicht versiegelt",
+    "body": "In Ihrem Bezirk sind Kassen noch nicht versiegelt. Details im Kassenregister."
+  },
+  "push": {
+    "title": "Neue Mitteilung im Portal",
+    "body": "Öffnen, um die Mitteilung zu lesen."
+  },
+  "email": {
+    "title": "Neue Mitteilung im Portal",
+    "body": "Es liegt eine neue Mitteilung für Sie im Portal bereit."
+  }
+}

@@ -10,7 +10,9 @@ import {
   StatusFilter,
   cashRegisterError,
   filterRegisters,
+  ReminderSettings,
   formatDateTime,
+  isValidTime,
   kindLabel,
 } from './cash-register-models';
 
@@ -38,6 +40,10 @@ export class CashRegistersPage {
   protected readonly canRecord = computed(() => this.auth.privileges().has('cashregister:record'));
   protected readonly canDelete = computed(() => this.auth.privileges().has('cashregister:delete'));
 
+  protected readonly canManageReminders = computed(() => this.auth.privileges().has('cashregister:manage-reminders'));
+  protected readonly reminder = signal<ReminderSettings | null>(null);
+  protected readonly reminderStatus = signal<string | null>(null);
+
   protected readonly data = signal<CashRegisterList | null>(null);
   protected readonly loading = signal(false);
   protected readonly busy = signal(false);
@@ -60,6 +66,42 @@ export class CashRegistersPage {
 
   constructor() {
     void this.load();
+    if (this.canManageReminders()) {
+      void this.loadReminder();
+    }
+  }
+
+  private async loadReminder(): Promise<void> {
+    try {
+      this.reminder.set(await this.api.reminderSettings());
+    } catch (error) {
+      this.error.set(cashRegisterError(error));
+    }
+  }
+
+  protected setReminder(field: 'enabled' | 'time', event: Event): void {
+    const target = event.target as HTMLInputElement;
+    this.reminderStatus.set(null);
+    this.reminder.update((r) => (r ? { ...r, [field]: field === 'enabled' ? target.checked : target.value } : r));
+  }
+
+  protected async saveReminder(): Promise<void> {
+    const settings = this.reminder();
+    if (!settings) {
+      return;
+    }
+    if (!isValidTime(settings.time)) {
+      this.error.set('Bitte eine Uhrzeit im Format HH:mm angeben, z. B. 18:00.');
+      return;
+    }
+    this.error.set(null);
+    this.reminderStatus.set(null);
+    try {
+      this.reminder.set(await this.api.saveReminderSettings(settings));
+      this.reminderStatus.set(settings.enabled ? `Die Erinnerung geht täglich ab ${settings.time} Uhr aus.` : 'Die Erinnerung ist ausgeschaltet.');
+    } catch (error) {
+      this.error.set(cashRegisterError(error));
+    }
   }
 
   protected async load(): Promise<void> {

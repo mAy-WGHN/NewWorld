@@ -49,7 +49,18 @@ export interface CashRegisterEvent {
   byName: string | null;
 }
 
-export type StatusFilter = 'all' | 'sealed' | 'notSealed';
+/** The daily reminder for registers that are not sealed; `time` is the local time of day as `HH:mm`. */
+export interface ReminderSettings {
+  enabled: boolean;
+  time: string;
+}
+
+/** True for `HH:mm` with a real hour and minute. */
+export function isValidTime(value: string): boolean {
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
+}
+
+export type StatusFilter ='all' | 'sealed' | 'notSealed';
 
 export const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
   { value: 'all', label: 'Alle' },

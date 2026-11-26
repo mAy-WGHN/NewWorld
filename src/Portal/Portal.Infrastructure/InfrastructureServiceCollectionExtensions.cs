@@ -48,6 +48,9 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<Logbook.LogbookRetentionService>();
         services.AddPostgresAdvisoryLock<PortalDbContext>(); // the reminders run on one instance at a time
         services.AddHostedService<Logbook.LogbookReminderBackgroundService>();
+        services.AddScoped<CashRegisters.CashRegisterNotifier>();
+        services.AddScoped<CashRegisters.CashRegisterReminderService>();
+        services.AddHostedService<CashRegisters.CashRegisterReminderBackgroundService>();
         var demoSeed = configuration.GetSection(Logbook.LogbookDemoSeedOptions.ConfigurationSection).Get<Logbook.LogbookDemoSeedOptions>() ?? new Logbook.LogbookDemoSeedOptions();
         if (demoSeed.IsActive)
         {

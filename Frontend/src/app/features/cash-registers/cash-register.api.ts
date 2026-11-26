@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom, map } from 'rxjs';
 import { ConfigService } from '../../core/config';
-import { CashRegister, CashRegisterEvent, CashRegisterList } from './cash-register-models';
+import { CashRegister, CashRegisterEvent, CashRegisterList, ReminderSettings } from './cash-register-models';
 
 interface Envelope<T> {
   success: boolean;
@@ -40,6 +40,14 @@ export class CashRegisterApi {
 
   delete(id: string): Promise<unknown> {
     return firstValueFrom(this.http.delete(this.url(`/${id}`)));
+  }
+
+  reminderSettings(): Promise<ReminderSettings> {
+    return firstValueFrom(this.http.get<Envelope<ReminderSettings>>(this.url('/reminder-settings')).pipe(map((a) => a.data)));
+  }
+
+  saveReminderSettings(settings: ReminderSettings): Promise<ReminderSettings> {
+    return firstValueFrom(this.http.put<Envelope<ReminderSettings>>(this.url('/reminder-settings'), settings).pipe(map((a) => a.data)));
   }
 
   /** "Filialhistorie": every step, newest first, of one store or of all. */

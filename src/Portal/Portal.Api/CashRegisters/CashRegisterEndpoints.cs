@@ -6,6 +6,7 @@ using Portal.Core;
 using Portal.Core.CashRegisters;
 using Portal.Infrastructure;
 using Portal.Infrastructure.CashRegisters;
+using Portal.Infrastructure.Logbook;
 using Shared.Authorization;
 
 namespace Portal.Api.CashRegisters;
@@ -24,6 +25,11 @@ public sealed record CashRegisterEventDto(Guid Id, Guid StoreId, string StoreNum
 
 public sealed record SaveCashRegisterRequest(Guid StoreId, string? Name);
 
+/// <summary><c>Time</c> is the local time of day as <c>HH:mm</c>.</summary>
+public sealed record CashRegisterReminderSettingsDto(bool Enabled, string Time);
+
+public sealed record SaveCashRegisterReminderSettingsRequest(bool? Enabled, string? Time);
+
 /// <summary>
 /// The Kassenregister (Filialbetrieb): the cash registers of the stores with their seal. Reading, recording (create, edit, renew the seal) and deleting are
 /// three privileges, each scopable by store. Recording or editing a register removes its seal, renewing sets it (TODO(Fachlogik): confirm this meaning).
@@ -36,13 +42,12 @@ public static class CashRegisterEndpoints
 
     public static WebApplication MapCashRegisterEndpoints(this WebApplication app)
     {
-        var read = AppPolicies.Privilege(PortalPrivileges.CashRegisterRead);
         var record = AppPolicies.Privilege(PortalPrivileges.CashRegisterRecord);
         var delete = AppPolicies.Privilege(PortalPrivileges.CashRegisterDelete);
 
-        app.MapGet("/api/cash-registers", async (Guid? storeId, ClaimsPrincipal user, ReportAccess access, PortalDbContext db, CancellationToken ct) =>
+        app.MapGet("/api/cash-registers", async (Guid? storeId, ClaimsPrincipal user, ReportAccess access, LogbookStructureStore structures, PortalDbContext db, CancellationToken ct) =>
             {
-                var stores = await StoresInReachAsync(access.ReachOf(user, PortalPrivileges.CashRegisterRead), db, ct);
+                var stores = await StoresInReachAsync(await ReadReachAsync(user, access, structures, ct), db, ct);
                 var ids = stores.Select(s => s.StoreId).ToList();
                 var registers = await db.CashRegisters.AsNoTracking().Where(r => ids.Contains(r.StoreId)).ToListAsync(ct);
                 var summary = new CashRegisterSummaryDto(stores.Count, registers.Count, registers.Count(r => r.SealedAt is not null), registers.Count(r => r.SealedAt is null));
@@ -54,7 +59,7 @@ public static class CashRegisterEndpoints
                     [.. stores.Select(s => new CashRegisterStoreDto(s.StoreId, s.StoreNumber, s.Name))],
                     [.. shown.OrderBy(r => byStore[r.StoreId].StoreNumber, StringComparer.Ordinal).ThenBy(r => r.Name, StringComparer.CurrentCultureIgnoreCase).Select(r => ToDto(r, byStore[r.StoreId], names))]));
             })
-            .RequireAuthorization(read);
+            .RequireAuthorization();
 
         app.MapPost("/api/cash-registers", async (SaveCashRegisterRequest request, ClaimsPrincipal user, ReportAccess access, PortalDbContext db, TimeProvider clock, CancellationToken ct) =>
             {
@@ -117,9 +122,9 @@ public static class CashRegisterEndpoints
             .RequireAuthorization(delete);
 
         // The history of one store or of all stores in reach, newest first.
-        app.MapGet("/api/cash-registers/history", async (Guid? storeId, int? take, ClaimsPrincipal user, ReportAccess access, PortalDbContext db, CancellationToken ct) =>
+        app.MapGet("/api/cash-registers/history", async (Guid? storeId, int? take, ClaimsPrincipal user, ReportAccess access, LogbookStructureStore structures, PortalDbContext db, CancellationToken ct) =>
             {
-                var scope = access.ReachOf(user, PortalPrivileges.CashRegisterRead);
+                var scope = await ReadReachAsync(user, access, structures, ct);
                 if (storeId is { } one && (scope is null || (!scope.Unrestricted && !scope.StoreIds.Contains(one))))
                 {
                     throw new ApiException(StatusCodes.Status403Forbidden, EnvelopeAuthorizationResultHandler.Message("read"));
@@ -138,9 +143,56 @@ public static class CashRegisterEndpoints
                     e.Id, e.StoreId, stores[e.StoreId].StoreNumber, stores[e.StoreId].Name, e.RegisterId, e.RegisterName, e.Kind.ToString().ToLowerInvariant(),
                     e.At, CashRegisterInitials.Of(names.GetValueOrDefault(e.By)), names.GetValueOrDefault(e.By))));
             })
-            .RequireAuthorization(read);
+            .RequireAuthorization();
+
+        // The daily reminder for registers that are not sealed: on or off and the local time of day.
+        var manage = AppPolicies.Privilege(PortalPrivileges.CashRegisterManageReminders);
+        app.MapGet("/api/cash-registers/reminder-settings", async (CashRegisterReminderService service, CancellationToken ct) =>
+                Answer.Ok(ToDto(await service.GetSettingsAsync(ct))))
+            .RequireAuthorization(manage);
+
+        app.MapPut("/api/cash-registers/reminder-settings", async (SaveCashRegisterReminderSettingsRequest request, ClaimsPrincipal user, CashRegisterReminderService service, CancellationToken ct) =>
+            {
+                var validator = new Validator();
+                if (request.Enabled is null)
+                {
+                    validator.Add("enabled", Validator.Required);
+                }
+
+                if (!TimeOnly.TryParseExact(request.Time, "HH:mm", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var time))
+                {
+                    validator.Add("time", "Bitte eine Uhrzeit im Format HH:mm angeben, z. B. 18:00.");
+                }
+
+                validator.ThrowIfInvalid();
+                return Answer.Ok(ToDto(await service.SaveSettingsAsync(new CashRegisterReminderSettings(request.Enabled!.Value, time), Me(user), ct)));
+            })
+            .RequireAuthorization(manage);
 
         return app;
+    }
+
+    private static CashRegisterReminderSettingsDto ToDto(CashRegisterReminderSettings s) => new(s.Enabled, s.Time.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture));
+
+    /// <summary>
+    /// Who may look and where: the stores of the privilege plus <b>always every store of the districts a person leads</b> (the hierarchy of the Berichtsheft),
+    /// even without the privilege. Nobody with neither gets 403.
+    /// </summary>
+    private static async Task<PrivilegeReach> ReadReachAsync(ClaimsPrincipal user, ReportAccess access, LogbookStructureStore structures, CancellationToken ct)
+    {
+        var own = access.ReachOf(user, PortalPrivileges.CashRegisterRead);
+        if (own is { Unrestricted: true })
+        {
+            return own;
+        }
+
+        var district = CashRegisterReach.DistrictStores(await structures.LoadAsync(ct), Me(user));
+        if (own is null && district.Count == 0)
+        {
+            throw new ApiException(StatusCodes.Status403Forbidden, EnvelopeAuthorizationResultHandler.Message("read"));
+        }
+
+        return PrivilegeReach.Stores((own?.StoreIds ?? new HashSet<Guid>()).Concat(district), own?.EmployeeIds ?? new HashSet<Guid>());
     }
 
     private static Guid Me(ClaimsPrincipal user) => Guid.TryParse(user.FindFirst(AppClaimTypes.EmployeeId)?.Value, out var id) ? id : Guid.Empty;

@@ -1,0 +1,17 @@
+{
+  "key": "portal.cash-register-unsealed.store",
+  "mandatory": true,
+  "placeholders": {},
+  "inApp": {
+    "title": "Kasse nicht versiegelt",
+    "body": "In Ihrer Filiale ist mindestens eine Kasse noch nicht versiegelt. Bitte im Kassenregister das Siegel erneuern."
+  },
+  "push": {
+    "title": "Neue Mitteilung im Portal",
+    "body": "Öffnen, um die Mitteilung zu lesen."
+  },
+  "email": {
+    "title": "Neue Mitteilung im Portal",
+    "body": "Es liegt eine neue Mitteilung für Sie im Portal bereit."
+  }
+}

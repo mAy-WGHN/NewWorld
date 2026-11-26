@@ -5,7 +5,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { AuthService } from '../../core/auth/auth.service';
 import { PrivilegeSet } from '../../core/auth/privileges';
 import { CashRegisterApi } from './cash-register.api';
-import { CashRegister, CashRegisterList, cashRegisterError, filterRegisters, formatDateTime, kindLabel } from './cash-register-models';
+import { CashRegister, CashRegisterList, cashRegisterError, filterRegisters, formatDateTime, isValidTime, kindLabel } from './cash-register-models';
 import { CashRegistersPage } from './cash-registers.page';
 
 const register = (patch: Partial<CashRegister>): CashRegister => ({
@@ -53,6 +53,15 @@ describe('cash register models', () => {
     expect(kindLabel('sealed')).toBe('Siegel erneuert');
     expect(kindLabel('deleted')).toBe('Gelöscht');
     expect(kindLabel('neu')).toBe('neu');
+  });
+
+  it('knows a valid time of day', () => {
+    for (const ok of ['00:00', '08:05', '18:00', '23:59']) {
+      expect(isValidTime(ok)).toBe(true);
+    }
+    for (const bad of ['', '8:05', '24:00', '18:60', '18', '18:00 Uhr']) {
+      expect(isValidTime(bad)).toBe(false);
+    }
   });
 
   it('formats dates and leaves a broken value as it is', () => {
@@ -129,7 +138,7 @@ describe('CashRegisterApi', () => {
 });
 
 describe('CashRegistersPage', () => {
-  let api: Record<'list' | 'create' | 'update' | 'seal' | 'delete' | 'history', ReturnType<typeof vi.fn>>;
+  let api: Record<'list' | 'create' | 'update' | 'seal' | 'delete' | 'history' | 'reminderSettings' | 'saveReminderSettings', ReturnType<typeof vi.fn>>;
   let fixture: ComponentFixture<CashRegistersPage>;
   let root: HTMLElement;
 
@@ -172,6 +181,8 @@ describe('CashRegistersPage', () => {
       update: vi.fn().mockResolvedValue(first),
       seal: vi.fn().mockResolvedValue(second),
       delete: vi.fn().mockResolvedValue(undefined),
+      reminderSettings: vi.fn().mockResolvedValue({ enabled: true, time: '18:00' }),
+      saveReminderSettings: vi.fn(),
       history: vi.fn().mockResolvedValue([
         { id: 'e1', storeId: 's10', storeNumber: '0010', storeName: 'Augsburg Oberhausen', registerId: 'r1', registerName: 'WGHN Kasse 1', kind: 'recorded', at: '2026-11-25T15:52:00Z', by: 'AvS', byName: 'Anna von Schmidt' },
       ]),
@@ -297,6 +308,45 @@ describe('CashRegistersPage', () => {
     expect(q('[data-testid="create-button"]')).toBeNull();
     expect(all('[data-action]')).toHaveLength(0);
     expect(all('[data-testid="row"]')).toHaveLength(2);
+  });
+
+  it('shows the reminder settings only with the privilege and saves them', async () => {
+    api.reminderSettings = vi.fn().mockResolvedValue({ enabled: true, time: '18:00' });
+    api.saveReminderSettings = vi.fn().mockImplementation((s) => Promise.resolve(s));
+    await create(grant('cashregister:read', 'cashregister:manage-reminders'));
+
+    expect((q('[data-testid="reminder-time"]') as HTMLInputElement).value).toBe('18:00');
+    await type('[data-testid="reminder-time"]', '07:45');
+    await click(q('[data-testid="reminder-save"]'));
+
+    expect(api.saveReminderSettings).toHaveBeenCalledWith({ enabled: true, time: '07:45' });
+    expect(q('[data-testid="reminder-status"]')!.textContent).toContain('07:45');
+
+    q('[data-testid="reminder-enabled"]')!.click();
+    await settle();
+    await click(q('[data-testid="reminder-save"]'));
+    expect(api.saveReminderSettings).toHaveBeenLastCalledWith({ enabled: false, time: '07:45' });
+    expect(q('[data-testid="reminder-status"]')!.textContent).toContain('ausgeschaltet');
+  });
+
+  it('does not offer the reminder settings without the privilege and refuses a wrong time', async () => {
+    api.reminderSettings = vi.fn().mockResolvedValue({ enabled: true, time: '18:00' });
+    api.saveReminderSettings = vi.fn();
+    await create(grant('cashregister:read'));
+    expect(q('[data-testid="reminder"]')).toBeNull();
+    expect(api.reminderSettings).not.toHaveBeenCalled();
+  });
+
+  it('refuses a time that is not HH:mm before it reaches the service', async () => {
+    api.reminderSettings = vi.fn().mockResolvedValue({ enabled: true, time: '18:00' });
+    api.saveReminderSettings = vi.fn();
+    await create(grant('cashregister:read', 'cashregister:manage-reminders'));
+
+    await type('[data-testid="reminder-time"]', '');
+    await click(q('[data-testid="reminder-save"]'));
+
+    expect(api.saveReminderSettings).not.toHaveBeenCalled();
+    expect(q('[data-testid="error"]')!.textContent).toContain('HH:mm');
   });
 
   it('tells when there is no register yet', async () => {

@@ -184,3 +184,27 @@
 } @else if (loading()) {
   <p class="m-0 text-on-surface-variant" role="status">Wird geladen …</p>
 }
+
+@if (canManageReminders() && reminder(); as r) {
+  <section class="mt-6 rounded-2xl border border-outline-variant bg-surface-container-low px-5 py-4" aria-labelledby="reminder-title" data-testid="reminder">
+    <h2 id="reminder-title" class="m-0 mb-1 text-lg font-medium">Tägliche Erinnerung</h2>
+    <p class="m-0 mb-3 text-sm text-on-surface-variant">
+      Erinnert die Filialleitung an nicht versiegelte Kassen ihrer Filiale. Die Bezirksleitungen werden immer informiert und sehen alle Kassen ihres Bezirks.
+    </p>
+    <div class="flex flex-wrap items-center gap-4">
+      <label class="flex items-center gap-2">
+        <input type="checkbox" data-testid="reminder-enabled" [checked]="r.enabled" (change)="setReminder('enabled', $event)" />
+        Erinnerung einschalten
+      </label>
+      <label class="flex items-center gap-2">
+        ab
+        <input class="rounded-xl border border-outline-variant bg-surface px-3 py-2" type="time" data-testid="reminder-time" [value]="r.time" (input)="setReminder('time', $event)" />
+        Uhr
+      </label>
+      <button mat-flat-button type="button" data-testid="reminder-save" (click)="saveReminder()">Speichern</button>
+    </div>
+    @if (reminderStatus(); as message) {
+      <p class="m-0 mt-3 text-on-surface-variant" role="status" data-testid="reminder-status">{{ message }}</p>
+    }
+  </section>
+}

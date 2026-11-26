@@ -112,6 +112,62 @@ namespace Portal.Infrastructure.Migrations
                     b.ToTable("cash_registers", "portal");
                 });
 
+            modelBuilder.Entity("Portal.Infrastructure.CashRegisters.CashRegisterReminderRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateOnly>("Day")
+                        .HasColumnType("date")
+                        .HasColumnName("day");
+
+                    b.Property<int>("Notifications")
+                        .HasColumnType("integer")
+                        .HasColumnName("notifications");
+
+                    b.Property<DateTimeOffset>("SentAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("sent_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_cash_register_reminders");
+
+                    b.HasIndex("Day")
+                        .IsUnique()
+                        .HasDatabaseName("ix_cash_register_reminders_day");
+
+                    b.ToTable("cash_register_reminders", "portal");
+                });
+
+            modelBuilder.Entity("Portal.Infrastructure.CashRegisters.CashRegisterReminderSettingsRecord", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("ChangedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("changed_at");
+
+                    b.Property<Guid?>("ChangedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("changed_by");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("enabled");
+
+                    b.Property<TimeOnly>("Time")
+                        .HasColumnType("time without time zone")
+                        .HasColumnName("time");
+
+                    b.HasKey("Id")
+                        .HasName("pk_cash_register_reminder_settings");
+
+                    b.ToTable("cash_register_reminder_settings", "portal");
+                });
+
             modelBuilder.Entity("Portal.Infrastructure.Faqs.FaqAttachmentRecord", b =>
                 {
                     b.Property<Guid>("Id")

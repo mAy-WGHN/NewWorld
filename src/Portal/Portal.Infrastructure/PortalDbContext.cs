@@ -38,6 +38,8 @@ public sealed class PortalDbContext(DbContextOptions<PortalDbContext> options) :
     public DbSet<LogbookReminderSettingsRecord> LogbookReminderSettings => Set<LogbookReminderSettingsRecord>();
     public DbSet<CashRegisterRecord> CashRegisters => Set<CashRegisterRecord>();
     public DbSet<CashRegisterEventRecord> CashRegisterEvents => Set<CashRegisterEventRecord>();
+    public DbSet<CashRegisterReminderSettingsRecord> CashRegisterReminderSettings => Set<CashRegisterReminderSettingsRecord>();
+    public DbSet<CashRegisterReminderRecord> CashRegisterReminders => Set<CashRegisterReminderRecord>();
 
     /// <summary>Provider settings shared by runtime and design time (migrations).</summary>
     public static DbContextOptionsBuilder Configure(DbContextOptionsBuilder options, string connectionString) => options
@@ -193,6 +195,19 @@ public sealed class PortalDbContext(DbContextOptions<PortalDbContext> options) :
             b.Property(r => r.Id).ValueGeneratedNever();
             b.Property(r => r.Name).HasMaxLength(100);
             b.HasIndex(r => new { r.StoreId, r.Name }).IsUnique();
+        });
+        modelBuilder.Entity<CashRegisterReminderSettingsRecord>(b =>
+        {
+            b.ToTable("cash_register_reminder_settings");
+            b.HasKey(s => s.Id);
+            b.Property(s => s.Id).ValueGeneratedNever();
+        });
+        modelBuilder.Entity<CashRegisterReminderRecord>(b =>
+        {
+            b.ToTable("cash_register_reminders");
+            b.HasKey(r => r.Id);
+            b.Property(r => r.Id).ValueGeneratedNever();
+            b.HasIndex(r => r.Day).IsUnique();
         });
         modelBuilder.Entity<CashRegisterEventRecord>(b =>
         {
