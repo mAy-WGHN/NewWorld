@@ -21,11 +21,13 @@ interface Draft {
   id: string | null;
   storeId: string;
   name: string;
+  /** Whether the drawer is sealed: the seal can be set or lifted when recording and editing. */
+  sealed: boolean;
 }
 
 /**
- * "Kassenregister" (Filialbetrieb): the cash registers of the stores with their seal. Recording or editing a register removes its seal, "Siegel erneuern"
- * sets it. "Filialhistorie" shows every step. The screen only guides the person (what the buttons offer follows the privileges), the service decides
+ * "Kassenregister" (Filialbetrieb): the cash registers of the stores with their seal. The seal is set explicitly: "Siegel erneuern" or "Versiegelt" in the
+ * form sets it, "Siegel aufheben" (or taking the tick away when editing) marks the drawer as not sealed. "Filialhistorie" shows every step. The screen only guides the person (what the buttons offer follows the privileges), the service decides
  * and limits everything to the stores of the privilege.
  */
 @Component({
@@ -119,17 +121,22 @@ export class CashRegistersPage {
   protected startCreate(): void {
     const stores = this.data()?.stores ?? [];
     this.status.set(null);
-    this.draft.set({ id: null, storeId: this.storeFilter() || (stores.length === 1 ? stores[0].id : ''), name: '' });
+    this.draft.set({ id: null, storeId: this.storeFilter() || (stores.length === 1 ? stores[0].id : ''), name: '', sealed: false });
   }
 
   protected startEdit(register: CashRegister): void {
     this.status.set(null);
-    this.draft.set({ id: register.id, storeId: register.storeId, name: register.name });
+    this.draft.set({ id: register.id, storeId: register.storeId, name: register.name, sealed: register.sealed });
   }
 
   protected setDraft(field: 'storeId' | 'name', event: Event): void {
     const value = (event.target as HTMLInputElement | HTMLSelectElement).value;
     this.draft.update((d) => (d ? { ...d, [field]: value } : d));
+  }
+
+  protected setDraftSealed(event: Event): void {
+    const sealed = (event.target as HTMLInputElement).checked;
+    this.draft.update((d) => (d ? { ...d, sealed } : d));
   }
 
   protected async save(): Promise<void> {
@@ -144,14 +151,18 @@ export class CashRegistersPage {
     await this.act(
       async () => {
         if (draft.id) {
-          await this.api.update(draft.id, draft.storeId, draft.name.trim());
+          await this.api.update(draft.id, draft.storeId, draft.name.trim(), draft.sealed);
         } else {
-          await this.api.create(draft.storeId, draft.name.trim());
+          await this.api.create(draft.storeId, draft.name.trim(), draft.sealed);
         }
         this.draft.set(null);
       },
-      draft.id ? 'Die Kasse wurde bearbeitet und neu erfasst, das Siegel entfällt.' : 'Die Kasse wurde erfasst.',
+      draft.id ? 'Die Kasse wurde bearbeitet.' : 'Die Kasse wurde erfasst.',
     );
+  }
+
+  protected async liftSeal(register: CashRegister): Promise<void> {
+    await this.act(() => this.api.unseal(register.id), `Das Siegel von „${register.name}“ wurde aufgehoben, die Kasse gilt als nicht versiegelt.`);
   }
 
   protected async renewSeal(register: CashRegister): Promise<void> {

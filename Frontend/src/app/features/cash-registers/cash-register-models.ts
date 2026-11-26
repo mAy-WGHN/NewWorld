@@ -34,7 +34,7 @@ export interface CashRegisterList {
   items: CashRegister[];
 }
 
-export type CashRegisterEventKind = 'recorded' | 'changed' | 'sealed' | 'deleted';
+export type CashRegisterEventKind = 'recorded' | 'changed' | 'sealed' | 'unsealed' | 'deleted';
 
 export interface CashRegisterEvent {
   id: string;
@@ -72,6 +72,7 @@ const KIND_LABELS: Record<CashRegisterEventKind, string> = {
   recorded: 'Erfasst',
   changed: 'Bearbeitet und neu erfasst',
   sealed: 'Siegel erneuert',
+  unsealed: 'Siegel aufgehoben',
   deleted: 'Gelöscht',
 };
 

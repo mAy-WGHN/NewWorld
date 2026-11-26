@@ -19,6 +19,12 @@ public sealed class CashRegisterEndpointTests(PostgresFixture postgres) : IClass
         return await DataAsync(response);
     }
 
+    private static async Task SealAsync(PortalApi api, Guid id)
+    {
+        using var response = await api.SendAsync(HttpMethod.Post, $"/api/cash-registers/{id}/seal", Hanna);
+        response.StatusCode.ShouldBe(HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
+    }
+
     private static async Task<JsonElement> ListAsync(PortalApi api, Guid person, string query = "")
     {
         using var response = await api.SendAsync(HttpMethod.Get, "/api/cash-registers" + query, person);
@@ -61,7 +67,7 @@ public sealed class CashRegisterEndpointTests(PostgresFixture postgres) : IClass
     }
 
     [Fact]
-    public async Task Renewing_the_seal_seals_and_editing_the_register_removes_the_seal_again()
+    public async Task Renewing_the_seal_seals_and_editing_without_a_seal_state_keeps_it()
     {
         await using var api = await StartAsync(postgres);
         var id = (await CreateAsync(api, Hanna, StoreA, "Kasse 1")).GetProperty("id").GetGuid();
@@ -72,8 +78,77 @@ public sealed class CashRegisterEndpointTests(PostgresFixture postgres) : IClass
         using var edit = await api.SendAsync(HttpMethod.Put, $"/api/cash-registers/{id}", Hanna, new { storeId = StoreA, name = "Kasse eins" });
         edit.StatusCode.ShouldBe(HttpStatusCode.OK, await edit.Content.ReadAsStringAsync());
         var edited = await DataAsync(edit);
-        edited.GetProperty("sealed").GetBoolean().ShouldBeFalse();
+        edited.GetProperty("sealed").GetBoolean().ShouldBeTrue();
         edited.GetProperty("name").GetString().ShouldBe("Kasse eins");
+    }
+
+    [Fact]
+    public async Task The_seal_can_be_lifted_when_editing_and_set_again()
+    {
+        await using var api = await StartAsync(postgres);
+        var id = (await CreateAsync(api, Hanna, StoreA, "Kasse 1")).GetProperty("id").GetGuid();
+        await SealAsync(api, id);
+
+        using var lift = await api.SendAsync(HttpMethod.Put, $"/api/cash-registers/{id}", Hanna, new { storeId = StoreA, name = "Kasse 1", @sealed = false });
+        var lifted = await DataAsync(lift);
+        lifted.GetProperty("sealed").GetBoolean().ShouldBeFalse();
+        lifted.GetProperty("sealedAt").ValueKind.ShouldBe(JsonValueKind.Null);
+
+        using var again = await api.SendAsync(HttpMethod.Put, $"/api/cash-registers/{id}", Hanna, new { storeId = StoreA, name = "Kasse 1", @sealed = true });
+        (await DataAsync(again)).GetProperty("sealed").GetBoolean().ShouldBeTrue();
+
+        using var history = await api.SendAsync(HttpMethod.Get, $"/api/cash-registers/history?storeId={StoreA}", Hanna);
+        (await DataAsync(history)).EnumerateArray().Select(e => e.GetProperty("kind").GetString()).ShouldBe(["sealed", "unsealed", "sealed", "recorded"]);
+    }
+
+    [Fact]
+    public async Task Lifting_the_seal_has_its_own_action_and_does_nothing_if_there_is_no_seal()
+    {
+        await using var api = await StartAsync(postgres);
+        var id = (await CreateAsync(api, Hanna, StoreA, "Kasse 1")).GetProperty("id").GetGuid();
+        await SealAsync(api, id);
+
+        using var unseal = await api.SendAsync(HttpMethod.Post, $"/api/cash-registers/{id}/unseal", Hanna);
+        unseal.StatusCode.ShouldBe(HttpStatusCode.OK, await unseal.Content.ReadAsStringAsync());
+        (await DataAsync(unseal)).GetProperty("sealed").GetBoolean().ShouldBeFalse();
+        using var twice = await api.SendAsync(HttpMethod.Post, $"/api/cash-registers/{id}/unseal", Hanna);
+        twice.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        using var history = await api.SendAsync(HttpMethod.Get, $"/api/cash-registers/history?storeId={StoreA}", Hanna);
+        (await DataAsync(history)).EnumerateArray().Select(e => e.GetProperty("kind").GetString()).ShouldBe(["unsealed", "sealed", "recorded"]);
+    }
+
+    [Fact]
+    public async Task A_register_can_be_recorded_as_sealed_right_away()
+    {
+        await using var api = await StartAsync(postgres);
+
+        using var response = await api.SendAsync(HttpMethod.Post, "/api/cash-registers", Hanna, new { storeId = StoreA, name = "Kasse 1", @sealed = true });
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Created, await response.Content.ReadAsStringAsync());
+        (await DataAsync(response)).GetProperty("sealed").GetBoolean().ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Lifting_the_seal_needs_the_right_to_record_and_a_register_in_reach()
+    {
+        await using var api = await StartAsync(postgres);
+        var own = (await CreateAsync(api, Hanna, StoreA, "Kasse A")).GetProperty("id").GetGuid();
+        var foreign = (await CreateAsync(api, Hanna, StoreB, "Kasse B")).GetProperty("id").GetGuid();
+        api.Grant(Erika, new TestGrant(PortalPrivileges.CashRegisterRead, Unrestricted: true), new TestGrant(PortalPrivileges.CashRegisterRecord, StoreIds: [StoreA]));
+        api.Grant(Ben, new TestGrant(PortalPrivileges.CashRegisterRead, Unrestricted: true));
+
+        using var readOnly = await api.SendAsync(HttpMethod.Post, $"/api/cash-registers/{own}/unseal", Ben);
+        using var outOfReach = await api.SendAsync(HttpMethod.Post, $"/api/cash-registers/{foreign}/unseal", Erika);
+        using var unknown = await api.SendAsync(HttpMethod.Post, $"/api/cash-registers/{Guid.NewGuid()}/unseal", Hanna);
+        using var anonymous = await api.SendAsync(HttpMethod.Post, $"/api/cash-registers/{own}/unseal", null);
+        using var fine = await api.SendAsync(HttpMethod.Post, $"/api/cash-registers/{own}/unseal", Erika);
+
+        readOnly.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        outOfReach.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        unknown.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        anonymous.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        fine.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
     [Fact]

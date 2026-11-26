@@ -3,8 +3,8 @@ using Portal.Core.CashRegisters;
 namespace Portal.Infrastructure.CashRegisters;
 
 /// <summary>
-/// A cash register of a store. TODO(Fachlogik): the meaning of "sealed" is derived from the list of the Kassenregister: recording (or editing) a register
-/// removes its seal, renewing the seal sets it. The status is <see cref="SealedAt"/> being set.
+/// A cash register of a store. TODO(Fachlogik): "sealed" is the state of the drawer, set explicitly (seal renewed or lifted); the status is
+/// <see cref="SealedAt"/> being set. A new register starts not sealed.
 /// </summary>
 public sealed class CashRegisterRecord
 {

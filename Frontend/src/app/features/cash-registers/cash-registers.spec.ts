@@ -51,6 +51,7 @@ describe('cash register models', () => {
   it('names the steps of the history in German and leaves unknown ones as they are', () => {
     expect(kindLabel('recorded')).toBe('Erfasst');
     expect(kindLabel('sealed')).toBe('Siegel erneuert');
+    expect(kindLabel('unsealed')).toBe('Siegel aufgehoben');
     expect(kindLabel('deleted')).toBe('Gelöscht');
     expect(kindLabel('neu')).toBe('neu');
   });
@@ -97,16 +98,16 @@ describe('CashRegisterApi', () => {
   });
 
   it('sends create, edit, seal and delete to the right places', async () => {
-    const created = api.create('s10', 'Kasse 2');
+    const created = api.create('s10', 'Kasse 2', true);
     const create = http.expectOne('/svc/portal/api/cash-registers');
     expect(create.request.method).toBe('POST');
-    expect(create.request.body).toEqual({ storeId: 's10', name: 'Kasse 2' });
+    expect(create.request.body).toEqual({ storeId: 's10', name: 'Kasse 2', sealed: true });
     create.flush({ success: true, data: first });
 
-    const edited = api.update('r1', 's12', 'Kasse 3');
+    const edited = api.update('r1', 's12', 'Kasse 3', false);
     const edit = http.expectOne('/svc/portal/api/cash-registers/r1');
     expect(edit.request.method).toBe('PUT');
-    expect(edit.request.body).toEqual({ storeId: 's12', name: 'Kasse 3' });
+    expect(edit.request.body).toEqual({ storeId: 's12', name: 'Kasse 3', sealed: false });
     edit.flush({ success: true, data: first });
 
     const sealed = api.seal('r1');
@@ -114,12 +115,17 @@ describe('CashRegisterApi', () => {
     expect(seal.request.method).toBe('POST');
     seal.flush({ success: true, data: second });
 
+    const lifted = api.unseal('r1');
+    const unseal = http.expectOne('/svc/portal/api/cash-registers/r1/unseal');
+    expect(unseal.request.method).toBe('POST');
+    unseal.flush({ success: true, data: first });
+
     const deleted = api.delete('r1');
     const del = http.expectOne('/svc/portal/api/cash-registers/r1');
     expect(del.request.method).toBe('DELETE');
     del.flush(null, { status: 204, statusText: 'No Content' });
 
-    await Promise.all([created, edited, sealed, deleted]);
+    await Promise.all([created, edited, sealed, lifted, deleted]);
   });
 
   it('asks for the history of one store or of all', async () => {
@@ -138,7 +144,7 @@ describe('CashRegisterApi', () => {
 });
 
 describe('CashRegistersPage', () => {
-  let api: Record<'list' | 'create' | 'update' | 'seal' | 'delete' | 'history' | 'reminderSettings' | 'saveReminderSettings', ReturnType<typeof vi.fn>>;
+  let api: Record<'list' | 'create' | 'update' | 'seal' | 'unseal' | 'delete' | 'history' | 'reminderSettings' | 'saveReminderSettings', ReturnType<typeof vi.fn>>;
   let fixture: ComponentFixture<CashRegistersPage>;
   let root: HTMLElement;
 
@@ -180,6 +186,7 @@ describe('CashRegistersPage', () => {
       create: vi.fn().mockResolvedValue(first),
       update: vi.fn().mockResolvedValue(first),
       seal: vi.fn().mockResolvedValue(second),
+      unseal: vi.fn().mockResolvedValue(first),
       delete: vi.fn().mockResolvedValue(undefined),
       reminderSettings: vi.fn().mockResolvedValue({ enabled: true, time: '18:00' }),
       saveReminderSettings: vi.fn(),
@@ -236,7 +243,7 @@ describe('CashRegistersPage', () => {
     await type('[data-testid="form-name"]', ' Kasse 2 ');
     await click(q('[data-testid="form-save"]'));
 
-    expect(api.create).toHaveBeenCalledWith('s12', 'Kasse 2');
+    expect(api.create).toHaveBeenCalledWith('s12', 'Kasse 2', false);
     expect(api.list).toHaveBeenCalledTimes(2);
     expect(q('[data-testid="form"]')).toBeNull();
     expect(q('[data-testid="status"]')!.textContent).toContain('erfasst');
@@ -247,11 +254,11 @@ describe('CashRegistersPage', () => {
 
     await click(all('[data-action="edit"]')[0]);
     expect((q('[data-testid="form-name"]') as HTMLInputElement).value).toBe('WGHN Kasse 1');
-    expect(q('[data-testid="form"]')!.textContent).toContain('Siegel entfällt');
+    expect(q('[data-testid="form"]')!.textContent).toContain('neu erfasst');
     await type('[data-testid="form-name"]', 'WGHN Kasse 9');
     await click(q('[data-testid="form-save"]'));
 
-    expect(api.update).toHaveBeenCalledWith('r1', 's10', 'WGHN Kasse 9');
+    expect(api.update).toHaveBeenCalledWith('r1', 's10', 'WGHN Kasse 9', false);
   });
 
   it('renews the seal', async () => {
@@ -261,6 +268,44 @@ describe('CashRegistersPage', () => {
 
     expect(api.seal).toHaveBeenCalledWith('r1');
     expect(q('[data-testid="status"]')!.textContent).toContain('Siegel');
+  });
+
+  it('lifts the seal only for a sealed register', async () => {
+    await create();
+
+    const buttons = all('[data-action="unseal"]');
+    expect(buttons).toHaveLength(1); // only the second register is sealed
+    await click(buttons[0]);
+
+    expect(api.unseal).toHaveBeenCalledWith('r2');
+    expect(q('[data-testid="status"]')!.textContent).toContain('nicht versiegelt');
+  });
+
+  it('sets the seal state in the form: shows it for a sealed register and sends the changed tick', async () => {
+    await create();
+
+    await click(all('[data-action="edit"]')[1]); // the sealed register
+    const tick = q<HTMLInputElement>('[data-testid="form-sealed"]')!;
+    expect(tick.checked).toBe(true);
+    tick.click();
+    await settle();
+    await click(q('[data-testid="form-save"]'));
+
+    expect(api.update).toHaveBeenCalledWith('r2', 's12', 'Kasse 1', false);
+  });
+
+  it('records a new register as sealed when the tick is set', async () => {
+    await create();
+
+    await click(q('[data-testid="create-button"]'));
+    expect(q<HTMLInputElement>('[data-testid="form-sealed"]')!.checked).toBe(false);
+    await type('[data-testid="form-store"]', 's10', 'change');
+    await type('[data-testid="form-name"]', 'Kasse 7');
+    q<HTMLInputElement>('[data-testid="form-sealed"]')!.click();
+    await settle();
+    await click(q('[data-testid="form-save"]'));
+
+    expect(api.create).toHaveBeenCalledWith('s10', 'Kasse 7', true);
   });
 
   it('asks before deleting: the first click only asks, the second deletes', async () => {

@@ -23,14 +23,19 @@ export class CashRegisterApi {
     return firstValueFrom(this.http.get<Envelope<CashRegisterList>>(this.url()).pipe(map((a) => a.data)));
   }
 
-  /** "Kasse erfassen". */
-  create(storeId: string, name: string): Promise<CashRegister> {
-    return firstValueFrom(this.http.post<Envelope<CashRegister>>(this.url(), { storeId, name }).pipe(map((a) => a.data)));
+  /** "Kasse erfassen"; `sealed` says whether the drawer is sealed right away. */
+  create(storeId: string, name: string, sealed = false): Promise<CashRegister> {
+    return firstValueFrom(this.http.post<Envelope<CashRegister>>(this.url(), { storeId, name, sealed }).pipe(map((a) => a.data)));
   }
 
-  /** "Bearbeiten": counts as a new recording, the seal falls away. */
-  update(id: string, storeId: string, name: string): Promise<CashRegister> {
-    return firstValueFrom(this.http.put<Envelope<CashRegister>>(this.url(`/${id}`), { storeId, name }).pipe(map((a) => a.data)));
+  /** "Bearbeiten": name, store and whether the drawer is sealed; counts as a new recording. */
+  update(id: string, storeId: string, name: string, sealed: boolean): Promise<CashRegister> {
+    return firstValueFrom(this.http.put<Envelope<CashRegister>>(this.url(`/${id}`), { storeId, name, sealed }).pipe(map((a) => a.data)));
+  }
+
+  /** "Siegel aufheben": the drawer is not sealed any more. */
+  unseal(id: string): Promise<CashRegister> {
+    return firstValueFrom(this.http.post<Envelope<CashRegister>>(this.url(`/${id}/unseal`), {}).pipe(map((a) => a.data)));
   }
 
   /** "Siegel erneuern". */

@@ -62,4 +62,4 @@ Neue Datenbank (Schema `portal`: `faqs`, `faq_images`, `reports`, `report_locati
 
 ## Kassenregister
 
-Siehe Entscheidung 50 in `CLAUDE.md`: Kassen je Filiale mit Versiegelung (`/api/cash-registers`), Filialhistorie, Rechte `cashregister:read/record/delete` (je Filiale begrenzbar). Offen: Bedeutung von „versiegelt“ bestätigen (derzeit: Erfassen oder Bearbeiten entfernt das Siegel, „Siegel erneuern“ setzt es), Siegelnummern, Hinweis bei nicht versiegelten Kassen.
+Siehe Entscheidung 50 in `CLAUDE.md`: Kassen je Filiale mit Versiegelung (`/api/cash-registers`), Filialhistorie, Rechte `cashregister:read/record/delete` (je Filiale begrenzbar). Das Siegel wird ausdrücklich gesetzt oder aufgehoben (Siegel erneuern, Siegel aufheben, Häkchen beim Bearbeiten). Offen: genaue fachliche Bedeutung (z. B. Begründung beim Aufheben), Siegelnummern, Hinweis bei nicht versiegelten Kassen.

@@ -23,7 +23,8 @@ public sealed record CashRegisterListDto(CashRegisterSummaryDto Summary, IReadOn
 
 public sealed record CashRegisterEventDto(Guid Id, Guid StoreId, string StoreNumber, string StoreName, Guid RegisterId, string RegisterName, string Kind, DateTimeOffset At, string By, string? ByName);
 
-public sealed record SaveCashRegisterRequest(Guid StoreId, string? Name);
+/// <summary><c>Sealed</c>: the seal state to set; left out when editing it stays as it is, left out when creating the register starts not sealed.</summary>
+public sealed record SaveCashRegisterRequest(Guid StoreId, string? Name, bool? Sealed = null);
 
 /// <summary><c>Time</c> is the local time of day as <c>HH:mm</c>.</summary>
 public sealed record CashRegisterReminderSettingsDto(bool Enabled, string Time);
@@ -32,7 +33,7 @@ public sealed record SaveCashRegisterReminderSettingsRequest(bool? Enabled, stri
 
 /// <summary>
 /// The Kassenregister (Filialbetrieb): the cash registers of the stores with their seal. Reading, recording (create, edit, renew the seal) and deleting are
-/// three privileges, each scopable by store. Recording or editing a register removes its seal, renewing sets it (TODO(Fachlogik): confirm this meaning).
+/// three privileges, each scopable by store. The seal is set explicitly: renewing the seal or editing with sealed=true sets it, lifting it ("Siegel aufheben", or editing with sealed=false) marks the drawer as not sealed; a new register starts not sealed.
 /// The history of a store keeps every step, deleted registers by name. Organisation data only (class 1); the person is shown by initials and name.
 /// </summary>
 public static class CashRegisterEndpoints
@@ -71,12 +72,19 @@ public static class CashRegisterEndpoints
                 var row = new CashRegisterRecord { StoreId = store.StoreId, Name = name, LastRecordedAt = now, LastRecordedBy = me, CreatedAt = now };
                 db.CashRegisters.Add(row);
                 db.CashRegisterEvents.Add(Event(row, CashRegisterEventKind.Recorded, now, me));
+                if (request.Sealed == true)
+                {
+                    row.SealedAt = now;
+                    row.SealedBy = me;
+                    db.CashRegisterEvents.Add(Event(row, CashRegisterEventKind.Sealed, now.AddTicks(1), me));
+                }
+
                 await SaveAsync(db, ct);
                 return Answer.Created(ToDto(row, store, await NamesAsync(db, [me], ct)));
             })
             .RequireAuthorization(record);
 
-        // "Bearbeiten": rename or move; counts as a new recording, so the seal falls away.
+        // "Bearbeiten": rename, move and set the seal state (sealed or the seal lifted); counts as a new recording.
         app.MapPut("/api/cash-registers/{id:guid}", async (Guid id, SaveCashRegisterRequest request, ClaimsPrincipal user, ReportAccess access, PortalDbContext db, TimeProvider clock, CancellationToken ct) =>
             {
                 var name = ValidName(request.Name);
@@ -85,13 +93,30 @@ public static class CashRegisterEndpoints
                 await EnsureUniqueAsync(db, store.StoreId, name, except: id, ct);
                 var now = clock.GetUtcNow();
                 var me = Me(user);
+                var wasSealed = row.SealedAt is not null;
+                var changed = row.StoreId != store.StoreId || row.Name != name;
                 row.StoreId = store.StoreId;
                 row.Name = name;
                 row.LastRecordedAt = now;
                 row.LastRecordedBy = me;
-                row.SealedAt = null;
-                row.SealedBy = null;
-                db.CashRegisterEvents.Add(Event(row, CashRegisterEventKind.Changed, now, me));
+                var step = 0;
+                if (request.Sealed is { } sealedNow && sealedNow != wasSealed)
+                {
+                    row.SealedAt = sealedNow ? now : null;
+                    row.SealedBy = sealedNow ? me : null;
+                }
+
+                // every step is its own line of the history, in the order they happened (a tick apart so the order is kept)
+                if (changed || (row.SealedAt is not null) == wasSealed)
+                {
+                    db.CashRegisterEvents.Add(Event(row, CashRegisterEventKind.Changed, now.AddTicks(step++), me));
+                }
+
+                if ((row.SealedAt is not null) != wasSealed)
+                {
+                    db.CashRegisterEvents.Add(Event(row, row.SealedAt is not null ? CashRegisterEventKind.Sealed : CashRegisterEventKind.Unsealed, now.AddTicks(step), me));
+                }
+
                 await SaveAsync(db, ct);
                 return Answer.Ok(ToDto(row, store, await NamesAsync(db, [me], ct)));
             })
@@ -106,6 +131,23 @@ public static class CashRegisterEndpoints
                 row.SealedBy = me;
                 db.CashRegisterEvents.Add(Event(row, CashRegisterEventKind.Sealed, now, me));
                 await db.SaveChangesAsync(ct);
+                var store = await db.Stores.AsNoTracking().SingleAsync(s => s.StoreId == row.StoreId, ct);
+                return Answer.Ok(ToDto(row, store, await NamesAsync(db, [row.LastRecordedBy], ct)));
+            })
+            .RequireAuthorization(record);
+
+        // "Siegel aufheben": the drawer is not sealed any more. Without a seal there is nothing to do (no history line).
+        app.MapPost("/api/cash-registers/{id:guid}/unseal", async (Guid id, ClaimsPrincipal user, ReportAccess access, PortalDbContext db, TimeProvider clock, CancellationToken ct) =>
+            {
+                var row = await FindAsync(db, id, access.ReachOf(user, PortalPrivileges.CashRegisterRecord), "update", ct);
+                if (row.SealedAt is not null)
+                {
+                    row.SealedAt = null;
+                    row.SealedBy = null;
+                    db.CashRegisterEvents.Add(Event(row, CashRegisterEventKind.Unsealed, clock.GetUtcNow(), Me(user)));
+                    await db.SaveChangesAsync(ct);
+                }
+
                 var store = await db.Stores.AsNoTracking().SingleAsync(s => s.StoreId == row.StoreId, ct);
                 return Answer.Ok(ToDto(row, store, await NamesAsync(db, [row.LastRecordedBy], ct)));
             })

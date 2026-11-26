@@ -59,7 +59,7 @@ public static class PortalPrivileges
         (LogbookManageStructure, false, "Die Hierarchie des Berichtsheftes pflegen: Bezirke, Regionen, Regional- und Bezirksleitungen und die Zuordnung der Filialen."),
         (LogbookManageReminders, false, "Die automatische Erinnerung an den Wochenbericht pflegen: ein oder aus, Fälligkeit, Zeitpunkte und Höchstzahl (der Text der Erinnerung läuft über die Textpflege der Personalabteilung)."),
         (CashRegisterRead, true, "Das Kassenregister ansehen: die Kassen der Filialen mit Versiegelung, letzter Erfassung und die Filialhistorie, begrenzt auf die Filialen, für die das Recht gilt."),
-        (CashRegisterRecord, true, "Kassen erfassen, bearbeiten (die Versiegelung entfällt dabei) und das Siegel erneuern, begrenzt auf die Filialen, für die das Recht gilt."),
+        (CashRegisterRecord, true, "Kassen erfassen, bearbeiten, das Siegel erneuern und das Siegel aufheben (die Kasse als nicht versiegelt vermerken), begrenzt auf die Filialen, für die das Recht gilt."),
         (CashRegisterDelete, true, "Kassen aus dem Kassenregister löschen, begrenzt auf die Filialen, für die das Recht gilt (die Filialhistorie behält den Eintrag)."),
         (CashRegisterManageReminders, false, "Die tägliche Erinnerung an nicht versiegelte Kassen pflegen: ein oder aus und die Uhrzeit (Bezirksleitungen werden immer erinnert; der Text läuft über die Textpflege der Personalabteilung)."),
         (AuditRead, false, "Das Änderungsprotokoll des Portals ansehen: wann wer (Name, Personalnummer) was angelegt, geändert oder gelöscht hat."),

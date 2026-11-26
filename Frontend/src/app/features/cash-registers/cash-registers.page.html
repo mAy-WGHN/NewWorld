@@ -40,7 +40,7 @@
     <form class="mb-6 rounded-2xl border border-outline-variant bg-surface-container-low px-5 py-4" data-testid="form" (submit)="$event.preventDefault(); save()">
       <h2 class="m-0 mb-3 text-lg font-medium">{{ f.id ? 'Kasse bearbeiten' : 'Kasse erfassen' }}</h2>
       @if (f.id) {
-        <p class="m-0 mb-3 text-sm text-on-surface-variant">Beim Speichern gilt die Kasse als neu erfasst, das Siegel entfällt. Danach kann es erneuert werden.</p>
+        <p class="m-0 mb-3 text-sm text-on-surface-variant">Beim Speichern gilt die Kasse als neu erfasst. Ist das Siegel aufgehoben, bitte das Häkchen bei „Versiegelt“ entfernen.</p>
       }
       <div class="flex flex-wrap items-end gap-3">
         <mat-form-field class="min-w-64">
@@ -56,6 +56,10 @@
           <mat-label>Name der Kasse</mat-label>
           <input matInput required maxlength="100" data-testid="form-name" [value]="f.name" (input)="setDraft('name', $event)" />
         </mat-form-field>
+        <label class="mb-5 flex items-center gap-2">
+          <input type="checkbox" data-testid="form-sealed" [checked]="f.sealed" (change)="setDraftSealed($event)" />
+          Versiegelt
+        </label>
         <div class="mb-5 flex gap-2">
           <button mat-flat-button type="submit" data-testid="form-save" [disabled]="busy()">Speichern</button>
           <button mat-stroked-button type="button" data-testid="form-cancel" (click)="draft.set(null)">Abbrechen</button>
@@ -132,6 +136,9 @@
                       @if (canRecord()) {
                         <button mat-stroked-button type="button" data-action="edit" [disabled]="busy()" (click)="startEdit(r)">Bearbeiten</button>
                         <button mat-stroked-button type="button" data-action="seal" [disabled]="busy()" (click)="renewSeal(r)">Siegel erneuern</button>
+                        @if (r.sealed) {
+                          <button mat-stroked-button type="button" data-action="unseal" [disabled]="busy()" (click)="liftSeal(r)">Siegel aufheben</button>
+                        }
                       }
                       @if (canDelete()) {
                         <button mat-stroked-button type="button" data-action="delete" [disabled]="busy()" (click)="remove(r)">
