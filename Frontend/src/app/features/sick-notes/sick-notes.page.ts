@@ -1,7 +1,7 @@
 import { NgTemplateOutlet } from '@angular/common';
 import { Component, computed, inject, signal, viewChild } from '@angular/core';
 import { AuthService } from '../../core/auth/auth.service';
-import { PAGE_UI } from '../../shared/ui/material';
+import { PAGE_UI } from '../../shared/wghn/material';
 import {
   Absence,
   SickNoteInput,

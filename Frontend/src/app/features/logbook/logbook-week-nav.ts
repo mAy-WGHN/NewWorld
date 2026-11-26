@@ -1,5 +1,5 @@
 import { Component, computed, input, output } from '@angular/core';
-import { PAGE_UI } from '../../shared/ui/material';
+import { PAGE_UI } from '../../shared/wghn/material';
 import { currentWeek, shiftWeek, weekLabel } from './logbook-models';
 
 /** Chooses the week: one back, one forward (not into the future) and back to this week. */

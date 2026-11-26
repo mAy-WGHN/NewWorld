@@ -1,6 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { AuthService } from '../../core/auth/auth.service';
-import { PAGE_UI } from '../../shared/ui/material';
+import { PAGE_UI } from '../../shared/wghn/material';
 import { LIST_KINDS, NumberSeries, ReferenceEntry, SeriesForm, describeError, loadFailed, seriesForm, seriesRequest } from './admin-hr-models';
 import { AdminHrApi } from './admin-hr.api';
 

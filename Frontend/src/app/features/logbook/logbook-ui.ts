@@ -2,7 +2,7 @@ import { signal } from '@angular/core';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatTabsModule } from '@angular/material/tabs';
-import { PAGE_UI } from '../../shared/ui/material';
+import { PAGE_UI } from '../../shared/wghn/material';
 import { logbookError } from './logbook-models';
 
 /** What the pages of the Berichtsheft need: the shared page UI, checkboxes, radio buttons and tabs. */

@@ -5,7 +5,7 @@ import { Component, input } from '@angular/core';
  * the element so it can be told apart.
  */
 @Component({
-  selector: 'app-row-card',
+  selector: 'wghn-row-card',
   host: {
     role: 'listitem',
     class: 'block rounded-xl border px-4 py-3',

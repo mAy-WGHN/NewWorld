@@ -1,9 +1,9 @@
-<app-page-head title="Meldungen">
+<wghn-page-head title="Meldungen">
   <a mat-flat-button routerLink="/report-issue" data-testid="report-issue-link">Störung melden</a>
   <button mat-stroked-button type="button" data-testid="archive-button" [attr.aria-pressed]="archiveMode()" (click)="toggleArchive()">
     {{ archiveMode() ? 'Aktuelle Meldungen' : 'Archiv' }}
   </button>
-</app-page-head>
+</wghn-page-head>
 
 @if (error(); as message) {
   <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert">{{ message }}</p>
@@ -17,14 +17,14 @@
 
 @if (!archiveMode()) {
   @if (open().items.length) {
-    <app-attention-block data-testid="attention" title="Offene Meldungen" hint="Diese Meldungen warten noch auf Bearbeitung, die dringendsten zuerst.">
+    <wghn-attention-block data-testid="attention" title="Offene Meldungen" hint="Diese Meldungen warten noch auf Bearbeitung, die dringendsten zuerst.">
       @for (r of open().items; track r.id) {
         <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: r, attention: true }" />
       }
       @if (open().total > open().items.length) {
         <div><button mat-stroked-button type="button" data-testid="more-open" (click)="more('open')">Mehr anzeigen ({{ open().items.length }} von {{ open().total }})</button></div>
       }
-    </app-attention-block>
+    </wghn-attention-block>
   } @else if (loaded() && !listError()) {
     <p class="m-0 mb-4 text-sm text-on-surface-variant">Keine offenen Meldungen.</p>
   }
@@ -61,7 +61,7 @@
 }
 
 <ng-template #row let-r let-attention="attention">
-  <app-row-card [attention]="attention" data-testid="report-row" [attr.data-id]="r.id" [class.sev-critical]="r.severity === 'critical'" [class.border-error!]="r.severity === 'critical'">
+  <wghn-row-card [attention]="attention" data-testid="report-row" [attr.data-id]="r.id" [class.sev-critical]="r.severity === 'critical'" [class.border-error!]="r.severity === 'critical'">
     <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
       <div class="flex flex-wrap items-center gap-2">
         <strong>{{ categoryLabel(r.category) }}</strong>
@@ -117,5 +117,5 @@
     } @else if (r.comment) {
       <p class="mt-2.5 mb-0 text-sm"><strong>Kommentar:</strong> {{ r.comment }}</p>
     }
-  </app-row-card>
+  </wghn-row-card>
 </ng-template>

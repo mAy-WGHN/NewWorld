@@ -41,7 +41,7 @@
   @if (kinds(); as list) {
     <div class="flex flex-col gap-2.5" role="list">
       @for (kind of list; track kind.id) {
-        <app-row-card data-testid="kind-row" [attr.data-id]="kind.id">
+        <wghn-row-card data-testid="kind-row" [attr.data-id]="kind.id">
           @if (editing(); as e) {
             @if (e.id === kind.id) {
               <form novalidate class="flex flex-wrap items-start gap-3" (submit)="$event.preventDefault(); saveEdit(kind)">
@@ -71,7 +71,7 @@
           } @else {
             <ng-container *ngTemplateOutlet="summary; context: { $implicit: kind }" />
           }
-        </app-row-card>
+        </wghn-row-card>
       }
     </div>
   } @else if (!loadError()) {

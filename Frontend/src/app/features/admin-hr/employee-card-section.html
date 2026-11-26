@@ -81,7 +81,7 @@
       }
       <div class="flex flex-col gap-2.5" role="list">
         @for (entry of list; track entry.id) {
-          <app-row-card data-testid="entry-row" [attr.data-id]="entry.id">
+          <wghn-row-card data-testid="entry-row" [attr.data-id]="entry.id">
             <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
               @if (editing(); as e) {
                 @if (e.id === entry.id) {
@@ -118,7 +118,7 @@
                 }
               </div>
             </div>
-          </app-row-card>
+          </wghn-row-card>
         }
       </div>
     } @else if (!listError()) {

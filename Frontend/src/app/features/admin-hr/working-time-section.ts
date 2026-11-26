@@ -1,5 +1,5 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { PAGE_UI } from '../../shared/ui/material';
+import { PAGE_UI } from '../../shared/wghn/material';
 import { formatDateTime } from '../notifications/notification-models';
 import {
   MonthlyThreshold,

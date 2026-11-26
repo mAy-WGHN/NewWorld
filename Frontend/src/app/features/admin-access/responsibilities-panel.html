@@ -15,14 +15,14 @@
 
   <div class="flex flex-col gap-2" role="list">
     @for (i of items(); track i.topic) {
-      <app-row-card data-testid="topic-row" [attr.data-topic]="i.topic">
+      <wghn-row-card data-testid="topic-row" [attr.data-topic]="i.topic">
         <strong>{{ topicLabel(i.topic) }}</strong> <code class="text-[13px]">{{ i.topic }}</code>
         <ul class="m-0 mt-1 list-none p-0 text-sm">
           @for (e of i.responsibleEmployeeIds; track e) {
             <li data-testid="responsible">{{ nameOf(e) }}</li>
           }
         </ul>
-      </app-row-card>
+      </wghn-row-card>
     }
   </div>
 
@@ -35,7 +35,7 @@
       <p class="m-0 text-sm text-on-surface-variant" data-testid="no-entries">Es sind keine Zuständigkeiten eingerichtet.</p>
     }
     @for (e of all(); track e.id) {
-      <app-row-card data-testid="entry-row" [attr.data-id]="e.id">
+      <wghn-row-card data-testid="entry-row" [attr.data-id]="e.id">
         <div class="flex flex-wrap items-center justify-between gap-2">
           <span>
             <strong>{{ topicLabel(e.topic) }}</strong>: {{ nameOf(e.responsibleEmployeeId) }} für {{ targetOf(e) }}
@@ -45,7 +45,7 @@
             <button mat-stroked-button type="button" data-action="ask-delete" [disabled]="act.busy()" (click)="askDelete(e.id)">Entfernen</button>
           }
         </div>
-      </app-row-card>
+      </wghn-row-card>
     }
   </div>
 
@@ -58,7 +58,7 @@
   }
 
   @if (canCreate()) {
-    <app-row-card data-testid="add-panel">
+    <wghn-row-card data-testid="add-panel">
       <div class="flex flex-col gap-3">
         <h3 class="m-0 text-base font-medium">Zuständigkeit einrichten</h3>
         <mat-form-field appearance="outline" subscriptSizing="dynamic">
@@ -127,7 +127,7 @@
           <button mat-flat-button type="button" data-action="add" [disabled]="act.busy()" (click)="add()">Einrichten</button>
         </div>
       </div>
-    </app-row-card>
+    </wghn-row-card>
   }
 
 </section>

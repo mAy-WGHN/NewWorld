@@ -2,7 +2,7 @@ import { Component, input } from '@angular/core';
 
 /** A block for what needs the person's attention: yellow title and hint, the rows go between the tags. */
 @Component({
-  selector: 'app-attention-block',
+  selector: 'wghn-attention-block',
   template: `
     <section class="mb-6" [attr.aria-label]="title()">
       <h2 class="m-0 mb-1 text-lg font-medium text-on-attention">{{ title() }}</h2>

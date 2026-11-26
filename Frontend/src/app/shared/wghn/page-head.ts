@@ -2,7 +2,7 @@ import { Component, input } from '@angular/core';
 
 /** Title of a page with room for buttons at the top right (they go between the tags). */
 @Component({
-  selector: 'app-page-head',
+  selector: 'wghn-page-head',
   template: `
     <header class="head mb-5 flex flex-wrap items-center justify-between gap-4">
       <h1 class="m-0 text-2xl font-medium">{{ title() }}</h1>

@@ -2,9 +2,9 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { ConfigService } from '../../core/config';
-import { PAGE_UI } from '../../shared/ui/material';
+import { PAGE_UI } from '../../shared/wghn/material';
 import { formatDateTime } from '../notifications/notification-models';
-import { FilterOption, TABLE_UI, TableState } from '../../shared/ui/table';
+import { FilterOption, TABLE_UI, TableState } from '../../shared/wghn/table-state';
 
 /** One line of the audit log of a service (`GET /api/audit`); `changes` is only there for people who may read the values. */
 export interface AuditEntry {
@@ -61,7 +61,7 @@ export function actorLabel(entry: AuditEntry): string {
   selector: 'app-audit',
   imports: [...PAGE_UI, ...TABLE_UI],
   template: `
-    <app-page-head title="Änderungsprotokoll" />
+    <wghn-page-head title="Änderungsprotokoll" />
     <p class="mb-4">Wer wann was angelegt, geändert oder gelöscht hat.</p>
 
     <div class="mb-3 flex flex-col gap-2.5">
@@ -71,11 +71,11 @@ export function actorLabel(entry: AuditEntry): string {
           <input matInput #nr (keyup.enter)="load(nr.value)" />
         </mat-form-field>
         <button mat-flat-button type="button" (click)="load(nr.value)" [disabled]="busy()">Laden</button>
-        <app-table-search [table]="table" label="Suche in den geladenen Einträgen" />
+        <wghn-table-search [table]="table" label="Suche in den geladenen Einträgen" />
       </div>
-      <app-quick-filter [table]="table" name="action" label="Aktion" [options]="actionOptions" />
-      <app-quick-filter [table]="table" name="service" label="Bereich" [options]="serviceOptions" />
-      <app-quick-filter [table]="table" name="period" label="Zeitraum" [options]="periodOptions" />
+      <wghn-quick-filter [table]="table" name="action" label="Aktion" [options]="actionOptions" />
+      <wghn-quick-filter [table]="table" name="service" label="Bereich" [options]="serviceOptions" />
+      <wghn-quick-filter [table]="table" name="period" label="Zeitraum" [options]="periodOptions" />
     </div>
 
     @if (error()) {
@@ -114,7 +114,7 @@ export function actorLabel(entry: AuditEntry): string {
         </tbody>
       </table>
     </div>
-    <app-pager [table]="table" />
+    <wghn-pager [table]="table" />
     @if (canLoadMore()) {
       <div class="mt-3">
         <button mat-stroked-button type="button" data-action="load-more" (click)="loadMore()" [disabled]="busy()">Ältere Einträge laden</button>

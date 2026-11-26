@@ -3,7 +3,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { NotificationsService } from '../../core/notifications.service';
-import { PAGE_UI } from '../../shared/ui/material';
+import { PAGE_UI } from '../../shared/wghn/material';
 import { errorMessage, problemTitle } from '../absences/absence-models';
 import { notificationTarget } from './notification-link';
 import { NotificationItem, formatDateTime, safeDeepLink } from './notification-models';

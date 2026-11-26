@@ -1,5 +1,5 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { PAGE_UI } from '../../shared/ui/material';
+import { PAGE_UI } from '../../shared/wghn/material';
 import { problemTitle } from '../absences/absence-models';
 import { formatDateTime, typeLabel } from '../notifications/notification-models';
 import { TemplateApi } from './template.api';

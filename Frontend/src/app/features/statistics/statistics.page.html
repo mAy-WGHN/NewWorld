@@ -1,4 +1,4 @@
-<app-page-head title="Statistik" />
+<wghn-page-head title="Statistik" />
 
 <form class="mb-5 flex flex-wrap items-end gap-3" aria-label="Zeitraum" (submit)="$event.preventDefault(); load()">
   <mat-form-field appearance="outline" subscriptSizing="dynamic">
@@ -23,7 +23,7 @@
     @if (monthly().length === 0) {
       <p class="m-0 text-sm text-on-surface-variant" data-testid="empty">In diesem Zeitraum gibt es keine Meldungen.</p>
     } @else {
-      <div class="mb-2"><app-quick-filter [table]="monthlyTable" name="year" label="Jahr" [options]="monthlyYears()" /></div>
+      <div class="mb-2"><wghn-quick-filter [table]="monthlyTable" name="year" label="Jahr" [options]="monthlyYears()" /></div>
       <div class="overflow-x-auto">
         <table [appSortTable]="monthlyTable" class="w-full border-collapse text-left text-sm">
           <caption class="sr-only">Meldungen pro Monat, von Mitarbeitenden und vom System</caption>
@@ -49,7 +49,7 @@
           </tbody>
         </table>
       </div>
-      <app-pager [table]="monthlyTable" />
+      <wghn-pager [table]="monthlyTable" />
     }
   </section>
 
@@ -58,7 +58,7 @@
     @if (byCategory().length === 0) {
       <p class="m-0 text-sm text-on-surface-variant">In diesem Zeitraum gibt es keine Meldungen.</p>
     } @else {
-      <div class="mb-2"><app-quick-filter [table]="categoryTable" name="year" label="Jahr" [options]="categoryYears()" /></div>
+      <div class="mb-2"><wghn-quick-filter [table]="categoryTable" name="year" label="Jahr" [options]="categoryYears()" /></div>
       <div class="overflow-x-auto">
         <table [appSortTable]="categoryTable" class="w-full border-collapse text-left text-sm">
           <caption class="sr-only">Meldungen pro Monat nach Kategorie</caption>
@@ -90,7 +90,7 @@
           </tbody>
         </table>
       </div>
-      <app-pager [table]="categoryTable" />
+      <wghn-pager [table]="categoryTable" />
     }
   </section>
 
@@ -100,7 +100,7 @@
     @if (byLocation().length === 0) {
       <p class="m-0 text-sm text-on-surface-variant">In diesem Zeitraum gibt es keine Meldungen.</p>
     } @else {
-      <div class="mb-2 flex flex-wrap items-center gap-3"><app-table-search [table]="locationTable" label="Filiale suchen" /><app-quick-filter [table]="locationTable" name="critical" label="Schwere" [options]="criticalOptions" /></div>
+      <div class="mb-2 flex flex-wrap items-center gap-3"><wghn-table-search [table]="locationTable" label="Filiale suchen" /><wghn-quick-filter [table]="locationTable" name="critical" label="Schwere" [options]="criticalOptions" /></div>
       <div class="overflow-x-auto">
         <table [appSortTable]="locationTable" class="w-full border-collapse text-left text-sm">
           <caption class="sr-only">Meldungen pro Filiale nach Schwere</caption>
@@ -130,7 +130,7 @@
           </tbody>
         </table>
       </div>
-      <app-pager [table]="locationTable" />
+      <wghn-pager [table]="locationTable" />
     }
   </section>
 
@@ -139,7 +139,7 @@
     @if (byPerson().length === 0) {
       <p class="m-0 text-sm text-on-surface-variant">In diesem Zeitraum gibt es keine Meldungen.</p>
     } @else {
-      <div class="mb-2 flex flex-wrap items-center gap-3"><app-table-search [table]="personTable" label="Personalnummer suchen" /><app-quick-filter [table]="personTable" name="critical" label="Schwere" [options]="criticalOptions" /></div>
+      <div class="mb-2 flex flex-wrap items-center gap-3"><wghn-table-search [table]="personTable" label="Personalnummer suchen" /><wghn-quick-filter [table]="personTable" name="critical" label="Schwere" [options]="criticalOptions" /></div>
       <div class="overflow-x-auto">
         <table [appSortTable]="personTable" class="w-full border-collapse text-left text-sm">
           <caption class="sr-only">Meldungen pro Personalnummer nach Schwere</caption>
@@ -169,7 +169,7 @@
           </tbody>
         </table>
       </div>
-      <app-pager [table]="personTable" />
+      <wghn-pager [table]="personTable" />
     }
   </section>
 }

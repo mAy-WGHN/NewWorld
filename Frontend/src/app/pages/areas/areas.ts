@@ -4,7 +4,7 @@ import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { FavoritesService } from '../../core/favorites.service';
 import { visibleNav } from '../../core/nav/nav-items';
-import { PAGE_UI } from '../../shared/ui/material';
+import { PAGE_UI } from '../../shared/wghn/material';
 
 /** Every area this person may open, grouped, with a star to pin it; below the own privileges. */
 @Component({

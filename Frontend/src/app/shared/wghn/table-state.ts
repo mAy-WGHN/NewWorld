@@ -197,7 +197,7 @@ export class GermanPaginatorIntl extends MatPaginatorIntl {
 
 /** Material paginator for a table state (page, page size, "1–25 von 130"). */
 @Component({
-  selector: 'app-pager',
+  selector: 'wghn-pager',
   imports: [MatPaginatorModule],
   template: `
     @if (table().total() > 0) {
@@ -233,7 +233,7 @@ export interface FilterOption {
 
 /** A row of quick filters (one choice, the first option usually "Alle") for the filter `name` of a table: Material chips. */
 @Component({
-  selector: 'app-quick-filter',
+  selector: 'wghn-quick-filter',
   imports: [MatChipsModule],
   template: `
     <div class="flex flex-wrap items-center gap-2">
@@ -260,7 +260,7 @@ export class QuickFilter {
 
 /** Search box above a table (looks in what the table's `search` option returns) with a reset for everything narrowing the table. */
 @Component({
-  selector: 'app-table-search',
+  selector: 'wghn-table-search',
   imports: [MatButtonModule, MatFormFieldModule, MatIconModule, MatInputModule],
   template: `
     <div class="flex flex-wrap items-center gap-2">

@@ -85,7 +85,7 @@
       </mat-form-field>
       <div class="flex flex-col gap-2" role="list">
         @for (s of visibleStores(); track s.id) {
-          <app-row-card data-testid="store-row" [attr.data-store]="s.id">
+          <wghn-row-card data-testid="store-row" [attr.data-store]="s.id">
             <div class="flex flex-wrap items-center justify-between gap-2">
               <strong>{{ s.storeCode }} {{ s.name }}</strong>
               <mat-form-field class="w-72">
@@ -98,7 +98,7 @@
                 </select>
               </mat-form-field>
             </div>
-          </app-row-card>
+          </wghn-row-card>
         }
       </div>
     </section>

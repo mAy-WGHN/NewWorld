@@ -1,5 +1,5 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { PAGE_UI } from '../../shared/ui/material';
+import { PAGE_UI } from '../../shared/wghn/material';
 import { errorMessage, formatPeriod, problemTitle } from '../absences/absence-models';
 import { PendingApproval } from './approval-models';
 import { ApprovalsApi } from './approvals.api';

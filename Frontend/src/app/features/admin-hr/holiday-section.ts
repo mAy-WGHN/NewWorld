@@ -1,5 +1,5 @@
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
-import { PAGE_UI } from '../../shared/ui/material';
+import { PAGE_UI } from '../../shared/wghn/material';
 import { HolidayState, MAX_BULK_STORES, describeError, loadFailed } from './admin-hr-models';
 import { AdminHrApi, StoreLocation } from './admin-hr.api';
 

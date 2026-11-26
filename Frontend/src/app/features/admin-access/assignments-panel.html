@@ -20,7 +20,7 @@
 
   <div class="flex flex-col gap-2" role="list">
     @for (a of assignments(); track a.id) {
-      <app-row-card data-testid="assignment-row" [attr.data-id]="a.id">
+      <wghn-row-card data-testid="assignment-row" [attr.data-id]="a.id">
         <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
           <div class="flex flex-col">
             <strong>{{ roleName(a.roleId) }}</strong>
@@ -39,12 +39,12 @@
             <button mat-stroked-button type="button" data-action="cancel-delete" (click)="cancelDelete()">Abbrechen</button>
           </div>
         }
-      </app-row-card>
+      </wghn-row-card>
     }
   </div>
 
   @if (canCreate() && !lookupsMissing()) {
-    <app-row-card data-testid="add-panel">
+    <wghn-row-card data-testid="add-panel">
       <div class="flex flex-col gap-3">
         <h3 class="m-0 text-base font-medium">Rolle zuweisen</h3>
         <mat-form-field appearance="outline" subscriptSizing="dynamic">
@@ -97,6 +97,6 @@
           <button mat-flat-button type="button" data-action="add" [disabled]="act.busy()" (click)="add()">Zuweisen</button>
         </div>
       </div>
-    </app-row-card>
+    </wghn-row-card>
   }
 </section>

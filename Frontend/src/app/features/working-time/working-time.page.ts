@@ -1,7 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { todayIso } from '../../core/dates';
-import { PAGE_UI } from '../../shared/ui/material';
-import { FilterOption, TABLE_UI, TableState } from '../../shared/ui/table';
+import { PAGE_UI } from '../../shared/wghn/material';
+import { FilterOption, TABLE_UI, TableState } from '../../shared/wghn/table-state';
 import { formatDate } from '../absences/absence-models';
 import { MonthClose, TimeBooking, WorkingTime, expiringSoon, formatHours, kindLabel, monthLabel } from './working-time-models';
 import { WorkingTimeApi } from './working-time.api';

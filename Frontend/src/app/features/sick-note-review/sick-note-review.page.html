@@ -1,6 +1,6 @@
-<app-page-head title="Krankmeldungen und AU">
+<wghn-page-head title="Krankmeldungen und AU">
   <button mat-stroked-button type="button" data-action="reload" [disabled]="busy()" (click)="load()">Aktualisieren</button>
-</app-page-head>
+</wghn-page-head>
 
 @if (error(); as message) {
   <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert">{{ message }}</p>
@@ -33,7 +33,7 @@
 
 <div class="flex flex-col gap-2.5" role="list">
   @for (n of items(); track n.absenceId) {
-    <app-row-card [attention]="n.certificateStatus === 'Submitted'" data-testid="sick-row" [attr.data-id]="n.absenceId">
+    <wghn-row-card [attention]="n.certificateStatus === 'Submitted'" data-testid="sick-row" [attr.data-id]="n.absenceId">
       <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <div class="flex flex-col">
           <strong>{{ n.employeeName }}</strong>
@@ -122,7 +122,7 @@
           }
         </div>
       }
-    </app-row-card>
+    </wghn-row-card>
   }
 </div>
 

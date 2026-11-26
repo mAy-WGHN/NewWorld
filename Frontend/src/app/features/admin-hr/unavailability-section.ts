@@ -1,6 +1,6 @@
 import { NgTemplateOutlet } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
-import { PAGE_UI } from '../../shared/ui/material';
+import { PAGE_UI } from '../../shared/wghn/material';
 import { KindForm, UnavailabilityKind, describeError, emptyKindForm, kindToForm, loadFailed } from './admin-hr-models';
 import { AdminHrApi } from './admin-hr.api';
 

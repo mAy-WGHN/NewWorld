@@ -1,4 +1,4 @@
-<app-page-head title="Arbeitszeitkonto" />
+<wghn-page-head title="Arbeitszeitkonto" />
 
 @if (error(); as message) {
   <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert">{{ message }}</p>
@@ -31,16 +31,16 @@
   </div>
 
   @if (soon().length) {
-    <app-attention-block data-testid="attention" title="Läuft bald ab" hint="Diese Stunden verfallen in den nächsten {{ warnDays }} Tagen. Bitte rechtzeitig Freizeitausgleich nehmen.">
+    <wghn-attention-block data-testid="attention" title="Läuft bald ab" hint="Diese Stunden verfallen in den nächsten {{ warnDays }} Tagen. Bitte rechtzeitig Freizeitausgleich nehmen.">
       @for (b of soon(); track b.earnedOn + b.expiresOn) {
-        <app-row-card [attention]="true">
+        <wghn-row-card [attention]="true">
           <div class="flex flex-wrap items-center gap-x-3">
             <strong>{{ formatHours(b.remaining, false) }}</strong>
             <span class="text-[13px]">verfallen am {{ formatDate(b.expiresOn) }}</span>
           </div>
-        </app-row-card>
+        </wghn-row-card>
       }
-    </app-attention-block>
+    </wghn-attention-block>
   }
 
   <section class="mb-6" aria-labelledby="bookings-title">
@@ -48,7 +48,7 @@
     @if (a.bookings.length === 0) {
       <p class="m-0 text-sm text-on-surface-variant">Noch keine Buchungen.</p>
     } @else {
-      <div class="mb-2"><app-quick-filter [table]="bookingTable" name="kind" label="Art" [options]="kindOptions()" /></div>
+      <div class="mb-2"><wghn-quick-filter [table]="bookingTable" name="kind" label="Art" [options]="kindOptions()" /></div>
       <mat-card appearance="outlined" class="overflow-x-auto">
         <table [appSortTable]="bookingTable" class="w-full border-collapse">
           <thead>
@@ -69,14 +69,14 @@
           </tbody>
         </table>
       </mat-card>
-      <app-pager [table]="bookingTable" />
+      <wghn-pager [table]="bookingTable" />
     }
   </section>
 
   @if (a.closes.length) {
     <section data-testid="closes" aria-labelledby="closes-title">
       <h2 id="closes-title" class="m-0 mb-2 text-lg font-medium">Monatsabschlüsse</h2>
-      <div class="mb-2"><app-quick-filter [table]="closeTable" name="year" label="Jahr" [options]="closeYears()" /></div>
+      <div class="mb-2"><wghn-quick-filter [table]="closeTable" name="year" label="Jahr" [options]="closeYears()" /></div>
       <mat-card appearance="outlined" class="overflow-x-auto">
         <table [appSortTable]="closeTable" class="w-full border-collapse">
           <thead>
@@ -99,7 +99,7 @@
           </tbody>
         </table>
       </mat-card>
-      <app-pager [table]="closeTable" />
+      <wghn-pager [table]="closeTable" />
     </section>
   }
 }

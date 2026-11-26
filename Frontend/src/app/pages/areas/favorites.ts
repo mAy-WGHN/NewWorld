@@ -4,14 +4,14 @@ import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { FavoritesService } from '../../core/favorites.service';
 import { visibleItems } from '../../core/nav/nav-items';
-import { PageHead } from '../../shared/ui/page-head';
+import { PageHead } from '../../shared/wghn/page-head';
 
 /** The areas this person pinned. Areas they may no longer open do not show up. */
 @Component({
   selector: 'app-favorites',
   imports: [MatCardModule, PageHead, RouterLink],
   template: `
-    <app-page-head title="Favoriten" />
+    <wghn-page-head title="Favoriten" />
     @if (items().length) {
       <div class="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-3.5">
         @for (item of items(); track item.path) {

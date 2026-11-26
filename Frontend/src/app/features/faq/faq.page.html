@@ -1,4 +1,4 @@
-<app-page-head title="FAQ">
+<wghn-page-head title="FAQ">
   @if (canCreate()) {
     <button mat-flat-button type="button" data-testid="new-entry" (click)="startCreate()">Neuer Eintrag</button>
   }
@@ -10,7 +10,7 @@
       {{ mode() === 'images' ? 'Aktuelle Einträge' : 'Bilder' }}
     </button>
   }
-</app-page-head>
+</wghn-page-head>
 
 @if (error(); as message) {
   <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="error">{{ message }}</p>
@@ -80,7 +80,7 @@
       }
       <div class="flex flex-col gap-2.5" role="list">
         @for (f of archived(); track f.id) {
-          <app-row-card data-testid="faq-row" [attr.data-id]="f.id">
+          <wghn-row-card data-testid="faq-row" [attr.data-id]="f.id">
             <div class="flex flex-wrap items-center justify-between gap-2">
               <strong>{{ f.title }}</strong>
               <div class="flex flex-wrap gap-2">
@@ -96,7 +96,7 @@
             </div>
             <app-faq-content-view class="mt-2 block" [content]="f.content" />
             <app-faq-attachments [attachments]="f.attachments ?? []" />
-          </app-row-card>
+          </wghn-row-card>
         }
       </div>
     </section>
@@ -115,7 +115,7 @@
       }
       <div class="grid gap-3" style="grid-template-columns: repeat(auto-fill, minmax(220px, 1fr))">
         @for (image of images(); track image.id) {
-          <app-row-card data-testid="image-row" [attr.data-id]="image.id">
+          <wghn-row-card data-testid="image-row" [attr.data-id]="image.id">
             <img class="mb-2 block h-32 w-full rounded-lg object-contain" loading="lazy" [src]="image.url" [alt]="image.faqTitle ? 'Bild aus: ' + image.faqTitle : 'Bild ohne Eintrag'" />
             <p class="m-0 mb-2 text-sm text-on-surface-variant" data-testid="image-status">
               {{ imageStatusLabel(image.status) }}@if (image.faqTitle) { · {{ image.faqTitle }} }
@@ -130,7 +130,7 @@
                 </button>
               }
             </div>
-          </app-row-card>
+          </wghn-row-card>
         }
       </div>
     </section>
@@ -149,7 +149,7 @@
 
     <div class="flex flex-col gap-2.5" role="list">
       @for (f of visible(); track f.id; let i = $index) {
-        <app-row-card data-testid="faq-row" [attr.data-id]="f.id">
+        <wghn-row-card data-testid="faq-row" [attr.data-id]="f.id">
           <mat-expansion-panel>
             <mat-expansion-panel-header><mat-panel-title>{{ f.title }}</mat-panel-title></mat-expansion-panel-header>
             <app-faq-content-view [content]="f.content" />
@@ -172,7 +172,7 @@
               }
             </div>
           }
-        </app-row-card>
+        </wghn-row-card>
       }
     </div>
   }

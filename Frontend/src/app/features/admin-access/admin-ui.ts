@@ -1,6 +1,6 @@
 import { Component, input, signal } from '@angular/core';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { PAGE_UI } from '../../shared/ui/material';
+import { PAGE_UI } from '../../shared/wghn/material';
 import { accessProblemMessage } from './admin-access-models';
 
 /** The building blocks of the administration pages: the shared page UI and checkboxes. */

@@ -13,7 +13,7 @@
 
 @if (canCreate()) {
   @if (creating()) {
-    <app-row-card class="mb-3" data-testid="create-panel">
+    <wghn-row-card class="mb-3" data-testid="create-panel">
       <div class="flex flex-col gap-3">
         <h2 class="m-0 text-lg font-medium">Neue Filial-Gruppe</h2>
         <mat-form-field appearance="outline" subscriptSizing="dynamic">
@@ -29,7 +29,7 @@
           <button mat-stroked-button type="button" data-action="cancel-create" (click)="closeCreate()">Abbrechen</button>
         </div>
       </div>
-    </app-row-card>
+    </wghn-row-card>
   } @else {
     <button mat-flat-button type="button" class="mb-3" data-action="open-create" (click)="openCreate()">Neue Filial-Gruppe</button>
   }
@@ -41,7 +41,7 @@
 
 <div class="flex flex-col gap-2.5" role="list">
   @for (s of scopes(); track s.id) {
-    <app-row-card data-testid="scope-row" [attr.data-id]="s.id">
+    <wghn-row-card data-testid="scope-row" [attr.data-id]="s.id">
       <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <div class="flex flex-col">
           <strong>{{ s.name }}</strong>
@@ -84,6 +84,6 @@
           }
         </div>
       }
-    </app-row-card>
+    </wghn-row-card>
   }
 </div>

@@ -1,5 +1,5 @@
 import { signal } from '@angular/core';
-import { TableState, compareValues } from './table';
+import { TableState, compareValues } from './table-state';
 
 interface Row {
   name: string;

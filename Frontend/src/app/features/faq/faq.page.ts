@@ -1,7 +1,7 @@
 import { Component, computed, inject, signal, viewChild } from '@angular/core';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { AuthService } from '../../core/auth/auth.service';
-import { PAGE_UI } from '../../shared/ui/material';
+import { PAGE_UI } from '../../shared/wghn/material';
 import { envelopeMessage } from '../reports/report-models';
 import { formatSize } from '../sick-note-review/sick-note-review-models';
 import { FaqContentView } from './faq-content-view';

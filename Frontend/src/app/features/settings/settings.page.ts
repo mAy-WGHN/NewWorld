@@ -3,7 +3,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { AuthService } from '../../core/auth/auth.service';
 import { ProfileService } from '../../core/profile.service';
 import { ThemeMode, ThemeService } from '../../core/theme.service';
-import { PAGE_UI } from '../../shared/ui/material';
+import { PAGE_UI } from '../../shared/wghn/material';
 import { NotificationPreferences } from '../notifications/notification-preferences';
 import { groupPrivileges } from './settings-models';
 

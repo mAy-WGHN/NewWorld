@@ -1,6 +1,6 @@
-<app-page-head [title]="report() ? report()!.storeNumber + ' ' + report()!.storeName : 'Wochenbericht'">
+<wghn-page-head [title]="report() ? report()!.storeNumber + ' ' + report()!.storeName : 'Wochenbericht'">
   <a mat-stroked-button routerLink="/logbook" data-testid="back">Zurück zum Berichtsheft</a>
-</app-page-head>
+</wghn-page-head>
 
 @if (loadError(); as message) {
   <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="load-error">{{ message }}</p>
@@ -84,10 +84,10 @@
       <section class="flex flex-col gap-2" aria-labelledby="replies-title" data-testid="replies">
         <h2 id="replies-title" class="m-0 text-lg font-medium">Antworten</h2>
         @for (c of replies(); track c.id) {
-          <app-row-card data-testid="reply">
+          <wghn-row-card data-testid="reply">
             <div class="text-sm text-on-surface-variant">{{ c.authorName }} · {{ levelLabel(c) }} · {{ stamp(c.createdAt) }}</div>
             <p class="m-0 whitespace-pre-line">{{ c.text }}</p>
-          </app-row-card>
+          </wghn-row-card>
         } @empty {
           <p class="m-0 text-sm text-on-surface-variant">Noch keine Antwort.</p>
         }
@@ -107,10 +107,10 @@
           <h2 id="internal-title" class="m-0 text-lg font-medium">Interne Kommentare</h2>
           <p class="m-0 text-sm text-on-surface-variant">Nur für Leitungen sichtbar, nicht für die Filialleitung. Regionalleitungen sehen nur ihre eigenen.</p>
           @for (c of internals(); track c.id) {
-            <app-row-card data-testid="internal">
+            <wghn-row-card data-testid="internal">
               <div class="text-sm text-on-surface-variant">{{ c.authorName }} · {{ levelLabel(c) }} · {{ stamp(c.createdAt) }}</div>
               <p class="m-0 whitespace-pre-line">{{ c.text }}</p>
-            </app-row-card>
+            </wghn-row-card>
           } @empty {
             <p class="m-0 text-sm text-on-surface-variant">Noch kein interner Kommentar.</p>
           }

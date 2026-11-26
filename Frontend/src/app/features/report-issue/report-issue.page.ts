@@ -1,6 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { ProfileService } from '../../core/profile.service';
-import { PAGE_UI } from '../../shared/ui/material';
+import { PAGE_UI } from '../../shared/wghn/material';
 import { ReportsApi } from '../reports/reports.api';
 import { LocationsApi } from './locations.api';
 import {

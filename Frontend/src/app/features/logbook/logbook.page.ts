@@ -17,7 +17,7 @@ import { LogbookApi } from './logbook.api';
   selector: 'app-logbook',
   imports: [LogbookMine, LogbookInbox, LogbookMissing, LogbookEvaluationView, ...LOGBOOK_UI],
   template: `
-    <app-page-head title="Berichtsheft" />
+    <wghn-page-head title="Berichtsheft" />
     @if (reachesNothing()) {
       <p class="mb-4 rounded-xl border border-outline-variant bg-attention px-4 py-3 text-on-attention" role="note" data-testid="no-reach">
         Du bist im Berichtsheft noch keiner Region und keinem Bezirk als Leitung zugeordnet, deshalb siehst du keine Berichte. Das richtet die

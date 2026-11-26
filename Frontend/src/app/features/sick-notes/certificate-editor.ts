@@ -1,6 +1,6 @@
 import { Component, effect, input, output, signal } from '@angular/core';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { PAGE_UI } from '../../shared/ui/material';
+import { PAGE_UI } from '../../shared/wghn/material';
 import { FileDrop } from './file-drop';
 import { Absence, CERTIFICATE_ACCEPT, canMarkElectronic, validateCertificateFile, validatePeriod } from '../absences/absence-models';
 

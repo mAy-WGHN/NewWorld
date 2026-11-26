@@ -13,7 +13,7 @@ import { LOGBOOK_UI } from './logbook-ui';
   selector: 'app-logbook-admin',
   imports: [LogbookStructureAdmin, LogbookTemplateAdmin, LogbookReminderAdmin, ...LOGBOOK_UI],
   template: `
-    <app-page-head title="Berichtsheft-Verwaltung" />
+    <wghn-page-head title="Berichtsheft-Verwaltung" />
     <mat-tab-group animationDuration="0ms" [mat-stretch-tabs]="false" data-testid="tabs">
       @if (canStructure()) {
         <mat-tab label="Hierarchie">

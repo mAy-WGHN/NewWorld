@@ -1,6 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { AuthService } from '../../core/auth/auth.service';
-import { PAGE_UI } from '../../shared/ui/material';
+import { PAGE_UI } from '../../shared/wghn/material';
 import { CertificatesSection } from './certificates-section';
 import { EmployeeCardSection } from './employee-card-section';
 import { HolidaySection } from './holiday-section';

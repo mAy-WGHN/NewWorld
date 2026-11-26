@@ -1,8 +1,8 @@
-<app-page-head title="Mein Urlaub">
+<wghn-page-head title="Mein Urlaub">
   @if (canCreate()) {
     <button mat-flat-button type="button" data-testid="request-button" [attr.aria-expanded]="requesting()" (click)="toggleRequest()">Urlaub beantragen</button>
   }
-</app-page-head>
+</wghn-page-head>
 
 @if (error(); as message) {
   <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert">{{ message }}</p>
@@ -70,11 +70,11 @@
   <app-vacation-calendar [absences]="absences()" [selectable]="canCreate()" [holidays]="holidays()" (shown)="showDays($event)" [busy]="busy()" [error]="error()" (requested)="requestRange($event)" />
 } @else {
 @if (split().pending.length) {
-  <app-attention-block data-testid="attention" title="Wartet auf Genehmigung" hint="Diese Urlaubsanträge sind noch nicht entschieden.">
+  <wghn-attention-block data-testid="attention" title="Wartet auf Genehmigung" hint="Diese Urlaubsanträge sind noch nicht entschieden.">
     @for (a of split().pending; track a.id) {
       <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: a, attention: true }" />
     }
-  </app-attention-block>
+  </wghn-attention-block>
 }
 
 <section aria-labelledby="list-title">
@@ -91,7 +91,7 @@
 }
 
 <ng-template #row let-a let-attention="attention">
-  <app-row-card [attention]="attention" data-testid="vacation-row" [attr.data-id]="a.id">
+  <wghn-row-card [attention]="attention" data-testid="vacation-row" [attr.data-id]="a.id">
     <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
       <strong>{{ formatPeriod(a.from, a.to) }}</strong>
       <mat-chip-set aria-label="Stand">
@@ -103,5 +103,5 @@
         }
       </div>
     </div>
-  </app-row-card>
+  </wghn-row-card>
 </ng-template>

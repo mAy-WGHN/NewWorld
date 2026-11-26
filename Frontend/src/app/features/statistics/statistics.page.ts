@@ -1,6 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { PAGE_UI } from '../../shared/ui/material';
-import { FilterOption, TABLE_UI, TableState } from '../../shared/ui/table';
+import { PAGE_UI } from '../../shared/wghn/material';
+import { FilterOption, TABLE_UI, TableState } from '../../shared/wghn/table-state';
 import { envelopeMessage } from '../reports/report-models';
 import {
   LocationSeverityStatistic,

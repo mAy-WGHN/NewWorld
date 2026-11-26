@@ -11,7 +11,7 @@
   }
 
   @if (canRead()) {
-    <app-row-card data-testid="entra-state">
+    <wghn-row-card data-testid="entra-state">
       @if (link(); as l) {
         <dl class="m-0 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
           <dt class="opacity-70">Konto</dt>
@@ -22,13 +22,13 @@
       } @else if (loaded() && !loadError()) {
         <p class="m-0 text-sm" data-testid="no-link">Es ist noch kein Microsoft-Konto eingetragen.</p>
       }
-    </app-row-card>
+    </wghn-row-card>
   } @else {
     <p class="m-0 text-sm text-on-surface-variant" data-testid="no-read">Du darfst das Microsoft-Konto nicht ansehen (Recht „access:person:read“), aber ändern.</p>
   }
 
   @if (canManage()) {
-    <app-row-card data-testid="set-panel">
+    <wghn-row-card data-testid="set-panel">
       <div class="flex flex-col gap-3">
         <h3 class="m-0 text-base font-medium">Microsoft-Konto eintragen</h3>
         <mat-form-field appearance="outline" subscriptSizing="dynamic">
@@ -53,6 +53,6 @@
           </div>
         }
       </div>
-    </app-row-card>
+    </wghn-row-card>
   }
 </section>
