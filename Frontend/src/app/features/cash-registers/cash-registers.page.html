@@ -9,12 +9,7 @@
 </wghn-page-head>
 <p class="m-0 mb-5 text-on-surface-variant">Versiegelungen aller Filialkassen im Überblick.</p>
 
-@if (error(); as message) {
-  <wghn-alert class="mb-3" data-testid="error">{{ message }}</wghn-alert>
-}
-@if (status(); as message) {
-  <wghn-alert kind="status" class="mb-3" data-testid="status">{{ message }}</wghn-alert>
-}
+<wghn-action-messages [state]="action" />
 
 @if (data(); as d) {
   <div class="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4" data-testid="summary">

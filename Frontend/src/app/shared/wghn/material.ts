@@ -7,6 +7,7 @@ import { MatInputModule } from '@angular/material/input';
 import { AttentionBlock } from './attention-block';
 import { PageHead } from './page-head';
 import { RowCard } from './row-card';
+import { WghnActionMessages } from './action-state';
 import { WghnAlert } from './wghn-alert';
 import { WghnConfirmBar } from './wghn-confirm-bar';
 import { WghnLoading } from './wghn-loading';
@@ -30,6 +31,7 @@ export const PAGE_UI = [
   AttentionBlock,
   RowCard,
   WghnAlert,
+  WghnActionMessages,
   WghnConfirmBar,
   WghnLoading,
   WghnStatCard,

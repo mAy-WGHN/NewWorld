@@ -5,7 +5,7 @@
     kann befristet sein. Ohne Zuständige läuft zum Beispiel ein Urlaubsantrag ins Leere. Darunter siehst du, wer für die oben geladene Person zuständig ist.
   </p>
 
-  <app-action-messages [state]="act" />
+  <wghn-action-messages [state]="act" />
   @if (loadError(); as message) {
     <wghn-alert data-testid="load-error">{{ message }}</wghn-alert>
   }

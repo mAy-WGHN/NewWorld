@@ -5,7 +5,7 @@
     Ohne Datum gilt die Zuweisung unbefristet; mit „Bis“ endet sie am Ende dieses Tages, zum Beispiel für eine Vertretung.
   </p>
 
-  <app-action-messages [state]="act" />
+  <wghn-action-messages [state]="act" />
   @if (loadError(); as message) {
     <wghn-alert data-testid="load-error">{{ message }}</wghn-alert>
   }

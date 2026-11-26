@@ -16,6 +16,7 @@ import {
   sealFormProblem,
 } from './cash-register-models';
 import { SealFields } from './seal-fields';
+import { ActionState } from '../../shared/wghn/action-state';
 import { FilterOption, TABLE_UI, TableState } from '../../shared/wghn/table-state';
 import type { WghnColumn } from '../../shared/wghn/wghn-table';
 
@@ -63,9 +64,11 @@ export class CashRegistersPage implements OnDestroy {
 
   protected readonly data = signal<CashRegisterList | null>(null);
   protected readonly loading = signal(false);
-  protected readonly busy = signal(false);
-  protected readonly error = signal<string | null>(null);
-  protected readonly status = signal<string | null>(null);
+  /** Busy flag, error and success text of the page (the library's action state). */
+  protected readonly action = new ActionState();
+  protected readonly busy = this.action.busy;
+  protected readonly error = this.action.error;
+  protected readonly status = this.action.status;
 
   protected readonly storeFilter = signal('');
   protected readonly draft = signal<Draft | null>(null);
@@ -350,20 +353,12 @@ export class CashRegistersPage implements OnDestroy {
 
   /** Runs a change, reloads the list (and the history if it is open) and says what happened; a failure becomes a plain German message. */
   private async act(change: () => Promise<unknown>, done: string): Promise<void> {
-    this.busy.set(true);
-    this.error.set(null);
-    this.status.set(null);
-    try {
+    await this.action.run(async () => {
       await change();
-      this.status.set(done);
       await this.load();
       if (this.showHistory()) {
         await this.loadHistory();
       }
-    } catch (error) {
-      this.error.set(cashRegisterError(error));
-    } finally {
-      this.busy.set(false);
-    }
+    }, done);
   }
 }

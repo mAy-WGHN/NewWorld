@@ -5,7 +5,7 @@
     Beim ersten erfolgreichen Bestätigen merkt sich das Portal das Konto selbst, danach zählt nur noch genau dieses. Ein verlorenes Handy oder Passwort löst die IT im Microsoft-Konto, nicht hier.
   </p>
 
-  <app-action-messages [state]="act" />
+  <wghn-action-messages [state]="act" />
   @if (loadError(); as message) {
     <wghn-alert data-testid="load-error">{{ message }}</wghn-alert>
   }

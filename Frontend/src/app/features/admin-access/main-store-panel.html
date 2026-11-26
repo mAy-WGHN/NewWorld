@@ -5,7 +5,7 @@
     Was du hier einstellst, gilt immer und wird von BC nie überschrieben. Entfernst du die Einstellung, gilt wieder der Vorschlag aus BC.
   </p>
 
-  <app-action-messages [state]="act" />
+  <wghn-action-messages [state]="act" />
   @if (loadError(); as message) {
     <wghn-alert data-testid="load-error">{{ message }}</wghn-alert>
   }
