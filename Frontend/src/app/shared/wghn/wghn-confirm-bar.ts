@@ -3,7 +3,7 @@ import { MatButtonModule } from '@angular/material/button';
 
 /**
  * The question before something is taken away ("Die Rolle wird gelöscht. Wirklich löschen?") with the two answers. The question goes between the tags;
- * `variant="line"` is a line under the entry it belongs to, `variant="box"` a framed bar of its own. The buttons carry `data-action` names (`delete` and
+ * `variant="line"` is a line under the entry it belongs to, `variant="box"` a framed bar of its own, `variant="plain"` no frame at all (inside a row of buttons). The buttons carry `data-action` names (`delete` and
  * `cancel-delete` unless the page says otherwise) so tests find them the same way everywhere.
  */
 @Component({
@@ -29,7 +29,7 @@ import { MatButtonModule } from '@angular/material/button';
   `,
 })
 export class WghnConfirmBar {
-  readonly variant = input<'line' | 'box'>('line');
+  readonly variant = input<'line' | 'box' | 'plain'>('line');
   readonly confirmLabel = input('Ja, löschen');
   readonly cancelLabel = input('Abbrechen');
   readonly busy = input(false);

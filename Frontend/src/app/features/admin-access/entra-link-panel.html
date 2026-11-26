@@ -39,11 +39,7 @@
           <wghn-alert kind="field-error" data-testid="form-error">{{ message }}</wghn-alert>
         }
         @if (confirmingRemove()) {
-          <div class="flex flex-wrap items-center gap-2" data-testid="remove-panel">
-            <span class="text-sm">Die Zuordnung wird entfernt. Danach kann die Person den zweiten Faktor nicht nutzen, bis ein Konto neu eingetragen ist. Wirklich entfernen?</span>
-            <button mat-flat-button type="button" data-action="remove" [disabled]="act.busy()" (click)="remove()">Ja, entfernen</button>
-            <button mat-stroked-button type="button" data-action="cancel-remove" (click)="cancelRemove()">Abbrechen</button>
-          </div>
+          <wghn-confirm-bar variant="plain" data-testid="remove-panel" confirmAction="remove" cancelAction="cancel-remove" confirmLabel="Ja, entfernen" [busy]="act.busy()" (confirmed)="remove()" (cancelled)="cancelRemove()">Die Zuordnung wird entfernt. Danach kann die Person den zweiten Faktor nicht nutzen, bis ein Konto neu eingetragen ist. Wirklich entfernen?</wghn-confirm-bar>
         } @else {
           <div class="flex flex-wrap gap-2">
             <button mat-flat-button type="button" data-action="save" [disabled]="act.busy()" (click)="save()">Eintragen</button>

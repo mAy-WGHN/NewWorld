@@ -135,11 +135,7 @@
           }
 
           @if (confirmingReset()) {
-            <div class="flex flex-wrap items-center gap-2" data-testid="reset-panel">
-              <span class="text-sm">Die eigenen Texte gehen verloren und der Standard gilt wieder. Wirklich zurücksetzen?</span>
-              <button mat-flat-button type="button" data-action="reset" [disabled]="busy()" (click)="reset()">Ja, zurücksetzen</button>
-              <button mat-stroked-button type="button" data-action="cancel-reset" (click)="cancelReset()">Abbrechen</button>
-            </div>
+            <wghn-confirm-bar variant="plain" data-testid="reset-panel" confirmAction="reset" cancelAction="cancel-reset" confirmLabel="Ja, zurücksetzen" [busy]="busy()" (confirmed)="reset()" (cancelled)="cancelReset()">Die eigenen Texte gehen verloren und der Standard gilt wieder. Wirklich zurücksetzen?</wghn-confirm-bar>
           } @else {
             <div class="flex flex-wrap gap-2">
               <button mat-flat-button type="button" data-action="save" [disabled]="busy() || !changed()" (click)="save()">Speichern</button>

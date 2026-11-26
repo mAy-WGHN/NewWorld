@@ -42,11 +42,7 @@
           <wghn-alert kind="field-error" data-testid="form-error">{{ message }}</wghn-alert>
         }
         @if (confirmingClear()) {
-          <div class="flex flex-wrap items-center gap-2" data-testid="clear-panel">
-            <span class="text-sm">Die eigene Einstellung wird entfernt, danach gilt der Vorschlag aus BC. Wirklich entfernen?</span>
-            <button mat-flat-button type="button" data-action="clear" [disabled]="act.busy()" (click)="clear()">Ja, entfernen</button>
-            <button mat-stroked-button type="button" data-action="cancel-clear" (click)="cancelClear()">Abbrechen</button>
-          </div>
+          <wghn-confirm-bar variant="plain" data-testid="clear-panel" confirmAction="clear" cancelAction="cancel-clear" confirmLabel="Ja, entfernen" [busy]="act.busy()" (confirmed)="clear()" (cancelled)="cancelClear()">Die eigene Einstellung wird entfernt, danach gilt der Vorschlag aus BC. Wirklich entfernen?</wghn-confirm-bar>
         } @else {
           <div class="flex flex-wrap gap-2">
             <button mat-flat-button type="button" data-action="save" [disabled]="act.busy()" (click)="save()">Festlegen</button>

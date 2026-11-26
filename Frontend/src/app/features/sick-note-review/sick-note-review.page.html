@@ -112,11 +112,7 @@
                 }
               }
               @if (deleting() === d.id) {
-                <div class="flex flex-wrap items-center gap-2" data-testid="delete-panel">
-                  <span class="text-sm">Die Datei wird endgültig gelöscht. Wirklich löschen?</span>
-                  <button mat-flat-button type="button" data-action="delete" [disabled]="busy()" (click)="remove(d)">Ja, löschen</button>
-                  <button mat-stroked-button type="button" data-action="cancel-delete" (click)="cancelDelete()">Abbrechen</button>
-                </div>
+                <wghn-confirm-bar variant="plain" data-testid="delete-panel" [busy]="busy()" (confirmed)="remove(d)" (cancelled)="cancelDelete()">Die Datei wird endgültig gelöscht. Wirklich löschen?</wghn-confirm-bar>
               }
             </div>
           }

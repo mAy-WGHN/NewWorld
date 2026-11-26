@@ -159,11 +159,7 @@
                   <button mat-stroked-button type="button" data-action="ask-delete" [disabled]="busy()" (click)="askDelete(e)">Löschen …</button>
                 </div>
                 @if (deleting() === e.id) {
-                  <div class="flex flex-wrap items-center gap-2" data-testid="delete-panel">
-                    <span class="text-sm">Den Eintrag wirklich löschen?</span>
-                    <button mat-flat-button type="button" data-action="delete" [disabled]="busy()" (click)="remove(e)">Ja, löschen</button>
-                    <button mat-stroked-button type="button" data-action="cancel-delete" (click)="cancelDelete()">Abbrechen</button>
-                  </div>
+                  <wghn-confirm-bar variant="plain" data-testid="delete-panel" [busy]="busy()" (confirmed)="remove(e)" (cancelled)="cancelDelete()">Den Eintrag wirklich löschen?</wghn-confirm-bar>
                 }
               </div>
             }

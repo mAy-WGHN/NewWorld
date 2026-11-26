@@ -50,11 +50,7 @@
   </div>
 
   @if (confirmingDeleteId(); as id) {
-    <div class="flex flex-wrap items-center gap-2 rounded-lg border border-outline-variant px-3 py-2" data-testid="delete-panel">
-      <span class="text-sm">Die Zuständigkeit wird entfernt. Wirklich entfernen?</span>
-      <button mat-flat-button type="button" data-action="delete" [disabled]="act.busy()" (click)="remove(id)">Ja, entfernen</button>
-      <button mat-stroked-button type="button" data-action="cancel-delete" (click)="cancelDelete()">Abbrechen</button>
-    </div>
+    <wghn-confirm-bar variant="box" data-testid="delete-panel" confirmLabel="Ja, entfernen" [busy]="act.busy()" (confirmed)="remove(id)" (cancelled)="cancelDelete()">Die Zuständigkeit wird entfernt. Wirklich entfernen?</wghn-confirm-bar>
   }
 
   @if (canCreate()) {

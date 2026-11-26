@@ -70,11 +70,7 @@
       </div>
 
       @if (confirmingDeleteId() === r.id) {
-        <div class="mt-3 flex flex-wrap items-center gap-2 border-t border-outline-variant pt-3" data-testid="delete-panel">
-          <span class="text-sm">Die Rolle „{{ r.name }}“ wird gelöscht. Das geht nur, wenn niemand sie mehr hat. Wirklich löschen?</span>
-          <button mat-flat-button type="button" data-action="delete" [disabled]="act.busy()" (click)="remove(r)">Ja, löschen</button>
-          <button mat-stroked-button type="button" data-action="cancel-delete" (click)="cancelDelete()">Abbrechen</button>
-        </div>
+        <wghn-confirm-bar data-testid="delete-panel" [busy]="act.busy()" (confirmed)="remove(r)" (cancelled)="cancelDelete()">Die Rolle „{{ r.name }}“ wird gelöscht. Das geht nur, wenn niemand sie mehr hat. Wirklich löschen?</wghn-confirm-bar>
       }
 
       @if (editingId() === r.id) {
