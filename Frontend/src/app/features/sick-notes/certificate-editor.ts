@@ -1,7 +1,7 @@
 import { Component, effect, input, output, signal } from '@angular/core';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { PAGE_UI } from '../../shared/wghn/material';
-import { FileDrop } from './file-drop';
+import { WghnFileDrop } from '../../shared/wghn/wghn-file-drop';
 import { Absence, CERTIFICATE_ACCEPT, canMarkElectronic, validateCertificateFile, validatePeriod } from '../absences/absence-models';
 
 /** A paper AU the person hands in afterwards: the file and the period the AU covers. */
@@ -18,7 +18,7 @@ export interface CertificateUpload {
  */
 @Component({
   selector: 'app-certificate-editor',
-  imports: [FileDrop, MatCheckboxModule, ...PAGE_UI],
+  imports: [WghnFileDrop, MatCheckboxModule, ...PAGE_UI],
   templateUrl: './certificate-editor.html',
 })
 export class CertificateEditor {

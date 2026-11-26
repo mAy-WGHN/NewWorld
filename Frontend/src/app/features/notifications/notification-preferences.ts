@@ -1,3 +1,4 @@
+import { WghnAlert } from '../../shared/wghn/wghn-alert';
 import { Component, computed, inject, signal } from '@angular/core';
 import { MatCheckboxChange, MatCheckboxModule } from '@angular/material/checkbox';
 import { MatCardModule } from '@angular/material/card';
@@ -10,10 +11,10 @@ import { NotificationsApi } from './notifications.api';
 /** "Was möchtest du erhalten?": the choice per kind of notification and channel. Used on the notifications page and in the settings. */
 @Component({
   selector: 'app-notification-preferences',
-  imports: [MatCheckboxModule, MatCardModule, MatChipsModule],
+  imports: [WghnAlert, MatCheckboxModule, MatCardModule, MatChipsModule],
   template: `
     @if (error(); as message) {
-      <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert">{{ message }}</p>
+      <wghn-alert class="mb-3">{{ message }}</wghn-alert>
     }
     @if (canRead() && types().length) {
       <section data-testid="preferences" aria-labelledby="choices-title">

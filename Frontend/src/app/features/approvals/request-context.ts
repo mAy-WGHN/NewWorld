@@ -1,3 +1,4 @@
+import { WghnLoading } from '../../shared/wghn/wghn-loading';
 import { Component, OnInit, computed, inject, input, signal } from '@angular/core';
 import { TeamAbsencesApi } from '../team-absences/team-absences.api';
 import {
@@ -18,11 +19,12 @@ import { contextWindow, othersAbsent, othersSummary, windowDays } from './reques
  */
 @Component({
   selector: 'app-request-context',
+  imports: [WghnLoading],
   template: `
     @if (error(); as message) {
       <p class="m-0 text-sm text-on-surface-variant" data-testid="context-error">{{ message }}</p>
     } @else if (!loaded()) {
-      <p class="m-0 text-sm text-on-surface-variant" data-testid="context-loading">Wird geladen …</p>
+      <wghn-loading data-testid="context-loading" />
     } @else {
       <p class="m-0 mb-2 text-sm" data-testid="context-summary">{{ summary() }}</p>
       <div class="overflow-x-auto rounded-xl border border-outline-variant" tabindex="0" role="region" [attr.aria-label]="'Abwesenheiten in der Filiale um den Antrag von ' + request().employeeName">

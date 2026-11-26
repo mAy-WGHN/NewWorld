@@ -7,7 +7,7 @@
 
   <app-action-messages [state]="act" />
   @if (loadError(); as message) {
-    <p class="rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="load-error">{{ message }}</p>
+    <wghn-alert data-testid="load-error">{{ message }}</wghn-alert>
   }
 
   @if (canRead() && main(); as m) {
@@ -39,7 +39,7 @@
           </select>
         </mat-form-field>
         @if (formError(); as message) {
-          <p class="m-0 text-[13px] text-error" role="alert" data-testid="form-error">{{ message }}</p>
+          <wghn-alert kind="field-error" data-testid="form-error">{{ message }}</wghn-alert>
         }
         @if (confirmingClear()) {
           <div class="flex flex-wrap items-center gap-2" data-testid="clear-panel">

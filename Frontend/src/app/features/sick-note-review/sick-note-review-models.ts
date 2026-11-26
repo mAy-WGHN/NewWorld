@@ -75,10 +75,4 @@ export const rejectionLabel = (reason: string | null): string => REJECTION_REASO
 export const isOpenForReview = (document: CertificateDocument): boolean => document.state === 'Submitted';
 
 /** `1536` becomes `1,5 KB`. */
-export function formatSize(bytes: number): string {
-  if (bytes < 1024) {
-    return `${bytes} B`;
-  }
-  const kb = bytes / 1024;
-  return kb < 1024 ? `${kb.toFixed(1).replace('.', ',')} KB` : `${(kb / 1024).toFixed(1).replace('.', ',')} MB`;
-}
+export { formatFileSize as formatSize } from '../../shared/wghn/format';

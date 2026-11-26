@@ -34,7 +34,7 @@
     </mat-form-field>
 
     @if (error(); as message) {
-      <p class="m-0 text-[13px] text-error" role="alert" data-testid="person-error">{{ message }}</p>
+      <wghn-alert kind="field-error" data-testid="person-error">{{ message }}</wghn-alert>
     }
     @if (searching()) {
       <p class="m-0 text-[13px] text-on-surface-variant" role="status" data-testid="person-searching">Suche läuft …</p>

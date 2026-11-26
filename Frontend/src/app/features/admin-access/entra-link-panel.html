@@ -7,7 +7,7 @@
 
   <app-action-messages [state]="act" />
   @if (loadError(); as message) {
-    <p class="rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="load-error">{{ message }}</p>
+    <wghn-alert data-testid="load-error">{{ message }}</wghn-alert>
   }
 
   @if (canRead()) {
@@ -36,7 +36,7 @@
           <input matInput type="email" data-testid="upn-input" autocomplete="off" [value]="name()" [attr.aria-invalid]="formError() ? 'true' : null" (input)="onName($event)" />
         </mat-form-field>
         @if (formError(); as message) {
-          <p class="m-0 text-[13px] text-error" role="alert" data-testid="form-error">{{ message }}</p>
+          <wghn-alert kind="field-error" data-testid="form-error">{{ message }}</wghn-alert>
         }
         @if (confirmingRemove()) {
           <div class="flex flex-wrap items-center gap-2" data-testid="remove-panel">

@@ -38,7 +38,7 @@
     }
 
     @if (error(); as message) {
-      <p class="m-0 text-[13px] text-error" role="alert" data-testid="attachment-error">{{ message }}</p>
+      <wghn-alert kind="field-error" data-testid="attachment-error">{{ message }}</wghn-alert>
     }
   </section>
 }

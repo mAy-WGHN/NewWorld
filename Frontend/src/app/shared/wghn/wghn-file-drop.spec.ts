@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { FileDrop } from './file-drop';
+import { WghnFileDrop } from './wghn-file-drop';
 
 const pdf = (name = 'au.pdf', size = 2048) => new File([new Uint8Array(size)], name, { type: 'application/pdf' });
 
@@ -10,14 +10,14 @@ function dragEvent(type: string, files: File[] = []): Event {
   return event;
 }
 
-describe('FileDrop', () => {
-  let fixture: ComponentFixture<FileDrop>;
+describe('WghnFileDrop', () => {
+  let fixture: ComponentFixture<WghnFileDrop>;
   let root: HTMLElement;
   let chosen: File[];
   let cleared: number;
 
   async function create(file: File | null = null, disabled = false): Promise<void> {
-    fixture = TestBed.createComponent(FileDrop);
+    fixture = TestBed.createComponent(WghnFileDrop);
     fixture.componentRef.setInput('inputId', 'the-file');
     fixture.componentRef.setInput('accept', '.pdf');
     fixture.componentRef.setInput('file', file);
@@ -117,5 +117,28 @@ describe('FileDrop', () => {
     root.querySelector<HTMLButtonElement>('[data-testid="remove-file"]')!.click();
 
     expect(cleared).toBe(1);
+  });
+
+  it('says what is dropped in its texts and names the zone and the button for tests', async () => {
+    await create();
+    fixture.componentRef.setInput('label', 'Bild');
+    fixture.componentRef.setInput('testId', 'image-drop');
+    fixture.componentRef.setInput('chooseTestId', 'choose-image');
+    await fixture.whenStable();
+
+    expect(root.querySelector('[data-testid="image-drop"]')!.textContent).toContain('Bild hierher ziehen oder');
+    expect(root.querySelector('[data-testid="choose-image"]')!.textContent).toContain('Bild auswählen');
+    expect(root.querySelector('[data-testid="file-drop"]')).toBeNull();
+  });
+
+  it('hands over only the first file unless several are wanted', async () => {
+    await create();
+    zone().dispatchEvent(dragEvent('drop', [pdf('a.pdf'), pdf('b.pdf')]));
+    expect(chosen.map((f) => f.name)).toEqual(['a.pdf']);
+
+    fixture.componentRef.setInput('multiple', true);
+    await fixture.whenStable();
+    zone().dispatchEvent(dragEvent('drop', [pdf('c.pdf'), pdf('d.pdf')]));
+    expect(chosen.map((f) => f.name)).toEqual(['a.pdf', 'c.pdf', 'd.pdf']);
   });
 });

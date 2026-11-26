@@ -5,10 +5,10 @@
   </p>
 
   @if (error(); as message) {
-    <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="error">{{ message }}</p>
+    <wghn-alert class="mb-3" data-testid="error">{{ message }}</wghn-alert>
   }
   @if (status(); as message) {
-    <p class="mb-3 rounded-xl bg-primary-container px-4 py-2.5 text-on-primary-container" role="status" data-testid="status">{{ message }}</p>
+    <wghn-alert kind="status" class="mb-3" data-testid="status">{{ message }}</wghn-alert>
   }
 
   @if (form(); as f) {
@@ -108,6 +108,6 @@
       </div>
     </form>
   } @else if (!error()) {
-    <p class="text-sm text-on-surface-variant">Wird geladen …</p>
+    <wghn-loading />
   }
 </section>

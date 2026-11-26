@@ -1,7 +1,7 @@
 import { Component, OnDestroy, computed, effect, inject, model, signal, untracked } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { CashRegisterApi } from './cash-register.api';
-import { FileDrop } from '../sick-notes/file-drop';
+import { WghnFileDrop } from '../../shared/wghn/wghn-file-drop';
 import { PersonOption, SealFormValue } from './cash-register-models';
 
 /**
@@ -10,7 +10,7 @@ import { PersonOption, SealFormValue } from './cash-register-models';
  */
 @Component({
   selector: 'app-seal-fields',
-  imports: [MatButtonModule, FileDrop],
+  imports: [MatButtonModule, WghnFileDrop],
   template: `
     <fieldset class="m-0 flex min-w-0 flex-col gap-3 rounded-xl border border-outline-variant px-4 py-3" data-testid="seal-fields">
       <legend class="px-1 font-medium">Siegel</legend>
@@ -18,7 +18,7 @@ import { PersonOption, SealFormValue } from './cash-register-models';
       <div class="flex flex-col gap-1">
         <span class="font-medium" id="seal-photo-label">Foto des Siegels *</span>
         <!-- the same drop zone as for the AU of a sick note: drag the photo onto it or choose it -->
-        <app-file-drop inputId="seal-photo" accept="image/png,image/jpeg,image/webp" [file]="value().photo" (chosen)="onPhoto($event)" (cleared)="onPhoto(null)" />
+        <wghn-file-drop inputId="seal-photo" accept="image/png,image/jpeg,image/webp" [file]="value().photo" (chosen)="onPhoto($event)" (cleared)="onPhoto(null)" />
         @if (previewUrl(); as url) {
           <img class="mt-1 max-h-40 w-fit rounded-lg border border-outline-variant" [src]="url" alt="Gewähltes Foto des Siegels" data-testid="seal-photo-preview" />
         }

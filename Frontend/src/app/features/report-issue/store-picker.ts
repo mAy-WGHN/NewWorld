@@ -1,3 +1,4 @@
+import { WghnAlert } from '../../shared/wghn/wghn-alert';
 import { Component, computed, input, model, signal } from '@angular/core';
 import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
 import { MatChipsModule } from '@angular/material/chips';
@@ -8,7 +9,7 @@ import { Location, filterLocations, locationLabel } from './report-issue-models'
 /** Choose one or more stores: search by name or number, the chosen ones stand as chips. */
 @Component({
   selector: 'app-store-picker',
-  imports: [MatAutocompleteModule, MatChipsModule, MatFormFieldModule, MatIconModule],
+  imports: [WghnAlert, MatAutocompleteModule, MatChipsModule, MatFormFieldModule, MatIconModule],
   templateUrl: './store-picker.html',
 })
 export class StorePicker {

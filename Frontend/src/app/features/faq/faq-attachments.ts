@@ -1,7 +1,8 @@
+import { WghnAlert } from '../../shared/wghn/wghn-alert';
 import { Component, DestroyRef, computed, effect, inject, input, signal, untracked } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
-import { formatSize } from '../sick-note-review/sick-note-review-models';
+import { formatFileSize as formatSize } from '../../shared/wghn/format';
 import { FaqAttachment, attachmentIcon, opensInTab } from './faq-models';
 import { FaqApi } from './faq.api';
 
@@ -15,7 +16,7 @@ const OBJECT_URL_MS = 60_000;
  */
 @Component({
   selector: 'app-faq-attachments',
-  imports: [MatButtonModule, MatIconModule],
+  imports: [WghnAlert, MatButtonModule, MatIconModule],
   templateUrl: './faq-attachments.html',
 })
 export class FaqAttachments {

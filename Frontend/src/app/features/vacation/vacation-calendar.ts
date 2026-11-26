@@ -1,3 +1,4 @@
+import { WghnAlert } from '../../shared/wghn/wghn-alert';
 import { Component, ElementRef, Injector, afterNextRender, computed, effect, inject, input, output, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -21,7 +22,7 @@ const LOOK: Record<VacationShown, string> = {
 @Component({
   selector: 'app-vacation-calendar',
   host: { '(document:pointerup)': 'finish()', '(document:pointercancel)': 'cancelDrag()', '(document:keydown.escape)': 'clear()' },
-  imports: [MatButtonModule, MatIconModule],
+  imports: [WghnAlert, MatButtonModule, MatIconModule],
   template: `
     <section class="rounded-xl border border-outline-variant p-3" data-testid="calendar" aria-labelledby="cal-title">
       <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
@@ -96,7 +97,7 @@ const LOOK: Record<VacationShown, string> = {
         </div>
       }
       @if (error(); as message) {
-        <p class="m-0 mt-2 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="calendar-error">{{ message }}</p>
+        <wghn-alert class="mt-2" data-testid="calendar-error">{{ message }}</wghn-alert>
       }
       @if (!any()) {
         <p class="m-0 mt-2 text-sm text-on-surface-variant" data-testid="calendar-empty">In diesem Monat ist kein Urlaub eingetragen.</p>

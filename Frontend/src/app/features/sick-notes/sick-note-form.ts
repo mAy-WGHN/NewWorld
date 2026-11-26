@@ -3,7 +3,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatRadioModule } from '@angular/material/radio';
 import { todayIso } from '../../core/dates';
 import { PAGE_UI } from '../../shared/wghn/material';
-import { FileDrop } from './file-drop';
+import { WghnFileDrop } from '../../shared/wghn/wghn-file-drop';
 import { CERTIFICATE_ACCEPT, SickNoteInput, SickNoteKind, validateCertificateFile, validateSickNote } from '../absences/absence-models';
 
 /**
@@ -14,7 +14,7 @@ import { CERTIFICATE_ACCEPT, SickNoteInput, SickNoteKind, validateCertificateFil
  */
 @Component({
   selector: 'app-sick-note-form',
-  imports: [FileDrop, MatCheckboxModule, MatRadioModule, ...PAGE_UI],
+  imports: [WghnFileDrop, MatCheckboxModule, MatRadioModule, ...PAGE_UI],
   templateUrl: './sick-note-form.html',
 })
 export class SickNoteForm {

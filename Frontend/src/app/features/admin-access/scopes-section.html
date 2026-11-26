@@ -5,7 +5,7 @@
 
 <app-action-messages [state]="act" />
 @if (loadError(); as message) {
-  <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="load-error">{{ message }}</p>
+  <wghn-alert class="mb-3" data-testid="load-error">{{ message }}</wghn-alert>
 }
 @if (storesError()) {
   <p class="mb-3 rounded-xl bg-surface-container px-4 py-2.5 text-sm" data-testid="stores-error">Die Filialliste konnte nicht geladen werden; die Filialen lassen sich deshalb nicht auswählen.</p>
@@ -21,7 +21,7 @@
           <input matInput data-testid="new-name" autocomplete="off" [value]="newName()" [attr.aria-invalid]="nameError() ? 'true' : null" (input)="onName($event)" />
         </mat-form-field>
         @if (nameError(); as message) {
-          <p class="m-0 text-[13px] text-error" role="alert" data-testid="name-error">{{ message }}</p>
+          <wghn-alert kind="field-error" data-testid="name-error">{{ message }}</wghn-alert>
         }
         <app-store-picker inputId="scope-new-stores" [locations]="stores()" [(selected)]="newStores" />
         <div class="flex flex-wrap gap-2">

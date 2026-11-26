@@ -21,5 +21,5 @@
   </mat-autocomplete>
 </mat-form-field>
 @if (error(); as message) {
-  <p class="m-0 mt-1 text-[13px] text-error" role="alert">{{ message }}</p>
+  <wghn-alert kind="field-error" class="mt-1">{{ message }}</wghn-alert>
 }

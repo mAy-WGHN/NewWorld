@@ -3,7 +3,7 @@
 </wghn-page-head>
 
 @if (loadError(); as message) {
-  <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="load-error">{{ message }}</p>
+  <wghn-alert class="mb-3" data-testid="load-error">{{ message }}</wghn-alert>
 }
 
 @if (report(); as r) {
@@ -22,10 +22,10 @@
   </div>
 
   @if (act.error(); as message) {
-    <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="act-error">{{ message }}</p>
+    <wghn-alert class="mb-3" data-testid="act-error">{{ message }}</wghn-alert>
   }
   @if (act.status(); as message) {
-    <p class="mb-3 rounded-xl bg-primary-container px-4 py-2.5 text-on-primary-container" role="status" data-testid="act-status">{{ message }}</p>
+    <wghn-alert kind="status" class="mb-3" data-testid="act-status">{{ message }}</wghn-alert>
   }
 
   <div class="grid gap-6 lg:grid-cols-[3fr_2fr]">

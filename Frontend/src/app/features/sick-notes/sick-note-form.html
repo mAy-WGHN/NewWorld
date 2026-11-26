@@ -29,7 +29,7 @@
     <div class="mb-3 flex flex-col gap-1 rounded-xl bg-surface-container px-3 py-2.5" data-testid="certificate-section">
       <strong class="text-sm">AU einreichen</strong>
       <span class="text-sm">AU (nur PDF, JPEG oder PNG)</span>
-      <app-file-drop inputId="sick-file" [accept]="accept" [file]="file()" [disabled]="busy()" (chosen)="chooseFile($event)" (cleared)="clearFile()" />
+      <wghn-file-drop inputId="sick-file" [accept]="accept" [file]="file()" [disabled]="busy()" (chosen)="chooseFile($event)" (cleared)="clearFile()" />
       <mat-checkbox [checked]="electronic()" [disabled]="busy()" data-testid="electronic" (change)="toggleElectronic($event.checked)">
         Das ist eine eAU
       </mat-checkbox>
@@ -37,7 +37,7 @@
     </div>
 
     @if (error(); as message) {
-      <p class="mb-2 rounded-xl border border-error px-3 py-2 text-error" role="alert" data-testid="form-error">{{ message }}</p>
+      <wghn-alert class="mb-2" data-testid="form-error">{{ message }}</wghn-alert>
     }
     <div class="flex flex-wrap gap-2">
       <button mat-flat-button type="submit" data-testid="submit" [disabled]="busy()">Krank melden</button>

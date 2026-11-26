@@ -1,5 +1,5 @@
 @if (loadError(); as message) {
-  <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="load-error">{{ message }}</p>
+  <wghn-alert class="mb-3" data-testid="load-error">{{ message }}</wghn-alert>
 }
 
 @if (loaded()) {
@@ -104,10 +104,10 @@
     </section>
 
     @if (save.error(); as message) {
-      <p class="m-0 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="save-error">{{ message }}</p>
+      <wghn-alert data-testid="save-error">{{ message }}</wghn-alert>
     }
     @if (save.status(); as message) {
-      <p class="m-0 rounded-xl bg-primary-container px-4 py-2.5 text-on-primary-container" role="status" data-testid="save-status">{{ message }}</p>
+      <wghn-alert kind="status" data-testid="save-status">{{ message }}</wghn-alert>
     }
     <div>
       <button mat-flat-button type="submit" data-action="save" [disabled]="save.busy()">Hierarchie speichern</button>

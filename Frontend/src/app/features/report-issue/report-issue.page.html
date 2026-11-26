@@ -29,7 +29,7 @@
                      [attr.aria-invalid]="errors().personnelNumber ? 'true' : null" [disabled]="busy()" />
             </mat-form-field>
             @if (errors().personnelNumber; as message) {
-              <p class="m-0 mt-1 text-[13px] text-error" role="alert">{{ message }}</p>
+              <wghn-alert kind="field-error" class="mt-1">{{ message }}</wghn-alert>
             }
           </div>
 
@@ -40,7 +40,7 @@
                         [attr.aria-invalid]="errors().description ? 'true' : null" [disabled]="busy()"></textarea>
             </mat-form-field>
             @if (errors().description; as message) {
-              <p class="m-0 mt-1 text-[13px] text-error" role="alert">{{ message }}</p>
+              <wghn-alert kind="field-error" class="mt-1">{{ message }}</wghn-alert>
             }
           </div>
 
@@ -98,7 +98,7 @@
           }
 
           @if (submitError(); as message) {
-            <p class="m-0 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="submit-error">{{ message }}</p>
+            <wghn-alert data-testid="submit-error">{{ message }}</wghn-alert>
           }
 
           <div class="flex justify-end gap-2">

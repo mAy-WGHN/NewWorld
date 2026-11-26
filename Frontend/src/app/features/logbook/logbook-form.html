@@ -67,10 +67,10 @@
   }
 
   @if (save.error(); as message) {
-    <p class="m-0 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="save-error">{{ message }}</p>
+    <wghn-alert data-testid="save-error">{{ message }}</wghn-alert>
   }
   @if (save.status(); as message) {
-    <p class="m-0 rounded-xl bg-primary-container px-4 py-2.5 text-on-primary-container" role="status" data-testid="save-status">{{ message }}</p>
+    <wghn-alert kind="status" data-testid="save-status">{{ message }}</wghn-alert>
   }
   @if (!submitted() && missing().length > 0) {
     <p class="m-0 text-sm text-on-surface-variant" data-testid="missing">

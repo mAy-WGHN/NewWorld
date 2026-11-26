@@ -5,7 +5,7 @@
 
 <app-action-messages [state]="act" />
 @if (loadError(); as message) {
-  <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="load-error">{{ message }}</p>
+  <wghn-alert class="mb-3" data-testid="load-error">{{ message }}</wghn-alert>
 }
 
 <div class="mb-3 flex flex-wrap items-center gap-3">
@@ -28,7 +28,7 @@
         <mat-hint>Zum Beispiel inventur:freigeben</mat-hint>
       </mat-form-field>
       @if (keyError(); as message) {
-        <p class="m-0 text-[13px] text-error" role="alert" data-testid="key-error">{{ message }}</p>
+        <wghn-alert kind="field-error" data-testid="key-error">{{ message }}</wghn-alert>
       }
       <mat-form-field appearance="outline" subscriptSizing="dynamic">
         <mat-label>Beschreibung (freiwillig)</mat-label>

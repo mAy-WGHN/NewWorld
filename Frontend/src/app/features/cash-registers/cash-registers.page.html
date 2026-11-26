@@ -10,10 +10,10 @@
 <p class="m-0 mb-5 text-on-surface-variant">Versiegelungen aller Filialkassen im Überblick.</p>
 
 @if (error(); as message) {
-  <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="error">{{ message }}</p>
+  <wghn-alert class="mb-3" data-testid="error">{{ message }}</wghn-alert>
 }
 @if (status(); as message) {
-  <p class="mb-3 rounded-xl bg-primary-container px-4 py-2.5 text-on-primary-container" role="status" data-testid="status">{{ message }}</p>
+  <wghn-alert kind="status" class="mb-3" data-testid="status">{{ message }}</wghn-alert>
 }
 
 @if (data(); as d) {
@@ -228,12 +228,12 @@
           </div>
         }
       } @else {
-        <p class="m-0 text-on-surface-variant" role="status">Wird geladen …</p>
+        <wghn-loading />
       }
     }
   </section>
 } @else if (loading()) {
-  <p class="m-0 text-on-surface-variant" role="status">Wird geladen …</p>
+  <wghn-loading />
 }
 
 @if (canManageReminders() && reminder(); as r) {

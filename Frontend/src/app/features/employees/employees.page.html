@@ -20,15 +20,15 @@
 }
 
 @if (error(); as message) {
-  <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="error">{{ message }}</p>
+  <wghn-alert class="mb-3" data-testid="error">{{ message }}</wghn-alert>
 }
 @if (status(); as message) {
-  <p class="mb-3 rounded-xl bg-primary-container px-4 py-2.5 text-on-primary-container" role="status" data-testid="status">{{ message }}</p>
+  <wghn-alert kind="status" class="mb-3" data-testid="status">{{ message }}</wghn-alert>
 }
 
 @if (active() === 'requests') {
   @if (requestsError(); as message) {
-    <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert">{{ message }}</p>
+    <wghn-alert class="mb-3">{{ message }}</wghn-alert>
   }
   @if (requestsLoaded() && requests().length === 0 && !requestsError()) {
     <p class="m-0 mb-2 text-sm text-on-surface-variant" data-testid="no-requests">Keine offenen Änderungsanträge.</p>
@@ -67,15 +67,15 @@
 
 @if (active() === 'create') {
   @if (formError(); as message) {
-    <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert">{{ message }}</p>
+    <wghn-alert class="mb-3">{{ message }}</wghn-alert>
   }
   @if (created(); as c) {
-    <p class="mb-3 rounded-xl bg-primary-container px-4 py-2.5 text-on-primary-container" role="status" data-testid="created">
+    <wghn-alert kind="status" class="mb-3" data-testid="created">
       Die Person ist angelegt. Personalnummer: <strong data-testid="personnel-number">{{ c.personnelNumber }}</strong>. Die Karte wartet auf die Übernahme durch Business Central.
       @if (canRead()) {
         <button mat-stroked-button type="button" class="ml-2" data-action="open-created" (click)="openCreated()">Karte ansehen</button>
       }
-    </p>
+    </wghn-alert>
   }
   <form class="grid gap-3 sm:grid-cols-2" novalidate (submit)="$event.preventDefault(); submit()">
     @for (f of textFields; track f.key) {
@@ -155,7 +155,7 @@
     <button mat-flat-button type="submit" data-action="search" [disabled]="busy()">Suchen</button>
   </form>
   @if (cardError(); as message) {
-    <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="card-error">{{ message }}</p>
+    <wghn-alert class="mb-3" data-testid="card-error">{{ message }}</wghn-alert>
   }
   @if (results(); as hits) {
     @if (hits.length === 0) {

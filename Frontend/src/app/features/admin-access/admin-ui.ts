@@ -1,3 +1,4 @@
+import { WghnAlert } from '../../shared/wghn/wghn-alert';
 import { Component, input, signal } from '@angular/core';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { PAGE_UI } from '../../shared/wghn/material';
@@ -38,12 +39,13 @@ export class ActionState {
 /** The error and success lines of a section. */
 @Component({
   selector: 'app-action-messages',
+  imports: [WghnAlert],
   template: `
     @if (state().error(); as message) {
-      <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="error">{{ message }}</p>
+      <wghn-alert class="mb-3" data-testid="error">{{ message }}</wghn-alert>
     }
     @if (state().status(); as message) {
-      <p class="mb-3 rounded-xl bg-primary-container px-4 py-2.5 text-on-primary-container" role="status" data-testid="status">{{ message }}</p>
+      <wghn-alert kind="status" class="mb-3" data-testid="status">{{ message }}</wghn-alert>
     }
   `,
 })

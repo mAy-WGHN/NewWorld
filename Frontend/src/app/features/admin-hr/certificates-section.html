@@ -7,10 +7,10 @@
       So viele Tage nach dem Ende der Krankmeldung werden die hochgeladenen AU-Dateien automatisch gelöscht, auch abgelehnte. Die Personalabteilung kann Dateien außerdem jederzeit von Hand löschen. Erlaubt sind 0 bis 3650 Tage; ohne eigene Einstellung gilt der Standard (365 Tage).
     </p>
     @if (retentionError(); as message) {
-      <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="retention-error">{{ message }}</p>
+      <wghn-alert class="mb-3" data-testid="retention-error">{{ message }}</wghn-alert>
     }
     @if (retentionStatus(); as message) {
-      <p class="mb-3 rounded-xl bg-primary-container px-4 py-2.5 text-on-primary-container" role="status" data-testid="retention-status">{{ message }}</p>
+      <wghn-alert kind="status" class="mb-3" data-testid="retention-status">{{ message }}</wghn-alert>
     }
     <form novalidate class="mb-8 flex flex-wrap items-center gap-3" (submit)="$event.preventDefault(); saveRetention()">
       <mat-form-field appearance="outline" subscriptSizing="dynamic">
@@ -34,10 +34,10 @@
       Wer noch keine AU hochgeladen hat, wird erinnert (im Portal und als Push ohne Inhalt), frühestens am ersten Tag zurück, also am Tag nach dem Ende der Krankmeldung. Krankmeldungen ohne Ende bekommen keine Erinnerung. Mit 0 Erinnerungen sind sie ausgeschaltet.
     </p>
     @if (remindersError(); as message) {
-      <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="reminders-error">{{ message }}</p>
+      <wghn-alert class="mb-3" data-testid="reminders-error">{{ message }}</wghn-alert>
     }
     @if (remindersStatus(); as message) {
-      <p class="mb-3 rounded-xl bg-primary-container px-4 py-2.5 text-on-primary-container" role="status" data-testid="reminders-status">{{ message }}</p>
+      <wghn-alert kind="status" class="mb-3" data-testid="reminders-status">{{ message }}</wghn-alert>
     }
     <form novalidate class="mb-8 flex flex-col gap-3" (submit)="$event.preventDefault(); saveReminders()">
       <div class="flex flex-wrap items-start gap-3">
@@ -75,7 +75,7 @@
       Wer hat wann welche AU hochgeladen, geöffnet, geprüft oder gelöscht. Der Inhalt der Dateien steht nie im Protokoll.
     </p>
     @if (logError(); as message) {
-      <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="log-error">{{ message }}</p>
+      <wghn-alert class="mb-3" data-testid="log-error">{{ message }}</wghn-alert>
     }
     <form novalidate class="mb-3 flex flex-wrap items-start gap-3" (submit)="$event.preventDefault(); loadLog(true)">
       <mat-form-field appearance="outline" subscriptSizing="dynamic">

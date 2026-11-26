@@ -7,7 +7,7 @@
 
   <app-action-messages [state]="act" />
   @if (loadError(); as message) {
-    <p class="rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="load-error">{{ message }}</p>
+    <wghn-alert data-testid="load-error">{{ message }}</wghn-alert>
   }
   @if (loaded() && items().length === 0 && !loadError()) {
     <p class="m-0 text-sm text-on-surface-variant" data-testid="no-items">Für diese Person ist zurzeit niemand zuständig.</p>
@@ -30,7 +30,7 @@
     <h3 class="m-0 text-base font-medium">Alle Zuständigkeiten</h3>
     <p class="m-0 text-sm text-on-surface-variant">Alle Zuständigkeiten, deren Ziel du sehen darfst (ohne abgelaufene).</p>
     @if (allError(); as message) {
-      <p class="m-0 text-[13px] text-error" role="alert" data-testid="all-error">{{ message }}</p>
+      <wghn-alert kind="field-error" data-testid="all-error">{{ message }}</wghn-alert>
     } @else if (all().length === 0) {
       <p class="m-0 text-sm text-on-surface-variant" data-testid="no-entries">Es sind keine Zuständigkeiten eingerichtet.</p>
     }
@@ -121,7 +121,7 @@
           </mat-form-field>
         </div>
         @if (formError(); as message) {
-          <p class="m-0 text-[13px] text-error" role="alert" data-testid="form-error">{{ message }}</p>
+          <wghn-alert kind="field-error" data-testid="form-error">{{ message }}</wghn-alert>
         }
         <div>
           <button mat-flat-button type="button" data-action="add" [disabled]="act.busy()" (click)="add()">Einrichten</button>

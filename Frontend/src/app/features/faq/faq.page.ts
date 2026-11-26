@@ -3,11 +3,11 @@ import { MatExpansionModule } from '@angular/material/expansion';
 import { AuthService } from '../../core/auth/auth.service';
 import { PAGE_UI } from '../../shared/wghn/material';
 import { envelopeMessage } from '../reports/report-models';
-import { formatSize } from '../sick-note-review/sick-note-review-models';
+import { formatFileSize as formatSize } from '../../shared/wghn/format';
 import { FaqContentView } from './faq-content-view';
 import { FaqEditor } from './faq-editor';
 import { FaqAttachments } from './faq-attachments';
-import { FaqFileDrop } from './faq-file-drop';
+import { WghnFileDrop } from '../../shared/wghn/wghn-file-drop';
 import { ATTACHMENT_ACCEPT, Faq, FaqAttachment, FaqDoc, FaqImage, IMAGE_ACCEPT, MAX_ATTACHMENTS, attachmentProblem, docHasContent, emptyDoc, filterFaqs, imageProblem, imageStatusLabel, move } from './faq-models';
 import { FaqApi } from './faq.api';
 
@@ -31,7 +31,7 @@ interface Draft {
  */
 @Component({
   selector: 'app-faq',
-  imports: [MatExpansionModule, FaqContentView, FaqEditor, FaqAttachments, FaqFileDrop, ...PAGE_UI],
+  imports: [MatExpansionModule, FaqContentView, FaqEditor, FaqAttachments, WghnFileDrop, ...PAGE_UI],
   templateUrl: './faq.page.html',
 })
 export class FaqPage {

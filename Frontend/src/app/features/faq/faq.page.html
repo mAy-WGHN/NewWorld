@@ -13,13 +13,13 @@
 </wghn-page-head>
 
 @if (error(); as message) {
-  <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="error">{{ message }}</p>
+  <wghn-alert class="mb-3" data-testid="error">{{ message }}</wghn-alert>
 }
 @if (status(); as message) {
-  <p class="mb-3 rounded-xl bg-primary-container px-4 py-2.5 text-on-primary-container" role="status" data-testid="status">{{ message }}</p>
+  <wghn-alert kind="status" class="mb-3" data-testid="status">{{ message }}</wghn-alert>
 }
 @if (listError(); as message) {
-  <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="list-error">{{ message }}</p>
+  <wghn-alert class="mb-3" data-testid="list-error">{{ message }}</wghn-alert>
 }
 
 @if (draft(); as d) {
@@ -61,7 +61,7 @@
             }
           </ul>
         }
-        <app-faq-file-drop data-testid="attachment-drop" label="Datei" [multiple]="true" [accept]="attachmentAccept" [disabled]="busy()" (chosen)="attach($event)" />
+        <wghn-file-drop data-testid="attachment-drop" label="Datei" testId="image-drop" chooseTestId="choose-image" [multiple]="true" [accept]="attachmentAccept" [disabled]="busy()" (chosen)="attach($event)" />
       </section>
     }
     <div class="mt-4 flex flex-wrap gap-2">
@@ -107,7 +107,7 @@
       <p class="m-0 mb-3 text-sm text-on-surface-variant">Erlaubt sind PNG, JPEG und WebP bis 5 MB.</p>
       @if (canCreate()) {
         <div class="mb-4">
-          <app-faq-file-drop [accept]="imageAccept" [disabled]="busy()" (chosen)="upload($event)" />
+          <wghn-file-drop label="Bild" testId="image-drop" chooseTestId="choose-image" [accept]="imageAccept" [disabled]="busy()" (chosen)="upload($event)" />
         </div>
       }
       @if (loaded() && !listError() && images().length === 0) {

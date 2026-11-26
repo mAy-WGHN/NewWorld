@@ -5,10 +5,10 @@
   </p>
 
   @if (error(); as message) {
-    <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="error">{{ message }}</p>
+    <wghn-alert class="mb-3" data-testid="error">{{ message }}</wghn-alert>
   }
   @if (status(); as message) {
-    <p class="mb-3 rounded-xl bg-primary-container px-4 py-2.5 text-on-primary-container" role="status" data-testid="status">{{ message }}</p>
+    <wghn-alert kind="status" class="mb-3" data-testid="status">{{ message }}</wghn-alert>
   }
 
   @if (form(); as f) {
@@ -85,7 +85,7 @@
       </div>
     </form>
   } @else if (!error()) {
-    <p class="text-sm text-on-surface-variant">Wird geladen …</p>
+    <wghn-loading />
   }
 
   <h3 class="mb-1 mt-8 text-base font-medium">Monatsschwelle je Arbeitsverhältnis</h3>
@@ -93,10 +93,10 @@
     Ab dieser Stundenzahl im Monat zählen die weiteren Stunden 1:1 als Überstunden im Konto. Ohne Schwelle kann für das Arbeitsverhältnis kein Monatsabschluss gebucht werden. Ein leeres Feld entfernt die Schwelle.
   </p>
   @if (thresholdsError(); as message) {
-    <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="thresholds-error">{{ message }}</p>
+    <wghn-alert class="mb-3" data-testid="thresholds-error">{{ message }}</wghn-alert>
   }
   @if (rowStatus(); as message) {
-    <p class="mb-3 rounded-xl bg-primary-container px-4 py-2.5 text-on-primary-container" role="status" data-testid="row-status">{{ message }}</p>
+    <wghn-alert kind="status" class="mb-3" data-testid="row-status">{{ message }}</wghn-alert>
   }
   @if (rows() && !namesKnown() && hasRows()) {
     <p class="mb-3 text-sm text-on-surface-variant" data-testid="names-hint">

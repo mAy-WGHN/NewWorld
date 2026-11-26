@@ -10,10 +10,10 @@
       Vor dem Start prüfen: Gleiche die zuletzt vergebene Nummer mit Business Central ab (Stand 27.10.2026: 15301). Sonst kann eine neue Nummer mit einer Person kollidieren, die in BC angelegt wurde.
     </p>
     @if (seriesError(); as message) {
-      <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="series-error">{{ message }}</p>
+      <wghn-alert class="mb-3" data-testid="series-error">{{ message }}</wghn-alert>
     }
     @if (seriesStatus(); as message) {
-      <p class="mb-3 rounded-xl bg-primary-container px-4 py-2.5 text-on-primary-container" role="status" data-testid="series-status">{{ message }}</p>
+      <wghn-alert kind="status" class="mb-3" data-testid="series-status">{{ message }}</wghn-alert>
     }
     @if (series(); as s) {
       @if (seriesSet()) {
@@ -39,7 +39,7 @@
         <button mat-flat-button type="submit" class="mt-1" data-action="save-series" [disabled]="seriesBusy()">Speichern</button>
       </form>
     } @else if (!seriesError()) {
-      <p class="text-sm text-on-surface-variant">Wird geladen …</p>
+      <wghn-loading />
     }
   }
 
@@ -49,10 +49,10 @@
       Diese Listen stehen bei der Mitarbeiterkarte zur Auswahl. Einträge lassen sich nie löschen, nur deaktivieren; bestehende Karten behalten sie. Der Code ist nach dem Anlegen fest, die Bezeichnung kannst du ändern.
     </p>
     @if (listError(); as message) {
-      <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="list-error">{{ message }}</p>
+      <wghn-alert class="mb-3" data-testid="list-error">{{ message }}</wghn-alert>
     }
     @if (listStatus(); as message) {
-      <p class="mb-3 rounded-xl bg-primary-container px-4 py-2.5 text-on-primary-container" role="status" data-testid="list-status">{{ message }}</p>
+      <wghn-alert kind="status" class="mb-3" data-testid="list-status">{{ message }}</wghn-alert>
     }
     <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mb-3 block max-w-sm">
       <mat-label>Liste</mat-label>
@@ -122,7 +122,7 @@
         }
       </div>
     } @else if (!listError()) {
-      <p class="text-sm text-on-surface-variant">Wird geladen …</p>
+      <wghn-loading />
     }
   }
 </section>

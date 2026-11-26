@@ -1,7 +1,7 @@
 <wghn-page-head title="Arbeitszeitkonto" />
 
 @if (error(); as message) {
-  <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert">{{ message }}</p>
+  <wghn-alert class="mb-3">{{ message }}</wghn-alert>
 }
 
 @if (account(); as a) {

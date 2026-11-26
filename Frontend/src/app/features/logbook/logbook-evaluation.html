@@ -13,7 +13,7 @@
 </div>
 
 @if (error(); as message) {
-  <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="error">{{ message }}</p>
+  <wghn-alert class="mb-3" data-testid="error">{{ message }}</wghn-alert>
 }
 
 @if (data(); as d) {
@@ -100,5 +100,5 @@
   <ng-container [ngTemplateOutlet]="table" [ngTemplateOutletContext]="{ title: 'Regionen', rows: regions(), testid: 'regions' }" />
   <ng-container [ngTemplateOutlet]="table" [ngTemplateOutletContext]="{ title: 'Filialen', rows: stores(), testid: 'stores' }" />
 } @else if (loading()) {
-  <p class="m-0 text-on-surface-variant" role="status">Wird geladen …</p>
+  <wghn-loading />
 }

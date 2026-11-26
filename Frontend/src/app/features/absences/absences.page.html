@@ -24,10 +24,10 @@
 </mat-card>
 
 @if (error(); as message) {
-  <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert">{{ message }}</p>
+  <wghn-alert class="mb-3">{{ message }}</wghn-alert>
 }
 @if (status(); as message) {
-  <p class="mb-3 rounded-xl bg-primary-container px-4 py-2.5 text-on-primary-container" role="status" data-testid="status">{{ message }}</p>
+  <wghn-alert kind="status" class="mb-3" data-testid="status">{{ message }}</wghn-alert>
 }
 
 @if (canCreate()) {
@@ -55,7 +55,7 @@
 <section aria-labelledby="list-title">
   <h2 id="list-title" class="m-0 mb-2 text-lg font-medium">Übersicht</h2>
   @if (listError(); as message) {
-    <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert">{{ message }}</p>
+    <wghn-alert class="mb-3">{{ message }}</wghn-alert>
   } @else if (loaded() && absences().length === 0) {
     <p class="m-0 mb-2 text-sm text-on-surface-variant">Keine Abwesenheiten eingetragen.</p>
   }

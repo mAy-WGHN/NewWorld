@@ -18,7 +18,7 @@
 
     <app-action-messages [state]="act" />
     @if (fileError(); as message) {
-      <p class="m-0 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="file-error">{{ message }}</p>
+      <wghn-alert data-testid="file-error">{{ message }}</wghn-alert>
     }
 
     @if (result(); as r) {
@@ -26,9 +26,9 @@
         <strong>Vergleich mit „{{ fileName() }}“</strong>
 
         @for (e of errors(); track e.kind + e.name) {
-          <p class="m-0 rounded-xl border border-error px-3 py-2 text-sm text-error" role="alert" data-testid="diff-error">
+          <wghn-alert data-testid="diff-error">
             <strong>{{ e.name }}:</strong> {{ errorText(e.error) }}
-          </p>
+          </wghn-alert>
         }
         @if (r.hasErrors) {
           <p class="m-0 text-sm">Wegen der Fehler kann nichts übernommen werden. Bitte die Datei korrigieren.</p>

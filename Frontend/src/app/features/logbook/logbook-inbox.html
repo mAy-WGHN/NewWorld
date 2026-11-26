@@ -20,7 +20,7 @@
 </div>
 
 @if (error(); as message) {
-  <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="error">{{ message }}</p>
+  <wghn-alert class="mb-3" data-testid="error">{{ message }}</wghn-alert>
 }
 
 @if (loaded() && !error() && visible().length === 0) {
