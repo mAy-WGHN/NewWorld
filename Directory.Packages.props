@@ -46,5 +46,7 @@
     <PackageVersion Include="Verify.Xunit" Version="31.12.5" />
     <PackageVersion Include="NetArchTest.Rules" Version="1.3.2" />
     <PackageVersion Include="WireMock.Net" Version="2.19.0" />
+    <!-- Transitive pin: WireMock.Net pulls WebUtilities 2.3.0 (GHSA-6527-9fp8-r4x6) -->
+    <PackageVersion Include="Microsoft.AspNetCore.WebUtilities" Version="2.3.14" />
   </ItemGroup>
 </Project>

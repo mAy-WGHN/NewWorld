@@ -59,3 +59,7 @@ Neue Datenbank (Schema `portal`: `faqs`, `faq_images`, `reports`, `report_locati
 - **Einrichtung in Access:** Rollen mit den Rechten `faq:*`, `report:*`, `statistic:read`, `report:manage-recipients`; Empfänger je Kategorie im Portal eintragen.
 - **Personalnummer in Meldungen** bleibt bei einer Löschung der Person stehen (die Meldung kennt nur die Nummer); mit dem Datenschutzbeauftragten klären, ob anonymisiert werden soll.
 - Rate Limits gelten je Instanz; bei mehreren Instanzen wäre ein geteilter Speicher nötig.
+
+## Kassenregister
+
+Siehe Entscheidung 50 in `CLAUDE.md`: Kassen je Filiale mit Versiegelung (`/api/cash-registers`), Filialhistorie, Rechte `cashregister:read/record/delete` (je Filiale begrenzbar). Offen: Bedeutung von „versiegelt“ bestätigen (derzeit: Erfassen oder Bearbeiten entfernt das Siegel, „Siegel erneuern“ setzt es), Siegelnummern, Hinweis bei nicht versiegelten Kassen.

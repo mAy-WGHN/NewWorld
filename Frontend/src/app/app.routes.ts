@@ -31,6 +31,7 @@ const builtAreas: Record<string, () => Promise<Type<unknown>>> = {
   'working-time': () => import('./features/working-time/working-time.page').then((m) => m.WorkingTimePage),
   'report-issue': () => import('./features/report-issue/report-issue.page').then((m) => m.ReportIssuePage),
   logbook: () => import('./features/logbook/logbook.page').then((m) => m.LogbookPage),
+  'cash-registers': () => import('./features/cash-registers/cash-registers.page').then((m) => m.CashRegistersPage),
   'admin/logbook': () => import('./features/logbook/logbook-admin.page').then((m) => m.LogbookAdminPage),
 };
 

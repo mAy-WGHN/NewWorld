@@ -71,7 +71,10 @@
         "notification:update-own",
         "preference:read-own",
         "preference:update-own",
-        "logbook:write"
+        "logbook:write",
+        "cashregister:read",
+        "cashregister:record",
+        "cashregister:delete"
       ]
     },
     {
@@ -88,7 +91,8 @@
         "notification:update-own",
         "preference:read-own",
         "preference:update-own",
-        "logbook:review"
+        "logbook:review",
+        "cashregister:read"
       ]
     },
     {
@@ -106,7 +110,8 @@
         "preference:read-own",
         "preference:update-own",
         "logbook:review",
-        "logbook:manage-template"
+        "logbook:manage-template",
+        "cashregister:read"
       ]
     },
     {

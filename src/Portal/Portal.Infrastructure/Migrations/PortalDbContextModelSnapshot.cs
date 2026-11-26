@@ -23,6 +23,95 @@ namespace Portal.Infrastructure.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Portal.Infrastructure.CashRegisters.CashRegisterEventRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("At")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("at");
+
+                    b.Property<Guid>("By")
+                        .HasColumnType("uuid")
+                        .HasColumnName("by");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("kind");
+
+                    b.Property<Guid>("RegisterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("register_id");
+
+                    b.Property<string>("RegisterName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("register_name");
+
+                    b.Property<Guid>("StoreId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("store_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_cash_register_events");
+
+                    b.HasIndex("StoreId", "At")
+                        .HasDatabaseName("ix_cash_register_events_store_id_at");
+
+                    b.ToTable("cash_register_events", "portal");
+                });
+
+            modelBuilder.Entity("Portal.Infrastructure.CashRegisters.CashRegisterRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset>("LastRecordedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_recorded_at");
+
+                    b.Property<Guid>("LastRecordedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("last_recorded_by");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<DateTimeOffset?>("SealedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("sealed_at");
+
+                    b.Property<Guid?>("SealedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("sealed_by");
+
+                    b.Property<Guid>("StoreId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("store_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_cash_registers");
+
+                    b.HasIndex("StoreId", "Name")
+                        .IsUnique()
+                        .HasDatabaseName("ix_cash_registers_store_id_name");
+
+                    b.ToTable("cash_registers", "portal");
+                });
+
             modelBuilder.Entity("Portal.Infrastructure.Faqs.FaqAttachmentRecord", b =>
                 {
                     b.Property<Guid>("Id")

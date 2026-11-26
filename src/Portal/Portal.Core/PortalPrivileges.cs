@@ -31,6 +31,12 @@ public static class PortalPrivileges
     public const string LogbookManageStructure = "logbook:manage-structure";
     public const string LogbookManageReminders = "logbook:manage-reminders";
 
+    /// <summary>Kassenregister (Filialbetrieb): the seals of the cash registers of the stores. Scopable by store.</summary>
+    public const string CashRegisterRead = "cashregister:read";
+
+    public const string CashRegisterRecord = "cashregister:record";
+    public const string CashRegisterDelete = "cashregister:delete";
+
     public const string AuditRead = "portal-audit:read";
     public const string AuditReadValues = "portal-audit:read-values";
 
@@ -51,6 +57,9 @@ public static class PortalPrivileges
         (LogbookManageTemplate, false, "Die Vorlage des Wochenberichts pflegen: Abschnitte mit Einzelauswahl, Mehrfachauswahl oder Freitext (Bezirksleitung)."),
         (LogbookManageStructure, false, "Die Hierarchie des Berichtsheftes pflegen: Bezirke, Regionen, Regional- und Bezirksleitungen und die Zuordnung der Filialen."),
         (LogbookManageReminders, false, "Die automatische Erinnerung an den Wochenbericht pflegen: ein oder aus, Fälligkeit, Zeitpunkte und Höchstzahl (der Text der Erinnerung läuft über die Textpflege der Personalabteilung)."),
+        (CashRegisterRead, true, "Das Kassenregister ansehen: die Kassen der Filialen mit Versiegelung, letzter Erfassung und die Filialhistorie, begrenzt auf die Filialen, für die das Recht gilt."),
+        (CashRegisterRecord, true, "Kassen erfassen, bearbeiten (die Versiegelung entfällt dabei) und das Siegel erneuern, begrenzt auf die Filialen, für die das Recht gilt."),
+        (CashRegisterDelete, true, "Kassen aus dem Kassenregister löschen, begrenzt auf die Filialen, für die das Recht gilt (die Filialhistorie behält den Eintrag)."),
         (AuditRead, false, "Das Änderungsprotokoll des Portals ansehen: wann wer (Name, Personalnummer) was angelegt, geändert oder gelöscht hat."),
         (AuditReadValues, false, "Im Änderungsprotokoll des Portals zusätzlich die geänderten Werte ansehen (nur zusammen mit dem Recht, das Protokoll zu lesen)."),
     ];

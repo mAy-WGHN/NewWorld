@@ -1,6 +1,7 @@
 using Shared.Infrastructure.Audit;
 using Microsoft.EntityFrameworkCore;
 using Portal.Core.Reports;
+using Portal.Infrastructure.CashRegisters;
 using Portal.Infrastructure.Faqs;
 using Portal.Infrastructure.Logbook;
 using Portal.Infrastructure.Messaging;
@@ -35,6 +36,8 @@ public sealed class PortalDbContext(DbContextOptions<PortalDbContext> options) :
     public DbSet<LogbookReminderRecord> LogbookReminders => Set<LogbookReminderRecord>();
     public DbSet<LogbookWeekStatRecord> LogbookWeekStats => Set<LogbookWeekStatRecord>();
     public DbSet<LogbookReminderSettingsRecord> LogbookReminderSettings => Set<LogbookReminderSettingsRecord>();
+    public DbSet<CashRegisterRecord> CashRegisters => Set<CashRegisterRecord>();
+    public DbSet<CashRegisterEventRecord> CashRegisterEvents => Set<CashRegisterEventRecord>();
 
     /// <summary>Provider settings shared by runtime and design time (migrations).</summary>
     public static DbContextOptionsBuilder Configure(DbContextOptionsBuilder options, string connectionString) => options
@@ -182,6 +185,23 @@ public sealed class PortalDbContext(DbContextOptions<PortalDbContext> options) :
             b.Property(s => s.Id).ValueGeneratedNever();
             b.Property(s => s.DueDay).HasConversion<string>().HasMaxLength(12);
             b.Property(s => s.PointsJson).HasColumnType("jsonb");
+        });
+        modelBuilder.Entity<CashRegisterRecord>(b =>
+        {
+            b.ToTable("cash_registers");
+            b.HasKey(r => r.Id);
+            b.Property(r => r.Id).ValueGeneratedNever();
+            b.Property(r => r.Name).HasMaxLength(100);
+            b.HasIndex(r => new { r.StoreId, r.Name }).IsUnique();
+        });
+        modelBuilder.Entity<CashRegisterEventRecord>(b =>
+        {
+            b.ToTable("cash_register_events");
+            b.HasKey(e => e.Id);
+            b.Property(e => e.Id).ValueGeneratedNever();
+            b.Property(e => e.RegisterName).HasMaxLength(100);
+            b.Property(e => e.Kind).HasConversion<string>().HasMaxLength(20);
+            b.HasIndex(e => new { e.StoreId, e.At });
         });
         modelBuilder.Entity<FaqRecord>(b =>
         {

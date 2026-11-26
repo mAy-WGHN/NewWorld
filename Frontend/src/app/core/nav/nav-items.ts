@@ -40,6 +40,12 @@ export const NAV: NavGroup[] = [
     ],
   },
   {
+    title: 'Filialbetrieb',
+    items: [
+      { label: 'Kassenregister', path: 'cash-registers', requires: ['cashregister:read'], about: 'Versiegelung der Filialkassen im Überblick: Kassen erfassen, Siegel erneuern und die Filialhistorie ansehen.', keywords: ['kasse', 'kassen', 'siegel', 'versiegelung', 'versiegeln', 'filialkasse', 'kassenregister', 'filialhistorie'] },
+    ],
+  },
+  {
     title: 'Portal',
     items: [
       { label: 'Störung melden', path: 'report-issue', about: 'Fehler, Virus, Diebstahl, sonstige Verstöße oder einen Verbesserungsvorschlag melden.', keywords: ['störung', 'fehler', 'virus', 'diebstahl', 'verstoß', 'vorschlag', 'verbesserung', 'problem', 'melden', 'etwas ist vorgefallen'] },

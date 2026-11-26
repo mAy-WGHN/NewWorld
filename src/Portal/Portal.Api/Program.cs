@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Routing;
+using Portal.Api.CashRegisters;
 using Portal.Api.Faqs;
 using Portal.Api.Logbook;
 using Portal.Api.Http;
@@ -85,6 +86,7 @@ app.MapLogbookReportEndpoints();
 app.MapLogbookReviewEndpoints();
 app.MapLogbookReminderEndpoints();
 app.MapLogbookEvaluationEndpoints();
+app.MapCashRegisterEndpoints();
 app.MapStatisticsEndpoints();
 app.MapAuditEndpoints<PortalDbContext>("portal", PortalPrivileges.AuditRead, PortalPrivileges.AuditReadValues);
 

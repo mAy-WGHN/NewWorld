@@ -1,0 +1,186 @@
+<p class="m-0 mb-1 text-xs font-semibold uppercase tracking-widest text-on-surface-variant">Filialbetrieb</p>
+<app-page-head title="Kassenregister">
+  <button mat-stroked-button type="button" data-testid="history-button" [attr.aria-pressed]="showHistory()" (click)="toggleHistory()">
+    {{ showHistory() ? 'Kassenliste' : 'Filialhistorie' }}
+  </button>
+  @if (canRecord()) {
+    <button mat-flat-button type="button" data-testid="create-button" [disabled]="busy()" (click)="startCreate()">+ Kasse erfassen</button>
+  }
+</app-page-head>
+<p class="m-0 mb-5 text-on-surface-variant">Versiegelungen aller Filialkassen im Überblick.</p>
+
+@if (error(); as message) {
+  <p class="mb-3 rounded-xl border border-error px-4 py-2.5 text-error" role="alert" data-testid="error">{{ message }}</p>
+}
+@if (status(); as message) {
+  <p class="mb-3 rounded-xl bg-primary-container px-4 py-2.5 text-on-primary-container" role="status" data-testid="status">{{ message }}</p>
+}
+
+@if (data(); as d) {
+  <div class="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4" data-testid="summary">
+    <div class="rounded-2xl border border-outline-variant bg-surface-container-low px-5 py-4">
+      <div class="flex items-center gap-2 text-on-surface-variant"><span class="inline-block size-2.5 rounded-full bg-outline" aria-hidden="true"></span>Filialen gesamt</div>
+      <div class="mt-2 text-4xl font-semibold" data-testid="stores-total">{{ d.summary.stores }}</div>
+    </div>
+    <div class="rounded-2xl border border-outline-variant bg-surface-container-low px-5 py-4">
+      <div class="flex items-center gap-2 text-on-surface-variant"><span class="inline-block size-2.5 rounded-full bg-outline" aria-hidden="true"></span>Kassen gesamt</div>
+      <div class="mt-2 text-4xl font-semibold" data-testid="registers-total">{{ d.summary.registers }}</div>
+    </div>
+    <div class="rounded-2xl border border-outline-variant bg-surface-container-low px-5 py-4">
+      <div class="flex items-center gap-2 text-on-surface-variant"><span class="inline-block size-2.5 rounded-full bg-primary" aria-hidden="true"></span>Versiegelt</div>
+      <div class="mt-2 text-4xl font-semibold" data-testid="sealed-total">{{ d.summary.sealed }}</div>
+    </div>
+    <div class="rounded-2xl border border-outline-variant bg-surface-container-low px-5 py-4">
+      <div class="flex items-center gap-2 text-on-surface-variant"><span class="inline-block size-2.5 rounded-full bg-attention-border" aria-hidden="true"></span>Nicht versiegelt</div>
+      <div class="mt-2 text-4xl font-semibold" data-testid="not-sealed-total">{{ d.summary.notSealed }}</div>
+    </div>
+  </div>
+
+  @if (draft(); as f) {
+    <form class="mb-6 rounded-2xl border border-outline-variant bg-surface-container-low px-5 py-4" data-testid="form" (submit)="$event.preventDefault(); save()">
+      <h2 class="m-0 mb-3 text-lg font-medium">{{ f.id ? 'Kasse bearbeiten' : 'Kasse erfassen' }}</h2>
+      @if (f.id) {
+        <p class="m-0 mb-3 text-sm text-on-surface-variant">Beim Speichern gilt die Kasse als neu erfasst, das Siegel entfällt. Danach kann es erneuert werden.</p>
+      }
+      <div class="flex flex-wrap items-end gap-3">
+        <mat-form-field class="min-w-64">
+          <mat-label>Filiale</mat-label>
+          <select matNativeControl required data-testid="form-store" [value]="f.storeId" (change)="setDraft('storeId', $event)">
+            <option value="" disabled>Filiale wählen</option>
+            @for (s of d.stores; track s.id) {
+              <option [value]="s.id" [selected]="s.id === f.storeId">{{ s.number }} {{ s.name }}</option>
+            }
+          </select>
+        </mat-form-field>
+        <mat-form-field class="min-w-64">
+          <mat-label>Name der Kasse</mat-label>
+          <input matInput required maxlength="100" data-testid="form-name" [value]="f.name" (input)="setDraft('name', $event)" />
+        </mat-form-field>
+        <div class="mb-5 flex gap-2">
+          <button mat-flat-button type="submit" data-testid="form-save" [disabled]="busy()">Speichern</button>
+          <button mat-stroked-button type="button" data-testid="form-cancel" (click)="draft.set(null)">Abbrechen</button>
+        </div>
+      </div>
+    </form>
+  }
+
+  <section class="rounded-2xl border border-outline-variant bg-surface-container-lowest px-5 py-5" aria-labelledby="list-title">
+    <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+      <h2 id="list-title" class="m-0 text-xl font-semibold">{{ showHistory() ? 'Filialhistorie' : 'Kassenliste' }}</h2>
+      <label class="flex items-center gap-2 font-medium">
+        Filiale
+        <select class="rounded-xl border border-outline-variant bg-surface px-3 py-2" data-testid="store-filter" [value]="storeFilter()" (change)="setStore($event)">
+          <option value="">Alle Filialen</option>
+          @for (s of d.stores; track s.id) {
+            <option [value]="s.id">{{ s.number }} {{ s.name }}</option>
+          }
+        </select>
+      </label>
+    </div>
+
+    @if (!showHistory()) {
+      <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div class="inline-flex gap-1 rounded-xl bg-surface-container p-1" role="group" aria-label="Status">
+          @for (f of filters; track f.value) {
+            <button
+              type="button"
+              class="rounded-lg px-4 py-2"
+              [class.bg-surface]="statusFilter() === f.value"
+              [class.font-medium]="statusFilter() === f.value"
+              [attr.aria-pressed]="statusFilter() === f.value"
+              [attr.data-testid]="'filter-' + f.value"
+              (click)="statusFilter.set(f.value)"
+            >
+              {{ f.label }}
+            </button>
+          }
+        </div>
+        <input class="rounded-xl border border-outline-variant bg-surface px-3 py-2" type="search" placeholder="Filiale oder Kasse suchen" aria-label="Filiale oder Kasse suchen" data-testid="search" [value]="query()" (input)="setQuery($event)" />
+      </div>
+
+      @if (rows().length === 0) {
+        <p class="m-0 text-on-surface-variant" data-testid="empty">
+          {{ (data()?.items?.length ?? 0) === 0 ? 'Noch keine Kasse erfasst.' : 'Keine Kasse passt zu diesen Filtern.' }}
+        </p>
+      } @else {
+        <div class="overflow-x-auto">
+          <table class="w-full border-collapse text-left" data-testid="table">
+            <thead>
+              <tr class="border-b border-outline-variant text-on-surface-variant">
+                <th scope="col" class="px-3 py-3 font-semibold">Filiale</th>
+                <th scope="col" class="px-3 py-3 font-semibold">Kasse</th>
+                <th scope="col" class="px-3 py-3 font-semibold">Status</th>
+                <th scope="col" class="px-3 py-3 font-semibold">Zuletzt erfasst</th>
+                <th scope="col" class="px-3 py-3 font-semibold">Kürzel</th>
+                <th scope="col" class="px-3 py-3"><span class="sr-only">Aktionen</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (r of rows(); track r.id) {
+                <tr class="border-b border-outline-variant" data-testid="row">
+                  <td class="px-3 py-3 font-semibold">{{ r.storeNumber }} {{ r.storeName }}</td>
+                  <td class="px-3 py-3">{{ r.name }}</td>
+                  <td class="px-3 py-3">
+                    <span class="inline-block whitespace-nowrap rounded-full px-3 py-1" [class.bg-primary-container]="r.sealed" [class.text-on-primary-container]="r.sealed" [class.bg-attention]="!r.sealed" [class.text-on-attention]="!r.sealed" data-testid="status-chip">
+                      {{ r.sealed ? 'Versiegelt' : 'Nicht versiegelt' }}
+                    </span>
+                  </td>
+                  <td class="px-3 py-3 whitespace-nowrap">{{ formatDateTime(r.lastRecordedAt) }}</td>
+                  <td class="px-3 py-3" [attr.title]="r.recordedByName">{{ r.recordedBy }}</td>
+                  <td class="px-3 py-3">
+                    <span class="flex flex-wrap justify-end gap-2">
+                      @if (canRecord()) {
+                        <button mat-stroked-button type="button" data-action="edit" [disabled]="busy()" (click)="startEdit(r)">Bearbeiten</button>
+                        <button mat-stroked-button type="button" data-action="seal" [disabled]="busy()" (click)="renewSeal(r)">Siegel erneuern</button>
+                      }
+                      @if (canDelete()) {
+                        <button mat-stroked-button type="button" data-action="delete" [disabled]="busy()" (click)="remove(r)">
+                          {{ confirmDelete() === r.id ? 'Wirklich löschen?' : 'Löschen' }}
+                        </button>
+                      }
+                    </span>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    } @else {
+      @if (history(); as events) {
+        @if (events.length === 0) {
+          <p class="m-0 text-on-surface-variant" data-testid="history-empty">Noch keine Einträge.</p>
+        } @else {
+          <div class="overflow-x-auto">
+            <table class="w-full border-collapse text-left" data-testid="history-table">
+              <thead>
+                <tr class="border-b border-outline-variant text-on-surface-variant">
+                  <th scope="col" class="px-3 py-3 font-semibold">Zeitpunkt</th>
+                  <th scope="col" class="px-3 py-3 font-semibold">Filiale</th>
+                  <th scope="col" class="px-3 py-3 font-semibold">Kasse</th>
+                  <th scope="col" class="px-3 py-3 font-semibold">Was</th>
+                  <th scope="col" class="px-3 py-3 font-semibold">Kürzel</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (e of events; track e.id) {
+                  <tr class="border-b border-outline-variant" data-testid="history-row">
+                    <td class="px-3 py-3 whitespace-nowrap">{{ formatDateTime(e.at) }}</td>
+                    <td class="px-3 py-3 font-semibold">{{ e.storeNumber }} {{ e.storeName }}</td>
+                    <td class="px-3 py-3">{{ e.registerName }}</td>
+                    <td class="px-3 py-3">{{ kindLabel(e.kind) }}</td>
+                    <td class="px-3 py-3" [attr.title]="e.byName">{{ e.by }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      } @else {
+        <p class="m-0 text-on-surface-variant" role="status">Wird geladen …</p>
+      }
+    }
+  </section>
+} @else if (loading()) {
+  <p class="m-0 text-on-surface-variant" role="status">Wird geladen …</p>
+}
