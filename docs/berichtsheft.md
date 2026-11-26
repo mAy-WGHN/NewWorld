@@ -1,6 +1,6 @@
 # Berichtsheft (Wochenbericht der Filialleitung) – Konzept
 
-Konzept vom 2026-11-11, **freigegeben am 2026-11-11 (Entscheidung 49 in `CLAUDE.md`), noch kein Code**. Neues Thema im Portal (`src/Portal`), ohne BC und ohne Bestandsdaten. Im Plan steht „Berichtshefte“ bereits als Besitz des Portal API.
+Konzept vom 2026-11-11, **freigegeben am 2026-11-11 (Entscheidung 49 in `CLAUDE.md`), Schritte 1 bis 6 gebaut (Stand 2026-11-12, siehe „Umsetzung in Schritten“)**. Neues Thema im Portal (`src/Portal`), ohne BC und ohne Bestandsdaten. Im Plan steht „Berichtshefte“ bereits als Besitz des Portal API.
 
 ## Ziel
 
