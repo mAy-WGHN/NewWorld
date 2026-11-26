@@ -89,6 +89,18 @@ describe('HomePage', () => {
     expect(links()).not.toContain('Arbeitszeitkonto');
   });
 
+  it('offers Berichtsheft and Kassenregister only with their privileges', async () => {
+    await create();
+    expect(links()).not.toContain('Berichtsheft');
+    expect(links()).not.toContain('Kassenregister');
+    TestBed.resetTestingModule();
+
+    privileges.set(grant('logbook:review', 'cashregister:read'));
+    await create();
+    expect(root.querySelector('a[href="/logbook"]')!.textContent).toContain('Berichtsheft');
+    expect(root.querySelector('a[href="/cash-registers"]')!.textContent).toContain('Kassenregister');
+  });
+
   it('offers "Störung melden" to everybody, also without any privilege', async () => {
     privileges.set(grant());
     await create();

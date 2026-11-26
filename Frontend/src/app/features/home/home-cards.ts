@@ -30,6 +30,8 @@ export const HOME_CARDS: HomeCard[] = [
       { label: 'Urlaub beantragen', path: '/my-vacation', requires: ['absence:create-own'] },
       { label: 'Genehmigungen', path: '/approvals', requires: ['absence:approve'] },
       { label: 'Meldungen bearbeiten', path: '/reports', requires: ['report:read'] },
+      { label: 'Berichtsheft', path: '/logbook', requires: ['logbook:write', 'logbook:review'] },
+      { label: 'Kassenregister', path: '/cash-registers', requires: ['cashregister:read'] },
     ],
   },
   {
