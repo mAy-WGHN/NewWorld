@@ -92,7 +92,7 @@ public sealed class CashRegisterEndpointTests(PostgresFixture postgres) : IClass
         using var lift = await api.SendAsync(HttpMethod.Put, $"/api/cash-registers/{id}", Hanna, new { storeId = StoreA, name = "Kasse 1", @sealed = false });
         var lifted = await DataAsync(lift);
         lifted.GetProperty("sealed").GetBoolean().ShouldBeFalse();
-        lifted.GetProperty("sealedAt").ValueKind.ShouldBe(JsonValueKind.Null);
+        lifted.GetProperty("stateChangedAt").GetDateTimeOffset().ShouldBe(Start); // the state is a plain flag, remembered with when it was set
 
         using var again = await api.SendAsync(HttpMethod.Put, $"/api/cash-registers/{id}", Hanna, new { storeId = StoreA, name = "Kasse 1", @sealed = true });
         (await DataAsync(again)).GetProperty("sealed").GetBoolean().ShouldBeTrue();
@@ -116,6 +116,33 @@ public sealed class CashRegisterEndpointTests(PostgresFixture postgres) : IClass
 
         using var history = await api.SendAsync(HttpMethod.Get, $"/api/cash-registers/history?storeId={StoreA}", Hanna);
         (await DataAsync(history)).EnumerateArray().Select(e => e.GetProperty("kind").GetString()).ShouldBe(["unsealed", "sealed", "recorded"]);
+    }
+
+    [Fact]
+    public async Task The_state_is_a_flag_that_moves_only_by_the_actions_and_a_renewed_seal_stays_sealed()
+    {
+        await using var api = await StartAsync(postgres);
+        var id = (await CreateAsync(api, Hanna, StoreA, "Kasse 1")).GetProperty("id").GetGuid();
+
+        async Task<bool> IsSealedAsync() =>
+            (await ListAsync(api, Hanna)).GetProperty("items").EnumerateArray().Single().GetProperty("sealed").GetBoolean();
+
+        (await IsSealedAsync()).ShouldBeFalse();
+        await SealAsync(api, id);
+        await SealAsync(api, id); // renewing a seal that is there stays sealed
+        (await IsSealedAsync()).ShouldBeTrue();
+        using (var rename = await api.SendAsync(HttpMethod.Put, $"/api/cash-registers/{id}", Hanna, new { storeId = StoreA, name = "Kasse eins" }))
+        {
+            rename.StatusCode.ShouldBe(HttpStatusCode.OK);
+        }
+
+        (await IsSealedAsync()).ShouldBeTrue(); // editing without a state does not touch it
+        (await api.SendAsync(HttpMethod.Post, $"/api/cash-registers/{id}/unseal", Hanna)).Dispose();
+        (await IsSealedAsync()).ShouldBeFalse();
+
+        using var history = await api.SendAsync(HttpMethod.Get, $"/api/cash-registers/history?storeId={StoreA}", Hanna);
+        (await DataAsync(history)).EnumerateArray().Select(e => e.GetProperty("kind").GetString())
+            .ShouldBe(["unsealed", "changed", "sealed", "sealed", "recorded"]);
     }
 
     [Fact]

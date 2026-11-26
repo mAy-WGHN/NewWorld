@@ -76,6 +76,10 @@ namespace Portal.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
+                    b.Property<bool>("IsSealed")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_sealed");
+
                     b.Property<DateTimeOffset>("LastRecordedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("last_recorded_at");
@@ -90,13 +94,13 @@ namespace Portal.Infrastructure.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("name");
 
-                    b.Property<DateTimeOffset?>("SealedAt")
+                    b.Property<DateTimeOffset>("StateChangedAt")
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("sealed_at");
+                        .HasColumnName("state_changed_at");
 
-                    b.Property<Guid?>("SealedBy")
+                    b.Property<Guid>("StateChangedBy")
                         .HasColumnType("uuid")
-                        .HasColumnName("sealed_by");
+                        .HasColumnName("state_changed_by");
 
                     b.Property<Guid>("StoreId")
                         .HasColumnType("uuid")

@@ -8,7 +8,7 @@ export interface CashRegister {
   storeName: string;
   name: string;
   sealed: boolean;
-  sealedAt: string | null;
+  stateChangedAt: string;
   lastRecordedAt: string;
   /** Initials of who recorded last ("AvS"). */
   recordedBy: string;

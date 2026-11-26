@@ -44,7 +44,7 @@ public sealed class CashRegisterReminderService(PortalDbContext db, LogbookStruc
             return 0;
         }
 
-        var unsealedStores = await db.CashRegisters.AsNoTracking().Where(r => r.SealedAt == null).Select(r => r.StoreId).Distinct().ToListAsync(cancellationToken);
+        var unsealedStores = await db.CashRegisters.AsNoTracking().Where(r => !r.IsSealed).Select(r => r.StoreId).Distinct().ToListAsync(cancellationToken);
         var structure = await structures.LoadAsync(cancellationToken);
         var correlation = Guid.CreateVersion7();
         var sent = 0;

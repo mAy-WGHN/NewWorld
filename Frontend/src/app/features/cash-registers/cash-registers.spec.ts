@@ -15,7 +15,7 @@ const register = (patch: Partial<CashRegister>): CashRegister => ({
   storeName: 'Augsburg Oberhausen',
   name: 'WGHN Kasse 1',
   sealed: false,
-  sealedAt: null,
+  stateChangedAt: '2026-11-25T15:52:00Z',
   lastRecordedAt: '2026-11-25T15:52:00Z',
   recordedBy: 'AvS',
   recordedByName: 'Anna von Schmidt',
@@ -23,7 +23,7 @@ const register = (patch: Partial<CashRegister>): CashRegister => ({
 });
 
 const first = register({});
-const second = register({ id: 'r2', storeId: 's12', storeNumber: '0012', storeName: 'Augsburg HBF BaBu', name: 'Kasse 1', sealed: true, sealedAt: '2026-11-26T11:50:00Z' });
+const second = register({ id: 'r2', storeId: 's12', storeNumber: '0012', storeName: 'Augsburg HBF BaBu', name: 'Kasse 1', sealed: true, stateChangedAt: '2026-11-26T11:50:00Z' });
 
 const list = (items: CashRegister[]): CashRegisterList => ({
   summary: { stores: 38, registers: items.length, sealed: items.filter((i) => i.sealed).length, notSealed: items.filter((i) => !i.sealed).length },

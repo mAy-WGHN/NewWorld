@@ -3,8 +3,8 @@ using Portal.Core.CashRegisters;
 namespace Portal.Infrastructure.CashRegisters;
 
 /// <summary>
-/// A cash register of a store. TODO(Fachlogik): "sealed" is the state of the drawer, set explicitly (seal renewed or lifted); the status is
-/// <see cref="SealedAt"/> being set. A new register starts not sealed.
+/// A cash register of a store. TODO(Fachlogik): "sealed" is the state of the drawer, a plain flag (<see cref="IsSealed"/>) that is set explicitly
+/// (seal renewed or lifted, or ticked when recording or editing).
 /// </summary>
 public sealed class CashRegisterRecord
 {
@@ -13,9 +13,23 @@ public sealed class CashRegisterRecord
     public required string Name { get; set; }
     public DateTimeOffset LastRecordedAt { get; set; }
     public Guid LastRecordedBy { get; set; }
-    public DateTimeOffset? SealedAt { get; set; }
-    public Guid? SealedBy { get; set; }
+
+    /// <summary>The state of the drawer: sealed or not, a plain flag. A new register starts not sealed.</summary>
+    public bool IsSealed { get; set; }
+
+    /// <summary>When and by whom the state was last set (sealed, seal renewed or lifted; for a new register the recording).</summary>
+    public DateTimeOffset StateChangedAt { get; set; }
+
+    public Guid StateChangedBy { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
+
+    /// <summary>Sets the state and remembers when and by whom (the one place that changes it).</summary>
+    public void SetSealed(bool sealedState, DateTimeOffset at, Guid by)
+    {
+        IsSealed = sealedState;
+        StateChangedAt = at;
+        StateChangedBy = by;
+    }
 }
 
 /// <summary>The one row with the settings of the daily reminder (maintained by the holders of <c>cashregister:manage-reminders</c>).</summary>

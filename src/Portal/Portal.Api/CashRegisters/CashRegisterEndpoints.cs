@@ -12,7 +12,7 @@ using Shared.Authorization;
 namespace Portal.Api.CashRegisters;
 
 public sealed record CashRegisterDto(
-    Guid Id, Guid StoreId, string StoreNumber, string StoreName, string Name, bool Sealed, DateTimeOffset? SealedAt,
+    Guid Id, Guid StoreId, string StoreNumber, string StoreName, string Name, bool Sealed, DateTimeOffset StateChangedAt,
     DateTimeOffset LastRecordedAt, string RecordedBy, string? RecordedByName);
 
 public sealed record CashRegisterStoreDto(Guid Id, string Number, string Name);
@@ -51,7 +51,7 @@ public static class CashRegisterEndpoints
                 var stores = await StoresInReachAsync(await ReadReachAsync(user, access, structures, ct), db, ct);
                 var ids = stores.Select(s => s.StoreId).ToList();
                 var registers = await db.CashRegisters.AsNoTracking().Where(r => ids.Contains(r.StoreId)).ToListAsync(ct);
-                var summary = new CashRegisterSummaryDto(stores.Count, registers.Count, registers.Count(r => r.SealedAt is not null), registers.Count(r => r.SealedAt is null));
+                var summary = new CashRegisterSummaryDto(stores.Count, registers.Count, registers.Count(r => r.IsSealed), registers.Count(r => !r.IsSealed));
                 var shown = storeId is { } only ? registers.Where(r => r.StoreId == only) : registers;
                 var names = await NamesAsync(db, shown.Select(r => r.LastRecordedBy), ct);
                 var byStore = stores.ToDictionary(s => s.StoreId);
@@ -69,13 +69,12 @@ public static class CashRegisterEndpoints
                 await EnsureUniqueAsync(db, store.StoreId, name, except: null, ct);
                 var now = clock.GetUtcNow();
                 var me = Me(user);
-                var row = new CashRegisterRecord { StoreId = store.StoreId, Name = name, LastRecordedAt = now, LastRecordedBy = me, CreatedAt = now };
+                var row = new CashRegisterRecord { StoreId = store.StoreId, Name = name, LastRecordedAt = now, LastRecordedBy = me, CreatedAt = now, StateChangedAt = now, StateChangedBy = me };
                 db.CashRegisters.Add(row);
                 db.CashRegisterEvents.Add(Event(row, CashRegisterEventKind.Recorded, now, me));
                 if (request.Sealed == true)
                 {
-                    row.SealedAt = now;
-                    row.SealedBy = me;
+                    row.SetSealed(true, now, me);
                     db.CashRegisterEvents.Add(Event(row, CashRegisterEventKind.Sealed, now.AddTicks(1), me));
                 }
 
@@ -93,7 +92,7 @@ public static class CashRegisterEndpoints
                 await EnsureUniqueAsync(db, store.StoreId, name, except: id, ct);
                 var now = clock.GetUtcNow();
                 var me = Me(user);
-                var wasSealed = row.SealedAt is not null;
+                var wasSealed = row.IsSealed;
                 var changed = row.StoreId != store.StoreId || row.Name != name;
                 row.StoreId = store.StoreId;
                 row.Name = name;
@@ -102,19 +101,18 @@ public static class CashRegisterEndpoints
                 var step = 0;
                 if (request.Sealed is { } sealedNow && sealedNow != wasSealed)
                 {
-                    row.SealedAt = sealedNow ? now : null;
-                    row.SealedBy = sealedNow ? me : null;
+                    row.SetSealed(sealedNow, now, me);
                 }
 
                 // every step is its own line of the history, in the order they happened (a tick apart so the order is kept)
-                if (changed || (row.SealedAt is not null) == wasSealed)
+                if (changed || row.IsSealed == wasSealed)
                 {
                     db.CashRegisterEvents.Add(Event(row, CashRegisterEventKind.Changed, now.AddTicks(step++), me));
                 }
 
-                if ((row.SealedAt is not null) != wasSealed)
+                if (row.IsSealed != wasSealed)
                 {
-                    db.CashRegisterEvents.Add(Event(row, row.SealedAt is not null ? CashRegisterEventKind.Sealed : CashRegisterEventKind.Unsealed, now.AddTicks(step), me));
+                    db.CashRegisterEvents.Add(Event(row, row.IsSealed ? CashRegisterEventKind.Sealed : CashRegisterEventKind.Unsealed, now.AddTicks(step), me));
                 }
 
                 await SaveAsync(db, ct);
@@ -127,8 +125,7 @@ public static class CashRegisterEndpoints
                 var row = await FindAsync(db, id, access.ReachOf(user, PortalPrivileges.CashRegisterRecord), "update", ct);
                 var now = clock.GetUtcNow();
                 var me = Me(user);
-                row.SealedAt = now;
-                row.SealedBy = me;
+                row.SetSealed(true, now, me); // also when it is sealed already: a renewed seal is a step of its own
                 db.CashRegisterEvents.Add(Event(row, CashRegisterEventKind.Sealed, now, me));
                 await db.SaveChangesAsync(ct);
                 var store = await db.Stores.AsNoTracking().SingleAsync(s => s.StoreId == row.StoreId, ct);
@@ -140,11 +137,11 @@ public static class CashRegisterEndpoints
         app.MapPost("/api/cash-registers/{id:guid}/unseal", async (Guid id, ClaimsPrincipal user, ReportAccess access, PortalDbContext db, TimeProvider clock, CancellationToken ct) =>
             {
                 var row = await FindAsync(db, id, access.ReachOf(user, PortalPrivileges.CashRegisterRecord), "update", ct);
-                if (row.SealedAt is not null)
+                if (row.IsSealed)
                 {
-                    row.SealedAt = null;
-                    row.SealedBy = null;
-                    db.CashRegisterEvents.Add(Event(row, CashRegisterEventKind.Unsealed, clock.GetUtcNow(), Me(user)));
+                    var now = clock.GetUtcNow();
+                    row.SetSealed(false, now, Me(user));
+                    db.CashRegisterEvents.Add(Event(row, CashRegisterEventKind.Unsealed, now, Me(user)));
                     await db.SaveChangesAsync(ct);
                 }
 
@@ -251,7 +248,7 @@ public static class CashRegisterEndpoints
         new() { StoreId = row.StoreId, RegisterId = row.Id, RegisterName = row.Name, Kind = kind, At = at, By = by };
 
     private static CashRegisterDto ToDto(CashRegisterRecord r, Portal.Infrastructure.Messaging.StoreRecord store, IReadOnlyDictionary<Guid, string> names) => new(
-        r.Id, r.StoreId, store.StoreNumber, store.Name, r.Name, r.SealedAt is not null, r.SealedAt, r.LastRecordedAt,
+        r.Id, r.StoreId, store.StoreNumber, store.Name, r.Name, r.IsSealed, r.StateChangedAt, r.LastRecordedAt,
         CashRegisterInitials.Of(names.GetValueOrDefault(r.LastRecordedBy)), names.GetValueOrDefault(r.LastRecordedBy));
 
     private static async Task<Dictionary<Guid, string>> NamesAsync(PortalDbContext db, IEnumerable<Guid> ids, CancellationToken ct)
