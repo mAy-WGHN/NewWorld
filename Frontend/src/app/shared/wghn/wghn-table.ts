@@ -10,7 +10,7 @@ export interface WghnColumn {
   /** Sortable columns need a `state` (the key is the column of the state's `options.columns`). */
   sortable?: boolean;
   /** Numbers read better on the right. */
-  align?: 'start' | 'end';
+  align?: 'start' | 'end' | 'center';
   /** The first cell of a row is its name: a row header for screen readers. */
   rowHeader?: boolean;
   /** A column without a visible title (actions, bars): the title is only read out. */
@@ -24,7 +24,7 @@ export interface WghnColumn {
 }
 
 /**
- * The content of a cell: `<ng-template wghnCell="status" let-row let-i="index">…</ng-template>` inside the `wghn-table` tags. Without a template the
+ * The content of a cell: `<ng-template wghnCell="status" let-row let-i="index" let-key="key">…</ng-template>` inside the `wghn-table` tags (`wghnCell="*"` serves every column without a template of its own). Without a template the
  * cell shows `row[key]` as text.
  */
 @Directive({ selector: 'ng-template[wghnCell]' })
@@ -79,14 +79,14 @@ export class WghnCell {
           </thead>
           <tbody>
             @for (row of shown(); track trackBy()(row, $index); let i = $index) {
-              <tr class="border-b border-outline-variant" [attr.data-testid]="rowTestId()">
+              <tr class="border-b border-outline-variant" [attr.data-testid]="rowTestId()" [attr.data-id]="rowId()(row)">
                 @for (c of columns(); track c.key) {
                   @if (c.rowHeader) {
                     <th scope="row" [class]="cellClass(c)">
                       <ng-container [ngTemplateOutlet]="template(c.key) ?? plain" [ngTemplateOutletContext]="{ $implicit: row, index: i, key: c.key }" />
                     </th>
                   } @else {
-                    <td [class]="cellClass(c)" [attr.aria-hidden]="c.decorative ? 'true' : null">
+                    <td [class]="cellClass(c)" [attr.data-col]="c.key" [attr.aria-hidden]="c.decorative ? 'true' : null">
                       <ng-container [ngTemplateOutlet]="template(c.key) ?? plain" [ngTemplateOutletContext]="{ $implicit: row, index: i, key: c.key }" />
                     </td>
                   }
@@ -117,6 +117,8 @@ export class WghnTable<T> {
   /** Said instead of the table when there is nothing to show (without it an empty table is drawn). */
   readonly emptyText = input<string | null>(null);
   readonly rowTestId = input<string | null>(null);
+  /** Names the row (`data-id`) for tests and for anything that has to find it again. */
+  readonly rowId = input<(row: T) => string | null>(() => null);
   readonly testId = input<string | null>(null);
   /** `cozy`: roomy rows for lists a person works in; `compact`: small rows for figures. */
   readonly density = input<'cozy' | 'compact'>('cozy');
@@ -127,7 +129,8 @@ export class WghnTable<T> {
   protected readonly shown = computed<readonly T[]>(() => this.state()?.rows() ?? this.rows());
 
   protected template(key: string): TemplateRef<unknown> | null {
-    return this.cells().find((c) => c.key() === key)?.template ?? null;
+    const cells = this.cells();
+    return (cells.find((c) => c.key() === key) ?? cells.find((c) => c.key() === '*'))?.template ?? null;
   }
 
   protected plainValue(row: T, key: string): unknown {
@@ -144,7 +147,7 @@ export class WghnTable<T> {
 
   private cell(c: WghnColumn): string {
     const space = this.density() === 'compact' ? 'py-1.5 pe-3' : 'px-3 py-3';
-    return [space, c.align === 'end' ? 'text-right' : '', c.nowrap ? 'whitespace-nowrap' : ''].filter(Boolean).join(' ');
+    return [space, c.align === 'end' ? 'text-right' : c.align === 'center' ? 'text-center' : '', c.nowrap ? 'whitespace-nowrap' : ''].filter(Boolean).join(' ');
   }
 
   protected sortChanged(event: Sort): void {

@@ -49,49 +49,24 @@
     @if (rows.length > 0) {
       <section class="mb-8" [attr.aria-label]="title" [attr.data-testid]="testid">
         <h2 class="m-0 mb-2 text-lg font-medium">{{ title }}</h2>
-        <div class="overflow-x-auto">
-          <table class="w-full border-collapse text-left text-sm">
-            <thead>
-              <tr class="border-b border-outline-variant">
-                <th scope="col" class="py-2 pr-3 font-medium">Name</th>
-                <th scope="col" class="py-2 pr-3 text-right font-medium">Pünktlich</th>
-                <th scope="col" class="py-2 pr-3 text-right font-medium">Abgegeben</th>
-                <th scope="col" class="py-2 pr-3 text-right font-medium">Verspätet</th>
-                <th scope="col" class="py-2 pr-3 text-right font-medium">Fehlend</th>
-                <th scope="col" class="py-2 pr-3 text-right font-medium">Ø Bewertung</th>
-                <th scope="col" class="py-2 pr-3 font-medium">Verteilung 1 bis 5</th>
-                <th scope="col" class="py-2 pr-3 text-right font-medium">Eskaliert</th>
-                <th scope="col" class="py-2 pr-3 text-right font-medium">Erledigt</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (row of rows; track row.id) {
-                <tr class="border-b border-outline-variant" data-testid="row" [attr.data-id]="row.id">
-                  <th scope="row" class="py-2 pr-3 font-normal">
-                    {{ row.name }}
-                    @if (row.note) {
-                      <span class="block text-xs text-on-surface-variant">{{ row.note }}</span>
-                    }
-                  </th>
-                  <td class="py-2 pr-3 text-right" data-col="rate">{{ formatRate(row.figures.onTimeRate) }}</td>
-                  <td class="py-2 pr-3 text-right" data-col="submitted">{{ row.figures.submitted }}</td>
-                  <td class="py-2 pr-3 text-right" data-col="late">{{ row.figures.late }}</td>
-                  <td class="py-2 pr-3 text-right" data-col="missing">{{ row.figures.missing }}</td>
-                  <td class="py-2 pr-3 text-right" data-col="average">{{ formatAverage(row.figures.ratingAverage) }}</td>
-                  <td class="py-2 pr-3">
-                    <span class="inline-flex h-6 items-end gap-0.5" role="img" [attr.aria-label]="distributionLabel(row.figures.distribution)">
-                      @for (height of barHeights(row.figures.distribution); track $index) {
-                        <span class="inline-block w-2 rounded-sm bg-primary" [style.height.%]="height || 4" [class.opacity-30]="height === 0"></span>
-                      }
-                    </span>
-                  </td>
-                  <td class="py-2 pr-3 text-right" data-col="escalated">{{ row.figures.escalated }}</td>
-                  <td class="py-2 pr-3 text-right" data-col="done">{{ row.figures.done }}</td>
-                </tr>
+        <wghn-table [rows]="rows" [columns]="columns" density="compact" rowTestId="row" [rowId]="rowId">
+          <ng-template wghnCell="name" let-row>
+            {{ row.name }}
+            @if (row.note) {
+              <span class="block text-xs text-on-surface-variant">{{ row.note }}</span>
+            }
+          </ng-template>
+          <ng-template wghnCell="rate" let-row>{{ formatRate(row.figures.onTimeRate) }}</ng-template>
+          <ng-template wghnCell="average" let-row>{{ formatAverage(row.figures.ratingAverage) }}</ng-template>
+          <ng-template wghnCell="distribution" let-row>
+            <span class="inline-flex h-6 items-end gap-0.5" role="img" [attr.aria-label]="distributionLabel(row.figures.distribution)">
+              @for (height of barHeights(row.figures.distribution); track $index) {
+                <span class="inline-block w-2 rounded-sm bg-primary" [style.height.%]="height || 4" [class.opacity-30]="height === 0"></span>
               }
-            </tbody>
-          </table>
-        </div>
+            </span>
+          </ng-template>
+          <ng-template wghnCell="*" let-row let-key="key">{{ row.figures[key] }}</ng-template>
+        </wghn-table>
       </section>
     }
   </ng-template>

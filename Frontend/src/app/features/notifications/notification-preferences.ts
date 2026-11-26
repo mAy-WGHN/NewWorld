@@ -1,4 +1,5 @@
 import { WghnAlert } from '../../shared/wghn/wghn-alert';
+import { WGHN_TABLE, type WghnColumn } from '../../shared/wghn/wghn-table';
 import { Component, computed, inject, signal } from '@angular/core';
 import { MatCheckboxChange, MatCheckboxModule } from '@angular/material/checkbox';
 import { MatCardModule } from '@angular/material/card';
@@ -11,7 +12,7 @@ import { NotificationsApi } from './notifications.api';
 /** "Was möchtest du erhalten?": the choice per kind of notification and channel. Used on the notifications page and in the settings. */
 @Component({
   selector: 'app-notification-preferences',
-  imports: [WghnAlert, MatCheckboxModule, MatCardModule, MatChipsModule],
+  imports: [WghnAlert, WGHN_TABLE, MatCheckboxModule, MatCardModule, MatChipsModule],
   template: `
     @if (error(); as message) {
       <wghn-alert class="mb-3">{{ message }}</wghn-alert>
@@ -20,43 +21,41 @@ import { NotificationsApi } from './notifications.api';
       <section data-testid="preferences" aria-labelledby="choices-title">
         <h2 id="choices-title" class="m-0 mb-1 text-lg font-medium">Was möchtest du erhalten?</h2>
         <p class="m-0 mb-3 text-sm text-on-surface-variant">Pflichtmitteilungen lassen sich nicht abschalten.</p>
-        <mat-card appearance="outlined" class="overflow-x-auto">
-          <table class="w-full border-collapse">
-            <thead>
-              <tr class="text-sm text-on-surface-variant">
-                <th scope="col" class="px-4 py-2.5 text-left font-medium">Mitteilung</th>
-                @for (c of types()[0].channels; track c.channel) {
-                  <th scope="col" class="px-4 py-2.5 text-center font-medium">{{ channelLabel(c.channel) }}</th>
-                }
-              </tr>
-            </thead>
-            <tbody>
-              @for (t of types(); track t.templateKey) {
-                <tr class="border-t border-outline-variant">
-                  <th scope="row" class="px-4 py-1.5 text-left font-medium">
-                    {{ typeLabel(t.templateKey) }}
-                    @if (t.mandatory) {
-                      <mat-chip-set class="ml-2 inline-block align-middle" aria-label="Pflicht"><mat-chip>Pflicht</mat-chip></mat-chip-set>
-                    }
-                  </th>
-                  @for (c of t.channels; track c.channel) {
-                    <td class="px-4 py-1.5 text-center">
-                      @for (version of [rebuild()]; track version) {
-                        <mat-checkbox [attr.data-key]="t.templateKey" [attr.data-channel]="c.channel" [checked]="c.enabled" [disabled]="t.mandatory || !canChange()"
-                                      [attr.aria-label]="typeLabel(t.templateKey) + ': ' + channelLabel(c.channel)" (change)="toggle(t, c.channel, $event)" />
-                      }
-                    </td>
-                  }
-                </tr>
+        <mat-card appearance="outlined">
+          <wghn-table [rows]="types()" [columns]="columns()" [trackBy]="byKey">
+            <ng-template wghnCell="type" let-t>
+              {{ typeLabel(t.templateKey) }}
+              @if (t.mandatory) {
+                <mat-chip-set class="ml-2 inline-block align-middle" aria-label="Pflicht"><mat-chip>Pflicht</mat-chip></mat-chip-set>
               }
-            </tbody>
-          </table>
+            </ng-template>
+            <ng-template wghnCell="*" let-t let-key="key">
+              @for (c of channelOf(t, key); track c.channel) {
+                @for (version of [rebuild()]; track version) {
+                  <mat-checkbox [attr.data-key]="t.templateKey" [attr.data-channel]="c.channel" [checked]="c.enabled" [disabled]="t.mandatory || !canChange()"
+                                [attr.aria-label]="typeLabel(t.templateKey) + ': ' + channelLabel(c.channel)" (change)="toggle(t, c.channel, $event)" />
+                }
+              }
+            </ng-template>
+          </wghn-table>
         </mat-card>
       </section>
     }
   `,
 })
 export class NotificationPreferences {
+  /** One column for the type and one for each channel (what the first type offers; every type offers the same). */
+  protected readonly columns = computed<WghnColumn[]>(() => [
+    { key: 'type', header: 'Mitteilung', rowHeader: true, class: 'font-medium' },
+    ...(this.types()[0]?.channels ?? []).map((c) => ({ key: c.channel, header: this.channelLabel(c.channel), align: 'center' as const })),
+  ]);
+
+  protected readonly byKey = (t: { templateKey: string }): string => t.templateKey;
+
+  protected channelOf(type: { channels: { channel: string; enabled: boolean }[] }, channel: string) {
+    return type.channels.filter((c) => c.channel === channel);
+  }
+
   private readonly api = inject(NotificationsApi);
   private readonly auth = inject(AuthService);
 

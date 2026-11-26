@@ -1,4 +1,5 @@
 import { NgTemplateOutlet } from '@angular/common';
+import type { WghnColumn } from '../../shared/wghn/wghn-table';
 import { Component, inject, signal } from '@angular/core';
 import { LogbookApi } from './logbook.api';
 import { Evaluation, Figures, barHeights, distributionLabel, evaluationYears, formatAverage, formatRate } from './logbook-evaluation-models';
@@ -24,6 +25,20 @@ export interface EvaluationRow {
   templateUrl: './logbook-evaluation.html',
 })
 export class LogbookEvaluationView {
+  protected readonly columns: WghnColumn[] = [
+    { key: 'name', header: 'Name', rowHeader: true, class: 'font-normal' },
+    { key: 'rate', header: 'Pünktlich', align: 'end' },
+    { key: 'submitted', header: 'Abgegeben', align: 'end' },
+    { key: 'late', header: 'Verspätet', align: 'end' },
+    { key: 'missing', header: 'Fehlend', align: 'end' },
+    { key: 'average', header: 'Ø Bewertung', align: 'end' },
+    { key: 'distribution', header: 'Verteilung 1 bis 5' },
+    { key: 'escalated', header: 'Eskaliert', align: 'end' },
+    { key: 'done', header: 'Erledigt', align: 'end' },
+  ];
+
+  protected readonly rowId = (row: { id: string }): string => row.id;
+
   private readonly api = inject(LogbookApi);
 
   protected readonly years = evaluationYears(new Date().getFullYear());
