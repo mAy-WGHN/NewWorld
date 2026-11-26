@@ -21,7 +21,7 @@ public sealed class CashRegisterEndpointTests(PostgresFixture postgres) : IClass
 
     private static async Task SealAsync(PortalApi api, Guid id)
     {
-        using var response = await api.SendAsync(HttpMethod.Post, $"/api/cash-registers/{id}/seal", Hanna);
+        using var response = await CashRegisterTestHelpers.SealAsync(api, id, Hanna);
         response.StatusCode.ShouldBe(HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
     }
 
@@ -55,7 +55,7 @@ public sealed class CashRegisterEndpointTests(PostgresFixture postgres) : IClass
         await using var api = await StartAsync(postgres);
         await CreateAsync(api, Hanna, StoreA, "Kasse 1");
         var second = await CreateAsync(api, Hanna, StoreB, "Kasse 1");
-        using var seal = await api.SendAsync(HttpMethod.Post, $"/api/cash-registers/{second.GetProperty("id").GetGuid()}/seal", Hanna);
+        using var seal = await CashRegisterTestHelpers.SealAsync(api, second.GetProperty("id").GetGuid(), Hanna);
         seal.StatusCode.ShouldBe(HttpStatusCode.OK);
 
         var summary = (await ListAsync(api, Hanna)).GetProperty("summary");
@@ -72,7 +72,7 @@ public sealed class CashRegisterEndpointTests(PostgresFixture postgres) : IClass
         await using var api = await StartAsync(postgres);
         var id = (await CreateAsync(api, Hanna, StoreA, "Kasse 1")).GetProperty("id").GetGuid();
 
-        using var seal = await api.SendAsync(HttpMethod.Post, $"/api/cash-registers/{id}/seal", Hanna);
+        using var seal = await CashRegisterTestHelpers.SealAsync(api, id, Hanna);
         (await DataAsync(seal)).GetProperty("sealed").GetBoolean().ShouldBeTrue();
 
         using var edit = await api.SendAsync(HttpMethod.Put, $"/api/cash-registers/{id}", Hanna, new { storeId = StoreA, name = "Kasse eins" });
@@ -94,7 +94,7 @@ public sealed class CashRegisterEndpointTests(PostgresFixture postgres) : IClass
         lifted.GetProperty("sealed").GetBoolean().ShouldBeFalse();
         lifted.GetProperty("stateChangedAt").GetDateTimeOffset().ShouldBe(Start); // the state is a plain flag, remembered with when it was set
 
-        using var again = await api.SendAsync(HttpMethod.Put, $"/api/cash-registers/{id}", Hanna, new { storeId = StoreA, name = "Kasse 1", @sealed = true });
+        using var again = await api.SendAsync(HttpMethod.Put, $"/api/cash-registers/{id}", Hanna, await CashRegisterTestHelpers.SealedBodyAsync(api, Hanna, StoreA, "Kasse 1"));
         (await DataAsync(again)).GetProperty("sealed").GetBoolean().ShouldBeTrue();
 
         using var history = await api.SendAsync(HttpMethod.Get, $"/api/cash-registers/history?storeId={StoreA}", Hanna);
@@ -150,7 +150,7 @@ public sealed class CashRegisterEndpointTests(PostgresFixture postgres) : IClass
     {
         await using var api = await StartAsync(postgres);
 
-        using var response = await api.SendAsync(HttpMethod.Post, "/api/cash-registers", Hanna, new { storeId = StoreA, name = "Kasse 1", @sealed = true });
+        using var response = await api.SendAsync(HttpMethod.Post, "/api/cash-registers", Hanna, await CashRegisterTestHelpers.SealedBodyAsync(api, Hanna, StoreA, "Kasse 1"));
 
         response.StatusCode.ShouldBe(HttpStatusCode.Created, await response.Content.ReadAsStringAsync());
         (await DataAsync(response)).GetProperty("sealed").GetBoolean().ShouldBeTrue();
@@ -249,7 +249,7 @@ public sealed class CashRegisterEndpointTests(PostgresFixture postgres) : IClass
         await using var api = await StartAsync(postgres);
         var id = (await CreateAsync(api, Hanna, StoreA, "Kasse 1")).GetProperty("id").GetGuid();
         await CreateAsync(api, Hanna, StoreB, "Kasse 1");
-        (await api.SendAsync(HttpMethod.Post, $"/api/cash-registers/{id}/seal", Hanna)).Dispose();
+        (await CashRegisterTestHelpers.SealAsync(api, id, Hanna)).Dispose();
 
         using var one = await api.SendAsync(HttpMethod.Get, $"/api/cash-registers/history?storeId={StoreA}", Hanna);
         using var all = await api.SendAsync(HttpMethod.Get, "/api/cash-registers/history", Hanna);
@@ -279,7 +279,7 @@ public sealed class CashRegisterEndpointTests(PostgresFixture postgres) : IClass
         var id = (await CreateAsync(api, Hanna, StoreA, "Kasse 1")).GetProperty("id").GetGuid();
         api.Grant(Erika, TestGrant.Everywhere(PortalPrivileges.CashRegisterRead));
 
-        using var seal = await api.SendAsync(HttpMethod.Post, $"/api/cash-registers/{id}/seal", Erika);
+        using var seal = await CashRegisterTestHelpers.SealAsync(api, id, Erika);
         using var edit = await api.SendAsync(HttpMethod.Put, $"/api/cash-registers/{id}", Erika, new { storeId = StoreA, name = "X" });
         using var delete = await api.SendAsync(HttpMethod.Delete, $"/api/cash-registers/{id}", Erika);
 
@@ -318,11 +318,11 @@ public sealed class CashRegisterEndpointTests(PostgresFixture postgres) : IClass
             new TestGrant(PortalPrivileges.CashRegisterRecord, StoreIds: [StoreA]),
             new TestGrant(PortalPrivileges.CashRegisterDelete, StoreIds: [StoreA]));
 
-        using var seal = await api.SendAsync(HttpMethod.Post, $"/api/cash-registers/{foreign}/seal", Erika);
+        using var seal = await CashRegisterTestHelpers.SealAsync(api, foreign, Erika);
         using var createThere = await api.SendAsync(HttpMethod.Post, "/api/cash-registers", Erika, new { storeId = StoreB, name = "Neu" });
         using var moveThere = await api.SendAsync(HttpMethod.Put, $"/api/cash-registers/{own}", Erika, new { storeId = StoreB, name = "Kasse A" });
         using var deleteThere = await api.SendAsync(HttpMethod.Delete, $"/api/cash-registers/{foreign}", Erika);
-        using var fine = await api.SendAsync(HttpMethod.Post, $"/api/cash-registers/{own}/seal", Erika);
+        using var fine = await CashRegisterTestHelpers.SealAsync(api, own, Erika);
 
         seal.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
         createThere.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
@@ -336,7 +336,7 @@ public sealed class CashRegisterEndpointTests(PostgresFixture postgres) : IClass
     {
         await using var api = await StartAsync(postgres);
 
-        using var seal = await api.SendAsync(HttpMethod.Post, $"/api/cash-registers/{Guid.NewGuid()}/seal", Hanna);
+        using var seal = await CashRegisterTestHelpers.SealAsync(api, Guid.NewGuid(), Hanna);
         using var delete = await api.SendAsync(HttpMethod.Delete, $"/api/cash-registers/{Guid.NewGuid()}", Hanna);
 
         seal.StatusCode.ShouldBe(HttpStatusCode.NotFound);

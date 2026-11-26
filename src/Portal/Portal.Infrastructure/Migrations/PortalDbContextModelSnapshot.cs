@@ -33,6 +33,10 @@ namespace Portal.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("at");
 
+                    b.Property<Guid?>("AttachedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("attached_by");
+
                     b.Property<Guid>("By")
                         .HasColumnType("uuid")
                         .HasColumnName("by");
@@ -42,6 +46,10 @@ namespace Portal.Infrastructure.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)")
                         .HasColumnName("kind");
+
+                    b.Property<Guid?>("PhotoId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("photo_id");
 
                     b.Property<Guid>("RegisterId")
                         .HasColumnType("uuid")
@@ -64,6 +72,36 @@ namespace Portal.Infrastructure.Migrations
                         .HasDatabaseName("ix_cash_register_events_store_id_at");
 
                     b.ToTable("cash_register_events", "portal");
+                });
+
+            modelBuilder.Entity("Portal.Infrastructure.CashRegisters.CashRegisterPhotoRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Extension")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("extension");
+
+                    b.Property<DateTimeOffset>("UploadedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("uploaded_at");
+
+                    b.Property<Guid>("UploadedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("uploaded_by");
+
+                    b.Property<DateTimeOffset?>("UsedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("used_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_cash_register_photos");
+
+                    b.ToTable("cash_register_photos", "portal");
                 });
 
             modelBuilder.Entity("Portal.Infrastructure.CashRegisters.CashRegisterRecord", b =>
@@ -93,6 +131,14 @@ namespace Portal.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
                         .HasColumnName("name");
+
+                    b.Property<Guid?>("SealAttachedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("seal_attached_by");
+
+                    b.Property<Guid?>("SealPhotoId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("seal_photo_id");
 
                     b.Property<DateTimeOffset>("StateChangedAt")
                         .HasColumnType("timestamp with time zone")

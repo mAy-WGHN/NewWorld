@@ -8,11 +8,56 @@ export interface CashRegister {
   storeName: string;
   name: string;
   sealed: boolean;
+  /** When the state was set (the service takes the time). */
   stateChangedAt: string;
   lastRecordedAt: string;
   /** Initials of who recorded last ("AvS"). */
   recordedBy: string;
   recordedByName: string | null;
+  /** The form of the current seal: its photo and who attached it (initials, name); none while not sealed. */
+  sealPhotoId: string | null;
+  sealAttachedBy: string | null;
+  sealAttachedByName: string | null;
+}
+
+/** A person to choose from ("who attached the seal"). */
+export interface PersonOption {
+  id: string;
+  name: string;
+}
+
+/** What the person fills in when a seal is set: the photo and who attached the seal. Date and time are taken by the service. */
+export interface SealFormValue {
+  photo: File | null;
+  sealedBy: PersonOption | null;
+}
+
+export const EMPTY_SEAL_FORM: SealFormValue = { photo: null, sealedBy: null };
+
+/** What goes to the service after the photo is uploaded. */
+export interface SealPayload {
+  photoId: string;
+  sealedBy: string;
+}
+
+export const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
+const PHOTO_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
+
+/** What is missing or wrong in the form of a seal (German text), or `null` if it can be sent. The service checks again. */
+export function sealFormProblem(value: SealFormValue): string | null {
+  if (!value.photo) {
+    return 'Bitte ein Foto des Siegels hinzufügen.';
+  }
+  if (!PHOTO_TYPES.includes(value.photo.type)) {
+    return 'Das Foto muss ein PNG-, JPEG- oder WebP-Bild sein.';
+  }
+  if (value.photo.size > MAX_PHOTO_BYTES) {
+    return 'Das Foto ist zu groß. Erlaubt sind höchstens 5 MB.';
+  }
+  if (!value.sealedBy) {
+    return 'Bitte angeben, wer das Siegel angebracht hat.';
+  }
+  return null;
 }
 
 export interface CashRegisterStore {
@@ -47,6 +92,10 @@ export interface CashRegisterEvent {
   at: string;
   by: string;
   byName: string | null;
+  /** For a seal: the photo and who attached it. */
+  photoId: string | null;
+  attachedBy: string | null;
+  attachedByName: string | null;
 }
 
 /** The daily reminder for registers that are not sealed; `time` is the local time of day as `HH:mm`. */

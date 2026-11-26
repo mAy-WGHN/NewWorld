@@ -4,6 +4,7 @@ using Portal.Api.Http;
 using Portal.Api.Reports;
 using Portal.Core;
 using Portal.Core.CashRegisters;
+using Portal.Core.Faqs;
 using Portal.Infrastructure;
 using Portal.Infrastructure.CashRegisters;
 using Portal.Infrastructure.Logbook;
@@ -11,9 +12,13 @@ using Shared.Authorization;
 
 namespace Portal.Api.CashRegisters;
 
+/// <summary>
+/// A cash register. <c>SealedBy</c> is the initials of the person who last recorded it; <c>SealAttachedBy</c> (initials) and <c>SealPhotoId</c> belong to the
+/// current seal (from its form), <c>StateChangedAt</c> is when the state was set (taken by the service).
+/// </summary>
 public sealed record CashRegisterDto(
     Guid Id, Guid StoreId, string StoreNumber, string StoreName, string Name, bool Sealed, DateTimeOffset StateChangedAt,
-    DateTimeOffset LastRecordedAt, string RecordedBy, string? RecordedByName);
+    DateTimeOffset LastRecordedAt, string RecordedBy, string? RecordedByName, Guid? SealPhotoId, string? SealAttachedBy, string? SealAttachedByName);
 
 public sealed record CashRegisterStoreDto(Guid Id, string Number, string Name);
 
@@ -21,10 +26,24 @@ public sealed record CashRegisterSummaryDto(int Stores, int Registers, int Seale
 
 public sealed record CashRegisterListDto(CashRegisterSummaryDto Summary, IReadOnlyList<CashRegisterStoreDto> Stores, IReadOnlyList<CashRegisterDto> Items);
 
-public sealed record CashRegisterEventDto(Guid Id, Guid StoreId, string StoreNumber, string StoreName, Guid RegisterId, string RegisterName, string Kind, DateTimeOffset At, string By, string? ByName);
+public sealed record CashRegisterEventDto(
+    Guid Id, Guid StoreId, string StoreNumber, string StoreName, Guid RegisterId, string RegisterName, string Kind, DateTimeOffset At, string By, string? ByName,
+    Guid? PhotoId, string? AttachedBy, string? AttachedByName);
 
-/// <summary><c>Sealed</c>: the seal state to set; left out when editing it stays as it is, left out when creating the register starts not sealed.</summary>
-public sealed record SaveCashRegisterRequest(Guid StoreId, string? Name, bool? Sealed = null);
+/// <summary>
+/// The form of a seal: the photo (uploaded first, its id) and who attached the seal (the id of an employee). The date and time are taken by the service.
+/// </summary>
+public sealed record SealFormRequest(Guid? PhotoId, Guid? SealedBy);
+
+/// <summary>
+/// <c>Sealed</c>: the seal state to set; left out when editing it stays as it is, left out when creating the register starts not sealed. Setting a seal (new
+/// state sealed) needs the form: <c>PhotoId</c> and <c>SealedBy</c>.
+/// </summary>
+public sealed record SaveCashRegisterRequest(Guid StoreId, string? Name, bool? Sealed = null, Guid? PhotoId = null, Guid? SealedBy = null);
+
+public sealed record CashRegisterPhotoDto(Guid Id);
+
+public sealed record CashRegisterPersonDto(Guid Id, string Name);
 
 /// <summary><c>Time</c> is the local time of day as <c>HH:mm</c>.</summary>
 public sealed record CashRegisterReminderSettingsDto(bool Enabled, string Time);
@@ -32,14 +51,17 @@ public sealed record CashRegisterReminderSettingsDto(bool Enabled, string Time);
 public sealed record SaveCashRegisterReminderSettingsRequest(bool? Enabled, string? Time);
 
 /// <summary>
-/// The Kassenregister (Filialbetrieb): the cash registers of the stores with their seal. Reading, recording (create, edit, renew the seal) and deleting are
-/// three privileges, each scopable by store. The seal is set explicitly: renewing the seal or editing with sealed=true sets it, lifting it ("Siegel aufheben", or editing with sealed=false) marks the drawer as not sealed; a new register starts not sealed.
-/// The history of a store keeps every step, deleted registers by name. Organisation data only (class 1); the person is shown by initials and name.
+/// The Kassenregister (Filialbetrieb): the cash registers of the stores with their seal. Reading, recording (create, edit, seal) and deleting are three
+/// privileges, each scopable by store. The seal is a plain state that is set explicitly. <b>Setting a seal is a form</b>: a photo of the seal and who
+/// attached it are required, the date and time are taken by the service; lifting it ("Siegel aufheben", or editing with sealed=false) needs nothing; a new
+/// register starts not sealed. The history of a store keeps every step (with the photo and the person of a seal), deleted registers by name.
+/// Organisation data (class 1); the person is shown by initials and name. TODO(Entscheidung): how long the photos are kept (they can show people).
 /// </summary>
 public static class CashRegisterEndpoints
 {
     private const int MaxNameLength = 100;
     private const int MaxHistory = 500;
+    private const int MaxPeople = 20;
 
     public static WebApplication MapCashRegisterEndpoints(this WebApplication app)
     {
@@ -52,8 +74,8 @@ public static class CashRegisterEndpoints
                 var ids = stores.Select(s => s.StoreId).ToList();
                 var registers = await db.CashRegisters.AsNoTracking().Where(r => ids.Contains(r.StoreId)).ToListAsync(ct);
                 var summary = new CashRegisterSummaryDto(stores.Count, registers.Count, registers.Count(r => r.IsSealed), registers.Count(r => !r.IsSealed));
-                var shown = storeId is { } only ? registers.Where(r => r.StoreId == only) : registers;
-                var names = await NamesAsync(db, shown.Select(r => r.LastRecordedBy), ct);
+                var shown = (storeId is { } only ? registers.Where(r => r.StoreId == only) : registers).ToList();
+                var names = await NamesAsync(db, shown.SelectMany(r => new[] { r.LastRecordedBy, r.SealAttachedBy ?? Guid.Empty }), ct);
                 var byStore = stores.ToDictionary(s => s.StoreId);
                 return Answer.Ok(new CashRegisterListDto(
                     summary,
@@ -69,21 +91,22 @@ public static class CashRegisterEndpoints
                 await EnsureUniqueAsync(db, store.StoreId, name, except: null, ct);
                 var now = clock.GetUtcNow();
                 var me = Me(user);
+                SealForm? form = request.Sealed == true ? await TakeFormAsync(db, request.PhotoId, request.SealedBy, me, now, ct) : null;
                 var row = new CashRegisterRecord { StoreId = store.StoreId, Name = name, LastRecordedAt = now, LastRecordedBy = me, CreatedAt = now, StateChangedAt = now, StateChangedBy = me };
                 db.CashRegisters.Add(row);
                 db.CashRegisterEvents.Add(Event(row, CashRegisterEventKind.Recorded, now, me));
-                if (request.Sealed == true)
+                if (form is { } sealForm)
                 {
-                    row.SetSealed(true, now, me);
-                    db.CashRegisterEvents.Add(Event(row, CashRegisterEventKind.Sealed, now.AddTicks(1), me));
+                    row.SetSealed(true, now, me, sealForm.PhotoId, sealForm.SealedBy);
+                    db.CashRegisterEvents.Add(Event(row, CashRegisterEventKind.Sealed, now.AddMicroseconds(1), me, sealForm));
                 }
 
                 await SaveAsync(db, ct);
-                return Answer.Created(ToDto(row, store, await NamesAsync(db, [me], ct)));
+                return Answer.Created(ToDto(row, store, await NamesAsync(db, [me, row.SealAttachedBy ?? Guid.Empty], ct)));
             })
             .RequireAuthorization(record);
 
-        // "Bearbeiten": rename, move and set the seal state (sealed or the seal lifted); counts as a new recording.
+        // "Bearbeiten": rename, move and set the seal state (sealed with the form, or the seal lifted); counts as a new recording.
         app.MapPut("/api/cash-registers/{id:guid}", async (Guid id, SaveCashRegisterRequest request, ClaimsPrincipal user, ReportAccess access, PortalDbContext db, TimeProvider clock, CancellationToken ct) =>
             {
                 var name = ValidName(request.Name);
@@ -93,43 +116,53 @@ public static class CashRegisterEndpoints
                 var now = clock.GetUtcNow();
                 var me = Me(user);
                 var wasSealed = row.IsSealed;
+                var becomesSealed = request.Sealed == true && !wasSealed;
+                SealForm? form = becomesSealed ? await TakeFormAsync(db, request.PhotoId, request.SealedBy, me, now, ct) : null;
                 var changed = row.StoreId != store.StoreId || row.Name != name;
                 row.StoreId = store.StoreId;
                 row.Name = name;
                 row.LastRecordedAt = now;
                 row.LastRecordedBy = me;
                 var step = 0;
-                if (request.Sealed is { } sealedNow && sealedNow != wasSealed)
+                if (form is { } sealForm)
                 {
-                    row.SetSealed(sealedNow, now, me);
+                    row.SetSealed(true, now, me, sealForm.PhotoId, sealForm.SealedBy);
+                }
+                else if (request.Sealed == false && wasSealed)
+                {
+                    row.SetSealed(false, now, me);
                 }
 
-                // every step is its own line of the history, in the order they happened (a tick apart so the order is kept)
+                // every step is its own line of the history, in the order they happened (a microsecond apart, the precision of the database, so the order is kept)
                 if (changed || row.IsSealed == wasSealed)
                 {
-                    db.CashRegisterEvents.Add(Event(row, CashRegisterEventKind.Changed, now.AddTicks(step++), me));
+                    db.CashRegisterEvents.Add(Event(row, CashRegisterEventKind.Changed, now.AddMicroseconds(step++), me));
                 }
 
                 if (row.IsSealed != wasSealed)
                 {
-                    db.CashRegisterEvents.Add(Event(row, row.IsSealed ? CashRegisterEventKind.Sealed : CashRegisterEventKind.Unsealed, now.AddTicks(step), me));
+                    db.CashRegisterEvents.Add(row.IsSealed
+                        ? Event(row, CashRegisterEventKind.Sealed, now.AddMicroseconds(step), me, form)
+                        : Event(row, CashRegisterEventKind.Unsealed, now.AddMicroseconds(step), me));
                 }
 
                 await SaveAsync(db, ct);
-                return Answer.Ok(ToDto(row, store, await NamesAsync(db, [me], ct)));
+                return Answer.Ok(ToDto(row, store, await NamesAsync(db, [me, row.SealAttachedBy ?? Guid.Empty], ct)));
             })
             .RequireAuthorization(record);
 
-        app.MapPost("/api/cash-registers/{id:guid}/seal", async (Guid id, ClaimsPrincipal user, ReportAccess access, PortalDbContext db, TimeProvider clock, CancellationToken ct) =>
+        // "Siegel anbringen / erneuern": the form of a seal (photo and who attached it); the date and time are taken here.
+        app.MapPost("/api/cash-registers/{id:guid}/seal", async (Guid id, SealFormRequest request, ClaimsPrincipal user, ReportAccess access, PortalDbContext db, TimeProvider clock, CancellationToken ct) =>
             {
                 var row = await FindAsync(db, id, access.ReachOf(user, PortalPrivileges.CashRegisterRecord), "update", ct);
                 var now = clock.GetUtcNow();
                 var me = Me(user);
-                row.SetSealed(true, now, me); // also when it is sealed already: a renewed seal is a step of its own
-                db.CashRegisterEvents.Add(Event(row, CashRegisterEventKind.Sealed, now, me));
+                var form = await TakeFormAsync(db, request.PhotoId, request.SealedBy, me, now, ct);
+                row.SetSealed(true, now, me, form.PhotoId, form.SealedBy); // also when it is sealed already: a renewed seal is a step of its own
+                db.CashRegisterEvents.Add(Event(row, CashRegisterEventKind.Sealed, now, me, form));
                 await db.SaveChangesAsync(ct);
                 var store = await db.Stores.AsNoTracking().SingleAsync(s => s.StoreId == row.StoreId, ct);
-                return Answer.Ok(ToDto(row, store, await NamesAsync(db, [row.LastRecordedBy], ct)));
+                return Answer.Ok(ToDto(row, store, await NamesAsync(db, [row.LastRecordedBy, row.SealAttachedBy ?? Guid.Empty], ct)));
             })
             .RequireAuthorization(record);
 
@@ -146,7 +179,7 @@ public static class CashRegisterEndpoints
                 }
 
                 var store = await db.Stores.AsNoTracking().SingleAsync(s => s.StoreId == row.StoreId, ct);
-                return Answer.Ok(ToDto(row, store, await NamesAsync(db, [row.LastRecordedBy], ct)));
+                return Answer.Ok(ToDto(row, store, await NamesAsync(db, [row.LastRecordedBy, row.SealAttachedBy ?? Guid.Empty], ct)));
             })
             .RequireAuthorization(record);
 
@@ -164,7 +197,7 @@ public static class CashRegisterEndpoints
         app.MapGet("/api/cash-registers/history", async (Guid? storeId, int? take, ClaimsPrincipal user, ReportAccess access, LogbookStructureStore structures, PortalDbContext db, CancellationToken ct) =>
             {
                 var scope = await ReadReachAsync(user, access, structures, ct);
-                if (storeId is { } one && (scope is null || (!scope.Unrestricted && !scope.StoreIds.Contains(one))))
+                if (storeId is { } one && (!scope.Unrestricted && !scope.StoreIds.Contains(one)))
                 {
                     throw new ApiException(StatusCodes.Status403Forbidden, EnvelopeAuthorizationResultHandler.Message("read"));
                 }
@@ -177,12 +210,30 @@ public static class CashRegisterEndpoints
                 }
 
                 var events = await query.OrderByDescending(e => e.At).ThenByDescending(e => e.Id).Take(Math.Clamp(take ?? 100, 1, MaxHistory)).ToListAsync(ct);
-                var names = await NamesAsync(db, events.Select(e => e.By), ct);
+                var names = await NamesAsync(db, events.SelectMany(e => new[] { e.By, e.AttachedBy ?? Guid.Empty }), ct);
                 return Answer.Ok(events.Select(e => new CashRegisterEventDto(
                     e.Id, e.StoreId, stores[e.StoreId].StoreNumber, stores[e.StoreId].Name, e.RegisterId, e.RegisterName, e.Kind.ToString().ToLowerInvariant(),
-                    e.At, CashRegisterInitials.Of(names.GetValueOrDefault(e.By)), names.GetValueOrDefault(e.By))));
+                    e.At, CashRegisterInitials.Of(names.GetValueOrDefault(e.By)), names.GetValueOrDefault(e.By),
+                    e.PhotoId, e.AttachedBy is { } by ? CashRegisterInitials.Of(names.GetValueOrDefault(by)) : null, e.AttachedBy is { } by2 ? names.GetValueOrDefault(by2) : null)));
             })
             .RequireAuthorization();
+
+        MapPhotos(app, record);
+
+        // The people to choose from in the form of a seal ("who attached the seal"): name search in the copy of the employees.
+        app.MapGet("/api/cash-registers/people", async (string? query, PortalDbContext db, CancellationToken ct) =>
+            {
+                var text = (query ?? string.Empty).Trim();
+                if (text.Length < 2)
+                {
+                    return Answer.Ok(Array.Empty<CashRegisterPersonDto>());
+                }
+
+                var pattern = "%" + text.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("%", "\\%", StringComparison.Ordinal).Replace("_", "\\_", StringComparison.Ordinal) + "%";
+                var people = await db.People.AsNoTracking().Where(p => EF.Functions.ILike(p.Name, pattern, "\\")).OrderBy(p => p.Name).Take(MaxPeople).ToListAsync(ct);
+                return Answer.Ok(people.Select(p => new CashRegisterPersonDto(p.EmployeeId, p.Name)));
+            })
+            .RequireAuthorization(record);
 
         // The daily reminder for registers that are not sealed: on or off and the local time of day.
         var manage = AppPolicies.Privilege(PortalPrivileges.CashRegisterManageReminders);
@@ -209,6 +260,62 @@ public static class CashRegisterEndpoints
             .RequireAuthorization(manage);
 
         return app;
+    }
+
+    /// <summary>
+    /// The photo of a seal is uploaded first (a person who may record registers), then named in the form. Looking at it follows the reach of the register
+    /// it belongs to (like the history); until a seal uses it only the person who uploaded it can see it.
+    /// </summary>
+    private static void MapPhotos(WebApplication app, string record)
+    {
+        app.MapPost("/api/cash-registers/photos", async (HttpRequest request, ClaimsPrincipal user, PortalDbContext db, ICashRegisterPhotoStorage storage, TimeProvider clock, CancellationToken ct) =>
+            {
+                if (!request.HasFormContentType || (await request.ReadFormAsync(ct)).Files.GetFile("file") is not { } file)
+                {
+                    throw ApiException.BadRequest("Es wurde keine Datei übermittelt.");
+                }
+
+                if (file.Length > FaqImageFormat.MaxBytes)
+                {
+                    throw ApiException.Validation("file", "Die Datei ist zu groß. Erlaubt sind höchstens 5 MB.");
+                }
+
+                await using var stream = file.OpenReadStream();
+                var header = new byte[FaqImageFormat.HeaderLength];
+                var read = await stream.ReadAtLeastAsync(header, header.Length, throwOnEndOfStream: false, ct);
+                var extension = FaqImageFormat.DetectExtension(header.AsSpan(0, read))
+                    ?? throw ApiException.Validation("file", "Nur PNG-, JPEG- oder WebP-Bilder sind erlaubt.");
+                stream.Position = 0;
+
+                var photo = new CashRegisterPhotoRecord { Extension = extension, UploadedBy = Me(user), UploadedAt = clock.GetUtcNow() };
+                await storage.SaveAsync(photo.Id, extension, stream, ct);
+                db.CashRegisterPhotos.Add(photo);
+                await db.SaveChangesAsync(ct);
+                return Answer.Created(new CashRegisterPhotoDto(photo.Id));
+            })
+            .RequireAuthorization(record);
+
+        app.MapGet("/api/cash-registers/photos/{id:guid}", async (Guid id, ClaimsPrincipal user, ReportAccess access, LogbookStructureStore structures, PortalDbContext db, ICashRegisterPhotoStorage storage, CancellationToken ct) =>
+            {
+                var photo = await db.CashRegisterPhotos.AsNoTracking().FirstOrDefaultAsync(p => p.Id == id, ct) ?? throw ApiException.NotFound();
+                var storeId = await db.CashRegisterEvents.AsNoTracking().Where(e => e.PhotoId == id).Select(e => (Guid?)e.StoreId).FirstOrDefaultAsync(ct);
+                if (storeId is { } store)
+                {
+                    var reach = await ReadReachAsync(user, access, structures, ct);
+                    if (!reach.Unrestricted && !reach.StoreIds.Contains(store))
+                    {
+                        throw new ApiException(StatusCodes.Status403Forbidden, EnvelopeAuthorizationResultHandler.Message("read"));
+                    }
+                }
+                else if (photo.UploadedBy != Me(user))
+                {
+                    throw ApiException.NotFound(); // not used yet: private to who uploaded it
+                }
+
+                var stream = storage.Open(photo.Id, photo.Extension) ?? throw ApiException.NotFound();
+                return Results.Stream(stream, FaqImageFormat.ContentType(photo.Extension));
+            })
+            .RequireAuthorization();
     }
 
     private static CashRegisterReminderSettingsDto ToDto(CashRegisterReminderSettings s) => new(s.Enabled, s.Time.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture));
@@ -244,16 +351,52 @@ public static class CashRegisterEndpoints
         return name!.Trim();
     }
 
-    private static CashRegisterEventRecord Event(CashRegisterRecord row, CashRegisterEventKind kind, DateTimeOffset at, Guid by) =>
-        new() { StoreId = row.StoreId, RegisterId = row.Id, RegisterName = row.Name, Kind = kind, At = at, By = by };
+    /// <summary>What a seal needs from its form, checked: the photo (uploaded by this person, not used yet) and the person who attached the seal (known).</summary>
+    private readonly record struct SealForm(Guid PhotoId, Guid SealedBy);
+
+    private static async Task<SealForm> TakeFormAsync(PortalDbContext db, Guid? photoId, Guid? sealedBy, Guid me, DateTimeOffset now, CancellationToken ct)
+    {
+        var validator = new Validator();
+        if (photoId is null)
+        {
+            validator.Add("photoId", "Bitte ein Foto des Siegels hochladen.");
+        }
+
+        if (sealedBy is null)
+        {
+            validator.Add("sealedBy", "Bitte angeben, wer das Siegel angebracht hat.");
+        }
+
+        validator.ThrowIfInvalid();
+
+        var photo = await db.CashRegisterPhotos.FirstOrDefaultAsync(p => p.Id == photoId!.Value, ct);
+        if (photo is null || photo.UploadedBy != me || photo.UsedAt is not null)
+        {
+            throw ApiException.Validation("photoId", "Das Foto ist unbekannt oder wurde schon verwendet. Bitte noch einmal hochladen.");
+        }
+
+        if (!await db.People.AnyAsync(p => p.EmployeeId == sealedBy!.Value, ct))
+        {
+            throw ApiException.Validation("sealedBy", "Diese Person ist unbekannt.");
+        }
+
+        photo.UsedAt = now;
+        return new SealForm(photo.Id, sealedBy!.Value);
+    }
+
+    private static CashRegisterEventRecord Event(CashRegisterRecord row, CashRegisterEventKind kind, DateTimeOffset at, Guid by, SealForm? form = null) =>
+        new() { StoreId = row.StoreId, RegisterId = row.Id, RegisterName = row.Name, Kind = kind, At = at, By = by, PhotoId = form?.PhotoId, AttachedBy = form?.SealedBy };
 
     private static CashRegisterDto ToDto(CashRegisterRecord r, Portal.Infrastructure.Messaging.StoreRecord store, IReadOnlyDictionary<Guid, string> names) => new(
         r.Id, r.StoreId, store.StoreNumber, store.Name, r.Name, r.IsSealed, r.StateChangedAt, r.LastRecordedAt,
-        CashRegisterInitials.Of(names.GetValueOrDefault(r.LastRecordedBy)), names.GetValueOrDefault(r.LastRecordedBy));
+        CashRegisterInitials.Of(names.GetValueOrDefault(r.LastRecordedBy)), names.GetValueOrDefault(r.LastRecordedBy),
+        r.SealPhotoId,
+        r.SealAttachedBy is { } by ? CashRegisterInitials.Of(names.GetValueOrDefault(by)) : null,
+        r.SealAttachedBy is { } by2 ? names.GetValueOrDefault(by2) : null);
 
     private static async Task<Dictionary<Guid, string>> NamesAsync(PortalDbContext db, IEnumerable<Guid> ids, CancellationToken ct)
     {
-        var distinct = ids.Distinct().ToList();
+        var distinct = ids.Where(id => id != Guid.Empty).Distinct().ToList();
         return await db.People.AsNoTracking().Where(p => distinct.Contains(p.EmployeeId)).ToDictionaryAsync(p => p.EmployeeId, p => p.Name, ct);
     }
 

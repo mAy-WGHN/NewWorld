@@ -56,6 +56,9 @@ public sealed class PortalApi : WebApplicationFactory<ApiMarker>
     /// <summary>Where the files attached to FAQ entries are stored.</summary>
     public string AttachmentFolder => ImageFolder + "-files";
 
+    /// <summary>Where the photos of the seals of the cash registers are stored.</summary>
+    public string PhotoFolder => ImageFolder + "-photos";
+
     public static async Task<PortalApi> StartAsync(PostgresFixture postgres, Dictionary<string, string?>? settings = null)
     {
         var api = new PortalApi(await postgres.CreateDatabaseAsync(), settings ?? []);
@@ -70,6 +73,7 @@ public sealed class PortalApi : WebApplicationFactory<ApiMarker>
         builder.UseSetting($"ConnectionStrings:{InfrastructureServiceCollectionExtensions.ConnectionName}", _connectionString);
         builder.UseSetting("Portal:Faq:ImagePath", ImageFolder);
         builder.UseSetting("Portal:Faq:AttachmentPath", AttachmentFolder);
+        builder.UseSetting("Portal:CashRegisters:PhotoPath", PhotoFolder);
         // The tests of one class share the client address; the limits have their own tests.
         builder.UseSetting("Portal:RateLimiting:RequestsPerMinute", "100000");
         foreach (var (key, value) in _settings)
@@ -193,6 +197,11 @@ public sealed class PortalApi : WebApplicationFactory<ApiMarker>
             if (Directory.Exists(AttachmentFolder))
             {
                 Directory.Delete(AttachmentFolder, recursive: true);
+            }
+
+            if (Directory.Exists(PhotoFolder))
+            {
+                Directory.Delete(PhotoFolder, recursive: true);
             }
         }
 

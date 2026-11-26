@@ -5,7 +5,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { AuthService } from '../../core/auth/auth.service';
 import { PrivilegeSet } from '../../core/auth/privileges';
 import { CashRegisterApi } from './cash-register.api';
-import { CashRegister, CashRegisterList, cashRegisterError, filterRegisters, formatDateTime, isValidTime, kindLabel } from './cash-register-models';
+import { CashRegister, CashRegisterList, cashRegisterError, filterRegisters, formatDateTime, isValidTime, kindLabel, sealFormProblem } from './cash-register-models';
 import { CashRegistersPage } from './cash-registers.page';
 
 const register = (patch: Partial<CashRegister>): CashRegister => ({
@@ -19,11 +19,17 @@ const register = (patch: Partial<CashRegister>): CashRegister => ({
   lastRecordedAt: '2026-11-25T15:52:00Z',
   recordedBy: 'AvS',
   recordedByName: 'Anna von Schmidt',
+  sealPhotoId: null,
+  sealAttachedBy: null,
+  sealAttachedByName: null,
   ...patch,
 });
 
 const first = register({});
-const second = register({ id: 'r2', storeId: 's12', storeNumber: '0012', storeName: 'Augsburg HBF BaBu', name: 'Kasse 1', sealed: true, stateChangedAt: '2026-11-26T11:50:00Z' });
+const second = register({ id: 'r2', storeId: 's12', storeNumber: '0012', storeName: 'Augsburg HBF BaBu', name: 'Kasse 1', sealed: true, stateChangedAt: '2026-11-26T11:50:00Z', sealPhotoId: 'p2', sealAttachedBy: 'EM', sealAttachedByName: 'Erika Mustermann' });
+
+const photo = (type = 'image/png', size = 100) => new File([new Uint8Array(size)], 'siegel.png', { type });
+const erika = { id: 'e1', name: 'Erika Mustermann' };
 
 const list = (items: CashRegister[]): CashRegisterList => ({
   summary: { stores: 38, registers: items.length, sealed: items.filter((i) => i.sealed).length, notSealed: items.filter((i) => !i.sealed).length },
@@ -54,6 +60,16 @@ describe('cash register models', () => {
     expect(kindLabel('unsealed')).toBe('Siegel aufgehoben');
     expect(kindLabel('deleted')).toBe('Gelöscht');
     expect(kindLabel('neu')).toBe('neu');
+  });
+
+  it('says what is missing in the form of a seal: photo first, then the person', () => {
+    expect(sealFormProblem({ photo: null, sealedBy: erika })).toContain('Foto');
+    expect(sealFormProblem({ photo: photo('text/plain'), sealedBy: erika })).toContain('PNG');
+    expect(sealFormProblem({ photo: photo('image/png', 5 * 1024 * 1024 + 1), sealedBy: erika })).toContain('zu groß');
+    expect(sealFormProblem({ photo: photo(), sealedBy: null })).toContain('wer das Siegel angebracht hat');
+    expect(sealFormProblem({ photo: photo(), sealedBy: erika })).toBeNull();
+    expect(sealFormProblem({ photo: photo('image/jpeg', 5 * 1024 * 1024), sealedBy: erika })).toBeNull(); // exactly 5 MB is fine
+    expect(sealFormProblem({ photo: photo('image/webp'), sealedBy: erika })).toBeNull();
   });
 
   it('knows a valid time of day', () => {
@@ -98,11 +114,16 @@ describe('CashRegisterApi', () => {
   });
 
   it('sends create, edit, seal and delete to the right places', async () => {
-    const created = api.create('s10', 'Kasse 2', true);
+    const created = api.create('s10', 'Kasse 2', { photoId: 'p1', sealedBy: 'e1' });
     const create = http.expectOne('/svc/portal/api/cash-registers');
     expect(create.request.method).toBe('POST');
-    expect(create.request.body).toEqual({ storeId: 's10', name: 'Kasse 2', sealed: true });
+    expect(create.request.body).toEqual({ storeId: 's10', name: 'Kasse 2', sealed: true, photoId: 'p1', sealedBy: 'e1' });
     create.flush({ success: true, data: first });
+
+    const plain = api.create('s10', 'Kasse 4');
+    const plainCreate = http.expectOne('/svc/portal/api/cash-registers');
+    expect(plainCreate.request.body).toEqual({ storeId: 's10', name: 'Kasse 4', sealed: false });
+    plainCreate.flush({ success: true, data: first });
 
     const edited = api.update('r1', 's12', 'Kasse 3', false);
     const edit = http.expectOne('/svc/portal/api/cash-registers/r1');
@@ -110,9 +131,15 @@ describe('CashRegisterApi', () => {
     expect(edit.request.body).toEqual({ storeId: 's12', name: 'Kasse 3', sealed: false });
     edit.flush({ success: true, data: first });
 
-    const sealed = api.seal('r1');
+    const editedSealed = api.update('r1', 's12', 'Kasse 3', true, { photoId: 'p3', sealedBy: 'e1' });
+    const editSealed = http.expectOne('/svc/portal/api/cash-registers/r1');
+    expect(editSealed.request.body).toEqual({ storeId: 's12', name: 'Kasse 3', sealed: true, photoId: 'p3', sealedBy: 'e1' });
+    editSealed.flush({ success: true, data: second });
+
+    const sealed = api.seal('r1', { photoId: 'p2', sealedBy: 'e1' });
     const seal = http.expectOne('/svc/portal/api/cash-registers/r1/seal');
     expect(seal.request.method).toBe('POST');
+    expect(seal.request.body).toEqual({ photoId: 'p2', sealedBy: 'e1' });
     seal.flush({ success: true, data: second });
 
     const lifted = api.unseal('r1');
@@ -125,7 +152,32 @@ describe('CashRegisterApi', () => {
     expect(del.request.method).toBe('DELETE');
     del.flush(null, { status: 204, statusText: 'No Content' });
 
-    await Promise.all([created, edited, sealed, lifted, deleted]);
+    await Promise.all([created, plain, edited, editedSealed, sealed, lifted, deleted]);
+  });
+
+  it('uploads the photo as a form with the file and takes its id', async () => {
+    const done = api.uploadPhoto(photo());
+    const request = http.expectOne('/svc/portal/api/cash-registers/photos');
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body instanceof FormData).toBe(true);
+    expect((request.request.body as FormData).get('file')).toBeInstanceOf(File);
+    request.flush({ success: true, data: { id: 'p9' } });
+
+    expect(await done).toBe('p9');
+  });
+
+  it('loads a photo as an image and searches people by name', async () => {
+    const image = api.photo('p2');
+    const imageRequest = http.expectOne('/svc/portal/api/cash-registers/photos/p2');
+    expect(imageRequest.request.responseType).toBe('blob');
+    imageRequest.flush(new Blob(['x'], { type: 'image/png' }));
+    expect((await image).size).toBe(1);
+
+    const people = api.people('erik');
+    const peopleRequest = http.expectOne((r) => r.url === '/svc/portal/api/cash-registers/people');
+    expect(peopleRequest.request.params.get('query')).toBe('erik');
+    peopleRequest.flush({ success: true, data: [erika] });
+    expect(await people).toEqual([erika]);
   });
 
   it('asks for the history of one store or of all', async () => {
@@ -144,7 +196,7 @@ describe('CashRegisterApi', () => {
 });
 
 describe('CashRegistersPage', () => {
-  let api: Record<'list' | 'create' | 'update' | 'seal' | 'unseal' | 'delete' | 'history' | 'reminderSettings' | 'saveReminderSettings', ReturnType<typeof vi.fn>>;
+  let api: Record<'list' | 'create' | 'update' | 'seal' | 'unseal' | 'delete' | 'history' | 'reminderSettings' | 'saveReminderSettings' | 'uploadPhoto' | 'photo' | 'people', ReturnType<typeof vi.fn>>;
   let fixture: ComponentFixture<CashRegistersPage>;
   let root: HTMLElement;
 
@@ -159,7 +211,7 @@ describe('CashRegistersPage', () => {
     TestBed.configureTestingModule({
       providers: [
         { provide: CashRegisterApi, useValue: api },
-        { provide: AuthService, useValue: { privileges: signal(privileges) } },
+        { provide: AuthService, useValue: { privileges: signal(privileges), employeeId: signal('e0'), name: signal('Anna Admin') } },
       ],
     });
     fixture = TestBed.createComponent(CashRegistersPage);
@@ -187,11 +239,15 @@ describe('CashRegistersPage', () => {
       update: vi.fn().mockResolvedValue(first),
       seal: vi.fn().mockResolvedValue(second),
       unseal: vi.fn().mockResolvedValue(first),
+      uploadPhoto: vi.fn().mockResolvedValue('p-new'),
+      photo: vi.fn().mockResolvedValue(new Blob(['x'], { type: 'image/png' })),
+      people: vi.fn().mockResolvedValue([erika]),
       delete: vi.fn().mockResolvedValue(undefined),
       reminderSettings: vi.fn().mockResolvedValue({ enabled: true, time: '18:00' }),
       saveReminderSettings: vi.fn(),
       history: vi.fn().mockResolvedValue([
-        { id: 'e1', storeId: 's10', storeNumber: '0010', storeName: 'Augsburg Oberhausen', registerId: 'r1', registerName: 'WGHN Kasse 1', kind: 'recorded', at: '2026-11-25T15:52:00Z', by: 'AvS', byName: 'Anna von Schmidt' },
+        { id: 'e1', storeId: 's10', storeNumber: '0010', storeName: 'Augsburg Oberhausen', registerId: 'r1', registerName: 'WGHN Kasse 1', kind: 'recorded', at: '2026-11-25T15:52:00Z', by: 'AvS', byName: 'Anna von Schmidt', photoId: null, attachedBy: null, attachedByName: null },
+        { id: 'e2', storeId: 's12', storeNumber: '0012', storeName: 'Augsburg HBF BaBu', registerId: 'r2', registerName: 'Kasse 1', kind: 'sealed', at: '2026-11-26T11:50:00Z', by: 'AvS', byName: 'Anna von Schmidt', photoId: 'p2', attachedBy: 'EM', attachedByName: 'Erika Mustermann' },
       ]),
     };
   });
@@ -243,7 +299,7 @@ describe('CashRegistersPage', () => {
     await type('[data-testid="form-name"]', ' Kasse 2 ');
     await click(q('[data-testid="form-save"]'));
 
-    expect(api.create).toHaveBeenCalledWith('s12', 'Kasse 2', false);
+    expect(api.create).toHaveBeenCalledWith('s12', 'Kasse 2', null);
     expect(api.list).toHaveBeenCalledTimes(2);
     expect(q('[data-testid="form"]')).toBeNull();
     expect(q('[data-testid="status"]')!.textContent).toContain('erfasst');
@@ -258,16 +314,153 @@ describe('CashRegistersPage', () => {
     await type('[data-testid="form-name"]', 'WGHN Kasse 9');
     await click(q('[data-testid="form-save"]'));
 
-    expect(api.update).toHaveBeenCalledWith('r1', 's10', 'WGHN Kasse 9', false);
+    expect(api.update).toHaveBeenCalledWith('r1', 's10', 'WGHN Kasse 9', false, null);
   });
 
-  it('renews the seal', async () => {
+  /** Chooses a file in the photo field of the seal form. */
+  const choosePhoto = async (file: File) => {
+    const input = q<HTMLInputElement>('[data-testid="seal-photo"]')!;
+    Object.defineProperty(input, 'files', { value: [file], configurable: true });
+    input.dispatchEvent(new Event('change'));
+    await settle();
+  };
+
+  it('sets a seal with a form: photo and person (the one filling in is the default), the photo goes up first', async () => {
     await create();
 
     await click(all('[data-action="seal"]')[0]);
+    expect(q('[data-testid="seal-form"]')!.textContent).toContain('Siegel anbringen');
+    expect(q('[data-testid="seal-person"]')!.textContent).toContain('Anna Admin'); // the default
+    expect(q('[data-testid="seal-form"]')!.textContent).toContain('Datum und Uhrzeit werden automatisch gespeichert');
 
-    expect(api.seal).toHaveBeenCalledWith('r1');
+    await choosePhoto(photo());
+    await click(q('[data-testid="seal-save"]'));
+
+    expect(api.uploadPhoto).toHaveBeenCalledTimes(1);
+    expect(api.seal).toHaveBeenCalledWith('r1', { photoId: 'p-new', sealedBy: 'e0' });
     expect(q('[data-testid="status"]')!.textContent).toContain('Siegel');
+    expect(q('[data-testid="seal-form"]')).toBeNull();
+  });
+
+  it('does not send the form of a seal without a photo or with a wrong file', async () => {
+    await create();
+    await click(all('[data-action="seal"]')[0]);
+
+    await click(q('[data-testid="seal-save"]'));
+    expect(q('[data-testid="error"]')!.textContent).toContain('Foto');
+
+    await choosePhoto(photo('application/pdf'));
+    await click(q('[data-testid="seal-save"]'));
+    expect(q('[data-testid="error"]')!.textContent).toContain('PNG');
+
+    expect(api.uploadPhoto).not.toHaveBeenCalled();
+    expect(api.seal).not.toHaveBeenCalled();
+    expect(q('[data-testid="seal-form"]')).not.toBeNull();
+  });
+
+  it('lets the person choose somebody else as the one who attached the seal', async () => {
+    await create();
+    await click(all('[data-action="seal"]')[0]);
+
+    await choosePhoto(photo());
+    await click(q('[data-testid="seal-person-change"]'));
+    expect(q('[data-testid="seal-person"]')).toBeNull();
+    await click(q('[data-testid="seal-save"]'));
+    expect(q('[data-testid="error"]')!.textContent).toContain('wer das Siegel angebracht hat'); // nobody chosen yet
+
+    const search = q<HTMLInputElement>('[data-testid="seal-person-search"]')!;
+    search.value = 'erik';
+    search.dispatchEvent(new Event('input'));
+    await new Promise((r) => setTimeout(r, 350)); // the search starts a moment after the last key
+    await settle();
+    expect(api.people).toHaveBeenCalledWith('erik');
+    await click(q('[data-testid="seal-person-option"]'));
+    expect(q('[data-testid="seal-person"]')!.textContent).toContain('Erika Mustermann');
+
+    await choosePhoto(photo());
+    await click(q('[data-testid="seal-save"]'));
+    expect(api.seal).toHaveBeenCalledWith('r1', { photoId: 'p-new', sealedBy: 'e1' });
+  });
+
+  it('shows the form of a seal in the form of a register only for a new seal', async () => {
+    await create();
+
+    await click(all('[data-action="edit"]')[1]); // sealed already: no new form
+    expect(q('[data-testid="seal-fields"]')).toBeNull();
+    await click(q('[data-testid="form-cancel"]'));
+
+    await click(all('[data-action="edit"]')[0]); // not sealed: ticking asks for the form
+    expect(q('[data-testid="seal-fields"]')).toBeNull();
+    q<HTMLInputElement>('[data-testid="form-sealed"]')!.click();
+    await settle();
+    expect(q('[data-testid="seal-fields"]')).not.toBeNull();
+  });
+
+  it('records a new register as sealed with the form, and only when it is complete', async () => {
+    await create();
+
+    await click(q('[data-testid="create-button"]'));
+    expect(q<HTMLInputElement>('[data-testid="form-sealed"]')!.checked).toBe(false);
+    await type('[data-testid="form-store"]', 's10', 'change');
+    await type('[data-testid="form-name"]', 'Kasse 7');
+    q<HTMLInputElement>('[data-testid="form-sealed"]')!.click();
+    await settle();
+    await click(q('[data-testid="form-save"]'));
+    expect(q('[data-testid="error"]')!.textContent).toContain('Foto');
+    expect(api.create).not.toHaveBeenCalled();
+
+    await choosePhoto(photo('image/jpeg'));
+    await click(q('[data-testid="form-save"]'));
+
+    expect(api.uploadPhoto).toHaveBeenCalledTimes(1);
+    expect(api.create).toHaveBeenCalledWith('s10', 'Kasse 7', { photoId: 'p-new', sealedBy: 'e0' });
+  });
+
+  it('edits a register into sealed with the form', async () => {
+    await create();
+
+    await click(all('[data-action="edit"]')[0]);
+    q<HTMLInputElement>('[data-testid="form-sealed"]')!.click();
+    await settle();
+    await choosePhoto(photo('image/webp'));
+    await click(q('[data-testid="form-save"]'));
+
+    expect(api.update).toHaveBeenCalledWith('r1', 's10', 'WGHN Kasse 1', true, { photoId: 'p-new', sealedBy: 'e0' });
+  });
+
+  it('shows who attached the seal on the row and opens the photo of a seal, also from the history', async () => {
+    URL.createObjectURL = vi.fn().mockReturnValue('blob:foto');
+    URL.revokeObjectURL = vi.fn();
+    await create();
+
+    expect(all('[data-testid="seal-info"]')).toHaveLength(1);
+    expect(q('[data-testid="seal-info"]')!.textContent).toContain('angebracht von EM');
+    expect(all('[data-action="photo"]')).toHaveLength(1); // only the sealed register has one
+
+    await click(all('[data-action="photo"]')[0]);
+    expect(api.photo).toHaveBeenCalledWith('p2');
+    expect(q('[data-testid="photo-view"] img')!.getAttribute('src')).toBe('blob:foto');
+    await click(q('[data-testid="photo-close"]'));
+    expect(q('[data-testid="photo-view"]')).toBeNull();
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:foto');
+
+    await click(q('[data-testid="history-button"]'));
+    expect(q('[data-testid="history-attached"]')!.textContent).toContain('angebracht von EM');
+    await click(q('[data-action="history-photo"]'));
+    expect(api.photo).toHaveBeenLastCalledWith('p2');
+  });
+
+  it('shows a failure of the photo upload and keeps the form', async () => {
+    api.uploadPhoto.mockRejectedValue(new HttpErrorResponse({ status: 422, error: { success: false, message: 'Validierung fehlgeschlagen.', errors: [{ field: 'file', message: 'Nur PNG-, JPEG- oder WebP-Bilder sind erlaubt.' }] } }));
+    await create();
+    await click(all('[data-action="seal"]')[0]);
+    await choosePhoto(photo());
+
+    await click(q('[data-testid="seal-save"]'));
+
+    expect(q('[data-testid="error"]')!.textContent).toContain('Nur PNG-');
+    expect(api.seal).not.toHaveBeenCalled();
+    expect(q('[data-testid="seal-form"]')).not.toBeNull();
   });
 
   it('lifts the seal only for a sealed register', async () => {
@@ -291,21 +484,7 @@ describe('CashRegistersPage', () => {
     await settle();
     await click(q('[data-testid="form-save"]'));
 
-    expect(api.update).toHaveBeenCalledWith('r2', 's12', 'Kasse 1', false);
-  });
-
-  it('records a new register as sealed when the tick is set', async () => {
-    await create();
-
-    await click(q('[data-testid="create-button"]'));
-    expect(q<HTMLInputElement>('[data-testid="form-sealed"]')!.checked).toBe(false);
-    await type('[data-testid="form-store"]', 's10', 'change');
-    await type('[data-testid="form-name"]', 'Kasse 7');
-    q<HTMLInputElement>('[data-testid="form-sealed"]')!.click();
-    await settle();
-    await click(q('[data-testid="form-save"]'));
-
-    expect(api.create).toHaveBeenCalledWith('s10', 'Kasse 7', true);
+    expect(api.update).toHaveBeenCalledWith('r2', 's12', 'Kasse 1', false, null);
   });
 
   it('asks before deleting: the first click only asks, the second deletes', async () => {
@@ -339,7 +518,7 @@ describe('CashRegistersPage', () => {
     await click(q('[data-testid="history-button"]'));
 
     expect(api.history).toHaveBeenCalledWith('s10');
-    expect(all('[data-testid="history-row"]')).toHaveLength(1);
+    expect(all('[data-testid="history-row"]')).toHaveLength(2);
     expect(all('[data-testid="history-row"]')[0].textContent).toContain('Erfasst');
     expect(q('[data-testid="table"]')).toBeNull();
 
@@ -351,7 +530,8 @@ describe('CashRegistersPage', () => {
     await create(grant('cashregister:read'));
 
     expect(q('[data-testid="create-button"]')).toBeNull();
-    expect(all('[data-action]')).toHaveLength(0);
+    // the photo of a seal can be looked at by everybody who reads; nothing that changes anything is offered
+    expect(all('[data-action]').map((b) => b.dataset['action'])).toEqual(['photo']);
     expect(all('[data-testid="row"]')).toHaveLength(2);
   });
 

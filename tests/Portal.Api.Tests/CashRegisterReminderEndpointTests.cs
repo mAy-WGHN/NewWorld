@@ -48,7 +48,7 @@ public sealed class CashRegisterReminderEndpointTests(PostgresFixture postgres) 
 
     private static async Task SealAsync(PortalApi api, Guid id)
     {
-        using var response = await api.SendAsync(HttpMethod.Post, $"/api/cash-registers/{id}/seal", Hanna);
+        using var response = await CashRegisterTestHelpers.SealAsync(api, id, Hanna);
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
@@ -309,7 +309,7 @@ public sealed class CashRegisterReminderEndpointTests(PostgresFixture postgres) 
         await using var api = await StartUpAsync();
         var id = await RecordAsync(api, StoreB, "Kasse B");
 
-        using var seal = await api.SendAsync(HttpMethod.Post, $"/api/cash-registers/{id}/seal", Ben);
+        using var seal = await CashRegisterTestHelpers.SealAsync(api, id, Ben);
         using var delete = await api.SendAsync(HttpMethod.Delete, $"/api/cash-registers/{id}", Ben);
         using var create = await api.SendAsync(HttpMethod.Post, "/api/cash-registers", Ben, new { storeId = StoreB, name = "Neu" });
 

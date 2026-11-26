@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, OnDestroy, computed, inject, signal } from '@angular/core';
 import { AuthService } from '../../core/auth/auth.service';
 import { PAGE_UI } from '../../shared/ui/material';
 import { CashRegisterApi } from './cash-register.api';
@@ -6,15 +6,19 @@ import {
   CashRegister,
   CashRegisterEvent,
   CashRegisterList,
+  PersonOption,
+  ReminderSettings,
+  SealFormValue,
   STATUS_FILTERS,
   StatusFilter,
   cashRegisterError,
   filterRegisters,
-  ReminderSettings,
   formatDateTime,
   isValidTime,
   kindLabel,
+  sealFormProblem,
 } from './cash-register-models';
+import { SealFields } from './seal-fields';
 
 /** The form for "Kasse erfassen" (no `id`) and "Bearbeiten" (with the `id` of the register). */
 interface Draft {
@@ -23,19 +27,31 @@ interface Draft {
   name: string;
   /** Whether the drawer is sealed: the seal can be set or lifted when recording and editing. */
   sealed: boolean;
+  /** Whether it was sealed when the form was opened: a seal that is there already needs no new form. */
+  wasSealed: boolean;
+  /** The form of a new seal: photo and who attached it. */
+  seal: SealFormValue;
+}
+
+/** The form of "Siegel erneuern" for one register. */
+interface Sealing {
+  register: CashRegister;
+  seal: SealFormValue;
 }
 
 /**
- * "Kassenregister" (Filialbetrieb): the cash registers of the stores with their seal. The seal is set explicitly: "Siegel erneuern" or "Versiegelt" in the
- * form sets it, "Siegel aufheben" (or taking the tick away when editing) marks the drawer as not sealed. "Filialhistorie" shows every step. The screen only guides the person (what the buttons offer follows the privileges), the service decides
- * and limits everything to the stores of the privilege.
+ * "Kassenregister" (Filialbetrieb): the cash registers of the stores with their seal. The seal is a plain state that is set explicitly. **Setting a seal is a
+ * form**: a photo of the seal and who attached it (the person who fills in the form is the default), date and time are taken by the service; "Siegel aufheben"
+ * (or taking the tick away when editing) marks the drawer as not sealed and needs nothing. The photo of a seal can be looked at on the row and in the
+ * history. The screen only guides the person (what the buttons offer follows the privileges), the service decides and limits everything to the stores of
+ * the privilege.
  */
 @Component({
   selector: 'app-cash-registers',
-  imports: [...PAGE_UI],
+  imports: [...PAGE_UI, SealFields],
   templateUrl: './cash-registers.page.html',
 })
-export class CashRegistersPage {
+export class CashRegistersPage implements OnDestroy {
   private readonly api = inject(CashRegisterApi);
   private readonly auth = inject(AuthService);
 
@@ -56,9 +72,11 @@ export class CashRegistersPage {
   protected readonly storeFilter = signal('');
   protected readonly query = signal('');
   protected readonly draft = signal<Draft | null>(null);
+  protected readonly sealing = signal<Sealing | null>(null);
   protected readonly confirmDelete = signal<string | null>(null);
   protected readonly showHistory = signal(false);
   protected readonly history = signal<CashRegisterEvent[] | null>(null);
+  protected readonly photoView = signal<{ url: string; title: string } | null>(null);
 
   protected readonly filters = STATUS_FILTERS;
   protected readonly formatDateTime = formatDateTime;
@@ -66,11 +84,22 @@ export class CashRegistersPage {
 
   protected readonly rows = computed(() => filterRegisters(this.data()?.items ?? [], this.statusFilter(), this.storeFilter(), this.query()));
 
+  /** The person who is filling in the form: the default for "who attached the seal". */
+  private readonly me = computed<PersonOption | null>(() => {
+    const id = this.auth.employeeId();
+    const name = this.auth.name();
+    return id && name ? { id, name } : null;
+  });
+
   constructor() {
     void this.load();
     if (this.canManageReminders()) {
       void this.loadReminder();
     }
+  }
+
+  ngOnDestroy(): void {
+    this.closePhoto();
   }
 
   private async loadReminder(): Promise<void> {
@@ -118,15 +147,21 @@ export class CashRegistersPage {
     }
   }
 
+  private emptySeal(): SealFormValue {
+    return { photo: null, sealedBy: this.me() };
+  }
+
   protected startCreate(): void {
     const stores = this.data()?.stores ?? [];
     this.status.set(null);
-    this.draft.set({ id: null, storeId: this.storeFilter() || (stores.length === 1 ? stores[0].id : ''), name: '', sealed: false });
+    this.sealing.set(null);
+    this.draft.set({ id: null, storeId: this.storeFilter() || (stores.length === 1 ? stores[0].id : ''), name: '', sealed: false, wasSealed: false, seal: this.emptySeal() });
   }
 
   protected startEdit(register: CashRegister): void {
     this.status.set(null);
-    this.draft.set({ id: register.id, storeId: register.storeId, name: register.name, sealed: register.sealed });
+    this.sealing.set(null);
+    this.draft.set({ id: register.id, storeId: register.storeId, name: register.name, sealed: register.sealed, wasSealed: register.sealed, seal: this.emptySeal() });
   }
 
   protected setDraft(field: 'storeId' | 'name', event: Event): void {
@@ -139,6 +174,15 @@ export class CashRegistersPage {
     this.draft.update((d) => (d ? { ...d, sealed } : d));
   }
 
+  protected setDraftSeal(seal: SealFormValue): void {
+    this.draft.update((d) => (d ? { ...d, seal } : d));
+  }
+
+  /** A new seal (ticked, and not sealed before) needs the form with photo and person. */
+  protected needsSealForm(draft: Draft): boolean {
+    return draft.sealed && !draft.wasSealed;
+  }
+
   protected async save(): Promise<void> {
     const draft = this.draft();
     if (!draft) {
@@ -148,12 +192,19 @@ export class CashRegistersPage {
       this.error.set('Bitte Filiale und Namen der Kasse angeben.');
       return;
     }
+    const needsForm = this.needsSealForm(draft);
+    const problem = needsForm ? sealFormProblem(draft.seal) : null;
+    if (problem) {
+      this.error.set(problem);
+      return;
+    }
     await this.act(
       async () => {
+        const payload = needsForm ? await this.uploadSeal(draft.seal) : null;
         if (draft.id) {
-          await this.api.update(draft.id, draft.storeId, draft.name.trim(), draft.sealed);
+          await this.api.update(draft.id, draft.storeId, draft.name.trim(), draft.sealed, payload);
         } else {
-          await this.api.create(draft.storeId, draft.name.trim(), draft.sealed);
+          await this.api.create(draft.storeId, draft.name.trim(), payload);
         }
         this.draft.set(null);
       },
@@ -161,12 +212,42 @@ export class CashRegistersPage {
     );
   }
 
-  protected async liftSeal(register: CashRegister): Promise<void> {
-    await this.act(() => this.api.unseal(register.id), `Das Siegel von „${register.name}“ wurde aufgehoben, die Kasse gilt als nicht versiegelt.`);
+  /** The photo goes up first; its id and the person who attached the seal are the form that is sent. */
+  private async uploadSeal(seal: SealFormValue): Promise<{ photoId: string; sealedBy: string }> {
+    const photoId = await this.api.uploadPhoto(seal.photo as File);
+    return { photoId, sealedBy: (seal.sealedBy as PersonOption).id };
   }
 
-  protected async renewSeal(register: CashRegister): Promise<void> {
-    await this.act(() => this.api.seal(register.id), `Das Siegel von „${register.name}“ wurde erneuert.`);
+  /** "Siegel erneuern": the form of a seal for this register. */
+  protected startRenew(register: CashRegister): void {
+    this.status.set(null);
+    this.error.set(null);
+    this.draft.set(null);
+    this.sealing.set({ register, seal: this.emptySeal() });
+  }
+
+  protected setSealingSeal(seal: SealFormValue): void {
+    this.sealing.update((s) => (s ? { ...s, seal } : s));
+  }
+
+  protected async submitSealing(): Promise<void> {
+    const form = this.sealing();
+    if (!form) {
+      return;
+    }
+    const problem = sealFormProblem(form.seal);
+    if (problem) {
+      this.error.set(problem);
+      return;
+    }
+    await this.act(async () => {
+      await this.api.seal(form.register.id, await this.uploadSeal(form.seal));
+      this.sealing.set(null);
+    }, `Das Siegel von „${form.register.name}“ wurde gesetzt.`);
+  }
+
+  protected async liftSeal(register: CashRegister): Promise<void> {
+    await this.act(() => this.api.unseal(register.id), `Das Siegel von „${register.name}“ wurde aufgehoben, die Kasse gilt als nicht versiegelt.`);
   }
 
   protected async remove(register: CashRegister): Promise<void> {
@@ -178,6 +259,26 @@ export class CashRegistersPage {
       await this.api.delete(register.id);
       this.confirmDelete.set(null);
     }, `Die Kasse „${register.name}“ wurde gelöscht.`);
+  }
+
+  /** Looks at the photo of a seal (loaded with the sign-in and shown from a temporary address). */
+  protected async showPhoto(photoId: string, title: string): Promise<void> {
+    try {
+      const blob = await this.api.photo(photoId);
+      this.closePhoto();
+      this.photoView.set({ url: URL.createObjectURL(blob), title });
+      this.error.set(null);
+    } catch (error) {
+      this.error.set(cashRegisterError(error));
+    }
+  }
+
+  protected closePhoto(): void {
+    const view = this.photoView();
+    if (view) {
+      URL.revokeObjectURL(view.url);
+      this.photoView.set(null);
+    }
   }
 
   protected async toggleHistory(): Promise<void> {

@@ -21,15 +21,32 @@ public sealed class CashRegisterRecord
     public DateTimeOffset StateChangedAt { get; set; }
 
     public Guid StateChangedBy { get; set; }
+
+    /// <summary>The form of the current seal: the photo and who attached the seal (what a person says in the form; only while sealed). The time is <see cref="StateChangedAt"/>.</summary>
+    public Guid? SealPhotoId { get; set; }
+
+    public Guid? SealAttachedBy { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
 
-    /// <summary>Sets the state and remembers when and by whom (the one place that changes it).</summary>
-    public void SetSealed(bool sealedState, DateTimeOffset at, Guid by)
+    /// <summary>Sets the state and remembers when and by whom (the one place that changes it). A seal comes with its photo and the person who attached it; lifting clears both.</summary>
+    public void SetSealed(bool sealedState, DateTimeOffset at, Guid by, Guid? photoId = null, Guid? attachedBy = null)
     {
         IsSealed = sealedState;
         StateChangedAt = at;
         StateChangedBy = by;
+        SealPhotoId = sealedState ? photoId : null;
+        SealAttachedBy = sealedState ? attachedBy : null;
     }
+}
+
+/// <summary>A photo of a seal, uploaded before the seal is set; it belongs to the person who uploaded it until a seal uses it (then <see cref="UsedAt"/> is set).</summary>
+public sealed class CashRegisterPhotoRecord
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public required string Extension { get; set; }
+    public Guid UploadedBy { get; set; }
+    public DateTimeOffset UploadedAt { get; set; }
+    public DateTimeOffset? UsedAt { get; set; }
 }
 
 /// <summary>The one row with the settings of the daily reminder (maintained by the holders of <c>cashregister:manage-reminders</c>).</summary>
@@ -61,4 +78,9 @@ public sealed class CashRegisterEventRecord
     public CashRegisterEventKind Kind { get; set; }
     public DateTimeOffset At { get; set; }
     public Guid By { get; set; }
+
+    /// <summary>For a seal: the photo and who attached it (from the form).</summary>
+    public Guid? PhotoId { get; set; }
+
+    public Guid? AttachedBy { get; set; }
 }

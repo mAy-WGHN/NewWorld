@@ -60,12 +60,40 @@
           <input type="checkbox" data-testid="form-sealed" [checked]="f.sealed" (change)="setDraftSealed($event)" />
           Versiegelt
         </label>
-        <div class="mb-5 flex gap-2">
-          <button mat-flat-button type="submit" data-testid="form-save" [disabled]="busy()">Speichern</button>
-          <button mat-stroked-button type="button" data-testid="form-cancel" (click)="draft.set(null)">Abbrechen</button>
+      </div>
+      @if (needsSealForm(f)) {
+        <div class="mb-4">
+          <app-seal-fields [value]="f.seal" (valueChange)="setDraftSeal($event)" />
         </div>
+      }
+      <div class="flex gap-2">
+        <button mat-flat-button type="submit" data-testid="form-save" [disabled]="busy()">Speichern</button>
+        <button mat-stroked-button type="button" data-testid="form-cancel" (click)="draft.set(null)">Abbrechen</button>
       </div>
     </form>
+  }
+
+  @if (sealing(); as s) {
+    <form class="mb-6 rounded-2xl border border-outline-variant bg-surface-container-low px-5 py-4" data-testid="seal-form" (submit)="$event.preventDefault(); submitSealing()">
+      <h2 class="m-0 mb-3 text-lg font-medium">Siegel anbringen: {{ s.register.storeNumber }} {{ s.register.storeName }}, {{ s.register.name }}</h2>
+      <div class="mb-4">
+        <app-seal-fields [value]="s.seal" (valueChange)="setSealingSeal($event)" />
+      </div>
+      <div class="flex gap-2">
+        <button mat-flat-button type="submit" data-testid="seal-save" [disabled]="busy()">Siegel setzen</button>
+        <button mat-stroked-button type="button" data-testid="seal-cancel" (click)="sealing.set(null)">Abbrechen</button>
+      </div>
+    </form>
+  }
+
+  @if (photoView(); as view) {
+    <section class="mb-6 rounded-2xl border border-outline-variant bg-surface-container-low px-5 py-4" aria-label="Foto des Siegels" data-testid="photo-view">
+      <div class="mb-3 flex items-center justify-between gap-3">
+        <h2 class="m-0 text-lg font-medium">Foto des Siegels: {{ view.title }}</h2>
+        <button mat-stroked-button type="button" data-testid="photo-close" (click)="closePhoto()">Schließen</button>
+      </div>
+      <img class="max-h-96 max-w-full rounded-lg border border-outline-variant" [src]="view.url" [alt]="'Foto des Siegels: ' + view.title" />
+    </section>
   }
 
   <section class="rounded-2xl border border-outline-variant bg-surface-container-lowest px-5 py-5" aria-labelledby="list-title">
@@ -128,6 +156,11 @@
                     <span class="inline-block whitespace-nowrap rounded-full px-3 py-1" [class.bg-primary-container]="r.sealed" [class.text-on-primary-container]="r.sealed" [class.bg-attention]="!r.sealed" [class.text-on-attention]="!r.sealed" data-testid="status-chip">
                       {{ r.sealed ? 'Versiegelt' : 'Nicht versiegelt' }}
                     </span>
+                    @if (r.sealed && r.sealAttachedBy) {
+                      <small class="mt-1 block text-on-surface-variant" data-testid="seal-info" [attr.title]="r.sealAttachedByName">
+                        angebracht von {{ r.sealAttachedBy }}, {{ formatDateTime(r.stateChangedAt) }}
+                      </small>
+                    }
                   </td>
                   <td class="px-3 py-3 whitespace-nowrap">{{ formatDateTime(r.lastRecordedAt) }}</td>
                   <td class="px-3 py-3" [attr.title]="r.recordedByName">{{ r.recordedBy }}</td>
@@ -135,10 +168,13 @@
                     <span class="flex flex-wrap justify-end gap-2">
                       @if (canRecord()) {
                         <button mat-stroked-button type="button" data-action="edit" [disabled]="busy()" (click)="startEdit(r)">Bearbeiten</button>
-                        <button mat-stroked-button type="button" data-action="seal" [disabled]="busy()" (click)="renewSeal(r)">Siegel erneuern</button>
+                        <button mat-stroked-button type="button" data-action="seal" [disabled]="busy()" (click)="startRenew(r)">Siegel erneuern</button>
                         @if (r.sealed) {
                           <button mat-stroked-button type="button" data-action="unseal" [disabled]="busy()" (click)="liftSeal(r)">Siegel aufheben</button>
                         }
+                      }
+                      @if (r.sealPhotoId; as photoId) {
+                        <button mat-stroked-button type="button" data-action="photo" (click)="showPhoto(photoId, r.storeNumber + ' ' + r.storeName + ', ' + r.name)">Foto</button>
                       }
                       @if (canDelete()) {
                         <button mat-stroked-button type="button" data-action="delete" [disabled]="busy()" (click)="remove(r)">
@@ -175,7 +211,15 @@
                     <td class="px-3 py-3 whitespace-nowrap">{{ formatDateTime(e.at) }}</td>
                     <td class="px-3 py-3 font-semibold">{{ e.storeNumber }} {{ e.storeName }}</td>
                     <td class="px-3 py-3">{{ e.registerName }}</td>
-                    <td class="px-3 py-3">{{ kindLabel(e.kind) }}</td>
+                    <td class="px-3 py-3">
+                      {{ kindLabel(e.kind) }}
+                      @if (e.attachedBy) {
+                        <small class="block text-on-surface-variant" data-testid="history-attached" [attr.title]="e.attachedByName">angebracht von {{ e.attachedBy }}</small>
+                      }
+                      @if (e.photoId; as photoId) {
+                        <button mat-button type="button" data-action="history-photo" (click)="showPhoto(photoId, e.storeNumber + ' ' + e.storeName + ', ' + e.registerName)">Foto ansehen</button>
+                      }
+                    </td>
                     <td class="px-3 py-3" [attr.title]="e.byName">{{ e.by }}</td>
                   </tr>
                 }

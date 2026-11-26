@@ -38,6 +38,7 @@ public sealed class PortalDbContext(DbContextOptions<PortalDbContext> options) :
     public DbSet<LogbookReminderSettingsRecord> LogbookReminderSettings => Set<LogbookReminderSettingsRecord>();
     public DbSet<CashRegisterRecord> CashRegisters => Set<CashRegisterRecord>();
     public DbSet<CashRegisterEventRecord> CashRegisterEvents => Set<CashRegisterEventRecord>();
+    public DbSet<CashRegisterPhotoRecord> CashRegisterPhotos => Set<CashRegisterPhotoRecord>();
     public DbSet<CashRegisterReminderSettingsRecord> CashRegisterReminderSettings => Set<CashRegisterReminderSettingsRecord>();
     public DbSet<CashRegisterReminderRecord> CashRegisterReminders => Set<CashRegisterReminderRecord>();
 
@@ -208,6 +209,13 @@ public sealed class PortalDbContext(DbContextOptions<PortalDbContext> options) :
             b.HasKey(r => r.Id);
             b.Property(r => r.Id).ValueGeneratedNever();
             b.HasIndex(r => r.Day).IsUnique();
+        });
+        modelBuilder.Entity<CashRegisterPhotoRecord>(b =>
+        {
+            b.ToTable("cash_register_photos");
+            b.HasKey(p => p.Id);
+            b.Property(p => p.Id).ValueGeneratedNever();
+            b.Property(p => p.Extension).HasMaxLength(10);
         });
         modelBuilder.Entity<CashRegisterEventRecord>(b =>
         {

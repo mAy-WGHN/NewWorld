@@ -61,6 +61,9 @@ public static class InfrastructureServiceCollectionExtensions
         // FAQ images: files outside the application folder (never in the web root); relative paths count from the content root.
         var imagePath = configuration["Portal:Faq:ImagePath"] is { Length: > 0 } configured ? configured : Path.Combine("var", "uploads", "faq");
         services.AddSingleton<IFaqImageStorage>(_ => new FileSystemFaqImageStorage(Path.GetFullPath(imagePath, environment.ContentRootPath)));
+        // Photos of the seals of the cash registers: files outside the application folder, only reachable through the API.
+        var photoPath = configuration["Portal:CashRegisters:PhotoPath"] is { Length: > 0 } photos ? photos : Path.Combine("var", "uploads", "cash-registers");
+        services.AddSingleton<Portal.Core.CashRegisters.ICashRegisterPhotoStorage>(_ => new CashRegisters.FileSystemCashRegisterPhotoStorage(Path.GetFullPath(photoPath, environment.ContentRootPath)));
         var attachmentPath = configuration["Portal:Faq:AttachmentPath"] is { Length: > 0 } attachments ? attachments : Path.Combine("var", "uploads", "faq-files");
         services.AddSingleton<IFaqAttachmentStorage>(_ => new FileSystemFaqAttachmentStorage(Path.GetFullPath(attachmentPath, environment.ContentRootPath)));
 
